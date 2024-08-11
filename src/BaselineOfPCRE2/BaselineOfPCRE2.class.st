@@ -15,5 +15,5 @@ BaselineOfPCRE2 >> baseline: spec [
 
 		spec group: 'core' with: #( 'PCRE2' ).
 		spec group: 'tests' with: #( 'PCRE2-Tests' ).
-		spec group: 'default' with: #( 'Core' 'Tests' ) ]
+		spec group: 'default' with: #( 'core' 'tests' ) ]
 ]

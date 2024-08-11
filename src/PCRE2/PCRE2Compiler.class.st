@@ -75,6 +75,7 @@ PCRE2Compiler class >> startUp: resuming [
 	"Verify that the library supports JIT compilation on the current platform"
 
 	resuming ifTrue: [
+		PCRE2Types initialize. "TODO handle dependency in baseline"
 		SupportsJIT := (LibPCRE2 config: PCRE2 configJIT) == 1 ]
 ]
 
