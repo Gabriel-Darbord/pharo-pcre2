@@ -23,7 +23,7 @@ LibPCRE2 class >> deserialize: bytes [
 { #category : 'library path' }
 LibPCRE2 class >> libraryBasename [
 
-	^ 'libpcre2-8.0'
+	^ 'libpcre2-8'
 ]
 
 { #category : 'instance creation' }
