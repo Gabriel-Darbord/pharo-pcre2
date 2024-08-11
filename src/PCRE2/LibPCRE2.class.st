@@ -236,3 +236,23 @@ LibPCRE2 >> serializedNumberOfCodes: bytes [
 
 	self ffiCall: #(int32 pcre2_serialize_get_number_of_codes_8(const uint8 *bytes))
 ]
+
+{ #category : 'accessing - platform' }
+LibPCRE2 >> unix32LibraryName [
+
+	^ FFIUnix32LibraryFinder new findLibrary:
+		  self class libraryBasename , '.so'
+]
+
+{ #category : 'accessing - platform' }
+LibPCRE2 >> unix64LibraryName [
+
+	^ FFIUnix64LibraryFinder new findLibrary:
+		  self class libraryBasename , '.so'
+]
+
+{ #category : 'accessing - platform' }
+LibPCRE2 >> unixLibraryName [
+
+	^ self unix32LibraryName
+]
