@@ -18,6 +18,9 @@ jobs:
     name: ${{ matrix.smalltalk }}
     steps:
       - uses: actions/checkout@v4
+      - name: Install PCRE2
+        run: sudo apt-get update && sudo apt-get install -y libpcre2-8-0
+        shell: bash
       - uses: hpi-swa/setup-smalltalkCI@v1
         with:
           smalltalk-image: ${{ matrix.smalltalk }}
