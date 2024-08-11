@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install PCRE2
-        run: sudo apt-get update && sudo apt-get install -y libpcre2-8-0
+        run: sudo find /usr -name "libpcre2-8*.so"
         shell: bash
       - uses: hpi-swa/setup-smalltalkCI@v1
         with:
