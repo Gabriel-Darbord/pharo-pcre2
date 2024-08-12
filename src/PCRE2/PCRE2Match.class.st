@@ -153,26 +153,46 @@ PCRE2Match >> offsetsAt: pairIndex [
 
 { #category : 'enumerating' }
 PCRE2Match >> offsetsDo: aBlock [
-	"Iterate over the offset pairs resulting from a match operation"
+	"Iterate over the offset pairs resulting from a match operation.
+	The first pair is what the full pattern matched, subsequent pairs are from capture groups."
 
-	isPersistent ifTrue: [
+	| wordSize |
+	isPersistent ifTrue: [ "the offsets is the full ovector as a Pharo array of integers"
 		1 to: count by: 2 do: [ :i |
 		aBlock value: (offsets at: i) value: (offsets at: i + 1) ].
 		^ self ].
 
+	wordSize := ExternalAddress wordSize.
 	offsets ifNil: [ offsets := self getOffsetsVector ]. "table containing pairs of 0-based indexes"
 
-	"How to make sure we read with the correct size for the `size_t` type (can obtain using `FFIArchitecture forCurrentArchitecture sizeTTypeSize`).
-	We also need the primitive of uint64AtOffset: (or equivalent depending on size), and platformSizeTAt: fails."
+	"let n = wordSize = sizeof(size_t), start follows the progression n(2i-2), end follows n(2i-1)
+	e.g. with n = 8, start = 0, 16, 32, 48... and end = 8, 24, 40, 56...
+	PCRE2 sets the end index as exclusive, but Pharo uses only inclusive, so it is a translated
+	the start index is incremented to be 1-based, and it stays inclusive
+	the end index is incremented (0 to 1-based) but also decremented (to be inclusive)
+	e.g. matching 'a' returns the range (offset pair) [0,1) and it is translated to [1,1]"
 
-	"collect all matches, the first pair is what the full pattern matched, subsequent pairs are group matches, one for each"
-	1 to: self count do: [ :i | "first index is start of match, second is one after end"
+	wordSize == 8 ifTrue: [ "most cases"
+		1 to: self count do: [ :i |
+			| start end |
+			start := (offsets uint64AtOffset: 16 * (i - 1)) + 1.
+			end := offsets uint64AtOffset: 16 * i - 8.
+			aBlock value: start value: end ].
+		^ self ].
+
+	wordSize == 4 ifTrue: [ "some cases"
+		1 to: self count do: [ :i |
+			| start end |
+			start := (offsets uint32AtOffset: 8 * (i - 1)) + 1.
+			end := offsets uint32AtOffset: 8 * i - 4.
+			aBlock value: start value: end ].
+		^ self ].
+
+	"rare cases, platform-independent but slower"
+	1 to: self count do: [ :i | "note that #platformSizeTAt: is 1-based"
 		| start end |
-		"let n = sizeof(size_t), start follows the progression n(2i-2), end follows n(2i-1)
-		for example with n = 8, start = 0, 16, 32, 48... and end = 8, 24, 40, 56...
-		considering sizeof(size_t) = 8 bytes for now..."
-		start := (offsets uint64AtOffset: i - 1 * 16) + 1. "from 0 to 1-based"
-		end := offsets uint64AtOffset: i * 16 - 8. "no offset because we also need to decrement"
+		start := (offsets platformSizeTAt: 2 * wordSize * (i - 1) + 1) + 1.
+		end := offsets platformSizeTAt: wordSize * (2 * i - 1) + 1.
 		aBlock value: start value: end ]
 ]
 
