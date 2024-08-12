@@ -256,3 +256,10 @@ LibPCRE2 >> unixLibraryName [
 
 	^ self unix32LibraryName
 ]
+
+{ #category : 'accessing - platform' }
+LibPCRE2 >> win32LibraryName [
+
+	^ FFIWindowsLibraryFinder new findLibrary:
+		  self class libraryBasename , '.dll'
+]
