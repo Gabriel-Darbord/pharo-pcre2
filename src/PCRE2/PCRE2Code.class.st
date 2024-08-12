@@ -3,12 +3,17 @@ I am a compiled regular expression pattern.
 My goal is to help you find patterns within strings using a set of rules defined by a regular expression (regex).
 A regex matcher allows you to search, match, and manipulate strings based on these predefined patterns.
 
-
+### UTF Checking
 The option for UTF support is enabled by default, see the `PCRE2Compiler` comment. Note that UTF validity checking can take time. If the same data string is to be matched many times, you can use the `noUTFCheck` option for the second and subsequent matches to avoid running redundant checks, like so: `regex addOptions: PCRE2 noUTFCheck`.
 
+### JIT
 If supported by the running architecture, I can be JIT-compiled (Just-In-Time compiled). JIT compilation translates the pattern into machine code, significantly speeding up the matching process. The JIT status can be checked with `PCRE2Code>>#isJIT`. The size in memory of the JIT compiled code can be obtained using `regex info: PCRE2 infoJITSize`.
 
+### Copying
 A compiled pattern can be copied with the regular `copy` method, excluding any memory used by the JIT compiler. Without a subsequent call to `PCRE2Code>>#compileJIT`, the copy can be used only for non-JIT matching.
+
+### Matching Ranges
+The main API does not provide support for matching a range of the subject due to the way string marshaling works with FFI. Strings are always encoded as UTF8 `ByteArray`s. Thus, making a copy of the range of the string to match is much more efficient than passing the whole string and specifying ranges. If you are already working directly with encoded strings, you can use the `match...` family of methods, which does support ranges.
 "
 Class {
 	#name : 'PCRE2Code',
@@ -17,10 +22,10 @@ Class {
 	#classTraits : 'PCRE2TWithOptions classTrait',
 	#instVars : [
 		'matchData',
-		'optionsJIT',
+		'context',
 		'pattern',
-		'compileOptions',
-		'context'
+		'optionsJIT',
+		'compileOptions'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -95,6 +100,70 @@ PCRE2Code >> copy [
 	^ self deepCopy
 ]
 
+{ #category : 'copying' }
+PCRE2Code >> copy: subject replacingMatchesWith: aString [
+	"Copy the subject replacing each match with aString"
+
+	| encoder utfSubject lastIndex result |
+	encoder := ZnUTF8Encoder default.
+	utfSubject := encoder encodeString: subject.
+	lastIndex := 1.
+	result := WriteStream on: (String new: 100).
+	self
+		matchAll: utfSubject
+		from: 1
+		to: utfSubject size
+		do: [
+			| offsets start end |
+			offsets := matchData offsetsAt: 1.
+			start := offsets at: 1.
+			end := offsets at: 2.
+
+			lastIndex <= start ifTrue: [ "copy what was not matched"
+				result nextPutAll:
+					(encoder decodeBytes: (utfSubject copyFrom: lastIndex to: start)) ].
+			result nextPutAll: aString.
+			lastIndex := end + 1 ].
+
+	lastIndex < utfSubject size ifTrue: [ "from last match to end"
+		result nextPutAll: (encoder decodeBytes:
+				 (utfSubject copyFrom: lastIndex to: utfSubject size)) ].
+	^ result contents
+]
+
+{ #category : 'copying' }
+PCRE2Code >> copy: subject translatingMatchesUsing: aBlock [
+	"Copy the subject replacing each match by evaluating aBlock with the matched substring.
+	Expect the block to answer a String, and replace the match with the answer."
+
+	| encoder utfSubject lastIndex result |
+	encoder := ZnUTF8Encoder default.
+	utfSubject := encoder encodeString: subject.
+	lastIndex := 1.
+	result := WriteStream on: (String new: 100).
+	self
+		matchAll: utfSubject
+		from: 1
+		to: utfSubject size
+		do: [
+			| offsets start end |
+			offsets := matchData offsetsAt: 1.
+			start := offsets at: 1.
+			end := offsets at: 2.
+
+			lastIndex <= start ifTrue: [ "copy what was not matched"
+				result nextPutAll:
+					(encoder decodeBytes: (utfSubject copyFrom: lastIndex to: start)) ].
+			result nextPutAll:
+				(aBlock value: (utfSubject copyFrom: start + 1 to: end)).
+			lastIndex := end + 1 ].
+
+	lastIndex <= utfSubject size ifTrue: [ "from last match to end"
+		result nextPutAll: (encoder decodeBytes:
+				 (utfSubject copyFrom: lastIndex to: utfSubject size)) ].
+	^ result contents
+]
+
 { #category : 'private' }
 PCRE2Code >> createMatchContext [
 	"This function creates and initializes a new match context.
@@ -142,17 +211,10 @@ PCRE2Code >> errorCode: errorCode [
 PCRE2Code >> find: subject [
 	"Returns the first matching substring within the subject"
 
-	^ self find: subject from: 1 to: subject size
-]
-
-{ #category : 'matching' }
-PCRE2Code >> find: subject from: start to: end [
-	"Returns the first matching substring within a range of the subject"
-
 	| encoder utfSubject |
-	encoder := PCRE2UTF8Encoder from: start to: end.
+	encoder := ZnUTF8Encoder default.
 	utfSubject := encoder encodeString: subject.
-	self matchBytes: utfSubject from: encoder utfStart to: encoder utfEnd.
+	self matchBytes: utfSubject from: 1 to: utfSubject size.
 	^ (matchData readMatch: utfSubject) ifNotNil: [ :match |
 		  encoder decodeBytes: match ]
 ]
@@ -161,21 +223,14 @@ PCRE2Code >> find: subject from: start to: end [
 PCRE2Code >> findAll: subject [
 	"Returns all matching substrings within the subject"
 
-	^ self findAll: subject from: 1 to: subject size
-]
-
-{ #category : 'matching' }
-PCRE2Code >> findAll: subject from: start to: end [
-	"Returns all matching substrings within a range of the subject"
-
 	| result encoder utfSubject |
 	result := OrderedCollection new.
-	encoder := PCRE2UTF8Encoder from: start to: end.
+	encoder := ZnUTF8Encoder default.
 	utfSubject := encoder encodeString: subject.
 	self
 		matchAll: utfSubject
-		from: encoder utfStart
-		to: encoder utfEnd
+		from: 1
+		to: utfSubject size
 		do: [
 			result add:
 				(encoder decodeBytes: (matchData readMatch: utfSubject)) ].
@@ -183,16 +238,16 @@ PCRE2Code >> findAll: subject from: start to: end [
 ]
 
 { #category : 'matching' }
-PCRE2Code >> findAll: subject from: start to: end do: aBlock [
-	"Iterate over all matching substrings within a range of the subject"
+PCRE2Code >> findAll: subject do: aBlock [
+	"Iterate over all matching substrings within the subject"
 
 	| encoder utfSubject |
-	encoder := PCRE2UTF8Encoder from: start to: end.
+	encoder := ZnUTF8Encoder default.
 	utfSubject := encoder encodeString: subject.
 	self
 		matchAll: utfSubject
-		from: encoder utfStart
-		to: encoder utfEnd
+		from: 1
+		to: utfSubject size
 		do: [
 			aBlock value:
 				(encoder decodeBytes: (matchData readMatch: utfSubject)) ]
@@ -328,8 +383,23 @@ PCRE2Code >> matchAll: subject from: start to: end do: aBlock [
 	offset > end or: [
 		(self matchBytes: subject from: offset to: end) == -1 ] ]
 		whileFalse: [
-			aBlock value.
-			offset := matchData lastMatchIndex + 1 ]
+			offset := matchData lastMatchIndex + 1.
+			aBlock value ]
+]
+
+{ #category : 'private' }
+PCRE2Code >> matchAll: subject from: start to: end offsetsDo: aBlock [
+	"Iteratively match over a range of the subject and execute a block after each successful match"
+
+	| offset |
+	self shouldBeImplemented.
+	offset := start.
+	[
+	offset > end or: [
+		(self matchBytes: subject from: offset to: end) == -1 ] ]
+		whileFalse: [
+			offset := matchData lastMatchIndex + 1.
+			aBlock value ]
 ]
 
 { #category : 'private' }
@@ -340,7 +410,7 @@ PCRE2Code >> matchBytes: subject from: start to: end [
 
 	| rc |
 	(matchData isPersistent or: [ matchData isNull ])
-		ifTrue: [ self useMatchDataFromPattern ]
+		ifTrue: [ self reuseMatchDataFromPattern ]
 		ifFalse: [ matchData reset ].
 	rc := optionsJIT == 0
 		      ifTrue: [ self match: subject from: start - 1 to: end ]
@@ -376,21 +446,11 @@ PCRE2Code >> matchData: aPCRE2Match [
 PCRE2Code >> matches: subject [
 	"Returns whether the regex fully matches the subject"
 
-	^ self matches: subject from: 1 to: subject size
-]
-
-{ #category : 'matching' }
-PCRE2Code >> matches: subject from: start to: end [
-	"Returns whether the regex fully matches a range of the subject"
-
-	| encoder expectedStart expectedEnd |
-	encoder := PCRE2UTF8Encoder from: start to: end.
-	self
-		matchBytes: (encoder encodeString: subject)
-		from: (expectedStart := encoder utfStart)
-		to: (expectedEnd := encoder utfEnd).
-	matchData offsetsDo: [ :matchStart :matchEnd |
-		^ matchStart == expectedStart and: [ matchEnd == expectedEnd ] ].
+	| utfSubject |
+	utfSubject := ZnUTF8Encoder default encodeString: subject.
+	self matchBytes: utfSubject from: 1 to: utfSubject size.
+	matchData offsetsDo: [ :start :end |
+		^ start == 1 and: [ end == utfSubject size ] ].
 	^ false
 ]
 
@@ -398,7 +458,7 @@ PCRE2Code >> matches: subject from: start to: end [
 PCRE2Code >> matchesIn: subject [
 	"Equivalent of RxMatcher >> #matchesIn:"
 
-	^ self findAll: subject from: 1 to: subject size
+	^ self findAll: subject
 ]
 
 { #category : 'matching' }
@@ -409,8 +469,6 @@ PCRE2Code >> matchesIn: subject collect: aBlock [
 	result := OrderedCollection new.
 	self
 		findAll: subject
-		from: 1
-		to: subject size
 		do: [ :match | result add: (aBlock value: match) ].
 	^ result
 ]
@@ -419,11 +477,18 @@ PCRE2Code >> matchesIn: subject collect: aBlock [
 PCRE2Code >> matchesIn: subject do: aBlock [
 	"Equivalent of RxMatcher >> #matchesIn:do:"
 
-	self
-		findAll: subject
-		from: 1
-		to: subject size
-		do: aBlock
+	self findAll: subject do: aBlock
+]
+
+{ #category : 'private' }
+PCRE2Code >> matchesPrefix: subject [
+	"Returns whether the regex matches the start of the subject"
+
+	| utfSubject |
+	utfSubject := ZnUTF8Encoder default encodeString: subject.
+	self matchBytes: utfSubject from: 1 to: utfSubject size.
+	matchData offsetsDo: [ :start :end | ^ start == 1 ].
+	^ false
 ]
 
 { #category : 'matching' }
@@ -433,11 +498,7 @@ PCRE2Code >> matchingRangesIn: subject [
 	| ranges |
 	self shouldBeImplemented. "requires utf offset when decoding"
 	ranges := OrderedCollection new.
-	self
-		findAll: subject
-		from: 1
-		to: subject size
-		do: [  ].
+	self findAll: subject do: [  ].
 	^ ranges
 ]
 
@@ -469,7 +530,7 @@ PCRE2Code >> namedGroups [
 	table := Array new: count.
 	1 to: count do: [ :i |
 		| offset index name |
-		offset := i - 1 * entrySize.
+		offset := entrySize * (i - 1).
 		"index is always stored as `(entry[0] << 8) | entry[1]`"
 		index := ((buffer uint8AtOffset: offset) bitShift: 8) bitOr:
 			         (buffer uint8AtOffset: (offset := offset + 1)).
@@ -501,6 +562,7 @@ PCRE2Code >> optionsJIT: anInteger [
 
 { #category : 'accessing' }
 PCRE2Code >> pattern: aString [
+	"Must only be used by the compiler"
 
 	pattern := aString
 ]
@@ -522,23 +584,24 @@ PCRE2Code >> restoreFrom: bytes [
 	LibPCRE2 uniqueInstance restore: { self } from: bytes
 ]
 
+{ #category : 'initialization' }
+PCRE2Code >> reuseMatchDataFromPattern [
+	"Keep the same match data instance and update its handle"
+
+	| pointer |
+	pointer := self createMatchDataFromPattern.
+	pointer isNull ifTrue: [ "should only happen if out of memory"
+		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
+	matchData reset setHandle: pointer
+]
+
 { #category : 'matching' }
 PCRE2Code >> search: subject [
 	"Returns whether the regex partially matches the subject"
 
-	^ self search: subject from: 1 to: subject size
-]
-
-{ #category : 'matching' }
-PCRE2Code >> search: subject from: start to: end [
-	"Returns whether the regex matches a region of the specified range of the subject"
-
-	| encoder |
-	encoder := PCRE2UTF8Encoder from: start to: end.
-	self
-		matchBytes: (encoder encodeString: subject)
-		from: encoder utfStart
-		to: encoder utfEnd.
+	| utfSubject |
+	utfSubject := ZnUTF8Encoder default encodeString: subject.
+	self matchBytes: utfSubject from: 1 to: utfSubject size.
 	^ matchData count > 0
 ]
 
@@ -587,10 +650,13 @@ Returns:          >= 0 number of substitutions made
 ]
 
 { #category : 'matching' }
-PCRE2Code >> substitute: subject from: start to: end with: replacement [
+PCRE2Code >> substitute: subject with: replacement [
+	"Returns the subject with each match substituted with the replacement.
+	The replacement string is treated as a regex substitution expression
+	that can reference captured groups or use conditional substitutions."
 
 	| encoder utfSubject utfReplacement buffer bufferSize rc |
-	encoder := PCRE2UTF8Encoder from: start to: end.
+	encoder := ZnUTF8Encoder default.
 	utfSubject := encoder encodeString: subject.
 	utfReplacement := ZnUTF8Encoder default encodeString: replacement.
 	"Arbitrary buffer size that allows a first-shot on short results.
@@ -602,22 +668,22 @@ PCRE2Code >> substitute: subject from: start to: end with: replacement [
 	"matchData can be nil and will be created and freed during the ffi call"
 	rc := self
 		      substitute: utfSubject
-		      from: start - 1
-		      to: end
+		      from: 0
+		      to: utfSubject size
 		      replacement: utfReplacement
 		      upTo: utfReplacement size
 		      output: buffer
 		      size: bufferSize.
 	">= 0 number of substitutions made"
 	rc < 0 ifTrue: [
-		(rc == -48 and: [ "ERROR_NOMEMORY & substituteOverflowLength => updated bufferSize"
+		(rc == -48 and: [ "noMemory & substituteOverflowLength => updated bufferSize"
 			 (options bitAnd: 4096) == 4096 ]) ifFalse: [ self errorCode: rc ].
 
 		"second shot should always be correct"
 		rc := self
 			      substitute: utfSubject
-			      from: start - 1
-			      to: end
+			      from: 0
+			      to: utfSubject size
 			      replacement: utfReplacement
 			      upTo: utfReplacement size
 			      output: (buffer := ByteArray new: bufferSize value)
@@ -631,16 +697,6 @@ PCRE2Code >> substitute: subject from: start to: end with: replacement [
 		  startingAt: 1
 ]
 
-{ #category : 'matching' }
-PCRE2Code >> substitute: subject with: replacement [
-
-	^ self
-		  substitute: subject
-		  from: 1
-		  to: subject size
-		  with: replacement
-]
-
 { #category : 'initialization' }
 PCRE2Code >> useMatchDataFromPattern [
 	"Create a new match data based on the pattern"
@@ -649,10 +705,5 @@ PCRE2Code >> useMatchDataFromPattern [
 	pointer := self createMatchDataFromPattern.
 	pointer isNull ifTrue: [ "should only happen if out of memory"
 		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
-	matchData
-		ifNil: [ "create PCRE2Match instance"
-			matchData := PCRE2Match fromHandle: pointer.
-			matchData initialize autoRelease ]
-		ifNotNil: [ "keep the same instance and update its handle"
-			matchData reset setHandle: pointer ]
+	(matchData := PCRE2Match fromHandle: pointer) initialize autoRelease
 ]

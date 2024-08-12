@@ -48,6 +48,40 @@ PCRE2CodeTest >> testBePersistent [
 ]
 
 { #category : 'tests' }
+PCRE2CodeTest >> testCoolStuff [
+	"Some cool stuff that can be done with PCRE"
+
+	| regex |
+	"recursive pattern"
+	regex := '{((?>[^{}]+|(?R))*)}' asPCRegex.
+	self
+		assert: (regex findAll: '{1, {2, {3}}} {4, 5}') asArray
+		equals: { '{1, {2, {3}}}'. '{4, 5}' }
+]
+
+{ #category : 'tests' }
+PCRE2CodeTest >> testCopyTranslatingMatchesUsing [
+
+	| regex |
+	regex := 'a' asPCRegex.
+	self
+		assert: (regex copy: '' translatingMatchesUsing: [ :match | '' ])
+		equals: ''.
+	self
+		assert: (regex copy: 'aaa' translatingMatchesUsing: [ :match | '' ])
+		equals: ''.
+	self
+		assert:
+		(regex copy: 'aaa' translatingMatchesUsing: [ :match | 'b' ])
+		equals: 'bbb'.
+	self
+		assert: (regex
+				 copy: 'babab'
+				 translatingMatchesUsing: [ :match | '_' , match , '_' ])
+		equals: 'b_a_b_a_b'
+]
+
+{ #category : 'tests' }
 PCRE2CodeTest >> testDeepCopy [
 
 	| regex copy |
@@ -203,11 +237,15 @@ PCRE2CodeTest >> testFindAll [
 PCRE2CodeTest >> testMark [
 
 	| regex |
-	regex := '^(*MARK:hello)((*MARK:bye)a|b)c' asPCRegex.
-	regex find: 'ac'.
-	self assert: regex mark equals: 'bye'.
-	regex find: 'bc'.
-	self assert: regex mark equals: 'hello'
+	regex := '' asPCRegex.
+	regex find: ''.
+	self assert: regex mark equals: nil.
+
+	regex := '(*MARK:bye)((*MARK:hello)A|D)C' asPCRegex.
+	regex find: 'AC'.
+	self assert: regex mark equals: 'hello'.
+	regex find: 'DC'.
+	self assert: regex mark equals: 'bye'
 ]
 
 { #category : 'tests' }
@@ -305,6 +343,7 @@ PCRE2CodeTest >> testStartIndex [
 PCRE2CodeTest >> testWithOffsetLimit [
 
 	| regex |
+	self flag: #TODO. "something weird here, useOffsetLimit is not for substitute, don't use substitute to test this"
 	regex := 'B' asPCRegexWithOptions: PCRE2 useOffsetLimit.
 	regex addOptions: PCRE2 substituteGlobal.
 	regex context offsetLimit: 12.

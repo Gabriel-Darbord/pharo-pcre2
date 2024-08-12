@@ -17,11 +17,11 @@ String >> asPCRegexIgnoringCase [
 ]
 
 { #category : '*PCRE2' }
-String >> asPCRegexWithOptions: options [
+String >> asPCRegexWithOptions: compileOptions [
 	"Compile myself as a perl-compatible regex matcher. May raise PCRE2CompileError.
 	Use the PCRE2Compiler API if you want to avoid default options."
 
 	^ PCRE2Compiler new
-		  addOptions: options;
+		  addOptions: compileOptions;
 		  compile: self
 ]

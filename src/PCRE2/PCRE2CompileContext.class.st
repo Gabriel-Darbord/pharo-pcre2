@@ -26,7 +26,7 @@ PCRE2CompileContext >> bsr [
 { #category : 'accessing' }
 PCRE2CompileContext >> bsr: anInteger [
 	"Preferably use `useBSRAnyCRLF` and `useBSRUnicode`.
-	The value is used by the JIT compiler and the two interpreted matching functions, match() and dfa_match()."
+	The value is used by the JIT compiler and the two interpreted matching functions: match and dfa_match."
 
 	| rc |
 	rc := self setBSR: anInteger.

@@ -20,14 +20,9 @@ PCRE2Match >> bePersistent [
 	offsets isArray ifFalse: [ "copy external data into local memory"
 		self offsets ].
 	"TODO named groups"
-	isPersistent := true.
-	self finalize "free and make handle NULL"
-
-	"Must use #becomeForward: to update all references.
-	While the match data should generally not be used outside of this API,
-	tools such as debuggers still have references to it, so this is essential."
-
-	"self becomeForward: self asPersistentMatch"
+	self free.
+	handle beNull.
+	isPersistent := true
 ]
 
 { #category : 'accessing' }
@@ -77,7 +72,6 @@ PCRE2Match >> getOffsetsVector [
 
 { #category : 'private' }
 PCRE2Match >> getStartIndex [
-	"PCRE2_SIZE pcre2_get_startchar(pcre2_match_data *match_data)"
 
 	self ffiCall: #(size_t pcre2_get_startchar_8(self))
 ]
@@ -108,7 +102,7 @@ PCRE2Match >> lastMatchIndex [
 { #category : 'accessing' }
 PCRE2Match >> mark [
 
-	^ mark ifNil: [ mark := self getMark ]
+	^ mark ifNil: [ mark := self getMark ifEmpty: [ nil ] ]
 ]
 
 { #category : 'enumerating' }
@@ -119,7 +113,7 @@ PCRE2Match >> offsets [
 	Subsequent pairs identify the captured substrings."
 
 	| copy index |
-	isPersistent ifTrue: [ ^ offsets clone ].
+	offsets isArray ifTrue: [ ^ offsets clone ].
 	copy := Array new: 2 * self count.
 	index := 0.
 	self offsetsDo: [ :start :end |
@@ -128,19 +122,45 @@ PCRE2Match >> offsets [
 	^ (offsets := copy) clone
 ]
 
+{ #category : 'accessing' }
+PCRE2Match >> offsetsAt: pairIndex [
+	"Returns the n-th offset pair"
+
+	| index wordSize |
+	index := 2 * (pairIndex - 1). "0-based"
+	offsets isArray ifTrue: [
+		^ {
+			  (offsets at: index + 1).
+			  (offsets at: index + 2) } ].
+
+	offsets ifNil: [ offsets := self getOffsetsVector ].
+	wordSize := ExternalAddress wordSize.
+	wordSize == 8 ifTrue: [
+		^ {
+			  (offsets uint64AtOffset: 8 * index).
+			  (offsets uint64AtOffset: 8 * (index + 1)) } ].
+	wordSize == 4 ifTrue: [
+		^ {
+			  (offsets uint32AtOffset: 4 * index).
+			  (offsets uint32AtOffset: 4 * (index + 1)) } ].
+	^ {
+		  (offsets platformSizeTAt: index * wordSize + 1).
+		  (offsets platformSizeTAt: wordSize * (index + 1) + 1) }
+]
+
 { #category : 'enumerating' }
 PCRE2Match >> offsetsDo: aBlock [
 	"Iterate over the offset pairs resulting from a match operation.
 	The first pair is what the full pattern matched, subsequent pairs are from capture groups."
 
 	| wordSize |
-	isPersistent ifTrue: [ "the offsets is the full ovector as a Pharo array of integers"
+	offsets isArray ifTrue: [ "the offsets is the full ovector as a Pharo array of integers"
 		1 to: count by: 2 do: [ :i |
 		aBlock value: (offsets at: i) value: (offsets at: i + 1) ].
 		^ self ].
 
-	wordSize := ExternalAddress wordSize.
 	offsets ifNil: [ offsets := self getOffsetsVector ]. "table containing pairs of 0-based indexes"
+	wordSize := ExternalAddress wordSize.
 
 	"let n = wordSize = sizeof(size_t), start follows the progression n(2i-2), end follows n(2i-1)
 	e.g. with n = 8, start = 0, 16, 32, 48... and end = 8, 24, 40, 56...
