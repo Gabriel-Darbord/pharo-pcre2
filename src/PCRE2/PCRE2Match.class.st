@@ -128,29 +128,6 @@ PCRE2Match >> offsets [
 	^ (offsets := copy) clone
 ]
 
-{ #category : 'accessing' }
-PCRE2Match >> offsetsAt: pairIndex [
-
-	| index wordSize |
-	index := pairIndex - 1 * 2.
-	isPersistent ifTrue: [
-		^ {
-			  (offsets at: index + 1).
-			  (offsets at: index + 2) } ].
-
-	offsets ifNil: [ offsets := self getOffsetsVector ].
-	wordSize := ExternalAddress wordSize.
-	^ wordSize == 8
-		  ifTrue: [
-			  {
-				  (offsets uint64AtOffset: index * wordSize).
-				  (offsets uint64AtOffset: index + 1 * wordSize) } ]
-		  ifFalse: [ "assuming wordSize = 4"
-			  {
-				  (offsets uint32AtOffset: index * wordSize).
-				  (offsets uint32AtOffset: index + 1 * wordSize) } ]
-]
-
 { #category : 'enumerating' }
 PCRE2Match >> offsetsDo: aBlock [
 	"Iterate over the offset pairs resulting from a match operation.
