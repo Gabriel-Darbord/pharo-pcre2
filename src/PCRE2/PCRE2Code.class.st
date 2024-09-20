@@ -380,17 +380,17 @@ PCRE2Code >> matchAll: subject from: start to: end do: aBlock [
 
 { #category : 'private' }
 PCRE2Code >> matchAll: subject from: start to: end offsetsDo: aBlock [
-	"Iteratively match over a range of the subject and execute a block after each successful match"
+	"Iteratively match over a range of the subject and execute a block with the match and groups' offsets after each successful match"
 
 	| offset |
-	self shouldBeImplemented.
 	offset := start.
 	[
 	offset > end or: [
 		(self matchBytes: subject from: offset to: end) == -1 ] ]
 		whileFalse: [
-			offset := matchData lastMatchIndex + 1.
-			aBlock value ]
+			| offsets |
+			aBlock value: (offsets := matchData offsets).
+			offset := (offsets at: 2) + 1 ]
 ]
 
 { #category : 'private' }
