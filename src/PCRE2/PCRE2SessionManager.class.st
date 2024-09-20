@@ -6,8 +6,11 @@ Class {
 		'serializedCodes'
 	],
 	#classVars : [
-		'Enabled',
-		'Instance'
+		'UseSerialization'
+	],
+	#classInstVars : [
+		'enabled',
+		'instance'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'

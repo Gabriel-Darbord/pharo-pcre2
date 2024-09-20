@@ -1,3 +1,13 @@
+"
+Abstract superclass of all PCRE2 external object wrappers.
+Wrappers automatically free the memory of their external object on finalization.
+Making a `copy` will allocate a new external object.
+A `clone` will share its reference with the original. This means that if one is garbage-collected and the other is used, the image will crash due to a segmentation fault.
+For a `PCRE2Code`, this happens if the pattern is JIT-compiled *and* the JIT fast path is enabled.
+
+Using `shallowCopy` directly makes the copy use the same external object.
+If either the original or a copy is finalized, the shared object will be freed from memory, leaving the remaining objects in an incorrect state.
+"
 Class {
 	#name : 'PCRE2Object',
 	#superclass : 'FFIOpaqueObject',
@@ -30,15 +40,6 @@ PCRE2Object class >> new [
 PCRE2Object >> autoRelease [
 
 	FinalizationRegistry default add: self
-]
-
-{ #category : 'copying' }
-PCRE2Object >> copy [
-	"Do not use shallowCopy because of the finalization requirement.
-	If either the original or a copy is finalized, the shared structure would be
-	freed from memory, leaving the remaining objects in an incorrect state."
-
-	^ self deepCopy
 ]
 
 { #category : 'error handling' }

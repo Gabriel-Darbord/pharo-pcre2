@@ -21,11 +21,11 @@ Class {
 	#traits : 'PCRE2TWithOptions',
 	#classTraits : 'PCRE2TWithOptions classTrait',
 	#instVars : [
+		'pattern',
 		'matchData',
 		'context',
-		'pattern',
-		'optionsJIT',
-		'compileOptions'
+		'compiler',
+		'isJIT'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -171,24 +171,6 @@ PCRE2Code >> createMatchDataFromPattern [
 	"pcre2_match_data *pcre2_match_data_create_from_pattern(const pcre2_code *code, pcre2_general_context *gcontext)"
 
 	self ffiCall: #(void *pcre2_match_data_create_from_pattern_8(self, nil))
-]
-
-{ #category : 'copying' }
-PCRE2Code >> deepCopy [
-	"Copy the external structure of the compiled pattern"
-
-	| copy |
-	copy := self privateCopy.
-	copy isNull ifTrue: [
-		PCRE2Error signal: 'Failed to obtain memory to copy matcher' ].
-	copy autoRelease initialize
-		options: options;
-		optionsJIT: optionsJIT;
-		compileOptions: compileOptions;
-		context: (context ifNotNil: [ context deepCopy ]);
-		pattern: pattern.
-	self isJIT ifTrue: [ copy compileJIT ].
-	^ copy
 ]
 
 { #category : 'error handling' }
@@ -558,6 +540,17 @@ PCRE2Code >> pattern: aString [
 	pattern := aString
 ]
 
+{ #category : 'copying' }
+PCRE2Code >> postCopy [
+	"Copy the external structure of the compiled pattern"
+
+	handle := self privateCopy.
+	handle isNull ifTrue: [
+		PCRE2Error signal: 'Failed to obtain memory to copy matcher' ].
+	self autoRelease initialize.
+	isJIT ifTrue: [ self compileJIT ]
+]
+
 { #category : 'private' }
 PCRE2Code >> privateCopy [
 	"This function makes a copy of the memory used for a compiled pattern, excluding any memory used by the JIT compiler.
@@ -565,7 +558,7 @@ PCRE2Code >> privateCopy [
 	The pointer to the character tables is copied, not the tables themselves (see pcre2_code_copy_with_tables()).
 	The yield of the function is NULL if code is NULL or if sufficient memory cannot be obtained."
 
-	self ffiCall: #(PCRE2Code *pcre2_code_copy_8(self))
+	self ffiCall: #(void *pcre2_code_copy_8(self))
 ]
 
 { #category : 'persistence' }

@@ -60,6 +60,22 @@ PCRE2CodeTest >> testCoolStuff [
 ]
 
 { #category : 'tests' }
+PCRE2CodeTest >> testCopy [
+
+	| regex copy |
+	regex := 'a' asPCRegex.
+	copy := regex deepCopy.
+
+	"structural equality"
+	self deny: regex identicalTo: copy.
+	self assert: regex options identicalTo: copy options.
+	regex isJIT ifTrue: [ self assert: copy isJIT ].
+
+	"match result equality"
+	self assert: (regex find: 'a') equals: (copy find: 'a')
+]
+
+{ #category : 'tests' }
 PCRE2CodeTest >> testCopyTranslatingMatchesUsing [
 
 	| regex |
@@ -79,22 +95,6 @@ PCRE2CodeTest >> testCopyTranslatingMatchesUsing [
 				 copy: 'babab'
 				 translatingMatchesUsing: [ :match | '_' , match , '_' ])
 		equals: 'b_a_b_a_b'
-]
-
-{ #category : 'tests' }
-PCRE2CodeTest >> testDeepCopy [
-
-	| regex copy |
-	regex := 'a' asPCRegex.
-	copy := regex deepCopy.
-
-	"structural equality"
-	self deny: regex identicalTo: copy.
-	self assert: regex options identicalTo: copy options.
-	regex isJIT ifTrue: [ self assert: copy isJIT ].
-
-	"match result equality"
-	self assert: (regex find: 'a') equals: (copy find: 'a')
 ]
 
 { #category : 'tests' }

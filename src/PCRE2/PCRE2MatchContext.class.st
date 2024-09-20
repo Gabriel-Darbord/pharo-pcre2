@@ -11,21 +11,6 @@ Class {
 	#package : 'PCRE2'
 }
 
-{ #category : 'copying' }
-PCRE2MatchContext >> deepCopy [
-
-	| copy |
-	copy := self privateCopy.
-	copy isNull ifTrue: [
-		PCRE2Error signal: 'Failed to obtain memory to copy match context' ].
-	"use reflection to avoid the setters' FFI calls"
-	^ copy autoRelease
-		  instVarNamed: #depthLimit put: depthLimit;
-		  instVarNamed: #heapLimit put: heapLimit;
-		  instVarNamed: #matchLimit put: matchLimit;
-		  instVarNamed: #offsetLimit put: offsetLimit
-]
-
 { #category : 'accessing' }
 PCRE2MatchContext >> depthLimit [
 
@@ -82,6 +67,14 @@ PCRE2MatchContext >> offsetLimit: anInteger [
 	self setOffsetLimit: (offsetLimit := anInteger)
 ]
 
+{ #category : 'copying' }
+PCRE2MatchContext >> postCopy [
+
+	handle := self privateCopy.
+	handle isNull ifTrue: [
+		PCRE2Error signal: 'Failed to obtain memory to copy match context' ]
+]
+
 { #category : 'private' }
 PCRE2MatchContext >> privateCopy [
 	"This function makes a new copy of a match context, using the memory allocation function that was used for the original context.
@@ -89,7 +82,7 @@ PCRE2MatchContext >> privateCopy [
 
 	"pcre2_match_context *pcre2_match_context_copy( pcre2_match_context *mcontext)"
 
-	self ffiCall: #(PCRE2MatchContext *pcre2_match_context_copy(self))
+	self ffiCall: #(void *pcre2_match_context_copy(self))
 ]
 
 { #category : 'private' }

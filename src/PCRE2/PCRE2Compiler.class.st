@@ -30,6 +30,9 @@ Class {
 	#pools : [
 		'PCRE2Types'
 	],
+	#classInstVars : [
+		'default'
+	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
 }

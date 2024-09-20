@@ -42,16 +42,6 @@ PCRE2CompileContext >> bsr: anInteger [
 	bsr := anInteger
 ]
 
-{ #category : 'copying' }
-PCRE2CompileContext >> deepCopy [
-
-	| copy |
-	copy := self privateCopy.
-	copy isNull ifTrue: [
-		PCRE2Error signal: 'Failed to obtain memory to copy compile context' ].
-	^ copy autoRelease
-]
-
 { #category : 'initialize-release' }
 PCRE2CompileContext >> free [
 	"This function frees the memory occupied by a compile context.
@@ -75,6 +65,15 @@ PCRE2CompileContext >> options: anInteger [
 	self setOptions
 ]
 
+{ #category : 'copying' }
+PCRE2CompileContext >> postCopy [
+
+	handle := self privateCopy.
+	handle isNull ifTrue: [
+		PCRE2Error signal: 'Failed to obtain memory to copy compile context' ].
+	self autoRelease
+]
+
 { #category : 'private' }
 PCRE2CompileContext >> privateCopy [
 	"This function makes a new copy of a compile context.
@@ -82,7 +81,7 @@ PCRE2CompileContext >> privateCopy [
 
 	"pcre2_compile_context *pcre2_compile_context_copy( pcre2_compile_context *ccontext)"
 
-	self ffiCall: #(PCRECompileContext *pcre2_compile_context_copy(self))
+	self ffiCall: #(void *pcre2_compile_context_copy(self))
 ]
 
 { #category : 'accessing' }
