@@ -373,6 +373,121 @@ PCRE2 class >> extendedMore [
 ]
 
 { #category : 'options' }
+PCRE2 class >> extraAllowLookaroundBsk [
+	"Since release 10.38, PCRE2 has forbidden the use of \K within lookaround assertions, following Perl's lead.
+	This option is provided to re-enable the previous behaviour (act in positive lookarounds, ignore in negative ones) in case anybody is relying on it."
+
+	^ 16r00000040
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraAllowSurrogateEscapes [
+	"This option applies when compiling a pattern in UTF-8 or UTF-32 mode.
+	If the extra option PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES is set, surrogate code point values in UTF-8 and 	UTF-32 patterns no longer provoke errors and are incorporated in the compiled pattern.
+	However, they can only match subject characters if the matching function is called with PCRE2_NO_UTF_CHECK set."
+
+	^ 16r00000001
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraAltBsux [
+	"Setting PCRE2_EXTRA_ALT_BSUX has the effect of PCRE2_ALT_BSUX, but in addition, it recognizes \u{hhh..}
+	as a hexadecimal character code, where hhh.. is any number of hexadecimal digits."
+
+	^ 16r00000020
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraAsciiBsd [
+	"This option forces \d to match only ASCII digits, even when PCRE2_UCP is set.
+	It can be changed within a pattern by means of the (?aD) option setting."
+
+	^ 16r00000100
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraAsciiBss [
+	"This option forces \s to match only ASCII space characters, even when PCRE2_UCP is set.
+	It can be changed within a pattern by means of the (?aS) option setting."
+
+	^ 16r00000200
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraAsciiBsw [
+	"This option forces \w to match only ASCII word characters, even when PCRE2_UCP is set.
+	It can be changed within a pattern by means of the (?aW) option setting."
+
+	^ 16r00000400
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraAsciiDigit [
+	"This option forces the POSIX character classes [:digit:] and [:xdigit:] to match only ASCII digits, even when PCRE2_UCP is set.
+	It can be changed within a pattern by means of the (?aT) option setting."
+
+	^ 16r00001000
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraAsciiPosix [
+	"This option forces all the POSIX character classes, including [:digit:] and [:xdigit:], to match only ASCII characters, even when PCRE2_UCP is set.
+	It can be changed within a pattern by means of the (?aP) option setting, but note that this also sets PCRE2_EXTRA_ASCII_DIGIT in order to ensure that (?-aP) unsets all ASCII restrictions for POSIX classes."
+
+	^ 16r00000800
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraBadEscapeIsLiteral [
+	"If the PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL extra option is passed to pcre2_compile(), all unrecognized or malformed escape sequences are treated as single-character escapes.
+	For example, \j is a literal 'j' and \x{2z} is treated as the literal string 'x{2z}'.
+	Setting this option means that typos in patterns may go undetected and have unexpected results.
+	Use with great care."
+
+	^ 16r00000002
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraCaselessRestrict [
+	"This option disables recognition of case-equivalences that cross the ASCII/non-ASCII boundary.
+	In a caseless match, both characters must either be ASCII or non-ASCII.
+	The option can be changed with a pattern by the (?r) option setting."
+
+	^ 16r00000080
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraEscapedCrIsLf [
+	"There are some legacy applications where the escape sequence \r in a pattern is expected to match a newline.
+	If this option is set, \r in a pattern is converted to \n so that it matches a LF (linefeed) instead of a CR (carriage return) character.
+	The option does not affect a literal CR in the pattern, nor does it affect CR specified as an explicit code point such as \x{0D}."
+
+	^ 16r00000010
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraMatchLine [
+	"This option is provided for use by the -x option of pcre2grep.
+	It causes the pattern only to match complete lines.
+	This is achieved by automatically inserting the code for '^(?:' at the start of the compiled pattern and ')$' at the end.
+	Thus, when PCRE2_MULTILINE is set, the matched line may be in the middle of the subject string.
+	This option can be used with PCRE2_LITERAL."
+
+	^ 16r00000008
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraMatchWord [
+	"This option is provided for use by the -w option of pcre2grep.
+	It causes the pattern only to match strings that have a word boundary at the start and the end.
+	This is achieved by automatically inserting the code for '\b(?:' at the start of the compiled pattern and ')\b' at the end.
+	The option may be used with PCRE2_LITERAL.
+	However, it is ignored if PCRE2_EXTRA_MATCH_LINE is also set."
+
+	^ 16r00000004
+]
+
+{ #category : 'options' }
 PCRE2 class >> firstLine [
 	"Force matching to be before newline
 	Affects: jit_compile, match, dfa_match"

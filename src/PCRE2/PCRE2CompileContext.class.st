@@ -11,11 +11,19 @@ Class {
 	#name : 'PCRE2CompileContext',
 	#superclass : 'PCRE2Object',
 	#instVars : [
-		'bsr'
+		'bsr',
+		'options'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
 }
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> addOptions: anInteger [
+
+	options := options bitOr: anInteger.
+	self setOptions
+]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> bsr [
@@ -49,9 +57,22 @@ PCRE2CompileContext >> free [
 	"This function frees the memory occupied by a compile context.
 	If the argument is NULL, the function returns immediately without doing anything."
 
-	"void pcre2_compile_context_free(pcre2_compile_context *ccontext)"
-
 	self ffiCall: #(void pcre2_compile_context_free_8(self))
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> options [
+
+	^ options
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> options: anInteger [
+	"Set the extra compile options.
+	See class-side methods of PCRE2 starting with 'extra' to find valid arguments."
+
+	options := anInteger.
+	self setOptions
 ]
 
 { #category : 'private' }
@@ -64,15 +85,26 @@ PCRE2CompileContext >> privateCopy [
 	self ffiCall: #(PCRECompileContext *pcre2_compile_context_copy(self))
 ]
 
+{ #category : 'accessing' }
+PCRE2CompileContext >> removeOptions: anInteger [
+
+	options := options bitAnd: anInteger bitInvert.
+	self setOptions
+]
+
 { #category : 'private' }
 PCRE2CompileContext >> setBSR: value [
 	"This function sets the convention for processing \R within a compile context.
 	The second argument must be one of PCRE2_BSR_ANYCRLF or PCRE2_BSR_UNICODE.
 	The result is zero for success or PCRE2_ERROR_BADDATA if the second argument is invalid."
 
-	"int pcre2_set_bsr(pcre2_compile_context *ccontext, uint32_t value)"
-
 	self ffiCall: #(int pcre2_set_bsr(self, uint32 value))
+]
+
+{ #category : 'private' }
+PCRE2CompileContext >> setOptions [
+
+	self ffiCall: #(int pcre2_set_compile_extra_options_8(self, uint32 options))
 ]
 
 { #category : 'accessing' }
