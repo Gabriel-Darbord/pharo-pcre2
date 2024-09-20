@@ -59,13 +59,11 @@ PCRE2Match >> getMark [
 	The length of the name is in the preceding code unit.
 	If no name is available, NULL is returned."
 
-	"PCRE2_SPTR pcre2_get_mark(pcre2_match_data *match_data)"
-
 	self ffiCall: #(char *pcre2_get_mark_8(self))
 ]
 
 { #category : 'private' }
-PCRE2Match >> getOffsetsVector [
+PCRE2Match >> getOffsets [
 
 	self ffiCall: #(size_t *pcre2_get_ovector_pointer_8(self))
 ]
@@ -95,7 +93,7 @@ PCRE2Match >> lastMatchIndex [
 	^ isPersistent
 		  ifTrue: [ offsets at: 2 ]
 		  ifFalse: [
-			  offsets ifNil: [ offsets := self getOffsetsVector ].
+			  offsets ifNil: [ offsets := self getOffsets ].
 			  offsets uint64AtOffset: 8 "TODO handle size_t" ]
 ]
 
@@ -133,7 +131,7 @@ PCRE2Match >> offsetsAt: pairIndex [
 			  (offsets at: index + 1).
 			  (offsets at: index + 2) } ].
 
-	offsets ifNil: [ offsets := self getOffsetsVector ].
+	offsets ifNil: [ offsets := self getOffsets ].
 	wordSize := ExternalAddress wordSize.
 	wordSize == 8 ifTrue: [
 		^ {
@@ -159,15 +157,15 @@ PCRE2Match >> offsetsDo: aBlock [
 		aBlock value: (offsets at: i) value: (offsets at: i + 1) ].
 		^ self ].
 
-	offsets ifNil: [ offsets := self getOffsetsVector ]. "table containing pairs of 0-based indexes"
+	offsets ifNil: [ offsets := self getOffsets ]. "table containing pairs of 0-based indexes"
 	wordSize := ExternalAddress wordSize.
 
 	"let n = wordSize = sizeof(size_t), start follows the progression n(2i-2), end follows n(2i-1)
-	e.g. with n = 8, start = 0, 16, 32, 48... and end = 8, 24, 40, 56...
-	PCRE2 sets the end index as exclusive, but Pharo uses only inclusive, so it is a translated
+	e.g. with n = 8, start = 0, 16, 32, 48..., end = 8, 24, 40, 56...
+	PCRE2 sets the end index as exclusive, but Pharo uses only inclusive, so it is translated
 	the start index is incremented to be 1-based, and it stays inclusive
 	the end index is incremented (0 to 1-based) but also decremented (to be inclusive)
-	e.g. matching 'a' returns the range (offset pair) [0,1) and it is translated to [1,1]"
+	e.g. matching 'a' returns the range (offset pair) [0,1) and it is translated as [1,1]"
 
 	wordSize == 8 ifTrue: [ "most cases"
 		1 to: self count do: [ :i |
