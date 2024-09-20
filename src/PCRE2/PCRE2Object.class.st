@@ -32,6 +32,15 @@ PCRE2Object >> autoRelease [
 	FinalizationRegistry default add: self
 ]
 
+{ #category : 'copying' }
+PCRE2Object >> copy [
+	"Do not use shallowCopy because of the finalization requirement.
+	If either the original or a copy is finalized, the shared structure would be
+	freed from memory, leaving the remaining objects in an incorrect state."
+
+	^ self deepCopy
+]
+
 { #category : 'error handling' }
 PCRE2Object >> errorCode: errorCode [
 

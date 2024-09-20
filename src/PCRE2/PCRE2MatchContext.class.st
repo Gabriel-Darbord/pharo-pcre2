@@ -12,12 +12,6 @@ Class {
 }
 
 { #category : 'copying' }
-PCRE2MatchContext >> copy [
-
-	^ self deepCopy
-]
-
-{ #category : 'copying' }
 PCRE2MatchContext >> deepCopy [
 
 	| copy |

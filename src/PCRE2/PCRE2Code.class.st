@@ -92,15 +92,6 @@ PCRE2Code >> context: aMatchContext [
 ]
 
 { #category : 'copying' }
-PCRE2Code >> copy [
-	"Do not use shallowCopy because of the finalization requirement.
-	If either the original or a copy is finalized, the shared structure would be
-	freed from memory, leaving the remaining matchers to be in an incorrect state."
-
-	^ self deepCopy
-]
-
-{ #category : 'copying' }
 PCRE2Code >> copy: subject replacingMatchesWith: aString [
 	"Copy the subject replacing each match with aString"
 
