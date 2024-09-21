@@ -25,7 +25,7 @@ PCRE2CompileError >> signal: errorMessage in: pattern at: offset [
 	rs := ReadStream on: pattern.
 	self messageText: (String streamContents: [ :ws |
 			 ws << errorMessage << ': '.
-			 [ rs position >= offset ] whileFalse: [
+			 [ rs position < offset ] whileTrue: [
 				 ws nextPut: (encoder nextFromStream: rs) ].
 			 ws nextPutAll: '(*ERROR)'.
 			 [ rs atEnd ] whileFalse: [

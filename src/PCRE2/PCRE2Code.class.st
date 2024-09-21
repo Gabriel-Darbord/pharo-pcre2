@@ -475,7 +475,7 @@ PCRE2Code >> namedGroups [
 	"get the number of named capture groups"
 	rc := self info: PCRE2 infoNameCount output: buffer.
 	rc < 0 ifTrue: [ self errorCode: rc ].
-	(count := buffer uint32AtOffset: 0) = 0 ifTrue: [ ^ #(  ) ].
+	(count := buffer uint32AtOffset: 0) = 0 ifTrue: [ ^ {  } ].
 
 	"get the size of each name table entry"
 	rc := self info: PCRE2 infoNameEntrySize output: buffer.
@@ -493,7 +493,7 @@ PCRE2Code >> namedGroups [
 	1 to: count do: [ :i |
 		| offset index name |
 		offset := entrySize * (i - 1).
-		"index is always stored as `(entry[0] << 8) | entry[1]`"
+		"index is encoded as `(entry[0] << 8) | entry[1]`"
 		index := ((buffer uint8AtOffset: offset) bitShift: 8) bitOr:
 			         (buffer uint8AtOffset: (offset := offset + 1)).
 		name := ByteArray new: entrySize - 3 streamContents: [ :s |
@@ -554,7 +554,7 @@ PCRE2Code >> privateCopy [
 PCRE2Code >> restoreFrom: bytes [
 	"This method is for convenience, it is much more effective to serialize matchers in bulk"
 
-	LibPCRE2 uniqueInstance restore: { self } from: bytes
+	LibPCRE2 restore: { self } from: bytes
 ]
 
 { #category : 'initialization' }

@@ -97,7 +97,8 @@ LibPCRE2 >> createMatchContext [
 
 { #category : 'serializing' }
 LibPCRE2 >> deserialize: bytes [
-	"Only useful if you know what you are doing with external addresses"
+	"Returns the array of handles for the compiled patterns deserialized from the bytes.
+	Only useful if you know what to do with external addresses."
 
 	| count codePointers |
 	count := self serializedNumberOfCodes: bytes.
