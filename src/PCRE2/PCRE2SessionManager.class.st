@@ -1,3 +1,7 @@
+"
+I handle the persistence of `PCRE2Object`s across the Pharo image lifecycle.
+
+"
 Class {
 	#name : 'PCRE2SessionManager',
 	#superclass : 'Object',
@@ -16,32 +20,33 @@ Class {
 	#package : 'PCRE2'
 }
 
-{ #category : 'protocol' }
+{ #category : 'configuration' }
 PCRE2SessionManager class >> disable [
 
 	<script>
-	Enabled := false
+	enabled := false
 ]
 
-{ #category : 'protocol' }
+{ #category : 'configuration' }
 PCRE2SessionManager class >> enable [
 
 	<script>
-	Enabled := true
+	enabled := true
 ]
 
 { #category : 'class initialization' }
 PCRE2SessionManager class >> initialize [
 
 	self enable.
+	self useSerialization.
 	SessionManager default registerToolClassNamed: self name
 ]
 
 { #category : 'system startup' }
 PCRE2SessionManager class >> shutDown: quitting [
-	"Make all compiled patterns persist between sessions by serializing them"
+	"Make all compiled patterns persist between sessions"
 
-	(quitting and: [ Enabled ]) ifTrue: [ Instance := self new shutDown ]
+	(quitting and: [ enabled ]) ifTrue: [ instance := self new shutDown ]
 ]
 
 { #category : 'system startup' }
@@ -52,13 +57,28 @@ PCRE2SessionManager class >> startUp: resuming [
 
 	"Failsafe to disable pattern restoration if it starts crashing in a loop
 	-> investigate all scenarios, fix, and maybe remove this?"
-	OSEnvironment current
-		at: 'PHARO_PCRE2_NOPERSIST'
-		ifPresent: [ :_ | Enabled := false ].
+	(enabled not or: [
+		 OSEnvironment current includesKey: 'PHARO_PCRE2_NOSTARTUP' ])
+		ifTrue: [ ^ self ].
 
-	"The instance has a list of all patterns to restore and the serialized data"
-	(Enabled and: [ Instance isNotNil ]) ifTrue: [ Instance startUp ].
-	Instance := nil "release unique reference to free memory"
+	"The instance has a list of all patterns to restore"
+	instance ifNotNil: [
+		instance startUp.
+		instance := nil "release unique reference to free memory" ]
+]
+
+{ #category : 'configuration' }
+PCRE2SessionManager class >> useRecompilation [
+
+	<script>
+	UseSerialization := false
+]
+
+{ #category : 'configuration' }
+PCRE2SessionManager class >> useSerialization [
+
+	<script>
+	UseSerialization := true
 ]
 
 { #category : 'system startup' }
@@ -74,7 +94,7 @@ PCRE2SessionManager >> shutDown [
 	PCRE2Code allInstancesDo: [ :code |
 		code isNull ifFalse: [ codesToRestore add: code bePersistent ] ].
 
-	codesToRestore ifNotEmpty: [
+	(UseSerialization and: [ codesToRestore isNotEmpty ]) ifTrue: [
 		serializedCodes := LibPCRE2 serialize: codesToRestore ]
 ]
 
@@ -83,6 +103,11 @@ PCRE2SessionManager >> startUp [
 	"Restore all compiled patterns using the serialized data from the previous session.
 	Deserialization does not work if the architecture has changed; TODO add a check."
 
-	(serializedCodes isNil or: [ codesToRestore isEmptyOrNil ]) ifFalse: [
-		LibPCRE2 restore: codesToRestore from: serializedCodes ]
+	codesToRestore isEmptyOrNil ifTrue: [ ^ self ].
+
+	UseSerialization
+		ifFalse: [ codesToRestore do: [ :code | code recompile ] ]
+		ifTrue: [
+			serializedCodes ifNotNil: [
+				LibPCRE2 restore: codesToRestore from: serializedCodes ] ]
 ]
