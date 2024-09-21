@@ -1,18 +1,17 @@
 "
-I compile patterns into regular expression matchers.
+I compile string patterns into regular expression matchers.
 
 Most of the time, patterns are compiled using String extensions such as `String>>#asPCRegex`.
-If more control over the compilation process is needed, my API should be used instead.
+If more control over the compilation process is needed, my API can be used instead.
+My main API is through the `PCRE2Compiler>>#compile:` method.
 
-Many options exist, use `PCRE2 optionsFor: #compile` to browse available options and combine them with the bitwise OR operator.
-Patterns are compiled with the UTF option by default, which allows compilation and matching with UTF-encoded strings (which is the vast majority).
+Many options exist, use `PCRE2 optionsFor: #compile` to browse available options and combine them with the bitwise OR operator, e.g. `PCRE2 readOptions: PCRE2 multiline | PCRE2 caseless for: #compile`.
+Patterns are compiled with the UTF option by default, which allows compilation and matching with UTF-encoded strings (which applies for the majority of wide strings).
 If speed is of the essence and only ASCII characters are handled, the default options can be overridden with `PCRE2Compiler>>#options:`.
 
-My main API is through the `PCRE2Compiler>>#compile:` method.
-If enabled and supported by the running architecture, matchers are further processed into machine code that runs much faster than the interpretive match() function.
+On compilation, ff enabled and supported by the running architecture, matchers are further processed into machine code that runs much faster than the interpretive match() function.
 The cost at compile time is higher, but the gain in matching speed should be well worth it.
 This feature is enabled by default and can be toggled with `PCRE2Compiler class>>#eagerJIT:`.
-A standard pattern compilation can be performed using `PCRE2Compiler>>#compileNoJIT:`.
 "
 Class {
 	#name : 'PCRE2Compiler',
@@ -38,6 +37,12 @@ Class {
 }
 
 { #category : 'accessing' }
+PCRE2Compiler class >> default [
+
+	^ default ifNil: [ default := self new ]
+]
+
+{ #category : 'accessing' }
 PCRE2Compiler class >> eagerJIT [
 
 	^ EagerJIT
@@ -60,8 +65,9 @@ PCRE2Compiler class >> initialize [
 
 { #category : 'API' }
 PCRE2Compiler class >> pattern: aString [
+	"Compile a regular expression with default options"
 
-	^ self new compile: aString
+	^ self default compile: aString
 ]
 
 { #category : 'API' }
@@ -77,9 +83,9 @@ PCRE2Compiler class >> pattern: aString options: anInteger [
 PCRE2Compiler class >> startUp: resuming [
 	"Verify that the library supports JIT compilation on the current platform"
 
-	resuming ifTrue: [
-		PCRE2Types initialize. "TODO handle dependency in baseline"
-		SupportsJIT := (LibPCRE2 config: PCRE2 configJIT) == 1 ]
+	resuming ifFalse: [ ^ self ].
+	PCRE2Types initialize. "TODO handle dependency in baseline"
+	SupportsJIT := (LibPCRE2 config: PCRE2 configJIT) == 1
 ]
 
 { #category : 'accessing' }
@@ -90,15 +96,18 @@ PCRE2Compiler class >> supportsJIT [
 
 { #category : 'compiling' }
 PCRE2Compiler >> compile: pattern [
-	"Compile a pattern string into a regex matcher.
-	Try to use JIT compiling if it is available and enabled.
-	In case of failure, the result will still be a regular matcher."
+	"Compile a pattern string into a regular expression matcher.
+	Try to use JIT compilation if available and enabled.
+	If JIT compilation fails, the pattern will still be compiled as a standard matcher."
 
 	| code |
-	code := self compileNoJIT: pattern.
-	(EagerJIT and: [ SupportsJIT ]) ifTrue: [
-		(self privateJITCompile: code) == 0 ifTrue: [
-			code optionsJIT: optionsJIT ] ].
+	(code := PCRE2Code fromHandle: (self compileBasic: pattern))
+		autoRelease;
+		initialize;
+		pattern: pattern;
+		compiler: self.
+	code isJIT: (EagerJIT and: [
+			 SupportsJIT and: [ (self privateJITCompile: code) == 0 ] ]).
 	^ code
 ]
 
@@ -120,7 +129,25 @@ Returns:        pointer to compiled data block, or NULL on error,
 
 	"pcre2_code *pcre2_compile_8(PCRE2_SPTR pattern, PCRE2_SIZE length, uint32_t options, int *errorcode, PCRE2_SIZE *erroroffset, pcre2_compile_context *ccontext)"
 
-	self ffiCall: #(PCRE2Code *pcre2_compile_8(char *pattern, size_t length, uint32 options, IntHolder errorcode, SizeTHolder erroroffset, void *context))
+	self ffiCall: #(void *pcre2_compile_8(char *pattern, size_t length, uint32 options, IntHolder errorcode, SizeTHolder erroroffset, void *context))
+]
+
+{ #category : 'compiling' }
+PCRE2Compiler >> compileBasic: pattern [
+	"Creates a regex matcher from a pattern and returns its external address"
+
+	| utfPattern errorCode errorOffset handle |
+	utfPattern := ZnUTF8Encoder default encodeString: pattern.
+	errorCode := IntHolder new.
+	errorOffset := SizeTHolder new.
+	handle := self
+		          compile: utfPattern
+		          upTo: utfPattern size
+		          errorCode: errorCode
+		          errorOffset: errorOffset.
+	handle isNull ifTrue: [
+		self errorCode: errorCode value in: utfPattern at: errorOffset value ].
+	^ handle
 ]
 
 { #category : 'compiling' }
@@ -135,26 +162,8 @@ PCRE2Compiler >> compileJIT: code [
 
 	| rc |
 	rc := self privateJITCompile: code.
-	rc == 0 ifTrue: [ ^ code ].
+	rc == 0 ifTrue: [ ^ code isJIT: true ].
 	self errorCode: rc
-]
-
-{ #category : 'compiling' }
-PCRE2Compiler >> compileNoJIT: pattern [
-	"Compile a pattern string into a regex matcher"
-
-	| utfPattern errorCode errorOffset code |
-	utfPattern := ZnUTF8Encoder default encodeString: pattern.
-	errorCode := IntHolder new.
-	errorOffset := SizeTHolder new.
-	code := self
-		        compile: utfPattern
-		        upTo: utfPattern size
-		        errorCode: errorCode
-		        errorOffset: errorOffset.
-	code isNull ifTrue: [
-		self errorCode: errorCode value in: utfPattern at: errorOffset value ].
-	^ code autoRelease initialize
 ]
 
 { #category : 'accessing' }
@@ -226,6 +235,7 @@ PCRE2Compiler >> optionsJIT [
 
 { #category : 'accessing' }
 PCRE2Compiler >> optionsJIT: anInteger [
+	"See jitComplete, jitPartialSoft and jitPartialHard class methods of PCRE2."
 
 	optionsJIT := anInteger
 ]

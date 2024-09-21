@@ -47,30 +47,39 @@ PCRE2Code >> bePersistent [
 
 { #category : 'compiling' }
 PCRE2Code >> compileJIT [
-	"Request JIT compilation for this compiled pattern.
+	"Request JIT compilation for this compiled pattern using the compiler options.
 	If supported and unless reconfigured, patterns are JIT-compiled by default."
 
-	PCRE2Compiler new
-		optionsJIT: optionsJIT;
-		compileJIT: self
+	compiler compileJIT: self
 ]
 
 { #category : 'compiling' }
 PCRE2Code >> compileJIT: anInteger [
-	"Request JIT compilation for this compiled pattern.
+	"Request JIT (re-)compilation for this compiled pattern.
 	If supported and unless reconfigured, patterns are JIT-compiled by default.
-	Available options are jitComplete, jitPartialSoft and jitPartialHard."
+	The available options are jitComplete, jitPartialSoft and jitPartialHard."
 
-	PCRE2Compiler new
-		optionsJIT: (optionsJIT := anInteger);
-		compileJIT: self
+	| newCompiler |
+	(newCompiler := PCRE2Compiler new)
+		options: compiler options;
+		context: compiler context;
+		optionsJIT: anInteger;
+		compileJIT: self.
+	compiler := newCompiler
 ]
 
-{ #category : 'private' }
-PCRE2Code >> compileOptions: anInteger [
-	"Must only be used by the compiler"
+{ #category : 'accessing' }
+PCRE2Code >> compiler [
+	"The compiler that processed this pattern"
 
-	compileOptions := anInteger
+	^ compiler
+]
+
+{ #category : 'accessing' }
+PCRE2Code >> compiler: aPCRE2Compiler [
+	"Should only be used by the compiler that processed this pattern"
+
+	compiler := aPCRE2Compiler
 ]
 
 { #category : 'accessing' }
@@ -268,15 +277,23 @@ PCRE2Code >> initialize [
 	This is what is expected for the vast majority of cases."
 
 	options := 0.
-	optionsJIT := 0.
 	self useMatchDataFromPattern
 ]
 
 { #category : 'accessing' }
 PCRE2Code >> isJIT [
-	"See #optionsJIT: comment"
 
-	^ optionsJIT ~~ 0
+	^ isJIT
+]
+
+{ #category : 'accessing' }
+PCRE2Code >> isJIT: aBoolean [
+	"Indicates whether the pattern is JIT-compiled.
+	Can be set to false if using match() over the jit_match() fast path is required for additional validity checks,
+	and if the pattern is JIT-compiled, the fast machine code is still used.
+	Setting to true when the pattern is not really JIT-compiled will cause matches to throw an error."
+
+	isJIT := aBoolean and: [ compiler optionsJIT ~~ 0 ]
 ]
 
 { #category : 'private' }
@@ -374,9 +391,9 @@ PCRE2Code >> matchBytes: subject from: start to: end [
 	(matchData isPersistent or: [ matchData isNull ])
 		ifTrue: [ self reuseMatchDataFromPattern ]
 		ifFalse: [ matchData reset ].
-	rc := optionsJIT == 0
-		      ifTrue: [ self match: subject from: start - 1 to: end ]
-		      ifFalse: [ self jitMatch: subject from: start - 1 to: end ].
+	rc := isJIT
+		      ifFalse: [ self match: subject from: start - 1 to: end ]
+		      ifTrue: [ self jitMatch: subject from: start - 1 to: end ].
 	rc > 0 ifTrue: [ "success -> value is the number of offset pairs, maximum is 65536 (match and up to 65535 capture groups)"
 		matchData count: rc.
 		^ rc ].
@@ -506,23 +523,6 @@ PCRE2Code >> namedGroups [
 ]
 
 { #category : 'accessing' }
-PCRE2Code >> optionsJIT [
-
-	^ optionsJIT
-]
-
-{ #category : 'accessing' }
-PCRE2Code >> optionsJIT: anInteger [
-	"Generally used by the pattern compiler to set the JIT options used to compile the pattern.
-	Serves both as a flag to indicate whether the pattern is JIT-compiled, and as a way to reconstruct the pattern.
-	Can be set to 0 if using match() over the jit_match() fast path is required for additional validity checks,
-	and if the pattern is JIT-compiled, the fast machine code is still used.
-	Setting to a value other than 0 when the pattern is not really JIT-compiled will cause matches to throw an error."
-
-	optionsJIT := anInteger
-]
-
-{ #category : 'accessing' }
 PCRE2Code >> pattern: aString [
 	"Must only be used by the compiler"
 
@@ -548,6 +548,14 @@ PCRE2Code >> privateCopy [
 	The yield of the function is NULL if code is NULL or if sufficient memory cannot be obtained."
 
 	self ffiCall: #(void *pcre2_code_copy_8(self))
+]
+
+{ #category : 'persistence' }
+PCRE2Code >> recompile [
+	"Recreate the external compiled pattern"
+
+	self setHandle: (compiler compileBasic: pattern).
+	self isJIT ifTrue: [ compiler compileJIT: self ]
 ]
 
 { #category : 'persistence' }

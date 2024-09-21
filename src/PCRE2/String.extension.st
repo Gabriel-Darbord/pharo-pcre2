@@ -4,7 +4,7 @@ Extension { #name : 'String' }
 String >> asPCRegex [
 	"Compile myself as a perl-compatible regex matcher. May raise PCRE2CompileError."
 
-	^ PCRE2Compiler new compile: self
+	^ PCRE2Compiler default compile: self
 ]
 
 { #category : '*PCRE2' }
