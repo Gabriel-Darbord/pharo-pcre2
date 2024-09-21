@@ -1,3 +1,7 @@
+"
+I contain match data resulting from the execution of a compiled pattern.
+Library users do not normally interact with my instances.
+"
 Class {
 	#name : 'PCRE2Match',
 	#superclass : 'PCRE2Object',
@@ -14,12 +18,12 @@ Class {
 
 { #category : 'persistence' }
 PCRE2Match >> bePersistent [
-	"Update myself to become a persistent version."
+	"Update myself to be persistent: copy the external object to local memory"
 
 	self count.
 	offsets isArray ifFalse: [ "copy external data into local memory"
 		self offsets ].
-	"TODO named groups"
+	"TODO: copy named groups"
 	self free.
 	handle beNull.
 	isPersistent := true
@@ -39,6 +43,21 @@ PCRE2Match >> count: anInteger [
 	count := anInteger
 ]
 
+{ #category : 'accessing' }
+PCRE2Match >> endOffsetAt: pairIndex [
+	"Returns the n-th end offset"
+
+	| index wordSize |
+	index := 2 * (pairIndex - 1) + 1. "to 0-based"
+	offsets isArray ifTrue: [ ^ offsets at: index + 1 ].
+
+	offsets ifNil: [ offsets := self getOffsets ].
+	wordSize := ExternalAddress wordSize.
+	wordSize == 8 ifTrue: [ ^ offsets uint64AtOffset: 8 * index ].
+	wordSize == 4 ifTrue: [ ^ offsets uint32AtOffset: 4 * index ].
+	^ offsets platformSizeTAt: wordSize * index + 1
+]
+
 { #category : 'initialize-release' }
 PCRE2Match >> free [
 
@@ -54,10 +73,9 @@ PCRE2Match >> getCount [
 
 { #category : 'private' }
 PCRE2Match >> getMark [
-	"After a call of match() that was passed the match block that is this function's argument, this function returns a pointer to the last (*MARK), (*PRUNE), or (*THEN) name that was encountered during the matching process.
-	The name is zero-terminated, and is within the compiled pattern.
-	The length of the name is in the preceding code unit.
-	If no name is available, NULL is returned."
+	"After a call of match() that was passed the match block that is this function's argument,
+	this function returns a pointer to the last (*MARK), (*PRUNE), or (*THEN) name that was
+	encountered during the matching process. If no name is available, NULL is returned."
 
 	self ffiCall: #(char *pcre2_get_mark_8(self))
 ]
@@ -126,7 +144,7 @@ PCRE2Match >> offsetsAt: pairIndex [
 	"Returns the n-th offset pair"
 
 	| index wordSize |
-	index := 2 * (pairIndex - 1). "0-based"
+	index := 2 * (pairIndex - 1). "to 0-based"
 	offsets isArray ifTrue: [
 		^ {
 			  (offsets at: index + 1).
@@ -143,17 +161,17 @@ PCRE2Match >> offsetsAt: pairIndex [
 			  (offsets uint32AtOffset: 4 * index).
 			  (offsets uint32AtOffset: 4 * (index + 1)) } ].
 	^ {
-		  (offsets platformSizeTAt: index * wordSize + 1).
+		  (offsets platformSizeTAt: wordSize * index + 1).
 		  (offsets platformSizeTAt: wordSize * (index + 1) + 1) }
 ]
 
 { #category : 'enumerating' }
 PCRE2Match >> offsetsDo: aBlock [
 	"Iterate over the offset pairs resulting from a match operation.
-	The first pair is what the full pattern matched, subsequent pairs are from capture groups."
+	The first pair is what the full pattern matched, subsequent pairs are the matches of each capture group."
 
 	| wordSize |
-	offsets isArray ifTrue: [ "the offsets is the full ovector as a Pharo array of integers"
+	offsets isArray ifTrue: [ "offsets have already been copied to a local array"
 		1 to: count by: 2 do: [ :i |
 		aBlock value: (offsets at: i) value: (offsets at: i + 1) ].
 		^ self ].
@@ -194,11 +212,24 @@ PCRE2Match >> offsetsDo: aBlock [
 
 { #category : 'match enumeration' }
 PCRE2Match >> readMatch: subject [
-	"Return the first subset of the subject that matched"
+	"Returns the matching subcollection of a pattern applied to subject"
 
-	self offsetsDo: [ :start :end |
-		^ subject copyFrom: start to: end ].
+	self offsetsDo: [ :start :end | ^ subject copyFrom: start to: end ].
 	^ nil
+]
+
+{ #category : 'match enumeration' }
+PCRE2Match >> readMatches: subject [
+	"Returns the matching subcollections of a pattern and its groups applied to subject"
+
+	| matches index |
+	matches := Array new: self count.
+	index := 0.
+	self offsetsDo: [ :start :end |
+		matches
+			at: (index := index + 1)
+			put: (subject copyFrom: start to: end) ].
+	^ matches
 ]
 
 { #category : 'initialization' }
@@ -218,4 +249,19 @@ PCRE2Match >> startIndex [
 	After a partial match, however, this value is always the same as `offsets at: 1` because \K does not affect the result of a partial match."
 
 	^ startIndex ifNil: [ startIndex := self getStartIndex ]
+]
+
+{ #category : 'accessing' }
+PCRE2Match >> startOffsetAt: pairIndex [
+	"Returns the n-th start offset"
+
+	| index wordSize |
+	index := 2 * (pairIndex - 1). "to 0-based"
+	offsets isArray ifTrue: [ ^ offsets at: index + 1 ].
+
+	offsets ifNil: [ offsets := self getOffsets ].
+	wordSize := ExternalAddress wordSize.
+	wordSize == 8 ifTrue: [ ^ offsets uint64AtOffset: 8 * index ].
+	wordSize == 4 ifTrue: [ ^ offsets uint32AtOffset: 4 * index ].
+	^ offsets platformSizeTAt: wordSize * index + 1
 ]
