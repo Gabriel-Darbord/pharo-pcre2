@@ -305,6 +305,12 @@ PCRE2CodeTest >> testMatches [
 ]
 
 { #category : 'tests' }
+PCRE2CodeTest >> testRecompile [
+
+	self assert: ('a' asPCRegex free recompile matches: 'a')
+]
+
+{ #category : 'tests' }
 PCRE2CodeTest >> testSearch [
 
 	self assert: ('\d+' asPCRegex search: '123').
