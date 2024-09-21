@@ -91,35 +91,47 @@ PCRE2Code >> context: aMatchContext [
 	context := aMatchContext
 ]
 
-{ #category : 'copying' }
-PCRE2Code >> copy: subject replacingMatchesWith: aString [
-	"Copy the subject replacing each match with aString"
+{ #category : 'enumerating' }
+PCRE2Code >> copy: subject matchesDo: aBlock [
+	"Copy the subject and execute a block for each match"
 
-	| encoder utfSubject lastIndex result |
+	| encoder utfSubject lastIndex rs ws |
 	encoder := ZnUTF8Encoder default.
 	utfSubject := encoder encodeString: subject.
-	lastIndex := 1.
-	result := WriteStream on: (String new: 100).
+	lastIndex := 0.
+	rs := ReadStream on: utfSubject.
+	ws := WriteStream on: (String new: 100).
 	self
 		matchAll: utfSubject
 		from: 1
 		to: utfSubject size
 		do: [
-			| offsets start end |
-			offsets := matchData offsetsAt: 1.
-			start := offsets at: 1.
-			end := offsets at: 2.
+			| start |
+			rs position: lastIndex.
+			start := matchData startOffsetAt: 1.
+			lastIndex := matchData endOffsetAt: 1.
+			[ rs position < start ] whileTrue: [ "copy unmatched range"
+				ws nextPut: (encoder nextFromStream: rs) ].
+			"normalize the start-end range: [n-1,m) -> [n,m]"
+			aBlock
+				value: ws
+				value: utfSubject
+				value: start + 1
+				value: lastIndex ].
 
-			lastIndex <= start ifTrue: [ "copy what was not matched"
-				result nextPutAll:
-					(encoder decodeBytes: (utfSubject copyFrom: lastIndex to: start)) ].
-			result nextPutAll: aString.
-			lastIndex := end + 1 ].
+	rs position: lastIndex.
+	[ rs atEnd ] whileFalse: [ "copy from last match to end"
+		ws nextPut: (encoder nextFromStream: rs) ].
+	^ ws contents
+]
 
-	lastIndex < utfSubject size ifTrue: [ "from last match to end"
-		result nextPutAll: (encoder decodeBytes:
-				 (utfSubject copyFrom: lastIndex to: utfSubject size)) ].
-	^ result contents
+{ #category : 'copying' }
+PCRE2Code >> copy: subject replacingMatchesWith: aString [
+	"Copy the subject replacing each match with aString"
+
+	^ self
+		  copy: subject
+		  matchesDo: [ :ws :utfSubject :start :end | ws nextPutAll: aString ]
 ]
 
 { #category : 'copying' }
@@ -127,32 +139,9 @@ PCRE2Code >> copy: subject translatingMatchesUsing: aBlock [
 	"Copy the subject replacing each match by evaluating aBlock with the matched substring.
 	Expect the block to answer a String, and replace the match with the answer."
 
-	| encoder utfSubject lastIndex result |
-	encoder := ZnUTF8Encoder default.
-	utfSubject := encoder encodeString: subject.
-	lastIndex := 1.
-	result := WriteStream on: (String new: 100).
-	self
-		matchAll: utfSubject
-		from: 1
-		to: utfSubject size
-		do: [
-			| offsets start end |
-			offsets := matchData offsetsAt: 1.
-			start := offsets at: 1.
-			end := offsets at: 2.
-
-			lastIndex <= start ifTrue: [ "copy what was not matched"
-				result nextPutAll:
-					(encoder decodeBytes: (utfSubject copyFrom: lastIndex to: start)) ].
-			result nextPutAll:
-				(aBlock value: (utfSubject copyFrom: start + 1 to: end)).
-			lastIndex := end + 1 ].
-
-	lastIndex <= utfSubject size ifTrue: [ "from last match to end"
-		result nextPutAll: (encoder decodeBytes:
-				 (utfSubject copyFrom: lastIndex to: utfSubject size)) ].
-	^ result contents
+	^ self copy: subject matchesDo: [ :ws :utfSubject :start :end |
+		  ws nextPutAll:
+			  (aBlock value: (utfSubject copyFrom: start to: end)) ]
 ]
 
 { #category : 'private' }

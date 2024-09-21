@@ -76,6 +76,21 @@ PCRE2CodeTest >> testCopy [
 ]
 
 { #category : 'tests' }
+PCRE2CodeTest >> testCopyReplacingMatchesWith [
+
+	| regex |
+	regex := 'a' asPCRegex.
+	self assert: (regex copy: '' replacingMatchesWith: '') equals: ''.
+	self assert: (regex copy: 'aaa' replacingMatchesWith: '') equals: ''.
+	self
+		assert: (regex copy: 'aaa' replacingMatchesWith: 'b')
+		equals: 'bbb'.
+	self
+		assert: (regex copy: 'babab' replacingMatchesWith: '_a_')
+		equals: 'b_a_b_a_b'
+]
+
+{ #category : 'tests' }
 PCRE2CodeTest >> testCopyTranslatingMatchesUsing [
 
 	| regex |
