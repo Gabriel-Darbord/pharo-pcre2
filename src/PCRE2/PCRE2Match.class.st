@@ -105,19 +105,20 @@ PCRE2Match >> mark [
 
 { #category : 'enumerating' }
 PCRE2Match >> offsets [
-	"Returns a copy of the array containing offset pairs for the match and captured substrings.
+	"Returns the array containing offset pairs for the match and captured substrings. (DO NOT MODIFY IT!)
 	The start offsets are at odd indexes, and the corresponding end offsets are at the following even indexes.
 	The first pair identifies the part of the subject string that was matched by the entire pattern.
 	Subsequent pairs identify the captured substrings."
 
 	| copy index |
-	offsets isArray ifTrue: [ ^ offsets clone ].
+	"use this opportunity to copy external data locally if not already done, to ensure persistence"
+	offsets isArray ifTrue: [ ^ offsets ].
 	copy := Array new: 2 * self count.
 	index := 0.
 	self offsetsDo: [ :start :end |
 		copy at: index + 1 put: start.
 		copy at: (index := index + 2) put: end ].
-	^ (offsets := copy) clone
+	^ offsets := copy
 ]
 
 { #category : 'accessing' }
