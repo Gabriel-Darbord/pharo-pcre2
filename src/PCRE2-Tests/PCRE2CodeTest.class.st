@@ -23,6 +23,18 @@ PCRE2CodeTest >> assertRegex: pattern matchPersists: subject [
 ]
 
 { #category : 'tests' }
+PCRE2CodeTest >> testAwesome [
+	"Some awesome things that can be done with PCRE"
+
+	| regex |
+	"recursive pattern"
+	regex := '{((?>[^{}]+|(?R))*)}' asPCRegex.
+	self
+		assert: (regex findAll: '{1, {2, {3}}} {{4, 5}}') asArray
+		equals: { '{1, {2, {3}}}'. '{{4, 5}}' }
+]
+
+{ #category : 'tests' }
 PCRE2CodeTest >> testBePersistent [
 
 	self
@@ -45,18 +57,6 @@ PCRE2CodeTest >> testBePersistent [
 		matchPersists: 'not test123 this example456 another789'
 
 	"TODO named capture groups"
-]
-
-{ #category : 'tests' }
-PCRE2CodeTest >> testCoolStuff [
-	"Some cool stuff that can be done with PCRE"
-
-	| regex |
-	"recursive pattern"
-	regex := '{((?>[^{}]+|(?R))*)}' asPCRegex.
-	self
-		assert: (regex findAll: '{1, {2, {3}}} {4, 5}') asArray
-		equals: { '{1, {2, {3}}}'. '{4, 5}' }
 ]
 
 { #category : 'tests' }
@@ -364,7 +364,6 @@ PCRE2CodeTest >> testStartIndex [
 PCRE2CodeTest >> testWithOffsetLimit [
 
 	| regex |
-	self flag: #TODO. "something weird here, useOffsetLimit is not for substitute, don't use substitute to test this"
 	regex := 'B' asPCRegexWithOptions: PCRE2 useOffsetLimit.
 	regex addOptions: PCRE2 substituteGlobal.
 	regex context offsetLimit: 12.

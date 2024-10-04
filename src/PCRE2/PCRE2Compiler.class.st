@@ -50,7 +50,7 @@ PCRE2Compiler class >> eagerJIT [
 
 { #category : 'accessing' }
 PCRE2Compiler class >> eagerJIT: aBoolean [
-	"Whether to also try JIT compiling when processing a pattern"
+	"Whether to also try JIT compilation when processing a pattern"
 
 	EagerJIT := aBoolean
 ]
