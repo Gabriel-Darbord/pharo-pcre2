@@ -264,6 +264,20 @@ PCRE2CodeTest >> testMark [
 ]
 
 { #category : 'tests' }
+PCRE2CodeTest >> testMatchLimit [
+
+	| regex |
+	regex := '(a+)+' asPCRegex.
+	regex context matchLimit: 1.
+
+	self
+		should: [ regex matches: 'aa' ]
+		raise: PCRE2MatchError
+		withExceptionDo: [ :e |
+		self assert: e messageText equals: 'match limit exceeded' ]
+]
+
+{ #category : 'tests' }
 PCRE2CodeTest >> testMatches [
 
 	self assert: ('\d+' asPCRegex matches: '123').
@@ -366,9 +380,9 @@ PCRE2CodeTest >> testWithOffsetLimit [
 	| regex |
 	regex := 'B' asPCRegexWithOptions: PCRE2 useOffsetLimit.
 	regex addOptions: PCRE2 substituteGlobal.
-	regex context offsetLimit: 12.
+	regex context offsetLimit: 6.
 
 	self
 		assert: (regex substitute: 'ABC ABC ABC ABC' with: '!')
-		equals: 'A!C A!C A!C ABC'
+		equals: 'A!C A!C ABC ABC'
 ]

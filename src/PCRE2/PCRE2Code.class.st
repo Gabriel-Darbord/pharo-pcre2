@@ -252,7 +252,7 @@ PCRE2Code >> info: option [
 		ifTrue: [ "info is a size_t"
 			^ size == 8
 				  ifTrue: [ buffer uint64AtOffset: 0 ]
-				  ifFalse: [ "assume 4, make an issue if it crashes!"
+				  ifFalse: [ "assume size == 4, make an issue if it crashes!"
 				  buffer uint32AtOffset: 0 ] ].
 	(option == PCRE2 infoFirstBitmap or: [ option == PCRE2 infoNameTable ])
 		ifTrue: [ "a pointer to external data"

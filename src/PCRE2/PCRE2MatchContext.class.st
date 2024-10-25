@@ -19,6 +19,7 @@ PCRE2MatchContext >> depthLimit [
 
 { #category : 'accessing' }
 PCRE2MatchContext >> depthLimit: anInteger [
+	"Set the backtracking depth limit"
 
 	self setDepthLimit: (depthLimit := anInteger)
 ]
@@ -39,6 +40,7 @@ PCRE2MatchContext >> heapLimit [
 
 { #category : 'accessing' }
 PCRE2MatchContext >> heapLimit: anInteger [
+	"Set the heap memory limit"
 
 	self setHeapLimit: (heapLimit := anInteger)
 ]
@@ -51,6 +53,7 @@ PCRE2MatchContext >> matchLimit [
 
 { #category : 'accessing' }
 PCRE2MatchContext >> matchLimit: anInteger [
+	"Set the backtracking match limit"
 
 	self setMatchLimit: (matchLimit := anInteger)
 ]
@@ -63,6 +66,7 @@ PCRE2MatchContext >> offsetLimit [
 
 { #category : 'accessing' }
 PCRE2MatchContext >> offsetLimit: anInteger [
+	"Set a matching offset limit"
 
 	self setOffsetLimit: (offsetLimit := anInteger)
 ]
