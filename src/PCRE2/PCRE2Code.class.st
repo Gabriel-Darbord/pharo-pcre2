@@ -224,6 +224,34 @@ PCRE2Code >> findAll: subject do: aBlock [
 				(encoder decodeBytes: (matchData readMatch: utfSubject)) ]
 ]
 
+{ #category : 'matching' }
+PCRE2Code >> findAllWithGroups: subject [
+	"Returns all matching substrings within the subject"
+
+	| result encoder utfSubject |
+	result := OrderedCollection new.
+	encoder := ZnUTF8Encoder default.
+	utfSubject := encoder encodeString: subject.
+	self
+		matchAll: utfSubject
+		from: 1
+		to: utfSubject size
+		do: [
+		result add: (matchData readMatches: utfSubject decodeWith: encoder) ].
+	^ result
+]
+
+{ #category : 'matching' }
+PCRE2Code >> findWithGroups: subject [
+	"Returns the first matching substring and groups within the subject"
+
+	| encoder utfSubject |
+	encoder := ZnUTF8Encoder default.
+	utfSubject := encoder encodeString: subject.
+	self matchBytes: utfSubject from: 1 to: utfSubject size.
+	^ matchData readMatches: utfSubject decodeWith: encoder
+]
+
 { #category : 'initialize-release' }
 PCRE2Code >> free [
 

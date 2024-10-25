@@ -232,6 +232,20 @@ PCRE2Match >> readMatches: subject [
 	^ matches
 ]
 
+{ #category : 'match enumeration' }
+PCRE2Match >> readMatches: subject decodeWith: decoder [
+	"Returns the decoded matching subcollections of a pattern and its groups applied to subject"
+
+	| matches index |
+	matches := Array new: self count.
+	index := 0.
+	self offsetsDo: [ :start :end |
+		matches
+			at: (index := index + 1)
+			put: (decoder decodeBytes: (subject copyFrom: start to: end)) ].
+	^ matches
+]
+
 { #category : 'initialization' }
 PCRE2Match >> reset [
 

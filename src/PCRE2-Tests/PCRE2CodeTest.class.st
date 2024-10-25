@@ -249,6 +249,43 @@ PCRE2CodeTest >> testFindAll [
 ]
 
 { #category : 'tests' }
+PCRE2CodeTest >> testFindAllWithGroups [
+
+	self
+		assert: ('(\w)+' asPCRegex findAllWithGroups: 'hello world') asArray
+		equals: #( #( 'hello' 'o' ) #( 'world' 'd' ) ).
+	self
+		assert:
+			('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
+				 asPCRegex findAllWithGroups: 'user@example.com admin@domain.org')
+				asArray
+		equals: #( #( 'user@example.com' 'user' 'example.com' )
+			   #( 'admin@domain.org' 'admin' 'domain.org' ) ).
+	self
+		assert:
+			('([\x{0391}-\x{03C9}])+' asPCRegex findAllWithGroups: 'a-Αλφ-α')
+				asArray
+		equals: #( #( 'Αλφ' 'φ' ) #( 'α' 'α' ) )
+]
+
+{ #category : 'tests' }
+PCRE2CodeTest >> testFindWithGroups [
+
+	self
+		assert: ('(\w)+' asPCRegex findWithGroups: 'hello')
+		equals: #( 'hello' 'o' ).
+	self
+		assert:
+			('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
+				 asPCRegex findWithGroups: 'user@example.com admin@domain.org')
+		equals: #( 'user@example.com' 'user' 'example.com' ).
+	self
+		assert:
+		('([\x{0391}-\x{03C9}])+' asPCRegex findWithGroups: 'a-Αλφ-α')
+		equals: #( 'Αλφ' 'φ' )
+]
+
+{ #category : 'tests' }
 PCRE2CodeTest >> testMark [
 
 	| regex |
