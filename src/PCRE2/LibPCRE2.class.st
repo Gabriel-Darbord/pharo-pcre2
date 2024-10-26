@@ -160,11 +160,9 @@ LibPCRE2 >> restore: codes from: bytes [
 	1 to: count do: [ :i |
 		| code |
 		(code := codes at: i) setHandle:
-			(codePointers pointerAtOffset: i - 1 * wordSize).
-		code isJIT ifTrue: [ "recompile JIT if configured"
-			compiler
-				optionsJIT: code optionsJIT;
-				compileJIT: code ] ]
+			(codePointers pointerAtOffset: wordSize * (i - 1)).
+		"recompile JIT if it was before serialization"
+		code isJIT ifTrue: [ code compileJIT ] ]
 ]
 
 { #category : 'accessing' }
@@ -183,7 +181,7 @@ LibPCRE2 >> serialize: codes [
 	codePointers := ByteArray new: codes size * bufferSize.
 	1 to: codes size do: [ :i |
 		codePointers
-			pointerAtOffset: i - 1 * bufferSize
+			pointerAtOffset: bufferSize * (i - 1)
 			put: (codes at: i) getHandle ].
 	buffer := ByteArray new: bufferSize.
 

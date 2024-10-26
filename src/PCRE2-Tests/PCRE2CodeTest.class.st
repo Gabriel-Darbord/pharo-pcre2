@@ -358,7 +358,7 @@ PCRE2CodeTest >> testMatches [
 { #category : 'tests' }
 PCRE2CodeTest >> testRecompile [
 
-	self assert: ('a' asPCRegex free recompile matches: 'a')
+	self assert: ('a' asPCRegex finalize recompile matches: 'a')
 ]
 
 { #category : 'tests' }
