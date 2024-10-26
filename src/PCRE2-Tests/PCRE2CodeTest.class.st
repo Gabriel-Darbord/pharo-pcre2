@@ -23,6 +23,24 @@ PCRE2CodeTest >> assertRegex: pattern matchPersists: subject [
 ]
 
 { #category : 'tests' }
+PCRE2CodeTest >> testAllInfo [
+
+	| infos infoNameTable |
+	infos := '' asPCRegex allInfo.
+	"20 = index of infoNameTable, which is a pointer to a table so it differs each time"
+	infoNameTable := infos at: 20.
+	infos := infos copyWithoutIndex: 20.
+
+	self
+		assert: infos
+		equals:
+			#( 524288 524288 0 1 0 0 0 nil 0 0 356 0 0 1 nil 0 0 0 0 2 nil 143
+			   0 136 nil 0 ).
+	self assert: infoNameTable size equals: ExternalAddress wordSize.
+	self deny: (infoNameTable allSatisfy: #isZero)
+]
+
+{ #category : 'tests' }
 PCRE2CodeTest >> testAwesome [
 	"Some awesome things that can be done with PCRE"
 
@@ -60,11 +78,27 @@ PCRE2CodeTest >> testBePersistent [
 ]
 
 { #category : 'tests' }
+PCRE2CodeTest >> testCompileJIT [
+
+	| regex originalCompiler optionsJIT |
+	regex := '' asPCRegex.
+	originalCompiler := regex compiler.
+	optionsJIT := PCRE2 jitPartialHard.
+
+	self deny: originalCompiler optionsJIT equals: optionsJIT.
+
+	regex compileJIT: optionsJIT.
+
+	self deny: regex compiler identicalTo: originalCompiler.
+	self assert: regex compiler optionsJIT identicalTo: optionsJIT
+]
+
+{ #category : 'tests' }
 PCRE2CodeTest >> testCopy [
 
 	| regex copy |
 	regex := 'a' asPCRegex.
-	copy := regex deepCopy.
+	copy := regex copy.
 
 	"structural equality"
 	self deny: regex identicalTo: copy.
@@ -353,6 +387,90 @@ PCRE2CodeTest >> testMatches [
 	self deny:
 		('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
 			 asPCRegex matches: 'user@example.com admin@domain.org')
+]
+
+{ #category : 'tests' }
+PCRE2CodeTest >> testMatchesInCollect [
+
+	self
+		assert: ('\d' asPCRegex
+				 matchesIn: '123'
+				 collect: [ :match | match asInteger + 1 ]) asArray
+		equals: #( 2 3 4 ).
+
+	self
+		assert: ('\w' asPCRegex
+				 matchesIn: 'hello'
+				 collect: [ :match | match first asciiValue ]) asArray
+		equals: #( 104 101 108 108 111 ).
+
+	"no match"
+	self assert: ('\d' asPCRegex
+			 matchesIn: 'the quick brown fox jumps over the lazy dog'
+			 collect: [ :match | match ]) isEmpty.
+
+	"variable-length encoding"
+	self
+		assert: ('[\x{0391}-\x{03C9}]+' asPCRegex
+				 matchesIn: 'Αλφα Βήτα Γάμμα'
+				 collect: [ :match | match size ]) asArray
+		equals: #( 4 4 5 ).
+
+	self
+		assert: ('[\x{0400}-\x{04FF}]+' asPCRegex
+				 matchesIn: 'Привет мир'
+				 collect: [ :match | match size ]) asArray
+		equals: #( 6 3 ).
+
+	self
+		assert:
+			('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+'
+				 asPCRegex
+				 matchesIn: 'Hello, Привет, 你好, مرحبا'
+				 collect: [ :match | match size ]) asArray
+		equals: #( 5 6 2 5 )
+]
+
+{ #category : 'tests' }
+PCRE2CodeTest >> testMatchesPrefix [
+
+	self assert: ('\d+' asPCRegex matchesPrefix: '123').
+	self assert: ('\w+' asPCRegex matchesPrefix: 'hello').
+	self assert:
+		('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' asPCRegex
+			 matchesPrefix: 'user@example.com').
+	self assert:
+		('\(\d{3}\) \d{3}-\d{4}' asPCRegex matchesPrefix: '(123) 456-7890').
+
+	"no match"
+	self deny: ('\d' asPCRegex matchesPrefix:
+			 'the quick brown fox jumps over the lazy dog').
+
+	"variable-length encoding"
+	self deny: ('[éèêë]' asPCRegex matchesPrefix: 'café').
+	self assert: ('\p{L}+' asPCRegex matchesPrefix: 'naïve').
+	self assert:
+		('[\x{20AC}\x{00A3}\x{00A5}]' asPCRegex matchesPrefix: '€ $ £ ¥').
+	self assert:
+		('[\x{0391}-\x{03C9}]+' asPCRegex matchesPrefix: 'Αλφα Βήτα Γάμμα').
+	self assert:
+		('[\x{0400}-\x{04FF}]+' asPCRegex matchesPrefix: 'Привет мир').
+	self assert:
+		('[\x{1F600}-\x{1F64F}]' asPCRegex matchesPrefix: '😀😃😄😁').
+	self assert:
+		('[\x{0600}-\x{06FF}]+' asPCRegex matchesPrefix: 'مرحبا بالعالم').
+	self assert:
+		('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+'
+			 asPCRegex matchesPrefix: 'Hello, Привет, 你好, مرحبا').
+
+	"lookaround and named capture groups"
+	self deny: ('\b\w+?(?=\d)' asPCRegex matchesPrefix:
+			 'not test123 this example456 another789').
+	self deny: ('(?<=\d)(?:[^\d]\w+)' asPCRegex matchesPrefix:
+			 'not 123test this 456example 789another').
+	self assert:
+		('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
+			 asPCRegex matchesPrefix: 'user@example.com admin@domain.org')
 ]
 
 { #category : 'tests' }
