@@ -328,6 +328,23 @@ PCRE2CodeTest >> testFindWithGroups [
 ]
 
 { #category : 'tests' }
+PCRE2CodeTest >> testInfo [
+
+	| regex infoFrameSize infoNameTable infoJITSize |
+	regex := '' asPCRegex.
+
+	infoFrameSize := regex info: PCRE2 infoFrameSize.
+	self assert: infoFrameSize > 0.
+
+	infoNameTable := regex info: PCRE2 infoNameTable.
+	self assert: infoNameTable size equals: ExternalAddress wordSize.
+	self deny: (infoNameTable allSatisfy: #isZero).
+
+	infoJITSize := regex info: PCRE2 infoJITSize.
+	self assert: infoJITSize >= 0
+]
+
+{ #category : 'tests' }
 PCRE2CodeTest >> testMark [
 
 	| regex |
