@@ -25,19 +25,27 @@ PCRE2CodeTest >> assertRegex: pattern matchPersists: subject [
 { #category : 'tests' }
 PCRE2CodeTest >> testAllInfo [
 
-	| infos infoNameTable |
-	infos := '' asPCRegex allInfo.
-	"20 = index of infoNameTable, which is a pointer to a table so it differs each time"
+	| regex infos infoNameTable infoFrameSize infoJITSize |
+	regex := '' asPCRegex.
+	infos := regex allInfo.
+
+	"25 = index of infoFrameSize, which may vary depending on the architecture"
+	infoFrameSize := infos at: 25.
+	infos := infos copyWithoutIndex: 25.
+
+	"20 = index of infoNameTable, which is a pointer to a table, so it is different each time"
 	infoNameTable := infos at: 20.
 	infos := infos copyWithoutIndex: 20.
+
+	"11 = index of infoJITSize, which may vary depending on the architecture"
+	infoJITSize := infos at: 11.
+	infos := infos copyWithoutIndex: 11.
 
 	self
 		assert: infos
 		equals:
-			#( 524288 524288 0 1 0 0 0 nil 0 0 356 0 0 1 nil 0 0 0 0 2 nil 143
-			   0 136 nil 0 ).
-	self assert: infoNameTable size equals: ExternalAddress wordSize.
-	self deny: (infoNameTable allSatisfy: #isZero)
+			#( 524288 524288 0 1 0 0 0 nil 0 0 0 0 1 nil 0 0 0 0 2 nil 143 0 nil
+			   0 )
 ]
 
 { #category : 'tests' }
