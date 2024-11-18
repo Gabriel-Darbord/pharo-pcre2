@@ -419,20 +419,28 @@ PCRE2Code >> matchBytes: subject from: start to: end [
 	(matchData isPersistent or: [ matchData isNull ])
 		ifTrue: [ self reuseMatchDataFromPattern ]
 		ifFalse: [ matchData reset ].
+
 	rc := isJIT
 		      ifFalse: [ self match: subject from: start - 1 to: end ]
 		      ifTrue: [ self jitMatch: subject from: start - 1 to: end ].
-	rc > 0 ifTrue: [ "success -> value is the number of offset pairs, maximum is 65536 (match and up to 65535 capture groups)"
+
+	rc > 0 ifTrue: [ "success -> rc is the number of offset pairs, maximum is 65536 (match and up to 65535 capture groups)"
 		matchData count: rc.
 		^ rc ].
+
 	rc == -2 ifTrue: [ "partial match -> match data contains a single offset pair of what partially matched"
 		matchData count: 1.
 		^ rc ].
-	matchData count: 0. "for a correct state if an error is signalled and handled"
+
+	"beyond this point, only error codes remain"
+	matchData count: 0. "maintain a correct state"
+
 	rc == -1 ifTrue: [ ^ rc ]. "failed to match -> empty match, no signal"
+
 	rc == 0 ifTrue: [ "success, but ovector is not big enough -> should only happen when the match data is created manually"
 		PCRE2Error signal:
 			'Not enough memory in match structure to store results' ].
+
 	self errorCode: rc "some kind of unexpected problem -> signal"
 ]
 

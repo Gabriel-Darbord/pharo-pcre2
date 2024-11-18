@@ -83,7 +83,7 @@ PCRE2SessionManager class >> useSerialization [
 	useSerialization := true
 ]
 
-{ #category : 'system startup' }
+{ #category : 'enumerating' }
 PCRE2SessionManager >> findCodesToRestore [
 	"Register all pattern instances and make them persistent.
 	This is a hook used by tests to avoid registering all instances."
@@ -110,7 +110,7 @@ PCRE2SessionManager >> shutDown [
 PCRE2SessionManager >> startUp [
 	"Restore patterns by recompiling or using serialized data from a previous session.
 	Deserialization does not work if serialization was done on a different architecture.
-	TODO: Add a way to check for incompatible architectures."
+	TODO: Add a way to check for incompatible architectures (can use PCRE2>>#configJITTarget)."
 
 	codesToRestore isEmptyOrNil ifTrue: [ ^ self ].
 

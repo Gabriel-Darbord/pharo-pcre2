@@ -383,7 +383,8 @@ PCRE2 class >> extraAllowLookaroundBsk [
 { #category : 'options' }
 PCRE2 class >> extraAllowSurrogateEscapes [
 	"This option applies when compiling a pattern in UTF-8 or UTF-32 mode.
-	If the extra option PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES is set, surrogate code point values in UTF-8 and 	UTF-32 patterns no longer provoke errors and are incorporated in the compiled pattern.
+	If the extra option PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES is set, surrogate code point values in UTF-8 and
+	UTF-32 patterns no longer provoke errors and are incorporated in the compiled pattern.
 	However, they can only match subject characters if the matching function is called with PCRE2_NO_UTF_CHECK set."
 
 	^ 16r00000001
@@ -689,7 +690,7 @@ PCRE2 class >> infoSize [
 PCRE2 class >> initialize [
 
 	errorCodeTable := Dictionary newFrom: {
-	"match errors, (-1 -> NOMATCH) and (-2 -> PARTIAL) are handled, so excluded here"
+	"match errors; (-1 -> NOMATCH) and (-2 -> PARTIAL) are handled, so excluded here"
 	(-67 -> 'INTERNAL ERROR: invalid substring offset').
 	(-66 -> 'PCRE2_MATCH_INVALID_UTF is not supported for DFA matching').
 	(-65 -> 'internal error - duplicate substitution match').
@@ -1240,7 +1241,9 @@ PCRE2 class >> utf [
 { #category : 'constants' }
 PCRE2 class >> zeroTerminated [
 	"Some methods can use this value as a string upper bound argument to use a terminating null character instead of an index.
-	The value corresponds to the C code: `~(size_t)0`, which represents the largest fixed-size integer."
+	The value corresponds to the C code: `~(size_t)0`, which represents the largest fixed-size integer.
+	Supported by match() and substitute().
+	Not supported by jit_match()."
 
 	^ (1 bitShift: ExternalAddress wordSize * 8) - 1
 ]
