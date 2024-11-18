@@ -1124,11 +1124,9 @@ PCRE2 class >> readOptions: anInteger [
 { #category : 'documentation' }
 PCRE2 class >> readOptions: anInteger for: function [
 	"Convenience method for finding which options are declared by the integer for the given function.
-	Expects a symbol among #( compile jit_compile match jit_match dfa_match substitute )."
+	Expects a symbol among #( compile jit_compile match jit_match dfa_match substitute convert )."
 
-	^ (self readOptions: anInteger)
-		  at: function
-		  ifAbsent: [ PCRE2Error signal: 'Unknown options or function' ]
+	^ (self readOptions: anInteger) at: function ifAbsent: [ #(  ) ]
 ]
 
 { #category : 'options' }
