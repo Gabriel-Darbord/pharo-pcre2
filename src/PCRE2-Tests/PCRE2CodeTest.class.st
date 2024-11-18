@@ -129,7 +129,13 @@ PCRE2CodeTest >> testCopyReplacingMatchesWith [
 		equals: 'bbb'.
 	self
 		assert: (regex copy: 'babab' replacingMatchesWith: '_a_')
-		equals: 'b_a_b_a_b'
+		equals: 'b_a_b_a_b'.
+
+	"unicode"
+	regex := '\p{L}+' asPCRegex.
+	self
+		assert: (regex copy: '1 café' replacingMatchesWith: 'eñe')
+		equals: '1 eñe'
 ]
 
 { #category : 'tests' }
@@ -151,7 +157,15 @@ PCRE2CodeTest >> testCopyTranslatingMatchesUsing [
 		assert: (regex
 				 copy: 'babab'
 				 translatingMatchesUsing: [ :match | '_' , match , '_' ])
-		equals: 'b_a_b_a_b'
+		equals: 'b_a_b_a_b'.
+
+	"unicode"
+	regex := '\p{L}+' asPCRegex.
+	self
+		assert: (regex
+				 copy: '1 café'
+				 translatingMatchesUsing: [ :match | match repeat: 2 ])
+		equals: '1 cafécafé'
 ]
 
 { #category : 'tests' }

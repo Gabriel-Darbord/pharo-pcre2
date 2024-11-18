@@ -100,7 +100,7 @@ PCRE2Code >> context: aMatchContext [
 	context := aMatchContext
 ]
 
-{ #category : 'enumerating' }
+{ #category : 'match enumeration' }
 PCRE2Code >> copy: subject matchesDo: aBlock [
 	"Copy the subject and execute a block for each match"
 
@@ -109,7 +109,7 @@ PCRE2Code >> copy: subject matchesDo: aBlock [
 	utfSubject := encoder encodeString: subject.
 	lastIndex := 0.
 	rs := ReadStream on: utfSubject.
-	ws := WriteStream on: (String new: 100).
+	ws := WriteStream on: (ByteString new: 100).
 	self
 		matchAll: utfSubject
 		from: 1
@@ -134,7 +134,7 @@ PCRE2Code >> copy: subject matchesDo: aBlock [
 	^ ws contents
 ]
 
-{ #category : 'copying' }
+{ #category : 'match enumeration' }
 PCRE2Code >> copy: subject replacingMatchesWith: aString [
 	"Copy the subject replacing each match with aString"
 
@@ -143,14 +143,14 @@ PCRE2Code >> copy: subject replacingMatchesWith: aString [
 		  matchesDo: [ :ws :utfSubject :start :end | ws nextPutAll: aString ]
 ]
 
-{ #category : 'copying' }
+{ #category : 'match enumeration' }
 PCRE2Code >> copy: subject translatingMatchesUsing: aBlock [
 	"Copy the subject replacing each match by evaluating aBlock with the matched substring.
 	Expect the block to answer a String, and replace the match with the answer."
 
 	^ self copy: subject matchesDo: [ :ws :utfSubject :start :end |
-		  ws nextPutAll:
-			  (aBlock value: (utfSubject copyFrom: start to: end)) ]
+		  ws nextPutAll: (aBlock value: (ZnUTF8Encoder default decodeBytes:
+					    (utfSubject copyFrom: start to: end))) ]
 ]
 
 { #category : 'private' }
