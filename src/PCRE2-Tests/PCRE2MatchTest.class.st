@@ -6,20 +6,20 @@ Class {
 }
 
 { #category : 'tests' }
-PCRE2MatchTest >> testGetCount [
+PCRE2MatchTest >> testCount [
 
 	| regex |
 	regex := 'a' asPCRegex.
 	regex matches: 'abc'.
-	self assert: regex matchData getCount equals: 1.
+	self assert: regex matchData count equals: 1.
 
 	regex := '(a+)' asPCRegex.
 	regex matches: 'abc'.
-	self assert: regex matchData getCount equals: 2.
+	self assert: regex matchData count equals: 2.
 
 	regex := '((a+)b(c+))*' asPCRegex.
 	regex matches: 'abc'.
-	self assert: regex matchData getCount equals: 4
+	self assert: regex matchData count equals: 4
 ]
 
 { #category : 'tests' }
