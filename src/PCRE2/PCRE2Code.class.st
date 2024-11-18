@@ -559,6 +559,13 @@ PCRE2Code >> namedGroups [
 ]
 
 { #category : 'accessing' }
+PCRE2Code >> pattern [
+	"The original string of this compiled pattern"
+
+	^ pattern
+]
+
+{ #category : 'accessing' }
 PCRE2Code >> pattern: aString [
 	"Must only be used by the compiler"
 
