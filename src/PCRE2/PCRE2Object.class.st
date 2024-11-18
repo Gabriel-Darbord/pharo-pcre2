@@ -1,12 +1,15 @@
 "
 Abstract superclass of all PCRE2 external object wrappers.
 Wrappers automatically free the memory of their external object on finalization.
-Making a `copy` will allocate a new external object.
-A `clone` will share its reference with the original. This means that if one is garbage-collected and the other is used, the image will crash due to a segmentation fault.
-For a `PCRE2Code`, this happens if the pattern is JIT-compiled *and* the JIT fast path is enabled.
+
+Making a `copy` will correctly allocate a new external object.
 
 Using `shallowCopy` directly makes the copy use the same external object.
-If either the original or a copy is finalized, the shared object will be freed from memory, leaving the remaining objects in an incorrect state.
+Similarly, a `clone` will share its reference with the original.
+When either the original or a copy is finalized, the shared object is freed from memory, leaving the remaining objects in an incorrect state.
+The image can even crash due to a segmentation fault.
+For example, this happens with a `PCRE2Code' that has a freed external object.
+If the pattern is JIT-compiled *and* the JIT fast path is enabled, it will crash when trying to match.
 "
 Class {
 	#name : 'PCRE2Object',
@@ -62,7 +65,7 @@ PCRE2Object >> finalize [
 	handle beNull
 ]
 
-{ #category : 'initialize-release' }
+{ #category : 'external resource management' }
 PCRE2Object >> free [
 
 	self subclassResponsibility

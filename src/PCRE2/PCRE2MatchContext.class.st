@@ -24,7 +24,7 @@ PCRE2MatchContext >> depthLimit: anInteger [
 	self setDepthLimit: (depthLimit := anInteger)
 ]
 
-{ #category : 'initialize-release' }
+{ #category : 'external resource management' }
 PCRE2MatchContext >> free [
 	"This function frees the memory occupied by a match context, using the memory freeing function from the general context with which it was created, or free() if that was not set.
 	If the argument is NULL, the function returns immediately without doing anything. "

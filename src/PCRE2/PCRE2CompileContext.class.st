@@ -42,7 +42,7 @@ PCRE2CompileContext >> bsr: anInteger [
 	bsr := anInteger
 ]
 
-{ #category : 'initialize-release' }
+{ #category : 'external resource management' }
 PCRE2CompileContext >> free [
 	"This function frees the memory occupied by a compile context.
 	If the argument is NULL, the function returns immediately without doing anything."

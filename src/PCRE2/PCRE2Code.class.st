@@ -1,19 +1,66 @@
 "
 I am a compiled regular expression pattern.
-My goal is to help you find patterns within strings using a set of rules defined by a regular expression (regex).
-A regex matcher allows you to search, match, and manipulate strings based on these predefined patterns.
+I represent a set of rules, called a regular expression (regex), that defines a search pattern for text.
+
+Regular expressions are a powerful tool for string processing, enabling tasks such as searching for specific text, extracting substrings, and replacing text based on complex criteria. For instance, the pattern `\d+` matches one or more digits in a string, and `\w+@\w+\.\w+` can match a simple email format.
+
+
+## Lifecycle
+
+My lifecycle follows three main steps:
+
+### Compilation
+The process starts with a plain string that defines the regular expression. This string is compiled into a pattern using a `PCRE2Compiler`. During compilation, options such as case insensitivity or multi-line matching can be specified. The result is a compiled pattern stored in external memory, which is accessed by an instance of me. This pattern can additionally be Just-In-Time (JIT) compiled, generating machine code for significantly faster matches compared to the interpretive approach.
+
+### Matching
+The compiled pattern is then applied to a subject string. The matcher attempts to locate the specified pattern within the string. The match operation may return:
+- A success, indicating that the pattern matches the string (or part of it).
+- A failure, indicating no match.
+
+### Querying
+After a successful match, detailed information about the match can be queried. This mainly includes:
+- The range (start and end positions) of the substring that matched the entire pattern.
+- The ranges of substrings matched by parenthesized subexpressions (groups) within the pattern.
+These queries are possible immediately after a successful match and before any subsequent match operation. Multiple queries can be performed without re-matching.
+
+
+## API
+The `PCRE2Matcher` API is organized into four main categories: **Matching**, **Querying**, **Match Enumeration**, and **Byte Matching**.
+
+### Matching
+Matching methods apply the compiled pattern to a subject string and return the result of an initial query. After each match, the matcher is ready for either more queries or another matching operation.
+Basic matching methods include:
+- `find:` returns the first matching substring within the subject.
+- `matches:` returns whether the regex fully matches the subject.
+- `search:` returns whether the regex partially matches the subject.
+
+### Querying
+Query methods can be called after any successful match to get detailed information about the match.
+Examples include:
+- `mark` returns the name of the last `(*MARK)`, `(*PRUNE)`, or `(*THEN)` encountered during the matching process.
+- `startIndex` returns the index where the compiled pattern started matching.
+Matching groups are usually returned by the appropriate matching methods, but they can also be accessed separately using query methods. For more details, see the `PCRE2Match` class.
+
+### Match Enumeration
+Match enumeration is the highest-level API. These methods iteratively apply match and query operations to a subject string until no more matches are found. This simplifies operations that need to process all matches in a subject. This includes methods such as `copy:replacingMatchesWith:` and `copy:translatingMatchesUsing:`, and other familiar methods from the Regex package.
+
+### Byte Matching
+Byte-matching methods provide a low-level API for operating directly on byte arrays representing UTF8-encoded string subjects. These methods are the basic building blocks for all other matching operations. They allow fine-grained control over matching within specific subranges of the subject. While not typically used by casual users, these methods are available for advanced scenarios.
+
+
+## Implementation Details
 
 ### UTF Checking
 The option for UTF support is enabled by default, see the `PCRE2Compiler` comment. Note that UTF validity checking can take time. If the same data string is to be matched many times, you can use the `noUTFCheck` option for the second and subsequent matches to avoid running redundant checks, like so: `regex addOptions: PCRE2 noUTFCheck`.
 
 ### JIT
-If supported by the running architecture, I can be JIT-compiled (Just-In-Time compiled). JIT compilation translates the pattern into machine code, significantly speeding up the matching process. The JIT status can be checked with `PCRE2Code>>#isJIT`. The size in memory of the JIT compiled code can be obtained using `regex info: PCRE2 infoJITSize`.
+If supported by the running architecture, I can be JIT-compiled. Just-In-Time compilation translates the pattern into machine code, significantly speeding up the matching process. The JIT status can be checked with `isJIT`. The size in memory of the JIT compiled code can be obtained using `regex info: PCRE2 infoJITSize`.
 
 ### Copying
-A compiled pattern can be copied with the regular `copy` method, excluding any memory used by the JIT compiler. Without a subsequent call to `PCRE2Code>>#compileJIT`, the copy can be used only for non-JIT matching.
+A compiled pattern can be copied using the regular `copy` method. A new pattern object will be created by the compiler of the original pattern, with the same options, including the JIT compilation state.
 
 ### Matching Ranges
-The main API does not provide support for matching a range of the subject due to the way string marshaling works with FFI. Strings are always encoded as UTF8 `ByteArray`s. Thus, making a copy of the range of the string to match is much more efficient than passing the whole string and specifying ranges. If you are already working directly with encoded strings, you can use the `match...` family of methods, which does support ranges.
+Most of the API does not support matching a specific range of the subject string. This limitation is due to the way string marshalling works with FFI: strings are always encoded as UTF8 `ByteArray`s before being processed. Consequently, passing a substring copy of the subject is more efficient than passing the entire subject, having it converted to UTF8, and then specifying a range within it. If you are already working with encoded strings, or if your scenario requires it, you can use the **Byte Matching** protocol methods that support ranges.
 "
 Class {
 	#name : 'PCRE2Code',
@@ -190,7 +237,7 @@ PCRE2Code >> find: subject [
 		  encoder decodeBytes: match ]
 ]
 
-{ #category : 'matching' }
+{ #category : 'match enumeration' }
 PCRE2Code >> findAll: subject [
 	"Returns all matching substrings within the subject"
 
@@ -208,7 +255,7 @@ PCRE2Code >> findAll: subject [
 	^ result
 ]
 
-{ #category : 'matching' }
+{ #category : 'match enumeration' }
 PCRE2Code >> findAll: subject do: aBlock [
 	"Iterate over all matching substrings within the subject"
 
@@ -224,9 +271,9 @@ PCRE2Code >> findAll: subject do: aBlock [
 				(encoder decodeBytes: (matchData readMatch: utfSubject)) ]
 ]
 
-{ #category : 'matching' }
+{ #category : 'match enumeration' }
 PCRE2Code >> findAllWithGroups: subject [
-	"Returns all matching substrings within the subject"
+	"Returns all matching substrings and groups within the subject"
 
 	| result encoder utfSubject |
 	result := OrderedCollection new.
@@ -252,7 +299,7 @@ PCRE2Code >> findWithGroups: subject [
 	^ matchData readMatches: utfSubject decodeWith: encoder
 ]
 
-{ #category : 'initialize-release' }
+{ #category : 'external resource management' }
 PCRE2Code >> free [
 
 	self ffiCall: #(void pcre2_code_free_8(self))
@@ -347,7 +394,7 @@ Returns:          > 0 => success; value is the number of ovector pairs filled
 	self ffiCall: #(int pcre2_jit_match_8(self, char *subject, size_t end, size_t start, uint32 options, PCRE2Match *matchData, void *context))
 ]
 
-{ #category : 'private' }
+{ #category : 'querying' }
 PCRE2Code >> mark [
 	"The name of the last (*MARK), (*PRUNE), or (*THEN) that was encountered during the matching process"
 
@@ -380,7 +427,7 @@ Returns:          > 0 => success; value is the number of ovector pairs filled
 	self ffiCall: #(int pcre2_match_8(self, char *subject, size_t end, size_t start, uint32 options, PCRE2Match *matchData, void *context))
 ]
 
-{ #category : 'private' }
+{ #category : 'byte matching' }
 PCRE2Code >> matchAll: subject from: start to: end do: aBlock [
 	"Iteratively match over a range of the subject and execute a block after each successful match"
 
@@ -394,7 +441,7 @@ PCRE2Code >> matchAll: subject from: start to: end do: aBlock [
 			aBlock value ]
 ]
 
-{ #category : 'private' }
+{ #category : 'byte matching' }
 PCRE2Code >> matchAll: subject from: start to: end offsetsDo: aBlock [
 	"Iteratively match over a range of the subject and execute a block with the match and groups' offsets after each successful match"
 
@@ -409,7 +456,7 @@ PCRE2Code >> matchAll: subject from: start to: end offsetsDo: aBlock [
 			offset := (offsets at: 2) + 1 ]
 ]
 
-{ #category : 'private' }
+{ #category : 'byte matching' }
 PCRE2Code >> matchBytes: subject from: start to: end [
 	"Run a match over a range of the UTF-encoded subject and populate the match data.
 	This is a single match operation that ends when the pattern either has no matches
@@ -469,14 +516,14 @@ PCRE2Code >> matches: subject [
 	^ false
 ]
 
-{ #category : 'matching' }
+{ #category : 'match enumeration' }
 PCRE2Code >> matchesIn: subject [
 	"Equivalent of RxMatcher >> #matchesIn:"
 
 	^ self findAll: subject
 ]
 
-{ #category : 'matching' }
+{ #category : 'match enumeration' }
 PCRE2Code >> matchesIn: subject collect: aBlock [
 	"Equivalent of RxMatcher >> #matchesIn:collect:"
 
@@ -488,14 +535,14 @@ PCRE2Code >> matchesIn: subject collect: aBlock [
 	^ result
 ]
 
-{ #category : 'matching' }
+{ #category : 'match enumeration' }
 PCRE2Code >> matchesIn: subject do: aBlock [
 	"Equivalent of RxMatcher >> #matchesIn:do:"
 
 	self findAll: subject do: aBlock
 ]
 
-{ #category : 'private' }
+{ #category : 'matching' }
 PCRE2Code >> matchesPrefix: subject [
 	"Returns whether the regex matches the start of the subject"
 
@@ -608,7 +655,7 @@ PCRE2Code >> restoreFrom: bytes [
 	LibPCRE2 restore: { self } from: bytes
 ]
 
-{ #category : 'initialization' }
+{ #category : 'external resource management' }
 PCRE2Code >> reuseMatchDataFromPattern [
 	"Keep the same match data instance and update its handle"
 
@@ -638,7 +685,7 @@ PCRE2Code >> serialize [
 	^ LibPCRE2 serialize: { self }
 ]
 
-{ #category : 'accessing' }
+{ #category : 'querying' }
 PCRE2Code >> startIndex [
 	"Available after a match, returns the index where the compiled pattern started matching"
 
@@ -682,7 +729,7 @@ PCRE2Code >> substitute: subject with: replacement [
 	| encoder utfSubject utfReplacement buffer bufferSize rc |
 	encoder := ZnUTF8Encoder default.
 	utfSubject := encoder encodeString: subject.
-	utfReplacement := ZnUTF8Encoder default encodeString: replacement.
+	utfReplacement := encoder encodeString: replacement.
 	"Arbitrary buffer size that allows a first-shot on short results.
 	If the size is too small and the substituteOverflowLength option is set,
 	the second shot will succeed unless the VM is out of memory."
@@ -721,7 +768,7 @@ PCRE2Code >> substitute: subject with: replacement [
 		  startingAt: 1
 ]
 
-{ #category : 'initialization' }
+{ #category : 'external resource management' }
 PCRE2Code >> useMatchDataFromPattern [
 	"Create a new match data based on the pattern"
 

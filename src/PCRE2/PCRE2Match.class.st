@@ -58,7 +58,7 @@ PCRE2Match >> endOffsetAt: pairIndex [
 	^ offsets platformSizeTAt: wordSize * index + 1
 ]
 
-{ #category : 'initialize-release' }
+{ #category : 'external resource management' }
 PCRE2Match >> free [
 
 	self ffiCall: #(void pcre2_match_data_free_8(self))
