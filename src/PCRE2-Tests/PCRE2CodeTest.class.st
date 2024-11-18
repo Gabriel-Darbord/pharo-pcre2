@@ -580,3 +580,29 @@ PCRE2CodeTest >> testWithOffsetLimit [
 		assert: (regex substitute: 'ABC ABC ABC ABC' with: '!')
 		equals: 'A!C A!C ABC ABC'
 ]
+
+{ #category : 'tests' }
+PCRE2CodeTest >> testZeroTerminated [
+
+	| regex subject encoder utfSubject |
+	regex := '.*' asPCRegex.
+	subject := 'abc' , Character null asString , 'def'.
+	encoder := ZnUTF8Encoder default.
+	utfSubject := encoder encodeString: subject.
+
+	"jit_match() does not support null-terminated string subjects
+	disable the fast path for support (it will still use the JIT code)"
+	regex isJIT: false.
+
+	"successful match when using zeroTerminated as upper bound"
+	self
+		assert:
+		(regex matchBytes: utfSubject from: 1 to: PCRE2 zeroTerminated)
+		equals: 1.
+
+	"matches until the first null character"
+	self
+		assert:
+		(encoder decodeBytes: (regex matchData readMatch: utfSubject))
+		equals: 'abc'
+]
