@@ -65,6 +65,25 @@ PCRE2UTF8Encoder >> initialize [
 ]
 
 { #category : 'private' }
+PCRE2UTF8Encoder >> next: count countASCII: string startingAt: offset [
+	"Write count bytes from string starting at offset to stream,
+	assuming all characters are in the ASCII set and need no translation"
+
+	| nextIndex |
+	"compute the utf offsets at once instead of iterating"
+	nextIndex := index + count.
+	(index := index + 1) < start ifTrue: [
+		utfStart := utfStart + (nextIndex < start
+			             ifTrue: [ count ]
+			             ifFalse: [ start - index ]) ].
+	index <= end ifTrue: [
+		utfEnd := utfEnd + (nextIndex <= end
+			           ifTrue: [ count ]
+			           ifFalse: [ end - index + 1 ]) ].
+	index := nextIndex
+]
+
+{ #category : 'private' }
 PCRE2UTF8Encoder >> next: count putAllASCII: string startingAt: offset toStream: stream [
 	"Write count bytes from string starting at offset to stream,
 	assuming all characters are in the ASCII set and need no translation"
@@ -84,6 +103,54 @@ PCRE2UTF8Encoder >> next: count putAllASCII: string startingAt: offset toStream:
 
 	offset to: offset + count - 1 do: [ :i |
 		stream nextPut: (string byteAt: i) ]
+]
+
+{ #category : 'private' }
+PCRE2UTF8Encoder >> nextCountByteString: string [
+	"A faster version when string is a ByteString"
+
+	| count lastIndex nextIndex |
+	count := string size.
+	lastIndex := 1.
+	nextIndex := ByteString findFirstInString: string inSet: ByteASCIISet startingAt: 1.
+	nextIndex = 0 ifTrue: [
+		^ self next: count countASCII: string startingAt: 1 ].
+	[	| encoding |
+		nextIndex > lastIndex ifTrue: [
+			self next: nextIndex - lastIndex countASCII: string startingAt: lastIndex ].
+		encoding := ByteUTF8Encoding at: (string byteAt: nextIndex) + 1.
+		(index := index + 1) < start ifTrue: [ utfStart := utfStart + encoding size ].
+		index <= end ifTrue: [ utfEnd := utfEnd + encoding size ].
+		lastIndex := nextIndex + 1.
+		nextIndex := ByteString findFirstInString: string inSet: ByteASCIISet startingAt: lastIndex.
+		nextIndex = 0 ] whileFalse.
+	lastIndex < count ifTrue: [
+		self next: 1 + count - lastIndex countASCII: string startingAt: lastIndex ]
+]
+
+{ #category : 'encoding - decoding' }
+PCRE2UTF8Encoder >> nextCountCodePoint: codePoint [
+	"Write the encoding for Integer code point to stream and keep track of its size."
+
+	index := index + 1.
+	codePoint < 128 ifTrue: [
+		index < start ifTrue: [ utfStart := utfStart + 1 ].
+		index <= end ifTrue: [ utfEnd := utfEnd + 1 ].
+		^ self ].
+	codePoint < 2048 ifTrue: [
+		index < start ifTrue: [ utfStart := utfStart + 2 ].
+		index <= end ifTrue: [ utfEnd := utfEnd + 2 ].
+		^ self ].
+	(self isSurrogateCodePoint: codePoint) ifTrue: [ ^ self errorOutsideRange ].
+	codePoint < 65536 ifTrue: [
+		index < start ifTrue: [ utfStart := utfStart + 3 ].
+		index <= end ifTrue: [ utfEnd := utfEnd + 3 ].
+		^ self ].
+	codePoint <= self maximumUTFCode ifTrue: [
+		index < start ifTrue: [ utfStart := utfStart + 4 ].
+		index <= end ifTrue: [ utfEnd := utfEnd + 4 ].
+		^ self ].
+	^ self errorOutsideRange
 ]
 
 { #category : 'private' }

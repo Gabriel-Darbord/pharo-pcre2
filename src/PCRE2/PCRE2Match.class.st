@@ -170,6 +170,21 @@ PCRE2Match >> offsetsDo: aBlock [
 	"Iterate over the offset pairs resulting from a match operation.
 	The first pair is what the full pattern matched, subsequent pairs are the matches of each capture group."
 
+	"# Translating PCRE2 offsets to Pharo offsets
+	## What
+	PCRE2 returns the offsets as a ByteArray, corresponding to an array of size_t.
+	This means that they are encoded with a platform-specific number of bytes.
+	For efficiency, we can directly call the method dedicated to each encoding size,
+	rather than relying on the slower but platform-independent platformSizeTAt: method.
+	We also need to calculate the byte offset to read each size_t in the array.
+	## How
+	let n = wordSize = sizeof(size_t), start follows the progression n(2i-2), end follows n(2i-1)
+	e.g. with n = 8, start = 0, 16, 32, 48..., end = 8, 24, 40, 56...
+	PCRE2 sets the bounds with an inclusive start and exclusive end, i.e. [a,b)
+	the start index is incremented to go from 0-based to 1-based, and remains inclusive, i.e. [a,b)
+	the end index is incremented from 0 to 1-based, but also decremented to be inclusive, i.e. [a,b]
+	e.g. matching 'a' returns the range (offset pair) [0,1) and it is translated as [1,1]"
+
 	| wordSize |
 	offsets isArray ifTrue: [ "offsets have already been copied to a local array"
 		1 to: count by: 2 do: [ :i |
@@ -177,14 +192,7 @@ PCRE2Match >> offsetsDo: aBlock [
 		^ self ].
 
 	offsets ifNil: [ offsets := self getOffsets ]. "table containing pairs of 0-based indexes"
-	wordSize := ExternalAddress wordSize.
-
-	"let n = wordSize = sizeof(size_t), start follows the progression n(2i-2), end follows n(2i-1)
-	e.g. with n = 8, start = 0, 16, 32, 48..., end = 8, 24, 40, 56...
-	PCRE2 sets the end index as exclusive, but Pharo uses only inclusive, so it is translated
-	the start index is incremented to be 1-based, and it stays inclusive
-	the end index is incremented (0 to 1-based) but also decremented (to be inclusive)
-	e.g. matching 'a' returns the range (offset pair) [0,1) and it is translated as [1,1]"
+	wordSize := ExternalAddress wordSize. "sizeof(size_t)"
 
 	wordSize == 8 ifTrue: [ "most cases"
 		1 to: self count do: [ :i |

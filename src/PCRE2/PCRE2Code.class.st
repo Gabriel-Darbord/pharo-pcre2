@@ -553,14 +553,34 @@ PCRE2Code >> matchesPrefix: subject [
 	^ false
 ]
 
-{ #category : 'matching' }
+{ #category : 'match enumeration' }
 PCRE2Code >> matchingRangesIn: subject [
 	"Equivalent of RxMatcher >> #matchingRangesIn:"
 
-	| ranges |
-	self shouldBeImplemented. "requires utf offset when decoding"
+	| encoder utfSubject ranges lastStart lastEnd |
+	self flag: #TODO.
+	encoder := PCRE2UTF8Encoder new.
+	utfSubject := encoder encodeString: subject.
 	ranges := OrderedCollection new.
-	self findAll: subject do: [  ].
+	lastStart := lastEnd := 0.
+	self
+		matchAll: utfSubject
+		from: 1
+		to: utfSubject size
+		do: [
+			| match start end matchSize |
+			match := matchData readMatch: utfSubject.
+			(start := self startIndex) - 1 == lastStart ifFalse: [ "need to compute the UTF offset of what was not matched"
+				encoder start: lastStart.
+				encoder end: start.
+				encoder encodeString: subject.
+				lastEnd := start - 1.
+				start := lastStart + encoder utfEnd - encoder utfStart ].
+			matchSize := (encoder decodeBytes: match) size.
+			end := lastEnd + matchSize.
+			ranges add: (start to: end).
+			lastStart := start.
+			lastEnd := end ].
 	^ ranges
 ]
 
@@ -683,6 +703,20 @@ PCRE2Code >> serialize [
 	both in terms of speed and memory, since the character table (1088 bytes) is encoded in the result."
 
 	^ LibPCRE2 serialize: { self }
+]
+
+{ #category : 'enumerating' }
+PCRE2Code >> split: subject indicesDo: aBlock [
+
+	| encoder utfSubject |
+	self shouldBeImplemented.
+	encoder := ZnUTF8Encoder default.
+	utfSubject := encoder encodeString: subject.
+	self
+		matchAll: utfSubject
+		from: 1
+		to: utfSubject size
+		do: [  ]
 ]
 
 { #category : 'querying' }
