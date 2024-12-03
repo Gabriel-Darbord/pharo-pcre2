@@ -391,7 +391,7 @@ Returns:          > 0 => success; value is the number of ovector pairs filled
 
 	"int pcre2_jit_match(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
 	
-	self ffiCall: #(int pcre2_jit_match_8(self, char *subject, size_t end, size_t start, uint32 options, PCRE2Match *matchData, void *context))
+	self ffiCall: #(int pcre2_jit_match_8(self, uint8 *subject, size_t end, size_t start, uint32 options, PCRE2Match *matchData, void *context))
 ]
 
 { #category : 'querying' }
@@ -424,7 +424,7 @@ Returns:          > 0 => success; value is the number of ovector pairs filled
 
 	"int pcre2_match(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
 
-	self ffiCall: #(int pcre2_match_8(self, char *subject, size_t end, size_t start, uint32 options, PCRE2Match *matchData, void *context))
+	self ffiCall: #(int pcre2_match_8(self, uint8 *subject, size_t end, size_t start, uint32 options, PCRE2Match *matchData, void *context))
 ]
 
 { #category : 'byte matching' }
@@ -717,7 +717,7 @@ Returns:          >= 0 number of substitutions made
 
 	"int pcre2_substitute(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, PCRE2_SPTR replacement, PCRE2_SIZE rlength, PCRE2_UCHAR *outputbuffer, PCRE2_SIZE *outlengthptr)"
 
-	self ffiCall: #(int pcre2_substitute_8(self, char *subject, size_t end, size_t start, uint32 options, void *matchData, void *context, char *replacement, size_t rLength, void *buffer, SizeTHolder outSize))
+	self ffiCall: #(int pcre2_substitute_8(self, uint8 *subject, size_t end, size_t start, uint32 options, void *matchData, void *context, uint8 *replacement, size_t rLength, void *buffer, SizeTHolder outSize))
 ]
 
 { #category : 'matching' }

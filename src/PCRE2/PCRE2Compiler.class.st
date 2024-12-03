@@ -129,7 +129,7 @@ Returns:        pointer to compiled data block, or NULL on error,
 
 	"pcre2_code *pcre2_compile_8(PCRE2_SPTR pattern, PCRE2_SIZE length, uint32_t options, int *errorcode, PCRE2_SIZE *erroroffset, pcre2_compile_context *ccontext)"
 
-	self ffiCall: #(void *pcre2_compile_8(char *pattern, size_t length, uint32 options, IntHolder errorCode, SizeTHolder errorOffset, void *context))
+	self ffiCall: #(void *pcre2_compile_8(uint8 *pattern, size_t length, uint32 options, IntHolder errorCode, SizeTHolder errorOffset, void *context))
 ]
 
 { #category : 'compiling' }
@@ -184,7 +184,7 @@ PCRE2Compiler >> context: aCompileContext [
 	context := aCompileContext
 ]
 
-{ #category : 'accessing' }
+{ #category : 'private' }
 PCRE2Compiler >> createCompileContext [
 	"This function creates and initializes a new compile context.
 	The result is NULL if the memory could not be obtained."
@@ -244,5 +244,5 @@ PCRE2Compiler >> optionsJIT: anInteger [
 PCRE2Compiler >> privateJITCompile: matcher [
 	"int pcre2_jit_compile(pcre2_code *code, uint32_t options)"
 
-	self ffiCall: #(int pcre2_jit_compile_8(#PCRE2Matcher *matcher, uint32 optionsJIT))
+	self ffiCall: #(int pcre2_jit_compile_8(PCRE2Matcher *matcher, uint32 optionsJIT))
 ]
