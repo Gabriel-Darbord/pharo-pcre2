@@ -4,7 +4,7 @@ I contain all of the options available to the PCRE2 library functions in my clas
 The `documentation` protocol contains methods to get information about specific options.
 Options defined as bitwise flags have dedicated helpers to ease human interaction.
 For example, `PCRE2 readOptions: 40 for: #compile` shows that `PCRE2 class>>#caseless` and `PCRE2 class>>#dotAll` are set.
-Options for `LibPCRE2>>#config:` and `PCRE2Code>>#info:` do not rely on flags and are not supported by these helpers.
+Options for `LibPCRE2>>#config:` and `PCRE2Matcher>>#info:` do not rely on flags and are not supported by these helpers.
 
 Many error codes are defined by the PCRE2 library.
 Only those that can be expected without having to throw an error are referenced here.

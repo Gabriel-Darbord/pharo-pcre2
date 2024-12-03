@@ -8,7 +8,7 @@ Using `shallowCopy` directly makes the copy use the same external object.
 Similarly, a `clone` will share its reference with the original.
 When either the original or a copy is finalized, the shared object is freed from memory, leaving the remaining objects in an incorrect state.
 The image can even crash due to a segmentation fault.
-For example, this happens with a `PCRE2Code' that has a freed external object.
+For example, this happens with a `PCRE2Matcher` that has a freed external object.
 If the pattern is JIT-compiled *and* the JIT fast path is enabled, it will crash when trying to match.
 "
 Class {

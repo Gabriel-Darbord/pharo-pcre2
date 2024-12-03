@@ -33,15 +33,15 @@ LibPCRE2 class >> newMatchContext [
 ]
 
 { #category : 'persistence' }
-LibPCRE2 class >> restore: codes from: bytes [
+LibPCRE2 class >> restore: matchers from: bytes [
 
-	self uniqueInstance restore: codes from: bytes
+	self uniqueInstance restore: matchers from: bytes
 ]
 
 { #category : 'persistence' }
-LibPCRE2 class >> serialize: codes [
+LibPCRE2 class >> serialize: matchers [
 
-	^ self uniqueInstance serialize: codes
+	^ self uniqueInstance serialize: matchers
 ]
 
 { #category : 'documentation' }
@@ -100,13 +100,13 @@ LibPCRE2 >> deserialize: bytes [
 	"Returns the array of handles for the compiled patterns deserialized from the bytes.
 	Only useful if you know what to do with external addresses."
 
-	| count codePointers |
+	| count pointers |
 	count := self serializedNumberOfCodes: bytes.
 	count < 0 ifTrue: [ self errorCode: count ].
-	codePointers := ByteArray new: count * ExternalAddress wordSize.
-	count := self deserialize: bytes count: count output: codePointers.
+	pointers := ByteArray new: count * ExternalAddress wordSize.
+	count := self deserialize: bytes count: count output: pointers.
 	count < 0 ifTrue: [ self errorCode: count ].
-	^ codePointers
+	^ pointers
 ]
 
 { #category : 'private' }
@@ -145,24 +145,24 @@ LibPCRE2 >> newMatchContext [
 ]
 
 { #category : 'serializing' }
-LibPCRE2 >> restore: codes from: bytes [
+LibPCRE2 >> restore: matchers from: bytes [
 	"Restore a list of compiled patterns from their serialized form"
 
-	| count wordSize codePointers rc compiler |
-	count := codes size.
+	| count wordSize pointers rc compiler |
+	count := matchers size.
 	wordSize := ExternalAddress wordSize.
-	codePointers := ByteArray new: count * wordSize.
+	pointers := ByteArray new: count * wordSize.
 
-	rc := self deserialize: bytes count: count output: codePointers.
+	rc := self deserialize: bytes count: count output: pointers.
 	rc < 0 ifTrue: [ self errorCode: rc ].
 
 	compiler := PCRE2Compiler new.
 	1 to: count do: [ :i |
-		| code |
-		(code := codes at: i) setHandle:
-			(codePointers pointerAtOffset: wordSize * (i - 1)).
+		| matcher |
+		(matcher := matchers at: i) setHandle:
+			(pointers pointerAtOffset: wordSize * (i - 1)).
 		"recompile JIT if it was before serialization"
-		code isJIT ifTrue: [ code compileJIT ] ]
+		matcher isJIT ifTrue: [ matcher compileJIT ] ]
 ]
 
 { #category : 'accessing' }
@@ -174,21 +174,21 @@ LibPCRE2 >> runner [
 ]
 
 { #category : 'serializing' }
-LibPCRE2 >> serialize: codes [
+LibPCRE2 >> serialize: matchers [
 
-	| codePointers buffer bufferSize rc externBytes bytes |
+	| pointers buffer bufferSize rc externBytes bytes |
 	bufferSize := ExternalAddress wordSize.
-	codePointers := ByteArray new: codes size * bufferSize.
-	1 to: codes size do: [ :i |
-		codePointers
+	pointers := ByteArray new: matchers size * bufferSize.
+	1 to: matchers size do: [ :i |
+		pointers
 			pointerAtOffset: bufferSize * (i - 1)
-			put: (codes at: i) getHandle ].
+			put: (matchers at: i) getHandle ].
 	buffer := ByteArray new: bufferSize.
 
 	"bufferSize is updated with the size of the allocated memory"
 	rc := self
-		      serialize: codePointers
-		      count: codes size
+		      serialize: pointers
+		      count: matchers size
 		      output: buffer
 		      size: (bufferSize := SizeTHolder new).
 	rc < 0 ifTrue: [
@@ -206,7 +206,7 @@ LibPCRE2 >> serialize: codes [
 ]
 
 { #category : 'private' }
-LibPCRE2 >> serialize: codes count: count output: bytes size: bufferSize [
+LibPCRE2 >> serialize: matchers count: count output: bytes size: bufferSize [
 	"Encodes a list of compiled patterns into a byte stream.
 	Note that this is not an abstract format like Java or .NET.
 	Conversion of the byte stream back into usable compiled patterns can only happen
@@ -215,7 +215,7 @@ LibPCRE2 >> serialize: codes count: count output: bytes size: bufferSize [
 
 	"int32_t pcre2_serialize_encode(const pcre2_code **codes, int32_t number_of_codes, uint8_t **serialized_bytes, PCRE2_SIZE *serialized_size, pcre2_general_context *gcontext)"
 
-	self ffiCall: #(int32 pcre2_serialize_encode_8(void *codes, int32 count, uint8 *bytes, SizeTHolder *bufferSize, nil))
+	self ffiCall: #(int32 pcre2_serialize_encode_8(void *matchers, int32 count, uint8 *bytes, SizeTHolder *bufferSize, nil))
 ]
 
 { #category : 'private' }

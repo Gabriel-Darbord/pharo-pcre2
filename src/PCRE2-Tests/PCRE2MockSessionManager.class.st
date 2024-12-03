@@ -12,33 +12,33 @@ PCRE2MockSessionManager class >> useSerialization: aBoolean [
 ]
 
 { #category : 'accessing' }
-PCRE2MockSessionManager >> codesToRestore [
+PCRE2MockSessionManager >> MatchersToRestore [
 
-	^ codesToRestore
-]
-
-{ #category : 'accessing' }
-PCRE2MockSessionManager >> codesToRestore: aCollection [
-
-	codesToRestore := aCollection
+	^ matchersToRestore
 ]
 
 { #category : 'system startup' }
-PCRE2MockSessionManager >> findCodesToRestore [
+PCRE2MockSessionManager >> findMatchersToRestore [
 	"Codes are given with the setter.
 	Mock the behavior of the super method that makes the codes persistent."
 
-	codesToRestore do: [ :code | code bePersistent ]
+	matchersToRestore do: [ :code | code bePersistent ]
 ]
 
 { #category : 'accessing' }
-PCRE2MockSessionManager >> serializedCodes [
+PCRE2MockSessionManager >> matchersToRestore: aCollection [
 
-	^ serializedCodes
+	matchersToRestore := aCollection
 ]
 
 { #category : 'accessing' }
-PCRE2MockSessionManager >> serializedCodes: aByteArray [
+PCRE2MockSessionManager >> serializedMatchers [
 
-	serializedCodes := aByteArray
+	^ serializedMatchers
+]
+
+{ #category : 'accessing' }
+PCRE2MockSessionManager >> serializedMatchers: aByteArray [
+
+	serializedMatchers := aByteArray
 ]

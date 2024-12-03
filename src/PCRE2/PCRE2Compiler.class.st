@@ -100,19 +100,19 @@ PCRE2Compiler >> compile: pattern [
 	Try to use JIT compilation if available and enabled.
 	If JIT compilation fails, the pattern will still be compiled as a standard matcher."
 
-	| code |
-	(code := PCRE2Code fromHandle: (self compileBasic: pattern))
+	| matcher |
+	(matcher := PCRE2Matcher fromHandle: (self compileBasic: pattern))
 		autoRelease;
 		initialize;
 		pattern: pattern;
 		compiler: self.
-	code isJIT: (EagerJIT and: [
-			 SupportsJIT and: [ (self privateJITCompile: code) == 0 ] ]).
-	^ code
+	matcher isJIT: (EagerJIT and: [
+			 SupportsJIT and: [ (self privateJITCompile: matcher) == 0 ] ]).
+	^ matcher
 ]
 
 { #category : 'private' }
-PCRE2Compiler >> compile: pattern upTo: length errorCode: errorcode errorOffset: erroroffset [
+PCRE2Compiler >> compile: pattern upTo: length errorCode: errorCode errorOffset: errorOffset [
 "This function reads a regular expression in the form of a string and returns
 a pointer to a block of store holding a compiled version of the expression.
 
@@ -129,7 +129,7 @@ Returns:        pointer to compiled data block, or NULL on error,
 
 	"pcre2_code *pcre2_compile_8(PCRE2_SPTR pattern, PCRE2_SIZE length, uint32_t options, int *errorcode, PCRE2_SIZE *erroroffset, pcre2_compile_context *ccontext)"
 
-	self ffiCall: #(void *pcre2_compile_8(char *pattern, size_t length, uint32 options, IntHolder errorcode, SizeTHolder erroroffset, void *context))
+	self ffiCall: #(void *pcre2_compile_8(char *pattern, size_t length, uint32 options, IntHolder errorCode, SizeTHolder errorOffset, void *context))
 ]
 
 { #category : 'compiling' }
@@ -151,7 +151,7 @@ PCRE2Compiler >> compileBasic: pattern [
 ]
 
 { #category : 'compiling' }
-PCRE2Compiler >> compileJIT: code [
+PCRE2Compiler >> compileJIT: matcher [
 	"Request JIT compilation, which, if the just-in-time compiler is available,
 	further processes a compiled pattern into machine code that runs much faster
 	than the interpretive match() function.
@@ -161,9 +161,9 @@ PCRE2Compiler >> compileJIT: code [
 	Available options are jitComplete, jitPartialSoft and jitPartialHard."
 
 	| rc |
-	rc := self privateJITCompile: code.
-	rc == 0 ifTrue: [ ^ code isJIT: true ].
-	self errorCode: rc
+	rc := self privateJITCompile: matcher.
+	rc == 0 ifFalse: [ self errorCode: rc ].
+	^ matcher isJIT: true
 ]
 
 { #category : 'accessing' }
@@ -241,8 +241,8 @@ PCRE2Compiler >> optionsJIT: anInteger [
 ]
 
 { #category : 'private' }
-PCRE2Compiler >> privateJITCompile: code [
+PCRE2Compiler >> privateJITCompile: matcher [
 	"int pcre2_jit_compile(pcre2_code *code, uint32_t options)"
 
-	self ffiCall: #(int pcre2_jit_compile_8(PCRE2Code *code, uint32 optionsJIT))
+	self ffiCall: #(int pcre2_jit_compile_8(#PCRE2Matcher *matcher, uint32 optionsJIT))
 ]

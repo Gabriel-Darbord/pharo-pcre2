@@ -63,7 +63,7 @@ A compiled pattern can be copied using the regular `copy` method. A new pattern 
 Most of the API does not support matching a specific range of the subject string. This limitation is due to the way string marshalling works with FFI: strings are always encoded as UTF8 `ByteArray`s before being processed. Consequently, passing a substring copy of the subject is more efficient than passing the entire subject, having it converted to UTF8, and then specifying a range within it. If you are already working with encoded strings, or if your scenario requires it, you can use the **Byte Matching** protocol methods that support ranges.
 "
 Class {
-	#name : 'PCRE2Code',
+	#name : 'PCRE2Matcher',
 	#superclass : 'PCRE2Object',
 	#traits : 'PCRE2TWithOptions',
 	#classTraits : 'PCRE2TWithOptions classTrait',
@@ -79,21 +79,21 @@ Class {
 }
 
 { #category : 'documentation' }
-PCRE2Code >> allInfo [
+PCRE2Matcher >> allInfo [
 	"Use `PCRE2 allInfoOnRegex:` for a human-readable format"
 
 	^ (0 to: 26) collect: [ :i | self info: i ]
 ]
 
 { #category : 'persistence' }
-PCRE2Code >> bePersistent [
+PCRE2Matcher >> bePersistent [
 	"Make the state of the matcher persistent between sessions"
 
 	matchData ifNotNil: [ matchData bePersistent ]
 ]
 
 { #category : 'compiling' }
-PCRE2Code >> compileJIT [
+PCRE2Matcher >> compileJIT [
 	"Request JIT compilation for this compiled pattern using the compiler options.
 	If supported and unless reconfigured, patterns are JIT-compiled by default."
 
@@ -101,7 +101,7 @@ PCRE2Code >> compileJIT [
 ]
 
 { #category : 'compiling' }
-PCRE2Code >> compileJIT: anInteger [
+PCRE2Matcher >> compileJIT: anInteger [
 	"Request JIT (re-)compilation for this compiled pattern.
 	If supported and unless reconfigured, patterns are JIT-compiled by default.
 	The available options are jitComplete, jitPartialSoft and jitPartialHard."
@@ -116,21 +116,21 @@ PCRE2Code >> compileJIT: anInteger [
 ]
 
 { #category : 'accessing' }
-PCRE2Code >> compiler [
+PCRE2Matcher >> compiler [
 	"The compiler that processed this pattern"
 
 	^ compiler
 ]
 
 { #category : 'accessing' }
-PCRE2Code >> compiler: aPCRE2Compiler [
+PCRE2Matcher >> compiler: aPCRE2Compiler [
 	"Should only be used by the compiler that processed this pattern"
 
 	compiler := aPCRE2Compiler
 ]
 
 { #category : 'accessing' }
-PCRE2Code >> context [
+PCRE2Matcher >> context [
 
 	^ context ifNil: [
 		  context := self createMatchContext.
@@ -142,13 +142,13 @@ PCRE2Code >> context [
 ]
 
 { #category : 'accessing' }
-PCRE2Code >> context: aMatchContext [
+PCRE2Matcher >> context: aMatchContext [
 
 	context := aMatchContext
 ]
 
 { #category : 'match enumeration' }
-PCRE2Code >> copy: subject matchesDo: aBlock [
+PCRE2Matcher >> copy: subject matchesDo: aBlock [
 	"Copy the subject and execute a block for each match"
 
 	| encoder utfSubject lastIndex rs ws |
@@ -182,7 +182,7 @@ PCRE2Code >> copy: subject matchesDo: aBlock [
 ]
 
 { #category : 'match enumeration' }
-PCRE2Code >> copy: subject replacingMatchesWith: aString [
+PCRE2Matcher >> copy: subject replacingMatchesWith: aString [
 	"Copy the subject replacing each match with aString"
 
 	^ self
@@ -191,7 +191,7 @@ PCRE2Code >> copy: subject replacingMatchesWith: aString [
 ]
 
 { #category : 'match enumeration' }
-PCRE2Code >> copy: subject translatingMatchesUsing: aBlock [
+PCRE2Matcher >> copy: subject translatingMatchesUsing: aBlock [
 	"Copy the subject replacing each match by evaluating aBlock with the matched substring.
 	Expect the block to answer a String, and replace the match with the answer."
 
@@ -201,7 +201,7 @@ PCRE2Code >> copy: subject translatingMatchesUsing: aBlock [
 ]
 
 { #category : 'private' }
-PCRE2Code >> createMatchContext [
+PCRE2Matcher >> createMatchContext [
 	"This function creates and initializes a new match context.
 	If its argument is NULL, malloc() is used to get the necessary memory; otherwise the memory allocation function within the general context is used.
 	The result is NULL if the memory could not be obtained."
@@ -210,7 +210,7 @@ PCRE2Code >> createMatchContext [
 ]
 
 { #category : 'private' }
-PCRE2Code >> createMatchDataFromPattern [
+PCRE2Matcher >> createMatchDataFromPattern [
 	"Create a new match data structure with enough space to store the offsets of the match and all capture groups"
 
 	"pcre2_match_data *pcre2_match_data_create_from_pattern(const pcre2_code *code, pcre2_general_context *gcontext)"
@@ -219,14 +219,14 @@ PCRE2Code >> createMatchDataFromPattern [
 ]
 
 { #category : 'error handling' }
-PCRE2Code >> errorCode: errorCode [
+PCRE2Matcher >> errorCode: errorCode [
 
 	<debuggerCompleteToSender>
 	PCRE2MatchError signal: (PCRE2 translateErrorCode: errorCode)
 ]
 
 { #category : 'matching' }
-PCRE2Code >> find: subject [
+PCRE2Matcher >> find: subject [
 	"Returns the first matching substring within the subject"
 
 	| encoder utfSubject |
@@ -238,7 +238,7 @@ PCRE2Code >> find: subject [
 ]
 
 { #category : 'match enumeration' }
-PCRE2Code >> findAll: subject [
+PCRE2Matcher >> findAll: subject [
 	"Returns all matching substrings within the subject"
 
 	| result encoder utfSubject |
@@ -256,7 +256,7 @@ PCRE2Code >> findAll: subject [
 ]
 
 { #category : 'match enumeration' }
-PCRE2Code >> findAll: subject do: aBlock [
+PCRE2Matcher >> findAll: subject do: aBlock [
 	"Iterate over all matching substrings within the subject"
 
 	| encoder utfSubject |
@@ -272,7 +272,7 @@ PCRE2Code >> findAll: subject do: aBlock [
 ]
 
 { #category : 'match enumeration' }
-PCRE2Code >> findAllWithGroups: subject [
+PCRE2Matcher >> findAllWithGroups: subject [
 	"Returns all matching substrings and groups within the subject"
 
 	| result encoder utfSubject |
@@ -289,7 +289,7 @@ PCRE2Code >> findAllWithGroups: subject [
 ]
 
 { #category : 'matching' }
-PCRE2Code >> findWithGroups: subject [
+PCRE2Matcher >> findWithGroups: subject [
 	"Returns the first matching substring and groups within the subject"
 
 	| encoder utfSubject |
@@ -300,13 +300,13 @@ PCRE2Code >> findWithGroups: subject [
 ]
 
 { #category : 'external resource management' }
-PCRE2Code >> free [
+PCRE2Matcher >> free [
 
 	self ffiCall: #(void pcre2_code_free_8(self))
 ]
 
 { #category : 'documentation' }
-PCRE2Code >> info: option [
+PCRE2Matcher >> info: option [
 	"Returns some information about the compiled pattern.
 	See class-side methods of PCRE2 starting with 'info' to find valid options."
 
@@ -339,7 +339,7 @@ PCRE2Code >> info: option [
 ]
 
 { #category : 'private' }
-PCRE2Code >> info: what output: where [
+PCRE2Matcher >> info: what output: where [
 
 	"int pcre2_pattern_info(const pcre2_code *code, uint32_t what, void *where)"
 
@@ -347,7 +347,7 @@ PCRE2Code >> info: what output: where [
 ]
 
 { #category : 'initialization' }
-PCRE2Code >> initialize [
+PCRE2Matcher >> initialize [
 	"Create a default match data in advance based on the pattern.
 	This is what is expected for the vast majority of cases."
 
@@ -356,13 +356,13 @@ PCRE2Code >> initialize [
 ]
 
 { #category : 'accessing' }
-PCRE2Code >> isJIT [
+PCRE2Matcher >> isJIT [
 
 	^ isJIT
 ]
 
 { #category : 'accessing' }
-PCRE2Code >> isJIT: aBoolean [
+PCRE2Matcher >> isJIT: aBoolean [
 	"Indicates whether the pattern is JIT-compiled.
 	Can be set to false if using match() over the jit_match() fast path is required for additional validity checks,
 	and if the pattern is JIT-compiled, the fast machine code is still used.
@@ -372,7 +372,7 @@ PCRE2Code >> isJIT: aBoolean [
 ]
 
 { #category : 'private' }
-PCRE2Code >> jitMatch: subject from: start to: end [
+PCRE2Matcher >> jitMatch: subject from: start to: end [
 "This function runs a JIT pattern match.
 
 Arguments:
@@ -395,14 +395,14 @@ Returns:          > 0 => success; value is the number of ovector pairs filled
 ]
 
 { #category : 'querying' }
-PCRE2Code >> mark [
+PCRE2Matcher >> mark [
 	"The name of the last (*MARK), (*PRUNE), or (*THEN) that was encountered during the matching process"
 
 	^ matchData ifNotNil: [ matchData mark ]
 ]
 
 { #category : 'private' }
-PCRE2Code >> match: subject from: start to: end [
+PCRE2Matcher >> match: subject from: start to: end [
 "This function applies a compiled pattern to a subject string and picks out
 portions of the string if it matches. Two elements in the vector are set for
 each substring: the offsets to the start and end of the substring.
@@ -428,7 +428,7 @@ Returns:          > 0 => success; value is the number of ovector pairs filled
 ]
 
 { #category : 'byte matching' }
-PCRE2Code >> matchAll: subject from: start to: end do: aBlock [
+PCRE2Matcher >> matchAll: subject from: start to: end do: aBlock [
 	"Iteratively match over a range of the subject and execute a block after each successful match"
 
 	| offset |
@@ -442,7 +442,7 @@ PCRE2Code >> matchAll: subject from: start to: end do: aBlock [
 ]
 
 { #category : 'byte matching' }
-PCRE2Code >> matchAll: subject from: start to: end offsetsDo: aBlock [
+PCRE2Matcher >> matchAll: subject from: start to: end offsetsDo: aBlock [
 	"Iteratively match over a range of the subject and execute a block with the match and groups' offsets after each successful match"
 
 	| offset |
@@ -457,7 +457,7 @@ PCRE2Code >> matchAll: subject from: start to: end offsetsDo: aBlock [
 ]
 
 { #category : 'byte matching' }
-PCRE2Code >> matchBytes: subject from: start to: end [
+PCRE2Matcher >> matchBytes: subject from: start to: end [
 	"Run a match over a range of the UTF-encoded subject and populate the match data.
 	This is a single match operation that ends when the pattern either has no matches
 	or is fully matched once, no matter how many times it can match in the subject."
@@ -492,20 +492,20 @@ PCRE2Code >> matchBytes: subject from: start to: end [
 ]
 
 { #category : 'accessing' }
-PCRE2Code >> matchData [
+PCRE2Matcher >> matchData [
 
 	^ matchData
 ]
 
 { #category : 'accessing' }
-PCRE2Code >> matchData: aPCRE2Match [
+PCRE2Matcher >> matchData: aPCRE2Match [
 	"Only useful for using match data created with a context, or not based on the regex object"
 
 	matchData := aPCRE2Match
 ]
 
 { #category : 'matching' }
-PCRE2Code >> matches: subject [
+PCRE2Matcher >> matches: subject [
 	"Returns whether the regex fully matches the subject"
 
 	| utfSubject |
@@ -517,14 +517,14 @@ PCRE2Code >> matches: subject [
 ]
 
 { #category : 'match enumeration' }
-PCRE2Code >> matchesIn: subject [
+PCRE2Matcher >> matchesIn: subject [
 	"Equivalent of RxMatcher >> #matchesIn:"
 
 	^ self findAll: subject
 ]
 
 { #category : 'match enumeration' }
-PCRE2Code >> matchesIn: subject collect: aBlock [
+PCRE2Matcher >> matchesIn: subject collect: aBlock [
 	"Equivalent of RxMatcher >> #matchesIn:collect:"
 
 	| result |
@@ -536,14 +536,14 @@ PCRE2Code >> matchesIn: subject collect: aBlock [
 ]
 
 { #category : 'match enumeration' }
-PCRE2Code >> matchesIn: subject do: aBlock [
+PCRE2Matcher >> matchesIn: subject do: aBlock [
 	"Equivalent of RxMatcher >> #matchesIn:do:"
 
 	self findAll: subject do: aBlock
 ]
 
 { #category : 'matching' }
-PCRE2Code >> matchesPrefix: subject [
+PCRE2Matcher >> matchesPrefix: subject [
 	"Returns whether the regex matches the start of the subject"
 
 	| utfSubject |
@@ -554,7 +554,7 @@ PCRE2Code >> matchesPrefix: subject [
 ]
 
 { #category : 'matching' }
-PCRE2Code >> matchingRangesIn: subject [
+PCRE2Matcher >> matchingRangesIn: subject [
 	"Equivalent of RxMatcher >> #matchingRangesIn:"
 
 	| ranges |
@@ -565,7 +565,7 @@ PCRE2Code >> matchingRangesIn: subject [
 ]
 
 { #category : 'documentation' }
-PCRE2Code >> namedGroups [
+PCRE2Matcher >> namedGroups [
 	"Returns the table of named capture groups associated to their index
 	Because multiple groups can have the same name when using dupNames compile option, the index is used as the key"
 
@@ -606,21 +606,21 @@ PCRE2Code >> namedGroups [
 ]
 
 { #category : 'accessing' }
-PCRE2Code >> pattern [
+PCRE2Matcher >> pattern [
 	"The original string of this compiled pattern"
 
 	^ pattern
 ]
 
 { #category : 'accessing' }
-PCRE2Code >> pattern: aString [
+PCRE2Matcher >> pattern: aString [
 	"Must only be used by the compiler"
 
 	pattern := aString
 ]
 
 { #category : 'copying' }
-PCRE2Code >> postCopy [
+PCRE2Matcher >> postCopy [
 	"Copy the external structure of the compiled pattern"
 
 	handle := self privateCopy.
@@ -631,7 +631,7 @@ PCRE2Code >> postCopy [
 ]
 
 { #category : 'private' }
-PCRE2Code >> privateCopy [
+PCRE2Matcher >> privateCopy [
 	"This function makes a copy of the memory used for a compiled pattern, excluding any memory used by the JIT compiler.
 	Without a subsequent call to jit_compile(), the copy can be used only for non-JIT matching.
 	The pointer to the character tables is copied, not the tables themselves (see pcre2_code_copy_with_tables()).
@@ -641,7 +641,7 @@ PCRE2Code >> privateCopy [
 ]
 
 { #category : 'persistence' }
-PCRE2Code >> recompile [
+PCRE2Matcher >> recompile [
 	"Recreate the external compiled pattern"
 
 	self setHandle: (compiler compileBasic: pattern).
@@ -649,14 +649,14 @@ PCRE2Code >> recompile [
 ]
 
 { #category : 'persistence' }
-PCRE2Code >> restoreFrom: bytes [
+PCRE2Matcher >> restoreFrom: bytes [
 	"This method is for convenience, it is much more effective to serialize matchers in bulk"
 
 	LibPCRE2 restore: { self } from: bytes
 ]
 
 { #category : 'external resource management' }
-PCRE2Code >> reuseMatchDataFromPattern [
+PCRE2Matcher >> reuseMatchDataFromPattern [
 	"Keep the same match data instance and update its handle"
 
 	| pointer |
@@ -667,7 +667,7 @@ PCRE2Code >> reuseMatchDataFromPattern [
 ]
 
 { #category : 'matching' }
-PCRE2Code >> search: subject [
+PCRE2Matcher >> search: subject [
 	"Returns whether the regex partially matches the subject"
 
 	| utfSubject |
@@ -677,7 +677,7 @@ PCRE2Code >> search: subject [
 ]
 
 { #category : 'persistence' }
-PCRE2Code >> serialize [
+PCRE2Matcher >> serialize [
 	"Serialize the external memory of the matcher structure, excluding JIT code.
 	This method is for convenience, it is much more effective to serialize matchers in bulk,
 	both in terms of speed and memory, since the character table (1088 bytes) is encoded in the result."
@@ -686,14 +686,14 @@ PCRE2Code >> serialize [
 ]
 
 { #category : 'querying' }
-PCRE2Code >> startIndex [
+PCRE2Matcher >> startIndex [
 	"Available after a match, returns the index where the compiled pattern started matching"
 
 	^ matchData ifNotNil: [ "as 1-based" matchData startIndex + 1 ]
 ]
 
 { #category : 'private' }
-PCRE2Code >> substitute: subject from: start to: end replacement: replacement upTo: rLength output: buffer size: outSize [
+PCRE2Matcher >> substitute: subject from: start to: end replacement: replacement upTo: rLength output: buffer size: outSize [
 "This function applies a compiled re to a subject string and creates a new
 string with substitutions. The first 7 arguments are the same as for
 pcre2_match(). Either string length may be PCRE2_ZERO_TERMINATED.
@@ -721,7 +721,7 @@ Returns:          >= 0 number of substitutions made
 ]
 
 { #category : 'matching' }
-PCRE2Code >> substitute: subject with: replacement [
+PCRE2Matcher >> substitute: subject with: replacement [
 	"Returns the subject with each match substituted with the replacement.
 	The replacement string is treated as a regex substitution expression
 	that can reference captured groups or use conditional substitutions."
@@ -769,7 +769,7 @@ PCRE2Code >> substitute: subject with: replacement [
 ]
 
 { #category : 'external resource management' }
-PCRE2Code >> useMatchDataFromPattern [
+PCRE2Matcher >> useMatchDataFromPattern [
 	"Create a new match data based on the pattern"
 
 	| pointer |

@@ -1,6 +1,6 @@
 "
 A compile context is required if you want to provide an external function for stack checking during compilation or to change the default values of any of the following compile-time parameters:
-- What \R matches (Unicode newlines or CR, LF, CRLF only)
+- What `\R` matches (Unicode newlines or CR, LF, CRLF only)
 - PCRE2's character tables
 - The newline character sequence
 - The compile time nested parentheses limit

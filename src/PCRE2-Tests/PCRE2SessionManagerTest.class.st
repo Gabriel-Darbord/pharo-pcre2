@@ -12,15 +12,15 @@ PCRE2SessionManagerTest >> testShutDownWithRecompilation [
 	PCRE2MockSessionManager useSerialization: false.
 	manager := PCRE2MockSessionManager new.
 	regex := '' asPCRegex.
-	manager codesToRestore: { regex }.
+	manager matchersToRestore: { regex }.
 
 	self deny: regex matchData isPersistent.
-	self assert: manager serializedCodes identicalTo: nil.
+	self assert: manager serializedMatchers identicalTo: nil.
 
 	manager shutDown.
 
 	self assert: regex matchData isPersistent. "<- this behavior is mocked, still verify that it is correct"
-	self assert: manager serializedCodes identicalTo: nil
+	self assert: manager serializedMatchers identicalTo: nil
 ]
 
 { #category : 'tests' }
@@ -30,16 +30,16 @@ PCRE2SessionManagerTest >> testShutDownWithSerialization [
 	PCRE2MockSessionManager useSerialization: true.
 	manager := PCRE2MockSessionManager new.
 	regex := '' asPCRegex.
-	manager codesToRestore: { regex }.
+	manager matchersToRestore: { regex }.
 
 	self deny: regex matchData isPersistent.
-	self assert: manager serializedCodes identicalTo: nil.
+	self assert: manager serializedMatchers identicalTo: nil.
 
 	manager shutDown.
 
 	self assert: regex matchData isPersistent. "<- this behavior is mocked, still verify that it is correct"
-	self deny: manager serializedCodes identicalTo: nil.
-	self assert: manager serializedCodes size equals: 1247
+	self deny: manager serializedMatchers identicalTo: nil.
+	self assert: manager serializedMatchers size equals: 1247
 ]
 
 { #category : 'tests' }
@@ -49,7 +49,7 @@ PCRE2SessionManagerTest >> testStartUpWithRecompilation [
 	PCRE2MockSessionManager useSerialization: false.
 	manager := PCRE2MockSessionManager new.
 	regex := 'a' asPCRegex.
-	manager codesToRestore: { regex }.
+	manager matchersToRestore: { regex }.
 
 	self deny: regex isNull.
 
@@ -71,7 +71,7 @@ PCRE2SessionManagerTest >> testStartUpWithSerialization [
 	PCRE2MockSessionManager useSerialization: true.
 	manager := PCRE2MockSessionManager new.
 	regex := 'a' asPCRegex.
-	manager codesToRestore: { regex }.
+	manager matchersToRestore: { regex }.
 
 	self deny: regex isNull.
 

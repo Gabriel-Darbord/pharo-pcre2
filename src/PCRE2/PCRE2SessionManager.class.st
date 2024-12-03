@@ -6,8 +6,8 @@ Class {
 	#name : 'PCRE2SessionManager',
 	#superclass : 'Object',
 	#instVars : [
-		'codesToRestore',
-		'serializedCodes'
+		'matchersToRestore',
+		'serializedMatchers'
 	],
 	#classInstVars : [
 		'enabled',
@@ -84,13 +84,14 @@ PCRE2SessionManager class >> useSerialization [
 ]
 
 { #category : 'enumerating' }
-PCRE2SessionManager >> findCodesToRestore [
-	"Register all pattern instances and make them persistent.
+PCRE2SessionManager >> findMatchersToRestore [
+	"Register all matchers and make them persistent.
 	This is a hook used by tests to avoid registering all instances."
 
-	codesToRestore := OrderedCollection new.
-	PCRE2Code allInstancesDo: [ :code |
-		code isNull ifFalse: [ codesToRestore add: code bePersistent ] ]
+	matchersToRestore := OrderedCollection new.
+	PCRE2Matcher allInstancesDo: [ :matcher |
+		matcher isNull ifFalse: [
+			matchersToRestore add: matcher bePersistent ] ]
 ]
 
 { #category : 'system startup' }
@@ -101,9 +102,9 @@ PCRE2SessionManager >> shutDown [
 	A compiled pattern may have a null handle if the image previously crashed,
 	not handling it would cause another crash on startup."
 
-	self findCodesToRestore.
-	(self class shouldUseSerialization and: [ codesToRestore isNotEmpty ])
-		ifTrue: [ serializedCodes := LibPCRE2 serialize: codesToRestore ]
+	self findMatchersToRestore.
+	(self class shouldUseSerialization and: [ matchersToRestore isNotEmpty ])
+		ifTrue: [ serializedMatchers := LibPCRE2 serialize: matchersToRestore ]
 ]
 
 { #category : 'system startup' }
@@ -112,11 +113,11 @@ PCRE2SessionManager >> startUp [
 	Deserialization does not work if serialization was done on a different architecture.
 	TODO: Add a way to check for incompatible architectures (can use PCRE2>>#configJITTarget)."
 
-	codesToRestore isEmptyOrNil ifTrue: [ ^ self ].
+	matchersToRestore isEmptyOrNil ifTrue: [ ^ self ].
 
 	self class shouldUseSerialization
-		ifFalse: [ codesToRestore do: [ :code | code recompile ] ]
+		ifFalse: [ matchersToRestore do: [ :matcher | matcher recompile ] ]
 		ifTrue: [
-			serializedCodes ifNotNil: [
-				LibPCRE2 restore: codesToRestore from: serializedCodes ] ]
+			serializedMatchers ifNotNil: [
+				LibPCRE2 restore: matchersToRestore from: serializedMatchers ] ]
 ]
