@@ -1,12 +1,12 @@
 Class {
-	#name : 'PCRE2CodeTest',
+	#name : 'PCRE2MatcherTest',
 	#superclass : 'TestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }
 
 { #category : 'asserting' }
-PCRE2CodeTest >> assertRegex: pattern matchPersists: subject [
+PCRE2MatcherTest >> assertRegex: pattern matchPersists: subject [
 
 	| regex matchData expected |
 	regex := pattern asPCRegex.
@@ -23,7 +23,7 @@ PCRE2CodeTest >> assertRegex: pattern matchPersists: subject [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testAllInfo [
+PCRE2MatcherTest >> testAllInfo [
 
 	| regex infos infoNameTable infoFrameSize infoJITSize |
 	regex := '' asPCRegex.
@@ -49,7 +49,7 @@ PCRE2CodeTest >> testAllInfo [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testAwesome [
+PCRE2MatcherTest >> testAwesome [
 	"Some awesome things that can be done with PCRE"
 
 	| regex |
@@ -61,7 +61,7 @@ PCRE2CodeTest >> testAwesome [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testBePersistent [
+PCRE2MatcherTest >> testBePersistent [
 
 	self
 		assertRegex: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
@@ -86,7 +86,7 @@ PCRE2CodeTest >> testBePersistent [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testCompileJIT [
+PCRE2MatcherTest >> testCompileJIT [
 
 	| regex originalCompiler optionsJIT |
 	regex := '' asPCRegex.
@@ -102,7 +102,7 @@ PCRE2CodeTest >> testCompileJIT [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testCopy [
+PCRE2MatcherTest >> testCopy [
 
 	| regex copy |
 	regex := 'a' asPCRegex.
@@ -118,7 +118,7 @@ PCRE2CodeTest >> testCopy [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testCopyReplacingMatchesWith [
+PCRE2MatcherTest >> testCopyReplacingMatchesWith [
 
 	| regex |
 	regex := 'a' asPCRegex.
@@ -139,7 +139,7 @@ PCRE2CodeTest >> testCopyReplacingMatchesWith [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testCopyTranslatingMatchesUsing [
+PCRE2MatcherTest >> testCopyTranslatingMatchesUsing [
 
 	| regex |
 	regex := 'a' asPCRegex.
@@ -169,7 +169,7 @@ PCRE2CodeTest >> testCopyTranslatingMatchesUsing [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testFind [
+PCRE2MatcherTest >> testFind [
 
 	self assert: ('\d+' asPCRegex find: '123') equals: '123'.
 	self assert: ('\w+' asPCRegex find: 'hello') equals: 'hello'.
@@ -229,7 +229,7 @@ PCRE2CodeTest >> testFind [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testFindAll [
+PCRE2MatcherTest >> testFindAll [
 
 	self
 		assert: ('\d+' asPCRegex findAll: '123') asArray
@@ -305,7 +305,7 @@ PCRE2CodeTest >> testFindAll [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testFindAllWithGroups [
+PCRE2MatcherTest >> testFindAllWithGroups [
 
 	self
 		assert: ('(\w)+' asPCRegex findAllWithGroups: 'hello world') asArray
@@ -325,7 +325,7 @@ PCRE2CodeTest >> testFindAllWithGroups [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testFindWithGroups [
+PCRE2MatcherTest >> testFindWithGroups [
 
 	self
 		assert: ('(\w)+' asPCRegex findWithGroups: 'hello')
@@ -342,7 +342,7 @@ PCRE2CodeTest >> testFindWithGroups [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testInfo [
+PCRE2MatcherTest >> testInfo [
 
 	| regex infoFrameSize infoNameTable infoJITSize |
 	regex := '' asPCRegex.
@@ -359,7 +359,7 @@ PCRE2CodeTest >> testInfo [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testMark [
+PCRE2MatcherTest >> testMark [
 
 	| regex |
 	regex := '' asPCRegex.
@@ -374,7 +374,7 @@ PCRE2CodeTest >> testMark [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testMatchLimit [
+PCRE2MatcherTest >> testMatchLimit [
 
 	| regex |
 	regex := '(a+)+' asPCRegex.
@@ -388,7 +388,7 @@ PCRE2CodeTest >> testMatchLimit [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testMatches [
+PCRE2MatcherTest >> testMatches [
 
 	self assert: ('\d+' asPCRegex matches: '123').
 	self assert: ('\w+' asPCRegex matches: 'hello').
@@ -429,7 +429,7 @@ PCRE2CodeTest >> testMatches [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testMatchesInCollect [
+PCRE2MatcherTest >> testMatchesInCollect [
 
 	self
 		assert: ('\d' asPCRegex
@@ -471,7 +471,7 @@ PCRE2CodeTest >> testMatchesInCollect [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testMatchesPrefix [
+PCRE2MatcherTest >> testMatchesPrefix [
 
 	self assert: ('\d+' asPCRegex matchesPrefix: '123').
 	self assert: ('\w+' asPCRegex matchesPrefix: 'hello').
@@ -513,13 +513,13 @@ PCRE2CodeTest >> testMatchesPrefix [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testRecompile [
+PCRE2MatcherTest >> testRecompile [
 
 	self assert: ('a' asPCRegex finalize recompile matches: 'a')
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testSearch [
+PCRE2MatcherTest >> testSearch [
 
 	self assert: ('\d+' asPCRegex search: '123').
 	self assert: ('\w+' asPCRegex search: 'hello').
@@ -560,7 +560,7 @@ PCRE2CodeTest >> testSearch [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testStartIndex [
+PCRE2MatcherTest >> testStartIndex [
 
 	| regex |
 	regex := 'bc' asPCRegex.
@@ -569,7 +569,7 @@ PCRE2CodeTest >> testStartIndex [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testWithOffsetLimit [
+PCRE2MatcherTest >> testWithOffsetLimit [
 
 	| regex |
 	regex := 'B' asPCRegexWithOptions: PCRE2 useOffsetLimit.
@@ -582,7 +582,7 @@ PCRE2CodeTest >> testWithOffsetLimit [
 ]
 
 { #category : 'tests' }
-PCRE2CodeTest >> testZeroTerminated [
+PCRE2MatcherTest >> testZeroTerminated [
 
 	| regex subject encoder utfSubject |
 	regex := '.*' asPCRegex.
