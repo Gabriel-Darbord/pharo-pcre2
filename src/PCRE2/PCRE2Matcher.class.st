@@ -7,7 +7,7 @@ Match operations create standalone `PCRE2Match` objects. The matcher does not ow
 
 The API has three layers:
 - Convenience matching such as `matches:`, `matchesPrefix:`, `search:`, `find:`, and `findWithGroups:`.
-- Enumeration and rewriting such as `findAll:`, `copy:replacingMatchesWith:`, `copy:translatingMatchesUsing:`, and `substitute:with:`.
+- Enumeration, splitting, and rewriting such as `findAll:`, `split:indicesDo:`, `copy:replacingMatchesWith:`, `copy:translatingMatchesUsing:`, and `substitute:with:`.
 - Byte-level operations such as `matchBytes:from:to:` and DFA matching for callers that already manage UTF-8 storage and offsets.
 
 Instances may be JIT-compiled when the native library supports it. Lifecycle restoration is handled by `PCRE2SessionManager`, which either deserializes compatible native codes or recompiles from the recorded pattern and options.
@@ -814,6 +814,37 @@ PCRE2Matcher >> serialize [
 	both in terms of speed and memory, since the character table (1088 bytes) is encoded in the result."
 
 	^ LibPCRE2 serialize: { self }
+]
+
+{ #category : 'splitjoin' }
+PCRE2Matcher >> split: subject indicesDo: aBlock [
+	"Split subject on my matches, evaluating aBlock with each kept 1-based Pharo character range. Regex delimiters must consume at least one byte."
+
+	| input lastEndOffset match nextStart subjectEnd |
+	input := self utf8InputFor: subject.
+	lastEndOffset := 0.
+	nextStart := 1.
+	subjectEnd := input characterCountUpToByteOffset: input size.
+	[
+	nextStart <= (input size + 1) and: [
+		(match := self
+			          matchBytes: input bytes
+			          from: nextStart
+			          to: input size) notNil ] ] whileTrue: [
+		| offsets startOffset endOffset |
+		offsets := match offsetsAt: 1.
+		startOffset := offsets first.
+		endOffset := offsets second.
+		[ startOffset < endOffset ] assertWithDescription:
+			'Regex cannot match null string'.
+		aBlock
+			value: (input characterCountUpToByteOffset: lastEndOffset) + 1
+			value: (input characterCountUpToByteOffset: startOffset).
+		lastEndOffset := endOffset.
+		nextStart := endOffset + 1 ].
+	aBlock
+		value: (input characterCountUpToByteOffset: lastEndOffset) + 1
+		value: subjectEnd
 ]
 
 { #category : 'querying' }

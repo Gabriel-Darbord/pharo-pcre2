@@ -688,6 +688,65 @@ PCRE2MatcherTest >> testSearch [
 ]
 
 { #category : 'tests' }
+PCRE2MatcherTest >> testSplitIndicesDoAcceptsReusableUTF8Input [
+
+	| indices input |
+	indices := OrderedCollection new.
+	input := 'café déjà' asPCRE2UTF8Input.
+	'é' asPCRegex split: input indicesDo: [ :start :end |
+		indices add: {
+				start.
+				end } ].
+
+	self assert: indices asArray equals: {
+			{ 1. 3 }.
+			{ 5. 6 }.
+			{ 8. 9 } }
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testSplitRejectsEmptyRegex [
+
+	self
+		should: [ '' asPCRegex split: 'abc' ]
+		raise: AssertionFailure
+		withExceptionDo: [ :error |
+			self
+				assert: error messageText
+				equals: 'Regex cannot match null string' ]
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testSplitStringOnPCRegex [
+
+	self
+		assert: ('foobar' splitOn: '[aeiou]+' asPCRegex)
+		equals: #( 'f' 'b' 'r' ) asOrderedCollection
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testSplitStringOnPCRegexBoundaryCases [
+
+	self
+		assert: (',a,b' splitOn: ',' asPCRegex)
+		equals: #( '' 'a' 'b' ) asOrderedCollection.
+	self
+		assert: ('a,b,' splitOn: ',' asPCRegex)
+		equals: #( 'a' 'b' '' ) asOrderedCollection.
+	self
+		assert: ('a,,b' splitOn: ',' asPCRegex)
+		equals: #( 'a' '' 'b' ) asOrderedCollection
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testSplitStringOnPCRegexUnicode [
+
+	self
+		assert: ('café déjà' splitOn: 'é' asPCRegex)
+		equals: #( 'caf' ' d' 'jà' ) asOrderedCollection
+]
+
+{ #category : 'tests' }
 PCRE2MatcherTest >> testStartIndex [
 
 	| regex |
