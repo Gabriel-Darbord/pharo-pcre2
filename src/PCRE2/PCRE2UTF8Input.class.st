@@ -62,10 +62,28 @@ PCRE2UTF8Input >> bytes: bytesObject decoder: aDecoder [
 	decoder := aDecoder
 ]
 
+{ #category : 'decoding' }
+PCRE2UTF8Input >> decodeBytes: aByteCollection [
+	"Decode a UTF-8 byte slice that came from my byte storage."
+
+	^ decoder
+		  ifNil: [ aByteCollection ]
+		  ifNotNil: [ decoder decodeBytes: aByteCollection ]
+]
+
 { #category : 'accessing' }
 PCRE2UTF8Input >> decoder [
 
 	^ decoder
+]
+
+{ #category : 'decoding' }
+PCRE2UTF8Input >> nextFromStream: aStream [
+	"Answer the next character from a stream over my UTF-8 byte storage."
+
+	^ decoder
+		  ifNil: [ aStream next ]
+		  ifNotNil: [ decoder nextFromStream: aStream ]
 ]
 
 { #category : 'matching' }

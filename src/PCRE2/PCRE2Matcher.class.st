@@ -151,31 +151,30 @@ PCRE2Matcher >> context: aMatchContext [
 PCRE2Matcher >> copy: subject matchesDo: aBlock [
 	"Copy the subject and execute a block for each match."
 
-	| encoder utfSubject lastIndex rs ws |
-	encoder := ZnUTF8Encoder default.
-	utfSubject := encoder encodeString: subject.
+	| input lastIndex rs ws |
+	input := self utf8InputFor: subject.
 	lastIndex := 0.
-	rs := ReadStream on: utfSubject.
-	ws := WriteStream on: (ByteString new: 100).
+	rs := ReadStream on: input bytes.
+	ws := WriteStream on: (String new: 100).
 	self
-		matchAll: utfSubject
+		matchAll: input bytes
 		from: 1
-		to: utfSubject size
+		to: input size
 		do: [ :match |
 			| start |
 			rs position: lastIndex.
 			start := match startOffsetAt: 1.
 			lastIndex := match endOffsetAt: 1.
 			[ rs position < start ] whileTrue: [
-				ws nextPut: (encoder nextFromStream: rs) ].
+				ws nextPut: (input nextFromStream: rs) ].
 			aBlock
 				value: ws
-				value: utfSubject
+				value: input bytes
 				value: start + 1
 				value: lastIndex ].
 
 	rs position: lastIndex.
-	[ rs atEnd ] whileFalse: [ ws nextPut: (encoder nextFromStream: rs) ].
+	[ rs atEnd ] whileFalse: [ ws nextPut: (input nextFromStream: rs) ].
 	^ ws contents
 ]
 
@@ -190,12 +189,13 @@ PCRE2Matcher >> copy: subject replacingMatchesWith: aString [
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> copy: subject translatingMatchesUsing: aBlock [
-	"Copy the subject replacing each match by evaluating aBlock with the matched substring.
-	Expect the block to answer a String, and replace the match with the answer."
+	"Copy the subject replacing each match by evaluating aBlock with the matched substring. Expect the block to answer a String, and replace the match with the answer."
 
-	^ self copy: subject matchesDo: [ :ws :utfSubject :start :end |
-		  ws nextPutAll: (aBlock value: (ZnUTF8Encoder default decodeBytes:
-					    (utfSubject copyFrom: start to: end))) ]
+	| input |
+	input := self utf8InputFor: subject.
+	^ self copy: input matchesDo: [ :ws :utfSubject :start :end |
+		  ws nextPutAll: (aBlock value:
+				   (input decodeBytes: (utfSubject copyFrom: start to: end))) ]
 ]
 
 { #category : 'private' }
@@ -225,6 +225,15 @@ PCRE2Matcher >> createMatchDataWithOvectorSize: ovectorSize [
 	self ffiCall:
 		#( void #* pcre2_match_data_create_8 #( uint32 ovectorSize
 		      #, nil ) )
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> decodeUTF8Output: buffer upTo: byteSize [
+	"Decode a PCRE2 UTF-8 output buffer back to a Pharo string."
+
+	byteSize = 0 ifTrue: [ ^ String new ].
+	^ ZnUTF8Encoder default decodeBytes:
+		  (buffer copyFrom: 1 to: byteSize)
 ]
 
 { #category : 'matching' }
@@ -871,27 +880,22 @@ PCRE2Matcher >> substitute: subject from: start to: end replacement: replacement
 
 { #category : 'matching' }
 PCRE2Matcher >> substitute: subject with: replacement [
-	"Returns the subject with each match substituted with the replacement.
-	The replacement string is treated as a regex substitution expression
-	that can reference captured groups or use conditional substitutions."
+	"Returns the subject with each match substituted with the replacement string, which PCRE2 treats as a substitution expression."
 
-	| encoder utfSubject utfReplacement buffer bufferSize rc |
-	encoder := ZnUTF8Encoder default.
-	utfSubject := encoder encodeString: subject.
-	utfReplacement := encoder encodeString: replacement.
-	"Arbitrary buffer size that allows a first-shot on short results.
-	If the size is too small and the substituteOverflowLength option is set,
-	the second shot will succeed unless the VM is out of memory."
+	| buffer bufferSize input rc replacementInput |
+	input := self utf8InputFor: subject.
+	replacementInput := self utf8InputFor: replacement.
+	"Arbitrary first-shot buffer for short results; overflow retries with PCRE2's reported size."
 	buffer := ByteArray new: (bufferSize := 4096).
 	bufferSize := SizeTHolder new value: bufferSize.
 
 	"matchData can be nil and will be created and freed during the ffi call"
 	rc := self
-		      substitute: utfSubject
+		      substitute: input bytes
 		      from: 0
-		      to: utfSubject size
-		      replacement: utfReplacement
-		      upTo: utfReplacement size
+		      to: input size
+		      replacement: replacementInput bytes
+		      upTo: replacementInput size
 		      output: buffer
 		      size: bufferSize.
 	">= 0 number of substitutions made"
@@ -901,20 +905,16 @@ PCRE2Matcher >> substitute: subject with: replacement [
 
 		"second shot should always be correct"
 		rc := self
-			      substitute: utfSubject
+			      substitute: input bytes
 			      from: 0
-			      to: utfSubject size
-			      replacement: utfReplacement
-			      upTo: utfReplacement size
+			      to: input size
+			      replacement: replacementInput bytes
+			      upTo: replacementInput size
 			      output: (buffer := ByteArray new: bufferSize value)
 			      size: bufferSize.
 		rc < 0 ifTrue: [ self errorCode: rc ] ].
 
-	^ (String new: (bufferSize := bufferSize value))
-		  replaceFrom: 1
-		  to: bufferSize
-		  with: buffer
-		  startingAt: 1
+	^ self decodeUTF8Output: buffer upTo: bufferSize value
 ]
 
 { #category : 'private' }

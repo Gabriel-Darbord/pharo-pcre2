@@ -115,6 +115,22 @@ PCRE2MatcherTest >> testCopy [
 ]
 
 { #category : 'tests' }
+PCRE2MatcherTest >> testCopyMatchesDoAcceptsReusableUTF8Input [
+
+	| bytesSeen input output regex |
+	regex := '\p{L}+' asPCRegex.
+	input := '1 café' asPCRE2UTF8Input.
+	output := regex
+		          copy: input
+		          matchesDo: [ :ws :utfSubject :start :end |
+			          bytesSeen := utfSubject.
+			          ws nextPutAll: 'X' ].
+
+	self assert: bytesSeen identicalTo: input bytes.
+	self assert: output equals: '1 X'
+]
+
+{ #category : 'tests' }
 PCRE2MatcherTest >> testCopyReplacingMatchesWith [
 
 	| regex |
@@ -132,6 +148,18 @@ PCRE2MatcherTest >> testCopyReplacingMatchesWith [
 	regex := '\p{L}+' asPCRegex.
 	self
 		assert: (regex copy: '1 café' replacingMatchesWith: 'eñe')
+		equals: '1 eñe'
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testCopyReplacingMatchesWithReusableUTF8Input [
+
+	| input regex |
+	regex := '\p{L}+' asPCRegex.
+	input := '1 café' asPCRE2UTF8Input.
+
+	self
+		assert: (regex copy: input replacingMatchesWith: 'eñe')
 		equals: '1 eñe'
 ]
 
@@ -161,6 +189,20 @@ PCRE2MatcherTest >> testCopyTranslatingMatchesUsing [
 	self
 		assert: (regex
 				 copy: '1 café'
+				 translatingMatchesUsing: [ :match | match repeat: 2 ])
+		equals: '1 cafécafé'
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testCopyTranslatingMatchesUsingReusableUTF8Input [
+
+	| input regex |
+	regex := '\p{L}+' asPCRegex.
+	input := '1 café' asPCRE2UTF8Input.
+
+	self
+		assert: (regex
+				 copy: input
 				 translatingMatchesUsing: [ :match | match repeat: 2 ])
 		equals: '1 cafécafé'
 ]
@@ -614,6 +656,44 @@ PCRE2MatcherTest >> testStartIndex [
 	| regex |
 	regex := 'bc' asPCRegex.
 	self assert: (regex findMatch: 'abc') startIndex equals: 2
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testSubstituteAcceptsReusableUTF8Input [
+
+	| input regex |
+	regex := 'é' asPCRegex.
+	regex addOptions: PCRE2 substituteGlobal.
+	input := 'café café' asPCRE2UTF8Input.
+
+	self assert: (regex substitute: input with: 'e') equals: 'cafe cafe'
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testSubstituteCanAnswerEmptyString [
+
+	| regex |
+	regex := 'a' asPCRegex.
+	regex addOptions: PCRE2 substituteGlobal.
+
+	self assert: (regex substitute: 'aaa' with: '') equals: ''.
+	self
+		assert: (regex substitute: 'aaa' asPCRE2UTF8Input with: '')
+		equals: ''
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testSubstituteDecodesUTF8Output [
+
+	| regex |
+	regex := 'a' asPCRegex.
+	regex addOptions: PCRE2 substituteGlobal.
+
+	self assert: (regex substitute: 'aaa' with: 'é') equals: 'ééé'.
+	self
+		assert:
+		(regex substitute: 'aaa' asPCRE2UTF8Input with: 'é' asPCRE2UTF8Input)
+		equals: 'ééé'
 ]
 
 { #category : 'tests' }
