@@ -210,6 +210,13 @@ PCRE2Match >> offsetsDo: aBlock [
 		aBlock value: start value: end ]
 ]
 
+{ #category : 'accessing' }
+PCRE2Match >> ovectorCount [
+	"Return the number of offset pairs available in this match data block."
+
+	^ self getCount
+]
+
 { #category : 'match enumeration' }
 PCRE2Match >> readMatch: subject [
 	"Returns the matching subcollection of a pattern applied to subject"

@@ -218,6 +218,109 @@ PCRE2Matcher >> createMatchDataFromPattern [
 	self ffiCall: #(void *pcre2_match_data_create_from_pattern_8(self, nil))
 ]
 
+{ #category : 'private' }
+PCRE2Matcher >> createMatchDataWithOvectorSize: ovectorSize [
+	"Create a new match data structure with room for an explicit number of offset pairs."
+
+	"pcre2_match_data *pcre2_match_data_create(uint32_t ovecsize, pcre2_general_context *gcontext)"
+
+	self ffiCall:
+		#( void #* pcre2_match_data_create_8 #( uint32 ovectorSize
+		      #, nil ) )
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> dfaMatch: subject [
+	"Run a DFA match and populate the match data with all same-start alternatives."
+
+	^ self dfaMatch: subject workspaceSize: 100
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> dfaMatch: subject from: start to: end matchData: aMatchData workspace: workspace size: workspaceSize [
+	"Run a DFA match with caller-managed match data and workspace storage."
+
+	"int pcre2_dfa_match(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, int *workspace, PCRE2_SIZE wscount)"
+
+	self ffiCall:
+		#( int pcre2_dfa_match_8 #( self #, void #* subject #, size_t end
+		      #, size_t start #, uint32 options #, PCRE2Match #* aMatchData
+		      #, void #* context #, void #* workspace #, size_t workspaceSize ) )
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> dfaMatch: subject workspaceSize: workspaceSize [
+	"Run a DFA match with caller-controlled workspace storage."
+
+	^ self dfaMatch: subject workspaceSize: workspaceSize ovectorSize: 20
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> dfaMatch: subject workspaceSize: workspaceSize ovectorSize: ovectorSize [
+	"Run a DFA match with explicit workspace and ovector sizes."
+
+	| utfSubject |
+	utfSubject := ZnUTF8Encoder default encodeString: subject.
+	^ self
+		  dfaMatchBytes: utfSubject
+		  from: 1
+		  to: utfSubject size
+		  workspaceSize: workspaceSize
+		  ovectorSize: ovectorSize
+]
+
+{ #category : 'byte matching' }
+PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: workspaceSize ovectorSize: ovectorSize [
+	"Run a DFA match over a UTF-8 encoded subject and populate explicit DFA match data."
+
+	| rc workspace |
+	self validateDFAWorkspaceSize: workspaceSize ovectorSize: ovectorSize.
+	self useMatchDataWithOvectorSize: ovectorSize.
+	workspace := ByteArray new: workspaceSize * 4.
+	rc := self
+		      dfaMatch: subject
+		      from: start - 1
+		      to: end
+		      matchData: matchData
+		      workspace: workspace
+		      size: workspaceSize.
+	^ self recordDFAMatchResult: rc
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> dfaMatches: subject [
+	"Return all same-start DFA alternatives decoded back to Pharo strings."
+
+	^ self dfaMatches: subject workspaceSize: 100
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> dfaMatches: subject workspaceSize: workspaceSize [
+	"Return all same-start DFA alternatives decoded back to Pharo strings."
+
+	^ self
+		  dfaMatches: subject
+		  workspaceSize: workspaceSize
+		  ovectorSize: 20
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> dfaMatches: subject workspaceSize: workspaceSize ovectorSize: ovectorSize [
+	"Return all same-start DFA alternatives decoded back to Pharo strings."
+
+	| encoder rc utfSubject |
+	encoder := ZnUTF8Encoder default.
+	utfSubject := encoder encodeString: subject.
+	rc := self
+		      dfaMatchBytes: utfSubject
+		      from: 1
+		      to: utfSubject size
+		      workspaceSize: workspaceSize
+		      ovectorSize: ovectorSize.
+	rc == -1 ifTrue: [ ^ #(  ) ].
+	^ matchData readMatches: utfSubject decodeWith: encoder
+]
+
 { #category : 'error handling' }
 PCRE2Matcher >> errorCode: errorCode [
 
@@ -458,14 +561,10 @@ PCRE2Matcher >> matchAll: subject from: start to: end offsetsDo: aBlock [
 
 { #category : 'byte matching' }
 PCRE2Matcher >> matchBytes: subject from: start to: end [
-	"Run a match over a range of the UTF-encoded subject and populate the match data.
-	This is a single match operation that ends when the pattern either has no matches
-	or is fully matched once, no matter how many times it can match in the subject."
+	"Run a match over a UTF-encoded subject range and populate the match data."
 
 	| rc |
-	(matchData isPersistent or: [ matchData isNull ])
-		ifTrue: [ self reuseMatchDataFromPattern ]
-		ifFalse: [ matchData reset ].
+	self prepareMatchDataForRegularMatch.
 
 	rc := isJIT
 		      ifFalse: [ self match: subject from: start - 1 to: end ]
@@ -631,6 +730,19 @@ PCRE2Matcher >> postCopy [
 ]
 
 { #category : 'private' }
+PCRE2Matcher >> prepareMatchDataForRegularMatch [
+	"Ensure normal matching has enough offset pairs for the whole match and every capture group."
+
+	| requiredOvectorSize |
+	(matchData isPersistent or: [ matchData isNull ]) ifTrue: [
+		^ self reuseMatchDataFromPattern ].
+	requiredOvectorSize := (self info: PCRE2 infoCaptureCount) + 1.
+	matchData ovectorCount < requiredOvectorSize ifTrue: [
+		^ self reuseMatchDataFromPattern ].
+	matchData reset
+]
+
+{ #category : 'private' }
 PCRE2Matcher >> privateCopy [
 	"This function makes a copy of the memory used for a compiled pattern, excluding any memory used by the JIT compiler.
 	Without a subsequent call to jit_compile(), the copy can be used only for non-JIT matching.
@@ -646,6 +758,27 @@ PCRE2Matcher >> recompile [
 
 	self setHandle: (compiler compileBasic: pattern).
 	self isJIT ifTrue: [ compiler compileJIT: self ]
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> recordDFAMatchResult: rc [
+
+	rc > 0 ifTrue: [
+		matchData count: rc.
+		^ rc ].
+
+	rc == -2 ifTrue: [
+		matchData count: 1.
+		^ rc ].
+
+	matchData count: 0.
+	rc == -1 ifTrue: [ ^ rc ].
+
+	rc == 0 ifTrue: [
+		PCRE2Error signal:
+			'Not enough match data ovector slots to store DFA results' ].
+
+	self errorCode: rc
 ]
 
 { #category : 'persistence' }
@@ -777,4 +910,24 @@ PCRE2Matcher >> useMatchDataFromPattern [
 	pointer isNull ifTrue: [ "should only happen if out of memory"
 		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
 	(matchData := PCRE2Match fromHandle: pointer) initialize autoRelease
+]
+
+{ #category : 'external resource management' }
+PCRE2Matcher >> useMatchDataWithOvectorSize: ovectorSize [
+
+	| pointer |
+	pointer := self createMatchDataWithOvectorSize: ovectorSize.
+	pointer isNull ifTrue: [
+		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
+	(matchData := PCRE2Match fromHandle: pointer) initialize autoRelease
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> validateDFAWorkspaceSize: workspaceSize ovectorSize: ovectorSize [
+
+	(workspaceSize isInteger and: [ workspaceSize >= 20 ]) ifFalse: [
+		self error:
+			'DFA workspace size must be an integer greater than or equal to 20' ].
+	(ovectorSize isInteger and: [ ovectorSize >= 1 ]) ifFalse: [
+		self error: 'DFA ovector size must be a positive integer' ]
 ]
