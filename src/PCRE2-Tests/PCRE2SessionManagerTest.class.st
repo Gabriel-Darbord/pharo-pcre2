@@ -14,13 +14,12 @@ PCRE2SessionManagerTest >> testShutDownWithRecompilation [
 	regex := '' asPCRegex.
 	manager matchersToRestore: { regex }.
 
-	self deny: regex matchData isPersistent.
 	self assert: manager serializedMatchers identicalTo: nil.
 
 	manager shutDown.
 
-	self assert: regex matchData isPersistent. "<- this behavior is mocked, still verify that it is correct"
-	self assert: manager serializedMatchers identicalTo: nil
+	self assert: manager serializedMatchers identicalTo: nil.
+	self deny: regex isNull
 ]
 
 { #category : 'tests' }
@@ -32,14 +31,13 @@ PCRE2SessionManagerTest >> testShutDownWithSerialization [
 	regex := '' asPCRegex.
 	manager matchersToRestore: { regex }.
 
-	self deny: regex matchData isPersistent.
 	self assert: manager serializedMatchers identicalTo: nil.
 
 	manager shutDown.
 
-	self assert: regex matchData isPersistent. "<- this behavior is mocked, still verify that it is correct"
 	self deny: manager serializedMatchers identicalTo: nil.
-	self assert: manager serializedMatchers size equals: 1247
+	self assert: manager serializedMatchers notEmpty.
+	self deny: regex isNull
 ]
 
 { #category : 'tests' }

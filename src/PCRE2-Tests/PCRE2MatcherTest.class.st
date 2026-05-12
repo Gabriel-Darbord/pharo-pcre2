@@ -8,18 +8,16 @@ Class {
 { #category : 'asserting' }
 PCRE2MatcherTest >> assertRegex: pattern matchPersists: subject [
 
-	| regex matchData expected |
+	| expected match regex |
 	regex := pattern asPCRegex.
-	regex find: subject.
-	matchData := regex matchData.
-	self deny: matchData isPersistent. "should not be persistent after a match,
-	this can fail if you are debugging the test and restarted the image inbetween"
-	expected := matchData readMatch: subject. "original match data result is the oracle"
+	match := regex findMatch: subject.
+	self deny: match isPersistent.
+	expected := match readMatch.
 
-	regex bePersistent.
+	match bePersistent.
 
-	self assert: matchData isPersistent.
-	self assert: (matchData readMatch: subject) equals: expected
+	self assert: match isPersistent.
+	self assert: match readMatch equals: expected
 ]
 
 { #category : 'tests' }
@@ -55,22 +53,18 @@ PCRE2MatcherTest >> testBePersistent [
 		assertRegex: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
 		matchPersists: 'user@example.com'.
 
-	"no match"
-	self
-		assertRegex: '\d'
-		matchPersists: 'glib jocks quiz nymph to vex dwarf'.
-
-	"variable-length encoding"
 	self
 		assertRegex: '[\x{20AC}\x{00A3}\x{00A5}]'
 		matchPersists: '€ $ £ ¥'.
 
-	"lookaround"
 	self
 		assertRegex: '\b\w+?(?=\d)'
-		matchPersists: 'not test123 this example456 another789'
+		matchPersists: 'not test123 this example456 another789'.
 
-	"TODO named capture groups"
+	self
+		assert:
+		('\d' asPCRegex findMatch: 'glib jocks quiz nymph to vex dwarf')
+		equals: nil
 ]
 
 { #category : 'tests' }
@@ -351,14 +345,11 @@ PCRE2MatcherTest >> testMark [
 
 	| regex |
 	regex := '' asPCRegex.
-	regex find: ''.
-	self assert: regex mark equals: nil.
+	self assert: (regex findMatch: '') mark equals: nil.
 
 	regex := '(*MARK:bye)((*MARK:hello)A|D)C' asPCRegex.
-	regex find: 'AC'.
-	self assert: regex mark equals: 'hello'.
-	regex find: 'DC'.
-	self assert: regex mark equals: 'bye'
+	self assert: (regex findMatch: 'AC') mark equals: 'hello'.
+	self assert: (regex findMatch: 'DC') mark equals: 'bye'
 ]
 
 { #category : 'tests' }
@@ -552,8 +543,7 @@ PCRE2MatcherTest >> testStartIndex [
 
 	| regex |
 	regex := 'bc' asPCRegex.
-	regex find: 'abc'.
-	self assert: regex startIndex equals: 2
+	self assert: (regex findMatch: 'abc') startIndex equals: 2
 ]
 
 { #category : 'tests' }
@@ -572,25 +562,19 @@ PCRE2MatcherTest >> testWithOffsetLimit [
 { #category : 'tests' }
 PCRE2MatcherTest >> testZeroTerminated [
 
-	| regex subject encoder utfSubject |
+	| encoder match regex subject utfSubject |
 	regex := '.*' asPCRegex.
 	subject := 'abc' , Character null asString , 'def'.
 	encoder := ZnUTF8Encoder default.
 	utfSubject := encoder encodeString: subject.
 
-	"jit_match() does not support null-terminated string subjects
-	disable the fast path for support (it will still use the JIT code)"
+	"jit_match() does not support null-terminated string subjects; disable the fast path for support."
 	regex isJIT: false.
 
-	"successful match when using zeroTerminated as upper bound"
-	self
-		assert:
-		(regex matchBytes: utfSubject from: 1 to: PCRE2 zeroTerminated)
-		equals: 1.
-
-	"matches until the first null character"
-	self
-		assert:
-		(encoder decodeBytes: (regex matchData readMatch: utfSubject))
-		equals: 'abc'
+	match := regex
+		         matchBytes: utfSubject
+		         from: 1
+		         to: PCRE2 zeroTerminated.
+	self assert: match count equals: 1.
+	self assert: (encoder decodeBytes: match readMatch) equals: 'abc'
 ]

@@ -8,28 +8,42 @@ Class {
 { #category : 'tests' }
 PCRE2MatchTest >> testCount [
 
-	| regex |
+	| match regex |
 	regex := 'a' asPCRegex.
-	regex matches: 'abc'.
-	self assert: regex matchData count equals: 1.
+	match := regex findMatch: 'abc'.
+	self assert: match count equals: 1.
 
 	regex := '(a+)' asPCRegex.
-	regex matches: 'abc'.
-	self assert: regex matchData count equals: 2.
+	match := regex findMatch: 'abc'.
+	self assert: match count equals: 2.
 
 	regex := '((a+)b(c+))*' asPCRegex.
-	regex matches: 'abc'.
-	self assert: regex matchData count equals: 4
+	match := regex findMatch: 'abc'.
+	self assert: match count equals: 4
 ]
 
 { #category : 'tests' }
 PCRE2MatchTest >> testOffsetsAt [
 
-	| regex |
+	| match regex |
 	regex := '((a+)b(c+))*' asPCRegex.
-	regex matches: 'aabccc'.
-	self assert: (regex matchData offsetsAt: 1) equals: { 0. 6 }.
-	self assert: (regex matchData offsetsAt: 2) equals: { 0. 6 }.
-	self assert: (regex matchData offsetsAt: 3) equals: { 0. 2 }.
-	self assert: (regex matchData offsetsAt: 4) equals: { 3. 6 }
+	match := regex findMatch: 'aabccc'.
+
+	self assert: (match offsetsAt: 1) equals: { 0. 6 }.
+	self assert: (match offsetsAt: 2) equals: { 0. 6 }.
+	self assert: (match offsetsAt: 3) equals: { 0. 2 }.
+	self assert: (match offsetsAt: 4) equals: { 3. 6 }
+]
+
+{ #category : 'tests' }
+PCRE2MatchTest >> testStandaloneMatchKeepsItsOwnResult [
+
+	| firstMatch regex secondMatch |
+	regex := '(\w+)' asPCRegex.
+
+	firstMatch := regex findMatch: 'one'.
+	secondMatch := regex findMatch: 'two'.
+
+	self assert: firstMatch readMatches equals: #( 'one' 'one' ).
+	self assert: secondMatch readMatches equals: #( 'two' 'two' )
 ]

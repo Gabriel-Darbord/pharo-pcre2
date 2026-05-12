@@ -9,17 +9,17 @@ Class {
 }
 
 { #category : 'tests' }
-PCRE2DFAMatcherTest >> testDFAMatchPopulatesExplicitMatchData [
+PCRE2DFAMatcherTest >> testDFAMatchAnswersStandaloneMatchData [
 
-	| regex rc subject |
+	| match regex subject |
 	subject := 'the caterpillar catchment'.
 	regex := 'cat(er(pillar)?)?' asPCRegex.
 
-	rc := regex dfaMatch: subject workspaceSize: 40 ovectorSize: 3.
+	match := regex dfaMatch: subject workspaceSize: 40 ovectorSize: 3.
 
-	self assert: rc equals: 3.
+	self assert: match count equals: 3.
 	self
-		assert: (regex matchData readMatches: subject)
+		assert: match readMatches
 		equals: #( 'caterpillar' 'cater' 'cat' )
 ]
 
@@ -59,13 +59,14 @@ PCRE2DFAMatcherTest >> testDFAMatchesReturnsEmptyArrayWhenThereIsNoMatch [
 ]
 
 { #category : 'tests' }
-PCRE2DFAMatcherTest >> testRegularMatchRefreshesTooSmallDFAMatchData [
+PCRE2DFAMatcherTest >> testRegularMatchAfterSmallDFAMatchData [
 
-	| regex |
+	| dfaMatch regex regularMatch |
 	regex := '(a)(b)(c)' asPCRegex.
-	regex dfaMatch: 'abc' workspaceSize: 40 ovectorSize: 1.
+	dfaMatch := regex dfaMatch: 'abc' workspaceSize: 40 ovectorSize: 1.
 
-	self
-		assert: (regex findWithGroups: 'abc')
-		equals: #( 'abc' 'a' 'b' 'c' )
+	regularMatch := regex findMatch: 'abc'.
+
+	self assert: dfaMatch count equals: 1.
+	self assert: regularMatch readMatches equals: #( 'abc' 'a' 'b' 'c' )
 ]

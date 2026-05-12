@@ -69,10 +69,10 @@ Class {
 	#classTraits : 'PCRE2TWithOptions classTrait',
 	#instVars : [
 		'pattern',
-		'matchData',
 		'context',
 		'compiler',
-		'isJIT'
+		'isJIT',
+		'options'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -87,9 +87,9 @@ PCRE2Matcher >> allInfo [
 
 { #category : 'persistence' }
 PCRE2Matcher >> bePersistent [
-	"Make the state of the matcher persistent between sessions"
+	"Compiled-pattern persistence is handled by PCRE2SessionManager. Match data is standalone."
 
-	matchData ifNotNil: [ matchData bePersistent ]
+	^ self
 ]
 
 { #category : 'compiling' }
@@ -149,7 +149,7 @@ PCRE2Matcher >> context: aMatchContext [
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> copy: subject matchesDo: aBlock [
-	"Copy the subject and execute a block for each match"
+	"Copy the subject and execute a block for each match."
 
 	| encoder utfSubject lastIndex rs ws |
 	encoder := ZnUTF8Encoder default.
@@ -161,14 +161,13 @@ PCRE2Matcher >> copy: subject matchesDo: aBlock [
 		matchAll: utfSubject
 		from: 1
 		to: utfSubject size
-		do: [
+		do: [ :match |
 			| start |
 			rs position: lastIndex.
-			start := matchData startOffsetAt: 1.
-			lastIndex := matchData endOffsetAt: 1.
-			[ rs position < start ] whileTrue: [ "copy unmatched range"
+			start := match startOffsetAt: 1.
+			lastIndex := match endOffsetAt: 1.
+			[ rs position < start ] whileTrue: [
 				ws nextPut: (encoder nextFromStream: rs) ].
-			"normalize the start-end range: [n-1,m) -> [n,m]"
 			aBlock
 				value: ws
 				value: utfSubject
@@ -176,8 +175,7 @@ PCRE2Matcher >> copy: subject matchesDo: aBlock [
 				value: lastIndex ].
 
 	rs position: lastIndex.
-	[ rs atEnd ] whileFalse: [ "copy from last match to end"
-		ws nextPut: (encoder nextFromStream: rs) ].
+	[ rs atEnd ] whileFalse: [ ws nextPut: (encoder nextFromStream: rs) ].
 	^ ws contents
 ]
 
@@ -231,7 +229,7 @@ PCRE2Matcher >> createMatchDataWithOvectorSize: ovectorSize [
 
 { #category : 'matching' }
 PCRE2Matcher >> dfaMatch: subject [
-	"Run a DFA match and populate the match data with all same-start alternatives."
+	"Run a DFA match and answer all same-start alternatives as standalone match data."
 
 	^ self dfaMatch: subject workspaceSize: 100
 ]
@@ -259,32 +257,54 @@ PCRE2Matcher >> dfaMatch: subject workspaceSize: workspaceSize [
 PCRE2Matcher >> dfaMatch: subject workspaceSize: workspaceSize ovectorSize: ovectorSize [
 	"Run a DFA match with explicit workspace and ovector sizes."
 
-	| utfSubject |
-	utfSubject := ZnUTF8Encoder default encodeString: subject.
-	^ self
-		  dfaMatchBytes: utfSubject
-		  from: 1
-		  to: utfSubject size
-		  workspaceSize: workspaceSize
-		  ovectorSize: ovectorSize
+	| encoder match utfSubject |
+	encoder := ZnUTF8Encoder default.
+	utfSubject := encoder encodeString: subject.
+	match := self
+		         dfaMatchBytes: utfSubject
+		         from: 1
+		         to: utfSubject size
+		         workspaceSize: workspaceSize
+		         ovectorSize: ovectorSize.
+	match ifNotNil: [ match subject: utfSubject decoder: encoder ].
+	^ match
 ]
 
 { #category : 'byte matching' }
 PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: workspaceSize ovectorSize: ovectorSize [
-	"Run a DFA match over a UTF-8 encoded subject and populate explicit DFA match data."
+	"Run a DFA match over a UTF-8 encoded subject and answer standalone match data, or nil."
+
+	| match rc |
+	match := self newMatchDataWithOvectorSize: ovectorSize.
+	rc := self
+		      dfaMatchBytes: subject
+		      from: start
+		      to: end
+		      workspaceSize: workspaceSize
+		      ovectorSize: ovectorSize
+		      into: match.
+	rc == -1 ifTrue: [ ^ nil ].
+	match subject: subject decoder: nil.
+	^ match
+]
+
+{ #category : 'byte matching' }
+PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: workspaceSize ovectorSize: ovectorSize into: aPCRE2Match [
+	"Run a DFA match over a UTF-8 encoded subject and populate caller-provided match data."
 
 	| rc workspace |
 	self validateDFAWorkspaceSize: workspaceSize ovectorSize: ovectorSize.
-	self useMatchDataWithOvectorSize: ovectorSize.
+	self validateUsableMatchData: aPCRE2Match.
+	aPCRE2Match reset.
 	workspace := ByteArray new: workspaceSize * 4.
 	rc := self
 		      dfaMatch: subject
 		      from: start - 1
 		      to: end
-		      matchData: matchData
+		      matchData: aPCRE2Match
 		      workspace: workspace
 		      size: workspaceSize.
-	^ self recordDFAMatchResult: rc
+	^ self recordDFAMatchResult: rc in: aPCRE2Match
 ]
 
 { #category : 'matching' }
@@ -308,17 +328,12 @@ PCRE2Matcher >> dfaMatches: subject workspaceSize: workspaceSize [
 PCRE2Matcher >> dfaMatches: subject workspaceSize: workspaceSize ovectorSize: ovectorSize [
 	"Return all same-start DFA alternatives decoded back to Pharo strings."
 
-	| encoder rc utfSubject |
-	encoder := ZnUTF8Encoder default.
-	utfSubject := encoder encodeString: subject.
-	rc := self
-		      dfaMatchBytes: utfSubject
-		      from: 1
-		      to: utfSubject size
-		      workspaceSize: workspaceSize
-		      ovectorSize: ovectorSize.
-	rc == -1 ifTrue: [ ^ #(  ) ].
-	^ matchData readMatches: utfSubject decodeWith: encoder
+	^ (self
+		   dfaMatch: subject
+		   workspaceSize: workspaceSize
+		   ovectorSize: ovectorSize)
+		  ifNil: [ #(  ) ]
+		  ifNotNil: [ :match | match readMatches ]
 ]
 
 { #category : 'error handling' }
@@ -330,19 +345,14 @@ PCRE2Matcher >> errorCode: errorCode [
 
 { #category : 'matching' }
 PCRE2Matcher >> find: subject [
-	"Returns the first matching substring within the subject"
+	"Returns the first matching substring within the subject."
 
-	| encoder utfSubject |
-	encoder := ZnUTF8Encoder default.
-	utfSubject := encoder encodeString: subject.
-	self matchBytes: utfSubject from: 1 to: utfSubject size.
-	^ (matchData readMatch: utfSubject) ifNotNil: [ :match |
-		  encoder decodeBytes: match ]
+	^ (self findMatch: subject) ifNotNil: [ :match | match readMatch ]
 ]
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> findAll: subject [
-	"Returns all matching substrings within the subject"
+	"Returns all matching substrings within the subject."
 
 	| result encoder utfSubject |
 	result := OrderedCollection new.
@@ -352,15 +362,15 @@ PCRE2Matcher >> findAll: subject [
 		matchAll: utfSubject
 		from: 1
 		to: utfSubject size
-		do: [
-			result add:
-				(encoder decodeBytes: (matchData readMatch: utfSubject)) ].
+		do: [ :match |
+			match subject: utfSubject decoder: encoder.
+			result add: match readMatch ].
 	^ result
 ]
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> findAll: subject do: aBlock [
-	"Iterate over all matching substrings within the subject"
+	"Iterate over all matching substrings within the subject."
 
 	| encoder utfSubject |
 	encoder := ZnUTF8Encoder default.
@@ -369,14 +379,14 @@ PCRE2Matcher >> findAll: subject do: aBlock [
 		matchAll: utfSubject
 		from: 1
 		to: utfSubject size
-		do: [
-			aBlock value:
-				(encoder decodeBytes: (matchData readMatch: utfSubject)) ]
+		do: [ :match |
+			match subject: utfSubject decoder: encoder.
+			aBlock value: match readMatch ]
 ]
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> findAllWithGroups: subject [
-	"Returns all matching substrings and groups within the subject"
+	"Returns all matching substrings and groups within the subject."
 
 	| result encoder utfSubject |
 	result := OrderedCollection new.
@@ -386,20 +396,31 @@ PCRE2Matcher >> findAllWithGroups: subject [
 		matchAll: utfSubject
 		from: 1
 		to: utfSubject size
-		do: [
-		result add: (matchData readMatches: utfSubject decodeWith: encoder) ].
+		do: [ :match |
+			match subject: utfSubject decoder: encoder.
+			result add: match readMatches ].
 	^ result
 ]
 
 { #category : 'matching' }
-PCRE2Matcher >> findWithGroups: subject [
-	"Returns the first matching substring and groups within the subject"
+PCRE2Matcher >> findMatch: subject [
+	"Returns standalone match data for the first matching substring, or nil."
 
-	| encoder utfSubject |
+	| encoder match utfSubject |
 	encoder := ZnUTF8Encoder default.
 	utfSubject := encoder encodeString: subject.
-	self matchBytes: utfSubject from: 1 to: utfSubject size.
-	^ matchData readMatches: utfSubject decodeWith: encoder
+	match := self matchBytes: utfSubject from: 1 to: utfSubject size.
+	match ifNotNil: [ match subject: utfSubject decoder: encoder ].
+	^ match
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> findWithGroups: subject [
+	"Returns the first matching substring and groups within the subject."
+
+	^ (self findMatch: subject)
+		  ifNil: [ #(  ) ]
+		  ifNotNil: [ :match | match readMatches ]
 ]
 
 { #category : 'external resource management' }
@@ -451,11 +472,9 @@ PCRE2Matcher >> info: what output: where [
 
 { #category : 'initialization' }
 PCRE2Matcher >> initialize [
-	"Create a default match data in advance based on the pattern.
-	This is what is expected for the vast majority of cases."
+	"Initialize matcher-local options. Match data is created per match operation."
 
-	options := 0.
-	self useMatchDataFromPattern
+	options := 0
 ]
 
 { #category : 'accessing' }
@@ -475,142 +494,128 @@ PCRE2Matcher >> isJIT: aBoolean [
 ]
 
 { #category : 'private' }
-PCRE2Matcher >> jitMatch: subject from: start to: end [
-"This function runs a JIT pattern match.
-
-Arguments:
-  code            points to the compiled expression
-  subject         points to the subject string
-  length          length of subject string (may contain binary zeros)
-  start_offset    where to start in the subject string
-  options         option bits
-  match_data      points to a match_data block
-  mcontext        points to a match context
-
-Returns:          > 0 => success; value is the number of ovector pairs filled
-                  = 0 => success, but ovector is not big enough
-                   -1 => failed to match (PCRE_ERROR_NOMATCH)
-                 < -1 => some kind of unexpected problem"
+PCRE2Matcher >> jitMatch: subject from: start to: end matchData: aMatchData [
+	"Run a JIT pattern match and write offsets into the provided match data."
 
 	"int pcre2_jit_match(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
-	
-	self ffiCall: #(int pcre2_jit_match_8(self, uint8 *subject, size_t end, size_t start, uint32 options, PCRE2Match *matchData, void *context))
+
+	self ffiCall:
+		#( int pcre2_jit_match_8 #( self #, uint8 #* subject #, size_t
+		      end #, size_t start #, uint32 options #, PCRE2Match #* aMatchData
+		      #, void #* context ) )
 ]
 
 { #category : 'querying' }
 PCRE2Matcher >> mark [
-	"The name of the last (*MARK), (*PRUNE), or (*THEN) that was encountered during the matching process"
+	"Matchers no longer keep the last match. Query mark on the returned PCRE2Match."
 
-	^ matchData ifNotNil: [ matchData mark ]
+	self error:
+		'PCRE2Matcher no longer keeps the last match; query mark on the returned PCRE2Match'
 ]
 
 { #category : 'private' }
-PCRE2Matcher >> match: subject from: start to: end [
-"This function applies a compiled pattern to a subject string and picks out
-portions of the string if it matches. Two elements in the vector are set for
-each substring: the offsets to the start and end of the substring.
-
-Arguments:
-  code            points to the compiled expression
-  subject         points to the subject string
-  length          length of subject string (may contain binary zeros)
-  start_offset    where to start in the subject string
-  options         option bits
-  match_data      points to a match_data block
-  mcontext        points a PCRE2 context
-
-Returns:          > 0 => success; value is the number of ovector pairs filled
-                  = 0 => success, but ovector is not big enough
-                  = -1 => failed to match (PCRE2_ERROR_NOMATCH)
-                  = -2 => partial match (PCRE2_ERROR_PARTIAL)
-                  < -2 => some kind of unexpected problem"
+PCRE2Matcher >> match: subject from: start to: end matchData: aMatchData [
+	"This function applies a compiled pattern to a subject string and writes offsets into the provided match data."
 
 	"int pcre2_match(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
 
-	self ffiCall: #(int pcre2_match_8(self, uint8 *subject, size_t end, size_t start, uint32 options, PCRE2Match *matchData, void *context))
+	self ffiCall:
+		#( int pcre2_match_8 #( self #, uint8 #* subject #, size_t end #, size_t
+		      start #, uint32 options #, PCRE2Match #* aMatchData #, void
+		      #* context ) )
 ]
 
 { #category : 'byte matching' }
 PCRE2Matcher >> matchAll: subject from: start to: end do: aBlock [
-	"Iteratively match over a range of the subject and execute a block after each successful match"
+	"Iteratively match over a range of the subject and execute aBlock with each standalone match."
 
-	| offset |
+	| match offset |
 	offset := start.
 	[
 	offset > end or: [
-		(self matchBytes: subject from: offset to: end) == -1 ] ]
+		(match := self matchBytes: subject from: offset to: end) isNil ] ]
 		whileFalse: [
-			offset := matchData lastMatchIndex + 1.
-			aBlock value ]
+			offset := match lastMatchIndex + 1.
+			aBlock cull: match ]
 ]
 
 { #category : 'byte matching' }
 PCRE2Matcher >> matchAll: subject from: start to: end offsetsDo: aBlock [
-	"Iteratively match over a range of the subject and execute a block with the match and groups' offsets after each successful match"
+	"Iteratively match over a range of the subject and execute aBlock with each match's offsets."
 
-	| offset |
-	offset := start.
-	[
-	offset > end or: [
-		(self matchBytes: subject from: offset to: end) == -1 ] ]
-		whileFalse: [
-			| offsets |
-			aBlock value: (offsets := matchData offsets).
-			offset := (offsets at: 2) + 1 ]
+	self
+		matchAll: subject
+		from: start
+		to: end
+		do: [ :match | aBlock value: match offsets ]
 ]
 
 { #category : 'byte matching' }
 PCRE2Matcher >> matchBytes: subject from: start to: end [
-	"Run a match over a UTF-encoded subject range and populate the match data."
+	"Run a match over a UTF-encoded subject range and answer standalone match data, or nil."
+
+	| match rc |
+	match := self newMatchData.
+	rc := self
+		      matchBytes: subject
+		      from: start
+		      to: end
+		      into: match.
+	rc == -1 ifTrue: [ ^ nil ].
+	match subject: subject decoder: nil.
+	^ match
+]
+
+{ #category : 'byte matching' }
+PCRE2Matcher >> matchBytes: subject from: start to: end into: aPCRE2Match [
+	"Run a match over a UTF-encoded subject range and populate caller-provided match data."
 
 	| rc |
-	self prepareMatchDataForRegularMatch.
+	self validateUsableMatchData: aPCRE2Match.
+	aPCRE2Match reset.
 
 	rc := isJIT
-		      ifFalse: [ self match: subject from: start - 1 to: end ]
-		      ifTrue: [ self jitMatch: subject from: start - 1 to: end ].
+		      ifFalse: [
+			      self
+				      match: subject
+				      from: start - 1
+				      to: end
+				      matchData: aPCRE2Match ]
+		      ifTrue: [
+			      self
+				      jitMatch: subject
+				      from: start - 1
+				      to: end
+				      matchData: aPCRE2Match ].
 
-	rc > 0 ifTrue: [ "success -> rc is the number of offset pairs, maximum is 65536 (match and up to 65535 capture groups)"
-		matchData count: rc.
-		^ rc ].
-
-	rc == -2 ifTrue: [ "partial match -> match data contains a single offset pair of what partially matched"
-		matchData count: 1.
-		^ rc ].
-
-	"beyond this point, only error codes remain"
-	matchData count: 0. "maintain a correct state"
-
-	rc == -1 ifTrue: [ ^ rc ]. "failed to match -> empty match, no signal"
-
-	rc == 0 ifTrue: [ "success, but ovector is not big enough -> should only happen when the match data is created manually"
-		PCRE2Error signal:
-			'Not enough memory in match structure to store results' ].
-
-	self errorCode: rc "some kind of unexpected problem -> signal"
+	^ self recordMatchResult: rc in: aPCRE2Match
 ]
 
 { #category : 'accessing' }
 PCRE2Matcher >> matchData [
+	"Matchers no longer own match data. Use findMatch: or matchBytes:from:to: and query the returned PCRE2Match."
 
-	^ matchData
+	self error:
+		'PCRE2Matcher no longer keeps match data; query the PCRE2Match returned by a match operation'
 ]
 
 { #category : 'accessing' }
 PCRE2Matcher >> matchData: aPCRE2Match [
-	"Only useful for using match data created with a context, or not based on the regex object"
+	"Matchers no longer own match data. Reuse match data with matchBytes:from:to:into:."
 
-	matchData := aPCRE2Match
+	self error:
+		'PCRE2Matcher no longer accepts stored match data; pass it to a match operation instead'
 ]
 
 { #category : 'matching' }
 PCRE2Matcher >> matches: subject [
-	"Returns whether the regex fully matches the subject"
+	"Returns whether the regex fully matches the subject."
 
-	| utfSubject |
+	| match utfSubject |
 	utfSubject := ZnUTF8Encoder default encodeString: subject.
-	self matchBytes: utfSubject from: 1 to: utfSubject size.
-	matchData offsetsDo: [ :start :end |
+	match := self matchBytes: utfSubject from: 1 to: utfSubject size.
+	match ifNil: [ ^ false ].
+	match offsetsDo: [ :start :end |
 		^ start == 1 and: [ end == utfSubject size ] ].
 	^ false
 ]
@@ -643,12 +648,13 @@ PCRE2Matcher >> matchesIn: subject do: aBlock [
 
 { #category : 'matching' }
 PCRE2Matcher >> matchesPrefix: subject [
-	"Returns whether the regex matches the start of the subject"
+	"Returns whether the regex matches the start of the subject."
 
-	| utfSubject |
+	| match utfSubject |
 	utfSubject := ZnUTF8Encoder default encodeString: subject.
-	self matchBytes: utfSubject from: 1 to: utfSubject size.
-	matchData offsetsDo: [ :start :end | ^ start == 1 ].
+	match := self matchBytes: utfSubject from: 1 to: utfSubject size.
+	match ifNil: [ ^ false ].
+	match offsetsDo: [ :start :end | ^ start == 1 ].
 	^ false
 ]
 
@@ -704,6 +710,28 @@ PCRE2Matcher >> namedGroups [
 	^ table
 ]
 
+{ #category : 'external resource management' }
+PCRE2Matcher >> newMatchData [
+	"Create match data sized for this pattern's capture groups."
+
+	| pointer |
+	pointer := self createMatchDataFromPattern.
+	pointer isNull ifTrue: [
+		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
+	^ (PCRE2Match fromHandle: pointer) initialize autoRelease
+]
+
+{ #category : 'external resource management' }
+PCRE2Matcher >> newMatchDataWithOvectorSize: ovectorSize [
+	"Create match data with an explicit number of offset pairs."
+
+	| pointer |
+	pointer := self createMatchDataWithOvectorSize: ovectorSize.
+	pointer isNull ifTrue: [
+		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
+	^ (PCRE2Match fromHandle: pointer) initialize autoRelease
+]
+
 { #category : 'accessing' }
 PCRE2Matcher >> pattern [
 	"The original string of this compiled pattern"
@@ -730,19 +758,6 @@ PCRE2Matcher >> postCopy [
 ]
 
 { #category : 'private' }
-PCRE2Matcher >> prepareMatchDataForRegularMatch [
-	"Ensure normal matching has enough offset pairs for the whole match and every capture group."
-
-	| requiredOvectorSize |
-	(matchData isPersistent or: [ matchData isNull ]) ifTrue: [
-		^ self reuseMatchDataFromPattern ].
-	requiredOvectorSize := (self info: PCRE2 infoCaptureCount) + 1.
-	matchData ovectorCount < requiredOvectorSize ifTrue: [
-		^ self reuseMatchDataFromPattern ].
-	matchData reset
-]
-
-{ #category : 'private' }
 PCRE2Matcher >> privateCopy [
 	"This function makes a copy of the memory used for a compiled pattern, excluding any memory used by the JIT compiler.
 	Without a subsequent call to jit_compile(), the copy can be used only for non-JIT matching.
@@ -761,22 +776,43 @@ PCRE2Matcher >> recompile [
 ]
 
 { #category : 'private' }
-PCRE2Matcher >> recordDFAMatchResult: rc [
+PCRE2Matcher >> recordDFAMatchResult: rc in: aPCRE2Match [
 
 	rc > 0 ifTrue: [
-		matchData count: rc.
+		aPCRE2Match count: rc.
 		^ rc ].
 
 	rc == -2 ifTrue: [
-		matchData count: 1.
+		aPCRE2Match count: 1.
 		^ rc ].
 
-	matchData count: 0.
+	aPCRE2Match count: 0.
 	rc == -1 ifTrue: [ ^ rc ].
 
 	rc == 0 ifTrue: [
 		PCRE2Error signal:
 			'Not enough match data ovector slots to store DFA results' ].
+
+	self errorCode: rc
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> recordMatchResult: rc in: aPCRE2Match [
+
+	rc > 0 ifTrue: [
+		aPCRE2Match count: rc.
+		^ rc ].
+
+	rc == -2 ifTrue: [
+		aPCRE2Match count: 1.
+		^ rc ].
+
+	aPCRE2Match count: 0.
+	rc == -1 ifTrue: [ ^ rc ].
+
+	rc == 0 ifTrue: [
+		PCRE2Error signal:
+			'Not enough memory in match structure to store results' ].
 
 	self errorCode: rc
 ]
@@ -788,25 +824,11 @@ PCRE2Matcher >> restoreFrom: bytes [
 	LibPCRE2 restore: { self } from: bytes
 ]
 
-{ #category : 'external resource management' }
-PCRE2Matcher >> reuseMatchDataFromPattern [
-	"Keep the same match data instance and update its handle"
-
-	| pointer |
-	pointer := self createMatchDataFromPattern.
-	pointer isNull ifTrue: [ "should only happen if out of memory"
-		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
-	matchData reset setHandle: pointer
-]
-
 { #category : 'matching' }
 PCRE2Matcher >> search: subject [
-	"Returns whether the regex partially matches the subject"
+	"Returns whether the regex partially matches the subject."
 
-	| utfSubject |
-	utfSubject := ZnUTF8Encoder default encodeString: subject.
-	self matchBytes: utfSubject from: 1 to: utfSubject size.
-	^ matchData count > 0
+	^ (self findMatch: subject) notNil
 ]
 
 { #category : 'persistence' }
@@ -820,37 +842,23 @@ PCRE2Matcher >> serialize [
 
 { #category : 'querying' }
 PCRE2Matcher >> startIndex [
-	"Available after a match, returns the index where the compiled pattern started matching"
+	"Matchers no longer keep the last match. Query startIndex on the returned PCRE2Match."
 
-	^ matchData ifNotNil: [ "as 1-based" matchData startIndex + 1 ]
+	self error:
+		'PCRE2Matcher no longer keeps the last match; query startIndex on the returned PCRE2Match'
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> substitute: subject from: start to: end replacement: replacement upTo: rLength output: buffer size: outSize [
-"This function applies a compiled re to a subject string and creates a new
-string with substitutions. The first 7 arguments are the same as for
-pcre2_match(). Either string length may be PCRE2_ZERO_TERMINATED.
-
-Arguments:
-  code            points to the compiled expression
-  subject         points to the subject string
-  length          length of subject string (may contain binary zeros)
-  start_offset    where to start in the subject string
-  options         option bits
-  match_data      points to a match_data block, or is NULL
-  context         points a PCRE2 context
-  replacement     points to the replacement string
-  rlength         length of replacement string
-  buffer          where to put the substituted string
-  blength         points to length of buffer; updated to length of string
-
-Returns:          >= 0 number of substitutions made
-                  < 0 an error code
-                  PCRE2_ERROR_BADREPLACEMENT means invalid use of $"
+	"Apply substitutions into caller-provided output storage. PCRE2 may use internal match data for this call."
 
 	"int pcre2_substitute(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, PCRE2_SPTR replacement, PCRE2_SIZE rlength, PCRE2_UCHAR *outputbuffer, PCRE2_SIZE *outlengthptr)"
 
-	self ffiCall: #(int pcre2_substitute_8(self, uint8 *subject, size_t end, size_t start, uint32 options, void *matchData, void *context, uint8 *replacement, size_t rLength, void *buffer, SizeTHolder outSize))
+	self ffiCall:
+		#( int pcre2_substitute_8 #( self #, uint8 #* subject #, size_t
+		      end #, size_t start #, uint32 options #, nil #, void #* context
+		      #, uint8 #* replacement #, size_t rLength #, void #* buffer
+		      #, SizeTHolder outSize ) )
 ]
 
 { #category : 'matching' }
@@ -901,27 +909,6 @@ PCRE2Matcher >> substitute: subject with: replacement [
 		  startingAt: 1
 ]
 
-{ #category : 'external resource management' }
-PCRE2Matcher >> useMatchDataFromPattern [
-	"Create a new match data based on the pattern"
-
-	| pointer |
-	pointer := self createMatchDataFromPattern.
-	pointer isNull ifTrue: [ "should only happen if out of memory"
-		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
-	(matchData := PCRE2Match fromHandle: pointer) initialize autoRelease
-]
-
-{ #category : 'external resource management' }
-PCRE2Matcher >> useMatchDataWithOvectorSize: ovectorSize [
-
-	| pointer |
-	pointer := self createMatchDataWithOvectorSize: ovectorSize.
-	pointer isNull ifTrue: [
-		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
-	(matchData := PCRE2Match fromHandle: pointer) initialize autoRelease
-]
-
 { #category : 'private' }
 PCRE2Matcher >> validateDFAWorkspaceSize: workspaceSize ovectorSize: ovectorSize [
 
@@ -930,4 +917,12 @@ PCRE2Matcher >> validateDFAWorkspaceSize: workspaceSize ovectorSize: ovectorSize
 			'DFA workspace size must be an integer greater than or equal to 20' ].
 	(ovectorSize isInteger and: [ ovectorSize >= 1 ]) ifFalse: [
 		self error: 'DFA ovector size must be a positive integer' ]
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> validateUsableMatchData: aPCRE2Match [
+
+	(aPCRE2Match isPersistent or: [ aPCRE2Match isNull ]) ifTrue: [
+		PCRE2Error signal:
+			'Match data must hold an external PCRE2 match data block' ]
 ]

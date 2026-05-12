@@ -10,7 +10,9 @@ Class {
 		'isPersistent',
 		'offsets',
 		'mark',
-		'startIndex'
+		'startIndex',
+		'subject',
+		'decoder'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -44,6 +46,12 @@ PCRE2Match >> count: anInteger [
 ]
 
 { #category : 'accessing' }
+PCRE2Match >> decoder [
+
+	^ decoder
+]
+
+{ #category : 'accessing' }
 PCRE2Match >> endOffsetAt: pairIndex [
 	"Returns the n-th end offset"
 
@@ -56,6 +64,14 @@ PCRE2Match >> endOffsetAt: pairIndex [
 	wordSize == 8 ifTrue: [ ^ offsets uint64AtOffset: 8 * index ].
 	wordSize == 4 ifTrue: [ ^ offsets uint32AtOffset: 4 * index ].
 	^ offsets platformSizeTAt: wordSize * index + 1
+]
+
+{ #category : 'private' }
+PCRE2Match >> ensureSubjectAvailable [
+
+	subject ifNil: [
+		self error:
+			'This match does not remember a subject; use readMatch: or readMatches: with an explicit subject' ]
 ]
 
 { #category : 'external resource management' }
@@ -218,11 +234,33 @@ PCRE2Match >> ovectorCount [
 ]
 
 { #category : 'match enumeration' }
+PCRE2Match >> readMatch [
+	"Returns the first matched substring from the remembered subject."
+
+	| bytes |
+	self ensureSubjectAvailable.
+	bytes := self readMatch: subject.
+	^ decoder
+		  ifNil: [ bytes ]
+		  ifNotNil: [ bytes ifNotNil: [ decoder decodeBytes: bytes ] ]
+]
+
+{ #category : 'match enumeration' }
 PCRE2Match >> readMatch: subject [
 	"Returns the matching subcollection of a pattern applied to subject"
 
 	self offsetsDo: [ :start :end | ^ subject copyFrom: start to: end ].
 	^ nil
+]
+
+{ #category : 'match enumeration' }
+PCRE2Match >> readMatches [
+	"Returns all matched substrings from the remembered subject."
+
+	self ensureSubjectAvailable.
+	^ decoder
+		  ifNil: [ self readMatches: subject ]
+		  ifNotNil: [ self readMatches: subject decodeWith: decoder ]
 ]
 
 { #category : 'match enumeration' }
@@ -259,17 +297,16 @@ PCRE2Match >> reset [
 	isPersistent := false.
 	startIndex := nil.
 	offsets := nil.
-	mark := nil
+	mark := nil.
+	subject := nil.
+	decoder := nil
 ]
 
 { #category : 'accessing' }
 PCRE2Match >> startIndex [
-	"Available after a successful match, a partial match, or one of the invalid UTF errors.
-	After a successful or partial match it returns the code unit offset of the character at which the match started.
-	For a non-partial match, this can be different from the value of `offsets at: 1` if the pattern contains the \K escape sequence.
-	After a partial match, however, this value is always the same as `offsets at: 1` because \K does not affect the result of a partial match."
+	"Available after a match, answered as a 1-based code-unit index."
 
-	^ startIndex ifNil: [ startIndex := self getStartIndex ]
+	^ startIndex ifNil: [ startIndex := self getStartIndex + 1 ]
 ]
 
 { #category : 'accessing' }
@@ -285,4 +322,18 @@ PCRE2Match >> startOffsetAt: pairIndex [
 	wordSize == 8 ifTrue: [ ^ offsets uint64AtOffset: 8 * index ].
 	wordSize == 4 ifTrue: [ ^ offsets uint32AtOffset: 4 * index ].
 	^ offsets platformSizeTAt: wordSize * index + 1
+]
+
+{ #category : 'accessing' }
+PCRE2Match >> subject [
+
+	^ subject
+]
+
+{ #category : 'accessing' }
+PCRE2Match >> subject: aByteArray decoder: aDecoder [
+	"Remember the encoded subject used for this match so callers can query the result later."
+
+	subject := aByteArray.
+	decoder := aDecoder
 ]
