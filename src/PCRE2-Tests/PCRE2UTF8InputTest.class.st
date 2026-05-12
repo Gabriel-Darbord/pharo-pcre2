@@ -19,6 +19,15 @@ PCRE2UTF8InputTest >> testASCIIByteStringUsesOriginalStorage [
 ]
 
 { #category : 'tests' }
+PCRE2UTF8InputTest >> testAsPCRE2UTF8InputReturnsSelf [
+
+	| input |
+	input := PCRE2UTF8Input fromString: 'abc'.
+
+	self assert: input asPCRE2UTF8Input identicalTo: input
+]
+
+{ #category : 'tests' }
 PCRE2UTF8InputTest >> testNonASCIIByteStringIsEncoded [
 
 	| input subject |
@@ -27,6 +36,20 @@ PCRE2UTF8InputTest >> testNonASCIIByteStringIsEncoded [
 
 	self deny: (PCRE2UTF8Input canUseDirectly: subject).
 	self deny: input bytes identicalTo: subject.
+	self
+		assert: input bytes
+		equals: (ZnUTF8Encoder default encodeString: subject).
+	self assert: input decoder class equals: ZnUTF8Encoder
+]
+
+{ #category : 'tests' }
+PCRE2UTF8InputTest >> testStringCanCreateReusableUTF8Input [
+
+	| input subject |
+	subject := 'café'.
+	input := subject asPCRE2UTF8Input.
+
+	self assert: input class equals: PCRE2UTF8Input.
 	self
 		assert: input bytes
 		equals: (ZnUTF8Encoder default encodeString: subject).

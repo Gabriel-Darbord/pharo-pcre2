@@ -918,9 +918,9 @@ PCRE2Matcher >> substitute: subject with: replacement [
 ]
 
 { #category : 'private' }
-PCRE2Matcher >> utf8InputFor: aString [
+PCRE2Matcher >> utf8InputFor: aStringOrInput [
 
-	^ PCRE2UTF8Input fromString: aString
+	^ aStringOrInput asPCRE2UTF8Input
 ]
 
 { #category : 'private' }

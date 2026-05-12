@@ -302,6 +302,16 @@ PCRE2MatcherTest >> testFindAll [
 ]
 
 { #category : 'tests' }
+PCRE2MatcherTest >> testFindAllAcceptsReusableUTF8Input [
+
+	| input matches |
+	input := 'aa bb aaa' asPCRE2UTF8Input.
+	matches := 'a+' asPCRegex findAll: input.
+
+	self assert: matches asArray equals: #( 'aa' 'aaa' )
+]
+
+{ #category : 'tests' }
 PCRE2MatcherTest >> testFindAllWithGroups [
 
 	self
@@ -525,6 +535,36 @@ PCRE2MatcherTest >> testNonASCIIByteStringSubjectIsEncoded [
 PCRE2MatcherTest >> testRecompile [
 
 	self assert: ('a' asPCRegex finalize recompile matches: 'a')
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testReusableASCIIInputKeepsOriginalStorage [
+
+	| input match subject |
+	subject := 'abc123'.
+	input := subject asPCRE2UTF8Input.
+	match := '\w+' asPCRegex findMatch: input.
+
+	self assert: input bytes identicalTo: subject.
+	self assert: match subject identicalTo: input bytes.
+	self assert: match decoder identicalTo: nil.
+	self assert: match readMatch equals: subject
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testReusableUTF8InputAvoidsReencoding [
+
+	| first input second |
+	input := 'café' asPCRE2UTF8Input.
+	first := 'é' asPCRegex findMatch: input.
+	second := '\p{L}+' asPCRegex findMatch: input.
+
+	self assert: first subject identicalTo: input bytes.
+	self assert: second subject identicalTo: input bytes.
+	self assert: first decoder identicalTo: input decoder.
+	self assert: second decoder identicalTo: input decoder.
+	self assert: first readMatch equals: 'é'.
+	self assert: second readMatch equals: 'café'
 ]
 
 { #category : 'tests' }

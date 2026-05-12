@@ -1,6 +1,8 @@
 "
 I represent a Smalltalk string prepared as UTF-8 input for PCRE2.
 ASCII ByteStrings are already valid UTF-8, so I keep the original string as byte storage and use no decoder. Other strings are encoded through Zinc and remember the encoder for later decoding of PCRE2 byte offsets.
+
+Users may keep one of my instances and pass it to matcher APIs when the same subject is matched repeatedly. This makes the encoding cost explicit and reusable while preserving the normal String-based API.
 "
 Class {
 	#name : 'PCRE2UTF8Input',
@@ -38,6 +40,13 @@ PCRE2UTF8Input class >> fromString: aString [
 		^ self bytes: aString decoder: nil ].
 	encoder := ZnUTF8Encoder default.
 	^ self bytes: (encoder encodeString: aString) decoder: encoder
+]
+
+{ #category : 'converting' }
+PCRE2UTF8Input >> asPCRE2UTF8Input [
+	"Answer myself so matcher APIs can accept either Strings or prepared inputs."
+
+	^ self
 ]
 
 { #category : 'accessing' }
