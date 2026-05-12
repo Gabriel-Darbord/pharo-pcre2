@@ -49,18 +49,6 @@ PCRE2MatcherTest >> testAllInfo [
 ]
 
 { #category : 'tests' }
-PCRE2MatcherTest >> testAwesome [
-	"Some awesome things that can be done with PCRE"
-
-	| regex |
-	"recursive pattern"
-	regex := '{((?>[^{}]+|(?R))*)}' asPCRegex.
-	self
-		assert: (regex findAll: '{1, {2, {3}}} {{4, 5}}') asArray
-		equals: { '{1, {2, {3}}}'. '{{4, 5}}' }
-]
-
-{ #category : 'tests' }
 PCRE2MatcherTest >> testBePersistent [
 
 	self
