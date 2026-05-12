@@ -340,6 +340,13 @@ PCRE2 class >> endAnchored [
 ]
 
 { #category : 'errors' }
+PCRE2 class >> errorNoMatch [
+	"No match was found. This result is handled by the wrapper and does not signal."
+
+	^ -1
+]
+
+{ #category : 'errors' }
 PCRE2 class >> errorNoMemory [
 	"Can be mainly returned from:
 	- jit_compile: unable to allocate executable memory for the compiler, even if it was because of a system security restriction
@@ -347,6 +354,13 @@ PCRE2 class >> errorNoMemory [
 	- substitute: output buffer is too small"
 
 	^ -48
+]
+
+{ #category : 'errors' }
+PCRE2 class >> errorPartial [
+	"A partial match was found. This result is handled by the wrapper and does not signal."
+
+	^ -2
 ]
 
 { #category : 'errors' }

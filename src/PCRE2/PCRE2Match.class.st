@@ -1,7 +1,7 @@
 "
 I contain standalone match data produced by a compiled PCRE2 pattern.
 
-A matcher creates me for a match attempt and then returns me to the caller. I keep PCRE2's ovector, optional subject bytes, optional UTF-8 decoder, and named-capture metadata so callers can ask for matched text or groups later without asking the matcher to remember mutable result state.
+A matcher creates me for a match attempt and then returns me to the caller. I keep PCRE2's result code, ovector, optional subject bytes, optional UTF-8 decoder, and named-capture metadata so callers can ask for matched text or groups later without asking the matcher to remember mutable result state.
 
 When made persistent, I copy native offset data into Pharo memory and release the native match-data handle.
 "
@@ -16,7 +16,8 @@ Class {
 		'startIndex',
 		'subject',
 		'decoder',
-		'nameTable'
+		'nameTable',
+		'resultCode'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -182,6 +183,20 @@ PCRE2Match >> groupsNamed: groupName [
 PCRE2Match >> initialize [
 
 	isPersistent := false
+]
+
+{ #category : 'testing' }
+PCRE2Match >> isComplete [
+	"Answer whether PCRE2 returned a complete match result."
+
+	^ resultCode notNil and: [ resultCode > 0 ]
+]
+
+{ #category : 'testing' }
+PCRE2Match >> isPartial [
+	"Answer whether PCRE2 returned PCRE2_ERROR_PARTIAL for this result."
+
+	^ resultCode = PCRE2 errorPartial
 ]
 
 { #category : 'testing' }
@@ -400,7 +415,22 @@ PCRE2Match >> reset [
 	mark := nil.
 	subject := nil.
 	decoder := nil.
-	nameTable := nil
+	nameTable := nil.
+	resultCode := nil
+]
+
+{ #category : 'accessing' }
+PCRE2Match >> resultCode [
+	"Answer the raw PCRE2 result code that produced this match data. Positive values are complete matches; PCRE2 errorPartial identifies partial matches."
+
+	^ resultCode
+]
+
+{ #category : 'private' }
+PCRE2Match >> resultCode: anInteger [
+	"Record the raw PCRE2 result code for this match attempt."
+
+	resultCode := anInteger
 ]
 
 { #category : 'accessing' }

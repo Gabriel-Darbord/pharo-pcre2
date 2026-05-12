@@ -3,10 +3,10 @@ I wrap a compiled PCRE2 pattern and provide the public matching API.
 
 High-level methods accept normal Pharo strings and prepared `PCRE2UTF8Input` instances. Strings are prepared as UTF-8 bytes before calling PCRE2; ASCII ByteStrings can be reused directly, while other strings are encoded and decoded through Zinc.
 
-Match operations create standalone `PCRE2Match` objects. The matcher does not own a reusable match result; callers may keep the returned match data and ask it for the matched text, groups, offsets, mark, or persistence later.
+Match operations create standalone `PCRE2Match` objects. The matcher does not own a reusable match result; callers may keep the returned match data and ask it for the matched text, groups, offsets, mark, partial/complete status, or persistence later.
 
 The API has three layers:
-- Convenience matching such as `matches:`, `matchesPrefix:`, `search:`, `find:`, and `findWithGroups:`.
+- Convenience matching such as `matches:`, `matchesPrefix:`, `search:`, `find:`, `findWithGroups:`, and `findPartialMatch:`.
 - Enumeration, splitting, and rewriting such as `findAll:`, `split:indicesDo:`, `copy:replacingMatchesWith:`, `copy:translatingMatchesUsing:`, and `substitute:with:`.
 - Byte-level operations such as `matchBytes:from:to:` and DFA matching for callers that already manage UTF-8 storage and offsets.
 
@@ -41,6 +41,19 @@ PCRE2Matcher >> bePersistent [
 	"Compiled-pattern persistence is handled by PCRE2SessionManager. Match data is standalone."
 
 	^ self
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> canUseJITForOptions: matchOptions [
+	"Answer whether the compiled pattern has JIT code for the requested matching mode. The direct pcre2_jit_match() fast path does not fall back when a complete/partial mode was not JIT-compiled."
+
+	isJIT ifFalse: [ ^ false ].
+	(matchOptions bitAnd: PCRE2 noJIT) ~~ 0 ifTrue: [ ^ false ].
+	(matchOptions bitAnd: PCRE2 partialHard) ~~ 0 ifTrue: [
+		^ (compiler optionsJIT bitAnd: PCRE2 jitPartialHard) ~~ 0 ].
+	(matchOptions bitAnd: PCRE2 partialSoft) ~~ 0 ifTrue: [
+		^ (compiler optionsJIT bitAnd: PCRE2 jitPartialSoft) ~~ 0 ].
+	^ (compiler optionsJIT bitAnd: PCRE2 jitComplete) ~~ 0
 ]
 
 { #category : 'compiling' }
@@ -242,7 +255,7 @@ PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: worksp
 		      workspaceSize: workspaceSize
 		      ovectorSize: ovectorSize
 		      into: match.
-	rc == -1 ifTrue: [ ^ nil ].
+	rc == PCRE2 errorNoMatch ifTrue: [ ^ nil ].
 	match subject: subject decoder: nil.
 	^ match
 ]
@@ -359,6 +372,13 @@ PCRE2Matcher >> findAllWithGroups: subject [
 ]
 
 { #category : 'matching' }
+PCRE2Matcher >> findHardPartialMatch: subject [
+	"Answer the first complete or hard-partial match in subject, or nil. Hard partial matching prefers a partial match when adding more subject could change a complete match."
+
+	^ self findPartialMatch: subject option: PCRE2 partialHard
+]
+
+{ #category : 'matching' }
 PCRE2Matcher >> findMatch: subject [
 	"Returns standalone match data for the first matching substring, or nil."
 
@@ -367,6 +387,39 @@ PCRE2Matcher >> findMatch: subject [
 	match := self matchBytes: input bytes from: 1 to: input size.
 	match ifNotNil: [ input recordOn: match ].
 	^ match
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> findPartialMatch: subject [
+	"Answer the first complete or soft-partial match in subject, or nil. Soft partial matching prefers a complete match when one exists. Ask the returned PCRE2Match whether it isPartial."
+
+	^ self findPartialMatch: subject option: PCRE2 partialSoft
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> findPartialMatch: subject option: partialOption [
+	"Answer the first complete or partial match using the requested PCRE2 partial option. Ask the returned PCRE2Match whether it isPartial or isComplete."
+
+	| input match matchOptions rc |
+	matchOptions := self optionsWithPartialOption: partialOption.
+	input := self utf8InputFor: subject.
+	match := self newMatchData.
+	rc := self
+		      matchBytes: input bytes
+		      from: 1
+		      to: input size
+		      options: matchOptions
+		      into: match.
+	rc == PCRE2 errorNoMatch ifTrue: [ ^ nil ].
+	input recordOn: match.
+	^ match
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> findSoftPartialMatch: subject [
+	"Answer the first complete or soft-partial match in subject, or nil. Soft partial matching prefers a complete match when one exists."
+
+	^ self findPartialMatch: subject option: PCRE2 partialSoft
 ]
 
 { #category : 'matching' }
@@ -451,14 +504,26 @@ PCRE2Matcher >> isJIT: aBoolean [
 
 { #category : 'private' }
 PCRE2Matcher >> jitMatch: subject from: start to: end matchData: aMatchData [
+	"Run pcre2_jit_match_8 with the matcher's current match options."
+
+	^ self
+		  jitMatch: subject
+		  from: start
+		  to: end
+		  options: options
+		  matchData: aMatchData
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> jitMatch: subject from: start to: end options: matchOptions matchData: aMatchData [
 	"Run pcre2_jit_match_8 on a prepared UTF-8 subject buffer and write offsets into the provided match data. Use void* for the subject because encoding and lifetime are managed explicitly before the FFI call."
 
 	"int pcre2_jit_match_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
 
 	self ffiCall:
 		#( int pcre2_jit_match_8 #( self #, void #* subject #, size_t end
-		      #, size_t start #, uint32 options #, PCRE2Match #* aMatchData
-		      #, void #* context ) )
+		      #, size_t start #, uint32 matchOptions #, PCRE2Match
+		      #* aMatchData #, void #* context ) )
 ]
 
 { #category : 'querying' }
@@ -471,14 +536,26 @@ PCRE2Matcher >> mark [
 
 { #category : 'private' }
 PCRE2Matcher >> match: subject from: start to: end matchData: aMatchData [
+	"Run pcre2_match_8 with the matcher's current match options."
+
+	^ self
+		  match: subject
+		  from: start
+		  to: end
+		  options: options
+		  matchData: aMatchData
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> match: subject from: start to: end options: matchOptions matchData: aMatchData [
 	"Run pcre2_match_8 on a prepared UTF-8 subject buffer and write offsets into the provided match data. Use void* for the subject because encoding and lifetime are managed explicitly before the FFI call."
 
 	"int pcre2_match_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
 
 	self ffiCall:
 		#( int pcre2_match_8 #( self #, void #* subject #, size_t end #, size_t
-		      start #, uint32 options #, PCRE2Match #* aMatchData #, void
-		      #* context ) )
+		      start #, uint32 matchOptions #, PCRE2Match #* aMatchData
+		      #, void #* context ) )
 ]
 
 { #category : 'byte matching' }
@@ -517,7 +594,7 @@ PCRE2Matcher >> matchBytes: subject from: start to: end [
 		      from: start
 		      to: end
 		      into: match.
-	rc == -1 ifTrue: [ ^ nil ].
+	rc == PCRE2 errorNoMatch ifTrue: [ ^ nil ].
 	match subject: subject decoder: nil.
 	^ match
 ]
@@ -526,23 +603,37 @@ PCRE2Matcher >> matchBytes: subject from: start to: end [
 PCRE2Matcher >> matchBytes: subject from: start to: end into: aPCRE2Match [
 	"Run a match over a UTF-encoded subject range and populate caller-provided match data."
 
+	^ self
+		  matchBytes: subject
+		  from: start
+		  to: end
+		  options: options
+		  into: aPCRE2Match
+]
+
+{ #category : 'byte matching' }
+PCRE2Matcher >> matchBytes: subject from: start to: end options: matchOptions into: aPCRE2Match [
+	"Run a match over a UTF-encoded subject range with explicit PCRE2 match options and populate caller-provided match data."
+
 	| rc |
 	self validateUsableMatchData: aPCRE2Match.
 	aPCRE2Match reset.
 	aPCRE2Match namedGroups: self namedGroups.
 
-	rc := isJIT
+	rc := (self canUseJITForOptions: matchOptions)
 		      ifFalse: [
 			      self
 				      match: subject
 				      from: start - 1
 				      to: end
+				      options: matchOptions
 				      matchData: aPCRE2Match ]
 		      ifTrue: [
 			      self
 				      jitMatch: subject
 				      from: start - 1
 				      to: end
+				      options: matchOptions
 				      matchData: aPCRE2Match ].
 
 	^ self recordMatchResult: rc in: aPCRE2Match
@@ -572,6 +663,7 @@ PCRE2Matcher >> matches: subject [
 	input := self utf8InputFor: subject.
 	match := self matchBytes: input bytes from: 1 to: input size.
 	match ifNil: [ ^ false ].
+	match isPartial ifTrue: [ ^ false ].
 	match offsetsDo: [ :start :end |
 		^ start == 1 and: [ end == input size ] ].
 	^ false
@@ -605,12 +697,13 @@ PCRE2Matcher >> matchesIn: subject do: aBlock [
 
 { #category : 'matching' }
 PCRE2Matcher >> matchesPrefix: subject [
-	"Returns whether the regex matches the start of the subject."
+	"Returns whether the regex completely matches the start of the subject."
 
 	| input match |
 	input := self utf8InputFor: subject.
 	match := self matchBytes: input bytes from: 1 to: input size.
 	match ifNil: [ ^ false ].
+	match isPartial ifTrue: [ ^ false ].
 	match offsetsDo: [ :start :end | ^ start == 1 ].
 	^ false
 ]
@@ -663,6 +756,15 @@ PCRE2Matcher >> newMatchDataWithOvectorSize: ovectorSize [
 	pointer isNull ifTrue: [
 		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
 	^ (PCRE2Match fromHandle: pointer) initialize autoRelease
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> optionsWithPartialOption: partialOption [
+	"Answer my match options with exactly the requested partial-matching mode."
+
+	self validatePartialOption: partialOption.
+	^ (options bitAnd: (PCRE2 partialSoft | PCRE2 partialHard) bitInvert)
+		  bitOr: partialOption
 ]
 
 { #category : 'accessing' }
@@ -751,16 +853,17 @@ PCRE2Matcher >> recompile [
 { #category : 'private' }
 PCRE2Matcher >> recordDFAMatchResult: rc in: aPCRE2Match [
 
+	aPCRE2Match resultCode: rc.
 	rc > 0 ifTrue: [
 		aPCRE2Match count: rc.
 		^ rc ].
 
-	rc == -2 ifTrue: [
+	rc == PCRE2 errorPartial ifTrue: [
 		aPCRE2Match count: 1.
 		^ rc ].
 
 	aPCRE2Match count: 0.
-	rc == -1 ifTrue: [ ^ rc ].
+	rc == PCRE2 errorNoMatch ifTrue: [ ^ rc ].
 
 	rc == 0 ifTrue: [
 		PCRE2Error signal:
@@ -772,16 +875,17 @@ PCRE2Matcher >> recordDFAMatchResult: rc in: aPCRE2Match [
 { #category : 'private' }
 PCRE2Matcher >> recordMatchResult: rc in: aPCRE2Match [
 
+	aPCRE2Match resultCode: rc.
 	rc > 0 ifTrue: [
 		aPCRE2Match count: rc.
 		^ rc ].
 
-	rc == -2 ifTrue: [
+	rc == PCRE2 errorPartial ifTrue: [
 		aPCRE2Match count: 1.
 		^ rc ].
 
 	aPCRE2Match count: 0.
-	rc == -1 ifTrue: [ ^ rc ].
+	rc == PCRE2 errorNoMatch ifTrue: [ ^ rc ].
 
 	rc == 0 ifTrue: [
 		PCRE2Error signal:
@@ -929,6 +1033,15 @@ PCRE2Matcher >> validateDFAWorkspaceSize: workspaceSize ovectorSize: ovectorSize
 			'DFA workspace size must be an integer greater than or equal to 20' ].
 	(ovectorSize isInteger and: [ ovectorSize >= 1 ]) ifFalse: [
 		self error: 'DFA ovector size must be a positive integer' ]
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> validatePartialOption: partialOption [
+
+	(partialOption = PCRE2 partialSoft or: [
+		 partialOption = PCRE2 partialHard ]) ifFalse: [
+		self error:
+			'Partial matching option must be PCRE2 partialSoft or PCRE2 partialHard' ]
 ]
 
 { #category : 'private' }

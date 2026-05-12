@@ -1,7 +1,7 @@
 "
 I compile Pharo string patterns into `PCRE2Matcher` instances.
 
-Most users compile patterns through `String>>asPCRegex`. Use me directly when you need explicit compile options, compile contexts, or JIT policy.
+Most users compile patterns through `String>>asPerlCompatibleRegex`. Use me directly when you need explicit compile options, compile contexts, or JIT policy.
 
 Patterns are prepared as UTF-8 bytes before crossing the FFI boundary. ASCII ByteStrings can be passed directly because they are already valid UTF-8; other strings are encoded through Zinc.
 
