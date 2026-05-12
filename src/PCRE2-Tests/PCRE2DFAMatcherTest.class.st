@@ -13,7 +13,7 @@ PCRE2DFAMatcherTest >> testDFAMatchAnswersStandaloneMatchData [
 
 	| match regex subject |
 	subject := 'the caterpillar catchment'.
-	regex := 'cat(er(pillar)?)?' asPCRegex.
+	regex := 'cat(er(pillar)?)?' asPerlCompatibleRegex.
 
 	match := regex dfaMatch: subject workspaceSize: 40 ovectorSize: 3.
 
@@ -29,7 +29,7 @@ PCRE2DFAMatcherTest >> testDFAMatchesDecodesUTF8Results [
 	| eclair matches regex subject |
 	eclair := (String with: (Character value: 16rE9)) , 'clair'.
 	subject := 'un ' , eclair , ' ici'.
-	regex := eclair asPCRegex.
+	regex := eclair asPerlCompatibleRegex.
 
 	matches := regex dfaMatches: subject.
 
@@ -40,7 +40,7 @@ PCRE2DFAMatcherTest >> testDFAMatchesDecodesUTF8Results [
 PCRE2DFAMatcherTest >> testDFAMatchesReturnsAllAlternativesAtFirstStart [
 
 	| matches regex |
-	regex := 'cat(er(pillar)?)?' asPCRegex.
+	regex := 'cat(er(pillar)?)?' asPerlCompatibleRegex.
 
 	matches := regex
 		           dfaMatches: 'the caterpillar catchment'
@@ -54,7 +54,7 @@ PCRE2DFAMatcherTest >> testDFAMatchesReturnsAllAlternativesAtFirstStart [
 PCRE2DFAMatcherTest >> testDFAMatchesReturnsEmptyArrayWhenThereIsNoMatch [
 
 	self
-		assert: ('dog' asPCRegex dfaMatches: 'the caterpillar catchment')
+		assert: ('dog' asPerlCompatibleRegex dfaMatches: 'the caterpillar catchment')
 		equals: #(  )
 ]
 
@@ -62,7 +62,7 @@ PCRE2DFAMatcherTest >> testDFAMatchesReturnsEmptyArrayWhenThereIsNoMatch [
 PCRE2DFAMatcherTest >> testRegularMatchAfterSmallDFAMatchData [
 
 	| dfaMatch regex regularMatch |
-	regex := '(a)(b)(c)' asPCRegex.
+	regex := '(a)(b)(c)' asPerlCompatibleRegex.
 	dfaMatch := regex dfaMatch: 'abc' workspaceSize: 40 ovectorSize: 1.
 
 	regularMatch := regex findMatch: 'abc'.

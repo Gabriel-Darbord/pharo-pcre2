@@ -16,7 +16,7 @@ PCRE2CompilerTest >> assertInvalidPattern: aString [
 	| utf8 |
 	utf8 := ZnUTF8Encoder default encodeString: aString.
 	self
-		should: [ aString asPCRegex ]
+		should: [ aString asPerlCompatibleRegex ]
 		raise: PCRE2CompileError
 		withExceptionDo: [ :ex |
 			self assert: ex errorMessage notEmpty.
@@ -37,5 +37,5 @@ PCRE2CompilerTest >> testErrorCode [
 { #category : 'tests' }
 PCRE2CompilerTest >> testSharedDefaultCompiler [
 
-	self assert: '' asPCRegex compiler identicalTo: '' asPCRegex compiler
+	self assert: '' asPerlCompatibleRegex compiler identicalTo: '' asPerlCompatibleRegex compiler
 ]

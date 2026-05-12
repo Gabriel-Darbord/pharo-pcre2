@@ -16,7 +16,7 @@ PCRE2SessionManagerTest >> testShutDownWithRecompilation [
 	| manager regex |
 	PCRE2MockSessionManager useSerialization: false.
 	manager := PCRE2MockSessionManager new.
-	regex := '' asPCRegex.
+	regex := '' asPerlCompatibleRegex.
 	manager matchersToRestore: { regex }.
 
 	self assert: manager serializedMatchers identicalTo: nil.
@@ -33,7 +33,7 @@ PCRE2SessionManagerTest >> testShutDownWithSerialization [
 	| manager regex |
 	PCRE2MockSessionManager useSerialization: true.
 	manager := PCRE2MockSessionManager new.
-	regex := '' asPCRegex.
+	regex := '' asPerlCompatibleRegex.
 	manager matchersToRestore: { regex }.
 
 	self assert: manager serializedMatchers identicalTo: nil.
@@ -55,7 +55,7 @@ PCRE2SessionManagerTest >> testStartUpWithInvalidSerializationFallsBackToRecompi
 	| manager regex |
 	PCRE2MockSessionManager useSerialization: true.
 	manager := PCRE2MockSessionManager new.
-	regex := 'a' asPCRegex.
+	regex := 'a' asPerlCompatibleRegex.
 	manager matchersToRestore: { regex }.
 	manager serializedMatchers: #[ 1 2 3 ].
 	manager serializedSignature:
@@ -76,7 +76,7 @@ PCRE2SessionManagerTest >> testStartUpWithRecompilation [
 	| manager regex |
 	PCRE2MockSessionManager useSerialization: false.
 	manager := PCRE2MockSessionManager new.
-	regex := 'a' asPCRegex.
+	regex := 'a' asPerlCompatibleRegex.
 	manager matchersToRestore: { regex }.
 
 	self deny: regex isNull.
@@ -98,7 +98,7 @@ PCRE2SessionManagerTest >> testStartUpWithSerialization [
 	| manager regex |
 	PCRE2MockSessionManager useSerialization: true.
 	manager := PCRE2MockSessionManager new.
-	regex := 'a' asPCRegex.
+	regex := 'a' asPerlCompatibleRegex.
 	manager matchersToRestore: { regex }.
 
 	self deny: regex isNull.
@@ -121,7 +121,7 @@ PCRE2SessionManagerTest >> testStartUpWithStaleSerializationFallsBackToRecompila
 	| manager regex |
 	PCRE2MockSessionManager useSerialization: true.
 	manager := PCRE2MockSessionManager new.
-	regex := 'a' asPCRegex.
+	regex := 'a' asPerlCompatibleRegex.
 	manager matchersToRestore: { regex }.
 	manager serializedMatchers: #[ 1 2 3 ].
 	manager serializedSignature:

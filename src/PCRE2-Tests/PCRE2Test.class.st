@@ -161,7 +161,7 @@ PCRE2Test >> testReadOptionsFor [
 
 	| regex |
 	"check default options on a fresh pattern"
-	regex := '' asPCRegex.
+	regex := '' asPerlCompatibleRegex.
 
 	self assert: (PCRE2 readOptions: regex options for: #match) isEmpty.
 
