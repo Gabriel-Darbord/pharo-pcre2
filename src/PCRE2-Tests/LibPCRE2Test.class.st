@@ -1,3 +1,8 @@
+"
+Tests for the native PCRE2 library bridge.
+
+These checks verify that the loaded library exposes the expected runtime configuration for the binding.
+"
 Class {
 	#name : 'LibPCRE2Test',
 	#superclass : 'TestCase',

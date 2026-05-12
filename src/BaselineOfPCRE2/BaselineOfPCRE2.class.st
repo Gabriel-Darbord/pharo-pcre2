@@ -1,3 +1,8 @@
+"
+Metacello baseline for the PCRE2 binding.
+
+It loads the core PCRE2 package and its tests so the binding can be installed or validated as one project.
+"
 Class {
 	#name : 'BaselineOfPCRE2',
 	#superclass : 'BaselineOf',

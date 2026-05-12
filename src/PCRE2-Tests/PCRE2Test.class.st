@@ -1,3 +1,8 @@
+"
+Tests for PCRE2 constants and option metadata.
+
+The suite protects the option tables used to explain and validate compile, match, DFA, JIT, substitute, and convert flags.
+"
 Class {
 	#name : 'PCRE2Test',
 	#superclass : 'TestCase',

@@ -1,3 +1,10 @@
+"
+I locate and expose the native PCRE2 8-bit library used by this binding.
+
+All exported calls target the libpcre2-8 API. String-like arguments are passed as prepared UTF-8 byte storage, typically through void* FFI declarations, so Pharo does not silently apply its own string conversion policy.
+
+At startup I verify that the loaded native library is compatible with the binding's supported PCRE2 major version.
+"
 Class {
 	#name : 'LibPCRE2',
 	#superclass : 'FFILibrary',

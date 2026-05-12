@@ -1,3 +1,8 @@
+"
+Tests for the public `PCRE2Matcher` API.
+
+The suite covers matching, enumeration, copying, substitution, prepared UTF-8 inputs, byte-level matching, and JIT-sensitive behavior.
+"
 Class {
 	#name : 'PCRE2MatcherTest',
 	#superclass : 'TestCase',
@@ -556,6 +561,38 @@ PCRE2MatcherTest >> testMatchesPrefix [
 	self assert:
 		('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
 			 asPCRegex matchesPrefix: 'user@example.com admin@domain.org')
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testMatchingRangesInASCIIString [
+
+	| ranges |
+	ranges := 'a+' asPCRegex matchingRangesIn: 'baaa ca'.
+
+	self assert: ranges asArray equals: {
+			(2 to: 4).
+			(7 to: 7) }
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testMatchingRangesInReusableUTF8Input [
+
+	| input ranges |
+	input := '1 café' asPCRE2UTF8Input.
+	ranges := '\p{L}+' asPCRegex matchingRangesIn: input.
+
+	self assert: ranges asArray equals: { (3 to: 6) }
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testMatchingRangesInUnicodeString [
+
+	| ranges |
+	ranges := '\p{L}+' asPCRegex matchingRangesIn: '1 café 23 λx'.
+
+	self assert: ranges asArray equals: {
+			(3 to: 6).
+			(11 to: 12) }
 ]
 
 { #category : 'tests' }

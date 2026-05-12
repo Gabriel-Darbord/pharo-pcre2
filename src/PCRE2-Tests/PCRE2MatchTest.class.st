@@ -1,3 +1,8 @@
+"
+Tests for standalone `PCRE2Match` behavior.
+
+The suite covers offset access, persistent match data, remembered subjects, and decoded match/group reads.
+"
 Class {
 	#name : 'PCRE2MatchTest',
 	#superclass : 'TestCase',

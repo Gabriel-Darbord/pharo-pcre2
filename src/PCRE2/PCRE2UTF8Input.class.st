@@ -1,8 +1,9 @@
 "
 I represent a Smalltalk string prepared as UTF-8 input for PCRE2.
+
 ASCII ByteStrings are already valid UTF-8, so I keep the original string as byte storage and use no decoder. Other strings are encoded through Zinc and remember the encoder for later decoding of PCRE2 byte offsets.
 
-Users may keep one of my instances and pass it to matcher APIs when the same subject is matched repeatedly. This makes the encoding cost explicit and reusable while preserving the normal String-based API.
+Users may keep one of my instances and pass it to matcher APIs when the same subject is matched repeatedly. I also centralize byte-to-character range translation for APIs such as `matchingRangesIn:`.
 "
 Class {
 	#name : 'PCRE2UTF8Input',
@@ -60,6 +61,23 @@ PCRE2UTF8Input >> bytes: bytesObject decoder: aDecoder [
 
 	bytes := bytesObject.
 	decoder := aDecoder
+]
+
+{ #category : 'decoding' }
+PCRE2UTF8Input >> characterCountUpToByteOffset: byteOffset [
+	"Answer the number of Pharo characters represented before byteOffset UTF-8 bytes."
+
+	byteOffset = 0 ifTrue: [ ^ 0 ].
+	decoder ifNil: [ ^ byteOffset ].
+	^ (decoder decodeBytes: (bytes copyFrom: 1 to: byteOffset)) size
+]
+
+{ #category : 'decoding' }
+PCRE2UTF8Input >> characterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset [
+	"Translate PCRE2's zero-based byte offsets to a 1-based Pharo character range."
+
+	^ (self characterCountUpToByteOffset: zeroBasedStartOffset) + 1 to:
+	  (self characterCountUpToByteOffset: exclusiveEndOffset)
 ]
 
 { #category : 'decoding' }

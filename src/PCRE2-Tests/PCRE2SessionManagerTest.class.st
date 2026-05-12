@@ -1,3 +1,8 @@
+"
+Tests for image lifecycle restoration of compiled PCRE2 matchers.
+
+The suite covers serialization, deserialization fallback, recompilation fallback, and stale native-library signatures.
+"
 Class {
 	#name : 'PCRE2SessionManagerTest',
 	#superclass : 'TestCase',

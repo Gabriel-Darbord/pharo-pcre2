@@ -1,3 +1,8 @@
+"
+Tests for `PCRE2UTF8Encoder` byte output and range translation.
+
+The suite compares encoded bytes with Zinc and protects edge cases where ASCII runs follow non-ASCII characters.
+"
 Class {
 	#name : 'PCRE2UTF8EncoderTest',
 	#superclass : 'TestCase',

@@ -1,6 +1,9 @@
 "
-I contain match data resulting from the execution of a compiled pattern.
-Library users do not normally interact with my instances.
+I contain standalone match data produced by a compiled PCRE2 pattern.
+
+A matcher creates me for a match attempt and then returns me to the caller. I keep PCRE2's ovector, optional subject bytes, and optional UTF-8 decoder so callers can ask for matched text or groups later without asking the matcher to remember mutable result state.
+
+When made persistent, I copy native offset data into Pharo memory and release the native match-data handle.
 "
 Class {
 	#name : 'PCRE2Match',
@@ -20,12 +23,12 @@ Class {
 
 { #category : 'persistence' }
 PCRE2Match >> bePersistent [
-	"Update myself to be persistent: copy the external object to local memory"
+	"Copy native offset data into Pharo memory and release my external match-data handle."
 
 	self count.
 	offsets isArray ifFalse: [ "copy external data into local memory"
 		self offsets ].
-	"TODO: copy named groups"
+	"Named group metadata is not exposed by the current binding."
 	self free.
 	handle beNull.
 	isPersistent := true

@@ -1,66 +1,16 @@
 "
-I am a compiled regular expression pattern.
-I represent a set of rules, called a regular expression (regex), that defines a search pattern for text.
+I wrap a compiled PCRE2 pattern and provide the public matching API.
 
-Regular expressions are a powerful tool for string processing, enabling tasks such as searching for specific text, extracting substrings, and replacing text based on complex criteria. For instance, the pattern `\d+` matches one or more digits in a string, and `\w+@\w+\.\w+` can match a simple email format.
+High-level methods accept normal Pharo strings and prepared `PCRE2UTF8Input` instances. Strings are prepared as UTF-8 bytes before calling PCRE2; ASCII ByteStrings can be reused directly, while other strings are encoded and decoded through Zinc.
 
+Match operations create standalone `PCRE2Match` objects. The matcher does not own a reusable match result; callers may keep the returned match data and ask it for the matched text, groups, offsets, mark, or persistence later.
 
-## Lifecycle
+The API has three layers:
+- Convenience matching such as `matches:`, `matchesPrefix:`, `search:`, `find:`, and `findWithGroups:`.
+- Enumeration and rewriting such as `findAll:`, `copy:replacingMatchesWith:`, `copy:translatingMatchesUsing:`, and `substitute:with:`.
+- Byte-level operations such as `matchBytes:from:to:` and DFA matching for callers that already manage UTF-8 storage and offsets.
 
-My lifecycle follows three main steps:
-
-### Compilation
-The process starts with a plain string that defines the regular expression. This string is compiled into a pattern using a `PCRE2Compiler`. During compilation, options such as case insensitivity or multi-line matching can be specified. The result is a compiled pattern stored in external memory, which is accessed by an instance of me. This pattern can additionally be Just-In-Time (JIT) compiled, generating machine code for significantly faster matches compared to the interpretive approach.
-
-### Matching
-The compiled pattern is then applied to a subject string. The matcher attempts to locate the specified pattern within the string. The match operation may return:
-- A success, indicating that the pattern matches the string (or part of it).
-- A failure, indicating no match.
-
-### Querying
-After a successful match, detailed information about the match can be queried. This mainly includes:
-- The range (start and end positions) of the substring that matched the entire pattern.
-- The ranges of substrings matched by parenthesized subexpressions (groups) within the pattern.
-These queries are possible immediately after a successful match and before any subsequent match operation. Multiple queries can be performed without re-matching.
-
-
-## API
-The `PCRE2Matcher` API is organized into four main categories: **Matching**, **Querying**, **Match Enumeration**, and **Byte Matching**.
-
-### Matching
-Matching methods apply the compiled pattern to a subject string and return the result of an initial query. After each match, the matcher is ready for either more queries or another matching operation.
-Basic matching methods include:
-- `find:` returns the first matching substring within the subject.
-- `matches:` returns whether the regex fully matches the subject.
-- `search:` returns whether the regex partially matches the subject.
-
-### Querying
-Query methods can be called after any successful match to get detailed information about the match.
-Examples include:
-- `mark` returns the name of the last `(*MARK)`, `(*PRUNE)`, or `(*THEN)` encountered during the matching process.
-- `startIndex` returns the index where the compiled pattern started matching.
-Matching groups are usually returned by the appropriate matching methods, but they can also be accessed separately using query methods. For more details, see the `PCRE2Match` class.
-
-### Match Enumeration
-Match enumeration is the highest-level API. These methods iteratively apply match and query operations to a subject string until no more matches are found. This simplifies operations that need to process all matches in a subject. This includes methods such as `copy:replacingMatchesWith:` and `copy:translatingMatchesUsing:`, and other familiar methods from the Regex package.
-
-### Byte Matching
-Byte-matching methods provide a low-level API for operating directly on byte arrays representing UTF8-encoded string subjects. These methods are the basic building blocks for all other matching operations. They allow fine-grained control over matching within specific subranges of the subject. While not typically used by casual users, these methods are available for advanced scenarios.
-
-
-## Implementation Details
-
-### UTF Checking
-The option for UTF support is enabled by default, see the `PCRE2Compiler` comment. Note that UTF validity checking can take time. If the same data string is to be matched many times, you can use the `noUTFCheck` option for the second and subsequent matches to avoid running redundant checks, like so: `regex addOptions: PCRE2 noUTFCheck`.
-
-### JIT
-If supported by the running architecture, I can be JIT-compiled. Just-In-Time compilation translates the pattern into machine code, significantly speeding up the matching process. The JIT status can be checked with `isJIT`. The size in memory of the JIT compiled code can be obtained using `regex info: PCRE2 infoJITSize`.
-
-### Copying
-A compiled pattern can be copied using the regular `copy` method. A new pattern object will be created by the compiler of the original pattern, with the same options, including the JIT compilation state.
-
-### Matching Ranges
-Most of the API does not support matching a specific range of the subject string. This limitation is due to the way string marshalling works with FFI: strings are always encoded as UTF8 `ByteArray`s before being processed. Consequently, passing a substring copy of the subject is more efficient than passing the entire subject, having it converted to UTF8, and then specifying a range within it. If you are already working with encoded strings, or if your scenario requires it, you can use the **Byte Matching** protocol methods that support ranges.
+Instances may be JIT-compiled when the native library supports it. Lifecycle restoration is handled by `PCRE2SessionManager`, which either deserializes compatible native codes or recompiles from the recorded pattern and options.
 "
 Class {
 	#name : 'PCRE2Matcher',
@@ -662,14 +612,23 @@ PCRE2Matcher >> matchesPrefix: subject [
 	^ false
 ]
 
-{ #category : 'matching' }
+{ #category : 'match enumeration' }
 PCRE2Matcher >> matchingRangesIn: subject [
-	"Equivalent of RxMatcher >> #matchingRangesIn:"
+	"Answer ranges of each match as 1-based Pharo character intervals."
 
-	| ranges |
-	self shouldBeImplemented. "requires utf offset when decoding"
+	| input ranges |
+	input := self utf8InputFor: subject.
 	ranges := OrderedCollection new.
-	self findAll: subject do: [  ].
+	self
+		matchAll: input bytes
+		from: 1
+		to: input size
+		do: [ :match |
+			| offsets |
+			offsets := match offsetsAt: 1.
+			ranges add: (input
+					 characterRangeFromStartOffset: offsets first
+					 endOffset: offsets second) ].
 	^ ranges
 ]
 

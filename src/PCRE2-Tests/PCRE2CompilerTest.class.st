@@ -1,3 +1,8 @@
+"
+Tests for compiling PCRE2 patterns from Pharo strings.
+
+The suite covers successful compilation, compile errors, and UTF-8 error reporting offsets.
+"
 Class {
 	#name : 'PCRE2CompilerTest',
 	#superclass : 'TestCase',

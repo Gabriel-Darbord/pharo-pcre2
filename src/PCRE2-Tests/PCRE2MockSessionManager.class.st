@@ -1,3 +1,8 @@
+"
+Test double for `PCRE2SessionManager`.
+
+It exposes lifecycle state and failure modes without requiring real image shutdown or startup.
+"
 Class {
 	#name : 'PCRE2MockSessionManager',
 	#superclass : 'PCRE2SessionManager',

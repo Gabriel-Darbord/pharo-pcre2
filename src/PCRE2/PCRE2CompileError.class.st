@@ -1,3 +1,8 @@
+"
+I represent a pattern compilation failure reported by PCRE2.
+
+I keep the decoded pattern, PCRE2's error message, and the byte offset reported by the native compiler. My signalling helper inserts `(*ERROR)` into the decoded pattern so failures are easier to read.
+"
 Class {
 	#name : 'PCRE2CompileError',
 	#superclass : 'PCRE2Error',

@@ -1,3 +1,8 @@
+"
+Tests for reusable prepared UTF-8 input.
+
+The suite covers ASCII direct storage, non-ASCII encoding, WideString encoding, and the public `asPCRE2UTF8Input` conversion protocol.
+"
 Class {
 	#name : 'PCRE2UTF8InputTest',
 	#superclass : 'TestCase',

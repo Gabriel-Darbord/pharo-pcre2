@@ -1,17 +1,11 @@
 "
-I compile string patterns into regular expression matchers.
+I compile Pharo string patterns into `PCRE2Matcher` instances.
 
-Most of the time, patterns are compiled using String extensions such as `String>>#asPCRegex`.
-If more control over the compilation process is needed, my API can be used instead.
-My main API is through the `PCRE2Compiler>>#compile:` method.
+Most users compile patterns through `String>>asPCRegex`. Use me directly when you need explicit compile options, compile contexts, or JIT policy.
 
-Many options exist, use `PCRE2 optionsFor: #compile` to browse available options and combine them with the bitwise OR operator, e.g. `PCRE2 readOptions: PCRE2 multiline | PCRE2 caseless for: #compile`.
-Patterns are compiled with the UTF option by default, which allows compilation and matching with UTF-encoded strings (which applies for the majority of wide strings).
-If speed is of the essence and only ASCII characters are handled, the default options can be overridden with `PCRE2Compiler>>#options:`.
+Patterns are prepared as UTF-8 bytes before crossing the FFI boundary. ASCII ByteStrings can be passed directly because they are already valid UTF-8; other strings are encoded through Zinc.
 
-On compilation, ff enabled and supported by the running architecture, matchers are further processed into machine code that runs much faster than the interpretive match() function.
-The cost at compile time is higher, but the gain in matching speed should be well worth it.
-This feature is enabled by default and can be toggled with `PCRE2Compiler class>>#eagerJIT:`.
+By default I enable PCRE2's UTF mode and attempt JIT compilation when the loaded native library supports it. The compiled matcher records enough pattern and option state for lifecycle restoration.
 "
 Class {
 	#name : 'PCRE2Compiler',
@@ -84,7 +78,7 @@ PCRE2Compiler class >> startUp: resuming [
 	"Verify that the loaded native library matches the assumptions of this binding."
 
 	resuming ifFalse: [ ^ self ].
-	PCRE2Types initialize. "TODO handle dependency in baseline"
+	PCRE2Types initialize. "Ensure shared UFFI holders exist before startup FFI calls."
 	LibPCRE2 assertCompatibleLibrary.
 	SupportsJIT := LibPCRE2 supportsJIT
 ]

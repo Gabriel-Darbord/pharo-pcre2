@@ -1,3 +1,8 @@
+"
+I wrap a PCRE2 match context.
+
+A match context carries runtime limits and matching policy such as depth, heap, match, and offset limits. Matchers use me when the caller needs to constrain or tune native matching behavior beyond the compiled pattern itself.
+"
 Class {
 	#name : 'PCRE2MatchContext',
 	#superclass : 'PCRE2Object',
