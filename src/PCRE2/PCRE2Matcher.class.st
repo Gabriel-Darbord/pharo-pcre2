@@ -968,48 +968,230 @@ PCRE2Matcher >> startIndex [
 ]
 
 { #category : 'private' }
-PCRE2Matcher >> substitute: subject from: start to: end replacement: replacement upTo: rLength output: buffer size: outSize [
-	"Apply substitutions into caller-provided output storage. Subject, replacement, and output are prepared byte buffers, so use void* for them and let PCRE2 handle the bytes exactly as supplied."
+PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions matchData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
+	"Dispatch pcre2_substitute_8 with or without caller-supplied match data. A nil match data lets PCRE2 perform the match; a non-nil match data is used with PCRE2 substituteMatched."
+
+	aPCRE2Match ifNil: [
+		^ self
+			  substitute: subject
+			  from: start
+			  to: end
+			  options: substituteOptions
+			  replacement: replacement
+			  upTo: rLength
+			  output: buffer
+			  size: outSize ].
+	^ self
+		  substitute: subject
+		  from: start
+		  to: end
+		  options: substituteOptions
+		  matchedData: aPCRE2Match
+		  replacement: replacement
+		  upTo: rLength
+		  output: buffer
+		  size: outSize
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions matchedData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
+	"Apply substitutions into caller-provided output storage using precomputed match data for the first match. Subject, replacement, and output are prepared byte buffers, so use void* for them and let PCRE2 handle the bytes exactly as supplied."
 
 	"int pcre2_substitute_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, PCRE2_SPTR replacement, PCRE2_SIZE rlength, PCRE2_UCHAR *outputbuffer, PCRE2_SIZE *outlengthptr)"
 
 	self ffiCall:
 		#( int pcre2_substitute_8 #( self #, void #* subject #, size_t
-		      end #, size_t start #, uint32 options #, nil #, void #* context
-		      #, void #* replacement #, size_t rLength #, void #* buffer
-		      #, SizeTHolder outSize ) )
+		      end #, size_t start #, uint32 substituteOptions
+		      #, PCRE2Match #* aPCRE2Match #, void #* context #, void #* replacement
+		      #, size_t rLength #, void #* buffer #, SizeTHolder outSize ) )
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions replacement: replacement upTo: rLength output: buffer size: outSize [
+	"Apply substitutions into caller-provided output storage without precomputed match data. Subject, replacement, and output are prepared byte buffers, so use void* for them and let PCRE2 handle the bytes exactly as supplied."
+
+	"int pcre2_substitute_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, PCRE2_SPTR replacement, PCRE2_SIZE rlength, PCRE2_UCHAR *outputbuffer, PCRE2_SIZE *outlengthptr)"
+
+	self ffiCall:
+		#( int pcre2_substitute_8 #( self #, void #* subject #, size_t
+		      end #, size_t start #, uint32 substituteOptions
+		      #, nil #, void #* context #, void #* replacement #, size_t
+		      rLength #, void #* buffer #, SizeTHolder outSize ) )
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> substitute: subject from: start to: end replacement: replacement upTo: rLength output: buffer size: outSize [
+	"Backward-compatible private entry using the matcher substitution options sanitized for pcre2_substitute_8. Subject, replacement, and output are prepared byte buffers, so use void* for them and let PCRE2 handle the bytes exactly as supplied."
+
+	^ self
+		  substitute: subject
+		  from: start
+		  to: end
+		  options: self substitutionOptions
+		  replacement: replacement
+		  upTo: rLength
+		  output: buffer
+		  size: outSize
 ]
 
 { #category : 'matching' }
 PCRE2Matcher >> substitute: subject with: replacement [
-	"Returns the subject with each match substituted with the replacement string, which PCRE2 treats as a substitution expression."
+	"Answer subject with the first match substituted by replacement. PCRE2 treats replacement as a substitution expression unless substituteLiteral is set in the matcher options."
 
-	| buffer bufferSize input rc replacementInput |
+	^ self
+		  substitute: subject
+		  with: replacement
+		  options: self substitutionOptions
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> substitute: subject with: replacement addingOptions: substituteOptions [
+	"Answer subject with substitutions applied using my substitution options plus substituteOptions."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  options: (self substitutionOptions bitOr: substituteOptions)
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions [
+	"Answer subject with substitutions applied using the supplied PCRE2 substitution options instead of the matcher options. PCRE2 treats replacement as a substitution expression unless PCRE2 substituteLiteral is set. The implementation may add PCRE2 substituteOverflowLength internally to size the output buffer."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  options: substituteOptions
+		  matchData: nil
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions matchData: aPCRE2Match [
+	"Private helper for pcre2_substitute_8. Encode a normal subject or reuse a prepared UTF-8 input, then pass optional PCRE2 match data to the byte-level helper."
+
+	| input |
 	input := self utf8InputFor: subject.
+	^ self
+		  substituteBytes: input bytes
+		  replacement: replacement
+		  options: substituteOptions
+		  matchData: aPCRE2Match
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> substitute: subject withLiteral: replacement [
+	"Answer subject with the first match substituted by replacement, treating replacement as literal text rather than a PCRE2 substitution expression."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  addingOptions: PCRE2 substituteLiteral
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> substitute: subject withUnknownCapturesEmpty: replacement [
+	"Answer subject with the first match substituted by replacement, treating unknown and unset captures as empty strings. Use with care because typos in replacement group names no longer signal."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  addingOptions:
+		  PCRE2 substituteUnknownUnset | PCRE2 substituteUnsetEmpty
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> substitute: subject withUnsetCapturesEmpty: replacement [
+	"Answer subject with the first match substituted by replacement, treating unset captures referenced by replacement as empty strings."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  addingOptions: PCRE2 substituteUnsetEmpty
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> substituteAll: subject with: replacement [
+	"Answer subject with every non-overlapping match substituted by replacement."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  addingOptions: PCRE2 substituteGlobal
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> substituteAll: subject withLiteral: replacement [
+	"Answer subject with every non-overlapping match substituted by replacement, treating replacement as literal text."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  addingOptions: PCRE2 substituteGlobal | PCRE2 substituteLiteral
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> substituteAll: subject withUnknownCapturesEmpty: replacement [
+	"Answer subject with every non-overlapping match substituted by replacement, treating unknown and unset captures as empty strings. Use with care because typos in replacement group names no longer signal."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  addingOptions:
+			  PCRE2 substituteGlobal | PCRE2 substituteUnknownUnset
+			  | PCRE2 substituteUnsetEmpty
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> substituteAll: subject withUnsetCapturesEmpty: replacement [
+	"Answer subject with every non-overlapping match substituted by replacement, treating unset captures as empty strings."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  addingOptions: PCRE2 substituteGlobal | PCRE2 substituteUnsetEmpty
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> substituteAllReplacementsOnly: subject with: replacement [
+	"Answer only the replacement text generated for all non-overlapping matches, concatenated in match order."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  addingOptions:
+		  PCRE2 substituteGlobal | PCRE2 substituteReplacementOnly
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> substituteBytes: subjectBytes replacement: replacement options: substituteOptions matchData: aPCRE2Match [
+	"Apply pcre2_substitute_8 to prepared subject bytes. Automatically enable PCRE2 substituteOverflowLength so large outputs can be retried with the exact required buffer size."
+
+	| buffer bufferSize effectiveOptions rc replacementInput |
 	replacementInput := self utf8InputFor: replacement.
-	"Arbitrary first-shot buffer for short results; overflow retries with PCRE2's reported size."
+	effectiveOptions := substituteOptions bitOr:
+		                    PCRE2 substituteOverflowLength.
 	buffer := ByteArray new: (bufferSize := 4096).
 	bufferSize := SizeTHolder new value: bufferSize.
 
-	"matchData can be nil and will be created and freed during the ffi call"
 	rc := self
-		      substitute: input bytes
+		      substitute: subjectBytes
 		      from: 0
-		      to: input size
+		      to: subjectBytes size
+		      options: effectiveOptions
+		      matchData: aPCRE2Match
 		      replacement: replacementInput bytes
 		      upTo: replacementInput size
 		      output: buffer
 		      size: bufferSize.
-	">= 0 number of substitutions made"
-	rc < 0 ifTrue: [
-		(rc == -48 and: [ "noMemory & substituteOverflowLength => updated bufferSize"
-			 (options bitAnd: 4096) == 4096 ]) ifFalse: [ self errorCode: rc ].
 
-		"second shot should always be correct"
+	rc < 0 ifTrue: [
+		rc == PCRE2 errorNoMemory ifFalse: [ self errorCode: rc ].
 		rc := self
-			      substitute: input bytes
+			      substitute: subjectBytes
 			      from: 0
-			      to: input size
+			      to: subjectBytes size
+			      options: effectiveOptions
+			      matchData: aPCRE2Match
 			      replacement: replacementInput bytes
 			      upTo: replacementInput size
 			      output: (buffer := ByteArray new: bufferSize value)
@@ -1017,6 +1199,45 @@ PCRE2Matcher >> substitute: subject with: replacement [
 		rc < 0 ifTrue: [ self errorCode: rc ] ].
 
 	^ self decodeUTF8Output: buffer upTo: bufferSize value
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> substituteReplacementsOnly: subject with: replacement [
+	"Answer only the replacement text generated for the first match."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  addingOptions: PCRE2 substituteReplacementOnly
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement [
+	"Answer the subject remembered by aPCRE2Match after substituting replacement for that already-computed match. The match must have been produced by this matcher over the same subject bytes."
+
+	^ self
+		  substituteUsingMatch: aPCRE2Match
+		  with: replacement
+		  options: self substitutionOptions
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement options: substituteOptions [
+	"Answer the subject remembered by aPCRE2Match after substituting replacement for that already-computed match. PCRE2 requires the match data to come from this pattern, subject, and compatible match options."
+
+	self validateSubstitutionMatchData: aPCRE2Match.
+	^ self
+		  substituteBytes: aPCRE2Match subject
+		  replacement: replacement
+		  options: substituteOptions | PCRE2 substituteMatched
+		  matchData: aPCRE2Match
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> substitutionOptions [
+	"Answer matcher options that are safe to pass to pcre2_substitute_8. Partial matching options are not valid for substitution."
+
+	^ options bitAnd: (PCRE2 partialSoft | PCRE2 partialHard) bitInvert
 ]
 
 { #category : 'private' }
@@ -1042,6 +1263,23 @@ PCRE2Matcher >> validatePartialOption: partialOption [
 		 partialOption = PCRE2 partialHard ]) ifFalse: [
 		self error:
 			'Partial matching option must be PCRE2 partialSoft or PCRE2 partialHard' ]
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> validateSubstitutionMatchData: aPCRE2Match [
+
+	(aPCRE2Match isNil or: [ aPCRE2Match isNull ]) ifTrue: [
+		PCRE2Error signal:
+			'Substitution match data must hold an external PCRE2 match data block' ].
+	aPCRE2Match isPersistent ifTrue: [
+		PCRE2Error signal:
+			'Persistent match data cannot be passed back to pcre2_substitute_8' ].
+	aPCRE2Match subject ifNil: [
+		PCRE2Error signal:
+			'Substitution match data must remember its subject bytes' ].
+	aPCRE2Match isComplete ifFalse: [
+		PCRE2Error signal:
+			'Substitution match data must contain a complete match' ]
 ]
 
 { #category : 'private' }
