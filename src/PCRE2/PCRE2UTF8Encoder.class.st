@@ -1,11 +1,9 @@
 "
-I can encode a string to UTF-8 and translate a range to the equivalent encoded range.
-This is needed to calculate the offset of a range over a Pharo string, which has a fixed-length encoding, to a UTF-8 string, which has a variable-length encoding.
-For example, the string `'où'` is encoded as `#[111 195 185]`, so the range [2, 2] is translated to [2, 3].
+I encode a Smalltalk string to UTF-8 while translating one Pharo character range to the equivalent UTF-8 byte range.
 
-During an FFI call, string arguments are always converted to UTF-8 byte arrays with `String>>#utf8Encoded`.
-To work around this, `PCRE2UTF8Encoder` must be used to do the conversion for patterns and subjects before the call.
-The API handles this conversion, so there should be no need to use me unless you have some specific needs.
+For example, the string `'où'` is encoded as `#[111 195 185]`, so the character range [2, 2] becomes the byte range [2, 3].
+
+The main matcher API currently uses `PCRE2UTF8Input` and Zinc directly, so I am not on the normal production path. I remain useful infrastructure for APIs that need to pass or translate Pharo character ranges against PCRE2's byte-offset world.
 "
 Class {
 	#name : 'PCRE2UTF8Encoder',
@@ -93,21 +91,41 @@ PCRE2UTF8Encoder >> nextPutAllByteString: string toStream: stream [
 	| count lastIndex nextIndex |
 	count := string size.
 	lastIndex := 1.
-	nextIndex := ByteString findFirstInString: string inSet: ByteASCIISet startingAt: 1.
+	nextIndex := ByteString
+		             findFirstInString: string
+		             inSet: ByteASCIISet
+		             startingAt: 1.
 	nextIndex = 0 ifTrue: [
-		^ self next: count putAllASCII: string startingAt: 1 toStream: stream ].
-	[	| encoding |
-		nextIndex > lastIndex ifTrue: [
-			self next: nextIndex - lastIndex putAllASCII: string startingAt: lastIndex toStream: stream ].
-		encoding := ByteUTF8Encoding at: (string byteAt: nextIndex) + 1.
-		stream nextPutAll: encoding.
-		(index := index + 1) < start ifTrue: [ utfStart := utfStart + encoding size ].
-		index <= end ifTrue: [ utfEnd := utfEnd + encoding size ].
-		lastIndex := nextIndex + 1.
-		nextIndex := ByteString findFirstInString: string inSet: ByteASCIISet startingAt: lastIndex.
-		nextIndex = 0 ] whileFalse.
-	lastIndex < count ifTrue: [
-		self next: 1 + count - lastIndex putAllASCII: string startingAt: lastIndex toStream: stream ]
+		^ self
+			  next: count
+			  putAllASCII: string
+			  startingAt: 1
+			  toStream: stream ].
+	[
+	| encoding |
+	nextIndex > lastIndex ifTrue: [
+		self
+			next: nextIndex - lastIndex
+			putAllASCII: string
+			startingAt: lastIndex
+			toStream: stream ].
+	encoding := ByteUTF8Encoding at: (string byteAt: nextIndex) + 1.
+	stream nextPutAll: encoding.
+	(index := index + 1) < start ifTrue: [
+		utfStart := utfStart + encoding size ].
+	index <= end ifTrue: [ utfEnd := utfEnd + encoding size ].
+	lastIndex := nextIndex + 1.
+	nextIndex := ByteString
+		             findFirstInString: string
+		             inSet: ByteASCIISet
+		             startingAt: lastIndex.
+	nextIndex = 0 ] whileFalse.
+	lastIndex <= count ifTrue: [
+		self
+			next: 1 + count - lastIndex
+			putAllASCII: string
+			startingAt: lastIndex
+			toStream: stream ]
 ]
 
 { #category : 'encoding - decoding' }

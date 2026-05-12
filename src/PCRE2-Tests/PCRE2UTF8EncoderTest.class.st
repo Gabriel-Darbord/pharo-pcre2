@@ -15,6 +15,21 @@ PCRE2UTF8EncoderTest >> assertAllSubstrings: string [
 ]
 
 { #category : 'asserting' }
+PCRE2UTF8EncoderTest >> assertEncodingMatchesZinc: string [
+	"Assert that the optimized encoder produces exactly the same UTF-8 bytes as Zinc."
+
+	| bytes encoder zincBytes |
+	encoder := self encoderClass from: 1 to: string size.
+	bytes := encoder encodeString: string.
+	zincBytes := ZnUTF8Encoder default encodeString: string.
+
+	self assert: bytes equals: zincBytes.
+	string ifNotEmpty: [
+		self assert: encoder utfStart equals: 1.
+		self assert: encoder utfEnd equals: zincBytes size ]
+]
+
+{ #category : 'asserting' }
 PCRE2UTF8EncoderTest >> assertSubstring: string from: start to: end [
 	"Encode the string, get substring using translated range, decode it, and assert equality with regular substring"
 
@@ -44,4 +59,28 @@ PCRE2UTF8EncoderTest >> testEncodeString [
 	self assertAllSubstrings: 'こんにちは'. "#[227 129 147 227 130 147 227 129 171 227 129 161 227 129 175]"
 	self assertAllSubstrings: '😊👍🏽'. "#[240 159 152 138 240 159 145 141 240 159 143 189]"
 	self assertAllSubstrings: 'a̐éö̲' "#[97 204 144 101 204 129 111 204 136 204 178]"
+]
+
+{ #category : 'tests' }
+PCRE2UTF8EncoderTest >> testEncodeStringMatchesZinc [
+
+	{ 'ascii'. 'éa'. 'éab'. 'aé'. 'aéa'. 'ûnïcòdé'. 'ùñîçöðè'. '€où'.
+	'こんにちは'. '😊👍🏽'. 'a̐éö̲' } do: [ :string |
+		self assertEncodingMatchesZinc: string ]
+]
+
+{ #category : 'tests' }
+PCRE2UTF8EncoderTest >> testTranslatedRangeIncludesSingleTrailingASCIIAfterNonASCII [
+
+	| bytes encoder string substring |
+	string := 'éa'.
+	encoder := self encoderClass from: 1 to: string size.
+	bytes := encoder encodeString: string.
+	substring := encoder decodeBytes:
+		             (bytes copyFrom: encoder utfStart to: encoder utfEnd).
+
+	self assert: bytes equals: #[ 195 169 97 ].
+	self assert: encoder utfStart equals: 1.
+	self assert: encoder utfEnd equals: 3.
+	self assert: substring equals: string
 ]
