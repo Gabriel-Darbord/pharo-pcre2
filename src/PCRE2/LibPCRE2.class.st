@@ -239,14 +239,14 @@ LibPCRE2 >> serializedNumberOfCodes: bytes [
 { #category : 'accessing - platform' }
 LibPCRE2 >> unix32LibraryName [
 
-	^ FFIUnix32LibraryFinder new findLibrary:
+	^ FFIUnix32LibraryFinder findLibrary:
 		  self class libraryBasename , '.so'
 ]
 
 { #category : 'accessing - platform' }
 LibPCRE2 >> unix64LibraryName [
 
-	^ FFIUnix64LibraryFinder new findLibrary:
+	^ FFIUnix64LibraryFinder findLibrary:
 		  self class libraryBasename , '.so'
 ]
 
@@ -259,6 +259,6 @@ LibPCRE2 >> unixLibraryName [
 { #category : 'accessing - platform' }
 LibPCRE2 >> win32LibraryName [
 
-	^ FFIWindowsLibraryFinder new findLibrary:
+	^ FFIWindowsLibraryFinder findLibrary:
 		  self class libraryBasename , '.dll'
 ]
