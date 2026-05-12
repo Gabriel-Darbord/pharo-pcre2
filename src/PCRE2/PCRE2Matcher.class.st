@@ -748,13 +748,13 @@ PCRE2Matcher >> pattern: aString [
 
 { #category : 'copying' }
 PCRE2Matcher >> postCopy [
-	"Copy the external structure of the compiled pattern"
+	"Copy the external structure of the compiled pattern."
 
 	handle := self privateCopy.
 	handle isNull ifTrue: [
 		PCRE2Error signal: 'Failed to obtain memory to copy matcher' ].
 	self autoRelease initialize.
-	isJIT ifTrue: [ self compileJIT ]
+	self restoreJITIfNeeded
 ]
 
 { #category : 'private' }
@@ -769,10 +769,12 @@ PCRE2Matcher >> privateCopy [
 
 { #category : 'persistence' }
 PCRE2Matcher >> recompile [
-	"Recreate the external compiled pattern"
+	"Recreate the external compiled pattern from the Smalltalk-side source of truth."
 
+	| wantsJIT |
+	wantsJIT := self isJIT.
 	self setHandle: (compiler compileBasic: pattern).
-	self isJIT ifTrue: [ compiler compileJIT: self ]
+	wantsJIT == true ifTrue: [ self restoreJITIfNeeded ]
 ]
 
 { #category : 'private' }
@@ -822,6 +824,17 @@ PCRE2Matcher >> restoreFrom: bytes [
 	"This method is for convenience, it is much more effective to serialize matchers in bulk"
 
 	LibPCRE2 restore: { self } from: bytes
+]
+
+{ #category : 'persistence' }
+PCRE2Matcher >> restoreJITIfNeeded [
+	"Serialized and copied PCRE2 code does not include JIT data. Rebuild it when requested, but keep the pattern usable without JIT if the platform cannot provide it now."
+
+	self isJIT == true ifFalse: [ ^ self ].
+	[ compiler compileJIT: self ]
+		on: PCRE2Error
+		do: [ :ex | self isJIT: false ].
+	^ self
 ]
 
 { #category : 'matching' }

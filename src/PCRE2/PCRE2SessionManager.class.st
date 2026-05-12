@@ -7,7 +7,8 @@ Class {
 	#superclass : 'Object',
 	#instVars : [
 		'matchersToRestore',
-		'serializedMatchers'
+		'serializedMatchers',
+		'serializedSignature'
 	],
 	#classInstVars : [
 		'enabled',
@@ -38,6 +39,21 @@ PCRE2SessionManager class >> initialize [
 	self enable.
 	self useSerialization.
 	SessionManager default registerToolClassNamed: self name
+]
+
+{ #category : 'persistence' }
+PCRE2SessionManager class >> serializationSignature [
+	"Answer the runtime identity that serialized PCRE2 bytecode depends on."
+
+	^ Dictionary newFrom: {
+			  (#pcre2Version -> LibPCRE2 versionString).
+			  (#codeUnitWidth -> 8).
+			  (#endianness -> EndianDetector endianness).
+			  (#wordSize -> ExternalAddress wordSize).
+			  (#sizeTSize
+			   -> FFIArchitecture forCurrentArchitecture sizeTTypeSize).
+			  (#compiledWidths -> (LibPCRE2 config: PCRE2 configCompiledWidths)).
+			  (#unicode -> LibPCRE2 supportsUnicode) }
 ]
 
 { #category : 'asserting' }
@@ -83,6 +99,14 @@ PCRE2SessionManager class >> useSerialization [
 	useSerialization := true
 ]
 
+{ #category : 'persistence' }
+PCRE2SessionManager >> canDeserializeSerializedMatchers [
+	"Serialized PCRE2 bytecode is only a cache. Use it only when the saved runtime signature still matches."
+
+	^ serializedMatchers notNil and: [
+		  serializedSignature = self class serializationSignature ]
+]
+
 { #category : 'enumerating' }
 PCRE2SessionManager >> findMatchersToRestore [
 	"Register all matchers and make them persistent.
@@ -94,30 +118,54 @@ PCRE2SessionManager >> findMatchersToRestore [
 			matchersToRestore add: matcher bePersistent ] ]
 ]
 
+{ #category : 'persistence' }
+PCRE2SessionManager >> recompileMatchers [
+	"Portable restore path: rebuild compiled patterns from their Smalltalk-side source of truth."
+
+	matchersToRestore do: [ :matcher | matcher recompile ]
+]
+
+{ #category : 'persistence' }
+PCRE2SessionManager >> restoreSerializedMatchers [
+	"Try to restore the serialized bytecode cache. Answer true on success, false when startup should recompile instead."
+
+	self canDeserializeSerializedMatchers ifFalse: [ ^ false ].
+	[ LibPCRE2 restore: matchersToRestore from: serializedMatchers ]
+		on: PCRE2Error
+		do: [ :ex | ^ false ].
+	^ true
+]
+
+{ #category : 'accessing' }
+PCRE2SessionManager >> serializedSignature [
+
+	^ serializedSignature
+]
+
+{ #category : 'accessing' }
+PCRE2SessionManager >> serializedSignature: aDictionary [
+
+	serializedSignature := aDictionary
+]
+
 { #category : 'system startup' }
 PCRE2SessionManager >> shutDown [
-	"Make all compiled patterns persistent between sessions.
-	Keep strong references to codes to avoid de-/serialization mismatch:
-	all serialized codes must still exist for deserialization to succeed.
-	A compiled pattern may have a null handle if the image previously crashed,
-	not handling it would cause another crash on startup."
+	"Make all compiled patterns persistent between sessions. Serialized bytecode is saved as a fast cache; the matchers keep enough state to be recompiled if the cache is incompatible."
 
 	self findMatchersToRestore.
-	(self class shouldUseSerialization and: [ matchersToRestore isNotEmpty ])
-		ifTrue: [ serializedMatchers := LibPCRE2 serialize: matchersToRestore ]
+	(self class shouldUseSerialization and: [
+		 matchersToRestore isNotEmpty ]) ifTrue: [
+		serializedSignature := self class serializationSignature.
+		serializedMatchers := LibPCRE2 serialize: matchersToRestore ]
 ]
 
 { #category : 'system startup' }
 PCRE2SessionManager >> startUp [
-	"Restore patterns by recompiling or using serialized data from a previous session.
-	Deserialization does not work if serialization was done on a different architecture.
-	TODO: Add a way to check for incompatible architectures (can use PCRE2>>#configJITTarget)."
+	"Restore patterns by trying the serialized bytecode cache first, then recompiling when the cache is missing, stale, or rejected by PCRE2."
 
 	matchersToRestore isEmptyOrNil ifTrue: [ ^ self ].
 
-	self class shouldUseSerialization
-		ifFalse: [ matchersToRestore do: [ :matcher | matcher recompile ] ]
-		ifTrue: [
-			serializedMatchers ifNotNil: [
-				LibPCRE2 restore: matchersToRestore from: serializedMatchers ] ]
+	(self class shouldUseSerialization and: [
+		 self restoreSerializedMatchers ]) ifFalse: [
+		self recompileMatchers ]
 ]

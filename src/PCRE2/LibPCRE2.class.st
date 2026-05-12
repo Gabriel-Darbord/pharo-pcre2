@@ -226,9 +226,9 @@ LibPCRE2 >> newMatchContext [
 
 { #category : 'serializing' }
 LibPCRE2 >> restore: matchers from: bytes [
-	"Restore a list of compiled patterns from their serialized form"
+	"Restore a list of compiled patterns from their serialized form. JIT data is not serialized, so matchers rebuild it best-effort afterwards."
 
-	| count wordSize pointers rc compiler |
+	| count wordSize pointers rc |
 	count := matchers size.
 	wordSize := ExternalAddress wordSize.
 	pointers := ByteArray new: count * wordSize.
@@ -236,13 +236,11 @@ LibPCRE2 >> restore: matchers from: bytes [
 	rc := self deserialize: bytes count: count output: pointers.
 	rc < 0 ifTrue: [ self errorCode: rc ].
 
-	compiler := PCRE2Compiler new.
 	1 to: count do: [ :i |
 		| matcher |
 		(matcher := matchers at: i) setHandle:
 			(pointers pointerAtOffset: wordSize * (i - 1)).
-		"recompile JIT if it was before serialization"
-		matcher isJIT ifTrue: [ matcher compileJIT ] ]
+		matcher restoreJITIfNeeded ]
 ]
 
 { #category : 'accessing' }
