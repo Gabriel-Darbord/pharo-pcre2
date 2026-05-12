@@ -23,6 +23,19 @@ PCRE2MatchTest >> testCount [
 ]
 
 { #category : 'tests' }
+PCRE2MatchTest >> testLastMatchIndex [
+
+	| match |
+	match := 'bc' asPCRegex findMatch: 'abcde'.
+	self assert: match lastMatchIndex equals: 3.
+	match bePersistent.
+	self assert: match lastMatchIndex equals: 3.
+
+	match := 'é' asPCRegex findMatch: 'éé'.
+	self assert: match lastMatchIndex equals: 2
+]
+
+{ #category : 'tests' }
 PCRE2MatchTest >> testOffsetsAt [
 
 	| match regex |

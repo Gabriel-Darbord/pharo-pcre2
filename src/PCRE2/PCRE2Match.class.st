@@ -53,7 +53,7 @@ PCRE2Match >> decoder [
 
 { #category : 'accessing' }
 PCRE2Match >> endOffsetAt: pairIndex [
-	"Returns the n-th end offset"
+	"Return the zero-based exclusive end offset for the requested ovector pair. PCRE2 stores ovector entries as PCRE2_SIZE values; keep the 32/64-bit primitive fast paths because this accessor is used by match-result readers."
 
 	| index wordSize |
 	index := 2 * (pairIndex - 1) + 1. "to 0-based"
@@ -122,13 +122,17 @@ PCRE2Match >> isPersistent [
 
 { #category : 'enumerating' }
 PCRE2Match >> lastMatchIndex [
-	"Returns the index of the code unit after the last match"
+	"Return the zero-based exclusive end offset of the full match. This is ovector[1], stored by PCRE2 as PCRE2_SIZE/size_t, so read it with the same fixed-width fast paths used by the other ovector accessors."
 
+	| wordSize |
 	^ isPersistent
 		  ifTrue: [ offsets at: 2 ]
 		  ifFalse: [
 			  offsets ifNil: [ offsets := self getOffsets ].
-			  offsets uint64AtOffset: 8 "TODO handle size_t" ]
+			  wordSize := ExternalAddress wordSize.
+			  wordSize == 8 ifTrue: [ ^ offsets uint64AtOffset: 8 ].
+			  wordSize == 4 ifTrue: [ ^ offsets uint32AtOffset: 4 ].
+			  offsets platformSizeTAt: wordSize + 1 ]
 ]
 
 { #category : 'accessing' }
@@ -157,7 +161,7 @@ PCRE2Match >> offsets [
 
 { #category : 'accessing' }
 PCRE2Match >> offsetsAt: pairIndex [
-	"Returns the n-th offset pair"
+	"Return the requested raw ovector pair as zero-based {start. exclusiveEnd}. PCRE2 stores each entry as PCRE2_SIZE; the fixed-width branches are intentional hot-path reads, with platformSizeTAt: kept only as an unusual-platform fallback."
 
 	| index wordSize |
 	index := 2 * (pairIndex - 1). "to 0-based"
@@ -183,8 +187,7 @@ PCRE2Match >> offsetsAt: pairIndex [
 
 { #category : 'enumerating' }
 PCRE2Match >> offsetsDo: aBlock [
-	"Iterate over the offset pairs resulting from a match operation.
-	The first pair is what the full pattern matched, subsequent pairs are the matches of each capture group."
+	"Iterate translated offset pairs: starts become 1-based inclusive indexes, while PCRE2's zero-based exclusive ends already have the same numeric value as Pharo inclusive ends. The fixed-width 32/64-bit loops are intentional: platformSizeTAt: is portable but much slower in this hot path."
 
 	| wordSize |
 	offsets isArray ifTrue: [ "offsets have already been copied to a local array"
@@ -195,14 +198,7 @@ PCRE2Match >> offsetsDo: aBlock [
 	offsets ifNil: [ offsets := self getOffsets ]. "table containing pairs of 0-based indexes"
 	wordSize := ExternalAddress wordSize.
 
-	"let n = wordSize = sizeof(size_t), start follows the progression n(2i-2), end follows n(2i-1)
-	e.g. with n = 8, start = 0, 16, 32, 48..., end = 8, 24, 40, 56...
-	PCRE2 sets the end index as exclusive, but Pharo uses only inclusive, so it is translated
-	the start index is incremented to be 1-based, and it stays inclusive
-	the end index is incremented (0 to 1-based) but also decremented (to be inclusive)
-	e.g. matching 'a' returns the range (offset pair) [0,1) and it is translated as [1,1]"
-
-	wordSize == 8 ifTrue: [ "most cases"
+	wordSize == 8 ifTrue: [
 		1 to: self count do: [ :i |
 			| start end |
 			start := (offsets uint64AtOffset: 16 * (i - 1)) + 1.
@@ -210,7 +206,7 @@ PCRE2Match >> offsetsDo: aBlock [
 			aBlock value: start value: end ].
 		^ self ].
 
-	wordSize == 4 ifTrue: [ "some cases"
+	wordSize == 4 ifTrue: [
 		1 to: self count do: [ :i |
 			| start end |
 			start := (offsets uint32AtOffset: 8 * (i - 1)) + 1.
@@ -218,8 +214,7 @@ PCRE2Match >> offsetsDo: aBlock [
 			aBlock value: start value: end ].
 		^ self ].
 
-	"rare cases, platform-independent but slower"
-	1 to: self count do: [ :i | "note that #platformSizeTAt: is 1-based"
+	1 to: self count do: [ :i |
 		| start end |
 		start := (offsets platformSizeTAt: 2 * wordSize * (i - 1) + 1) + 1.
 		end := offsets platformSizeTAt: wordSize * (2 * i - 1) + 1.
@@ -311,7 +306,7 @@ PCRE2Match >> startIndex [
 
 { #category : 'accessing' }
 PCRE2Match >> startOffsetAt: pairIndex [
-	"Returns the n-th start offset"
+	"Return the zero-based inclusive start offset for the requested ovector pair. PCRE2 exposes the ovector as PCRE2_SIZE*, mapped here to size_t; the 32/64-bit branches deliberately use primitive fixed-width reads because platformSizeTAt: is too slow for this hot path."
 
 	| index wordSize |
 	index := 2 * (pairIndex - 1). "to 0-based"
