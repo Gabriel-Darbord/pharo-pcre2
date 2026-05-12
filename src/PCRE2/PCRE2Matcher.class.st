@@ -257,16 +257,15 @@ PCRE2Matcher >> dfaMatch: subject workspaceSize: workspaceSize [
 PCRE2Matcher >> dfaMatch: subject workspaceSize: workspaceSize ovectorSize: ovectorSize [
 	"Run a DFA match with explicit workspace and ovector sizes."
 
-	| encoder match utfSubject |
-	encoder := ZnUTF8Encoder default.
-	utfSubject := encoder encodeString: subject.
+	| input match |
+	input := self utf8InputFor: subject.
 	match := self
-		         dfaMatchBytes: utfSubject
+		         dfaMatchBytes: input bytes
 		         from: 1
-		         to: utfSubject size
+		         to: input size
 		         workspaceSize: workspaceSize
 		         ovectorSize: ovectorSize.
-	match ifNotNil: [ match subject: utfSubject decoder: encoder ].
+	match ifNotNil: [ input recordOn: match ].
 	^ match
 ]
 
@@ -354,16 +353,15 @@ PCRE2Matcher >> find: subject [
 PCRE2Matcher >> findAll: subject [
 	"Returns all matching substrings within the subject."
 
-	| result encoder utfSubject |
+	| input result |
 	result := OrderedCollection new.
-	encoder := ZnUTF8Encoder default.
-	utfSubject := encoder encodeString: subject.
+	input := self utf8InputFor: subject.
 	self
-		matchAll: utfSubject
+		matchAll: input bytes
 		from: 1
-		to: utfSubject size
+		to: input size
 		do: [ :match |
-			match subject: utfSubject decoder: encoder.
+			input recordOn: match.
 			result add: match readMatch ].
 	^ result
 ]
@@ -372,15 +370,14 @@ PCRE2Matcher >> findAll: subject [
 PCRE2Matcher >> findAll: subject do: aBlock [
 	"Iterate over all matching substrings within the subject."
 
-	| encoder utfSubject |
-	encoder := ZnUTF8Encoder default.
-	utfSubject := encoder encodeString: subject.
+	| input |
+	input := self utf8InputFor: subject.
 	self
-		matchAll: utfSubject
+		matchAll: input bytes
 		from: 1
-		to: utfSubject size
+		to: input size
 		do: [ :match |
-			match subject: utfSubject decoder: encoder.
+			input recordOn: match.
 			aBlock value: match readMatch ]
 ]
 
@@ -388,16 +385,15 @@ PCRE2Matcher >> findAll: subject do: aBlock [
 PCRE2Matcher >> findAllWithGroups: subject [
 	"Returns all matching substrings and groups within the subject."
 
-	| result encoder utfSubject |
+	| input result |
 	result := OrderedCollection new.
-	encoder := ZnUTF8Encoder default.
-	utfSubject := encoder encodeString: subject.
+	input := self utf8InputFor: subject.
 	self
-		matchAll: utfSubject
+		matchAll: input bytes
 		from: 1
-		to: utfSubject size
+		to: input size
 		do: [ :match |
-			match subject: utfSubject decoder: encoder.
+			input recordOn: match.
 			result add: match readMatches ].
 	^ result
 ]
@@ -406,11 +402,10 @@ PCRE2Matcher >> findAllWithGroups: subject [
 PCRE2Matcher >> findMatch: subject [
 	"Returns standalone match data for the first matching substring, or nil."
 
-	| encoder match utfSubject |
-	encoder := ZnUTF8Encoder default.
-	utfSubject := encoder encodeString: subject.
-	match := self matchBytes: utfSubject from: 1 to: utfSubject size.
-	match ifNotNil: [ match subject: utfSubject decoder: encoder ].
+	| input match |
+	input := self utf8InputFor: subject.
+	match := self matchBytes: input bytes from: 1 to: input size.
+	match ifNotNil: [ input recordOn: match ].
 	^ match
 ]
 
@@ -611,12 +606,12 @@ PCRE2Matcher >> matchData: aPCRE2Match [
 PCRE2Matcher >> matches: subject [
 	"Returns whether the regex fully matches the subject."
 
-	| match utfSubject |
-	utfSubject := ZnUTF8Encoder default encodeString: subject.
-	match := self matchBytes: utfSubject from: 1 to: utfSubject size.
+	| input match |
+	input := self utf8InputFor: subject.
+	match := self matchBytes: input bytes from: 1 to: input size.
 	match ifNil: [ ^ false ].
 	match offsetsDo: [ :start :end |
-		^ start == 1 and: [ end == utfSubject size ] ].
+		^ start == 1 and: [ end == input size ] ].
 	^ false
 ]
 
@@ -650,9 +645,9 @@ PCRE2Matcher >> matchesIn: subject do: aBlock [
 PCRE2Matcher >> matchesPrefix: subject [
 	"Returns whether the regex matches the start of the subject."
 
-	| match utfSubject |
-	utfSubject := ZnUTF8Encoder default encodeString: subject.
-	match := self matchBytes: utfSubject from: 1 to: utfSubject size.
+	| input match |
+	input := self utf8InputFor: subject.
+	match := self matchBytes: input bytes from: 1 to: input size.
 	match ifNil: [ ^ false ].
 	match offsetsDo: [ :start :end | ^ start == 1 ].
 	^ false
@@ -920,6 +915,12 @@ PCRE2Matcher >> substitute: subject with: replacement [
 		  to: bufferSize
 		  with: buffer
 		  startingAt: 1
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> utf8InputFor: aString [
+
+	^ PCRE2UTF8Input fromString: aString
 ]
 
 { #category : 'private' }

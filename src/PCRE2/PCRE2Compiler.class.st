@@ -126,10 +126,10 @@ PCRE2Compiler >> compile: pattern upTo: length errorCode: errorCode errorOffset:
 
 { #category : 'compiling' }
 PCRE2Compiler >> compileBasic: pattern [
-	"Creates a regex matcher from a pattern and returns its external address"
+	"Creates a regex matcher from a pattern and returns its external address. ASCII ByteString patterns can be passed directly because they are already valid UTF-8."
 
-	| utfPattern errorCode errorOffset handle |
-	utfPattern := ZnUTF8Encoder default encodeString: pattern.
+	| errorCode errorOffset handle utfPattern |
+	utfPattern := (PCRE2UTF8Input fromString: pattern) bytes.
 	errorCode := IntHolder new.
 	errorOffset := SizeTHolder new.
 	handle := self
@@ -138,7 +138,10 @@ PCRE2Compiler >> compileBasic: pattern [
 		          errorCode: errorCode
 		          errorOffset: errorOffset.
 	handle isNull ifTrue: [
-		self errorCode: errorCode value in: utfPattern at: errorOffset value ].
+		self
+			errorCode: errorCode value
+			in: utfPattern asByteArray
+			at: errorOffset value ].
 	^ handle
 ]
 

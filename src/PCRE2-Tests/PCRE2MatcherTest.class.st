@@ -21,6 +21,27 @@ PCRE2MatcherTest >> assertRegex: pattern matchPersists: subject [
 ]
 
 { #category : 'tests' }
+PCRE2MatcherTest >> testASCIIFindAllFastPath [
+
+	| matches |
+	matches := 'a+' asPCRegex findAll: 'aa bb aaa'.
+
+	self assert: matches asArray equals: #( 'aa' 'aaa' )
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testASCIISubjectFastPath [
+
+	| match subject |
+	subject := 'abc123'.
+	match := '\w+' asPCRegex findMatch: subject.
+
+	self assert: match subject identicalTo: subject.
+	self assert: match decoder identicalTo: nil.
+	self assert: match readMatch equals: subject
+]
+
+{ #category : 'tests' }
 PCRE2MatcherTest >> testAllInfo [
 
 	| regex infos |
@@ -483,6 +504,21 @@ PCRE2MatcherTest >> testMatchesPrefix [
 	self assert:
 		('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
 			 asPCRegex matchesPrefix: 'user@example.com admin@domain.org')
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testNonASCIIByteStringSubjectIsEncoded [
+
+	| match subject |
+	subject := 'café'.
+	match := 'é' asPCRegex findMatch: subject.
+
+	self deny: match subject identicalTo: subject.
+	self
+		assert: match subject
+		equals: (ZnUTF8Encoder default encodeString: subject).
+	self assert: match decoder class equals: ZnUTF8Encoder.
+	self assert: match readMatch equals: 'é'
 ]
 
 { #category : 'tests' }
