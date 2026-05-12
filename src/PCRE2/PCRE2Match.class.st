@@ -1,7 +1,7 @@
 "
 I contain standalone match data produced by a compiled PCRE2 pattern.
 
-A matcher creates me for a match attempt and then returns me to the caller. I keep PCRE2's ovector, optional subject bytes, and optional UTF-8 decoder so callers can ask for matched text or groups later without asking the matcher to remember mutable result state.
+A matcher creates me for a match attempt and then returns me to the caller. I keep PCRE2's ovector, optional subject bytes, optional UTF-8 decoder, and named-capture metadata so callers can ask for matched text or groups later without asking the matcher to remember mutable result state.
 
 When made persistent, I copy native offset data into Pharo memory and release the native match-data handle.
 "
@@ -15,7 +15,8 @@ Class {
 		'mark',
 		'startIndex',
 		'subject',
-		'decoder'
+		'decoder',
+		'nameTable'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -23,15 +24,25 @@ Class {
 
 { #category : 'persistence' }
 PCRE2Match >> bePersistent [
-	"Copy native offset data into Pharo memory and release my external match-data handle."
+	"Copy native offset data into Pharo memory and release my external match-data handle. Named-group metadata is already Pharo-side state."
 
 	self count.
 	offsets isArray ifFalse: [ "copy external data into local memory"
 		self offsets ].
-	"Named group metadata is not exposed by the current binding."
 	self free.
 	handle beNull.
 	isPersistent := true
+]
+
+{ #category : 'private' }
+PCRE2Match >> captureIndexesNamed: groupName [
+	"Answer all capture group numbers associated with groupName. Duplicate names are preserved in capture order."
+
+	| indexes |
+	indexes := OrderedCollection new.
+	self namedGroups keysAndValuesDo: [ :captureIndex :name |
+		name = groupName ifTrue: [ indexes add: captureIndex ] ].
+	^ indexes asArray
 ]
 
 { #category : 'accessing' }
@@ -111,6 +122,62 @@ PCRE2Match >> getStartIndex [
 	self ffiCall: #(size_t pcre2_get_startchar_8(self))
 ]
 
+{ #category : 'group access' }
+PCRE2Match >> groupAt: groupNumber [
+	"Answer the matched text for groupNumber, where 0 is the whole match and 1 is the first capture. Answer nil for an optional capture group that did not participate in the match."
+
+	| pair |
+	(groupNumber isInteger and: [ groupNumber >= 0 ]) ifFalse: [
+		self error: 'Group number must be a non-negative integer' ].
+	groupNumber >= self count ifTrue: [ ^ nil ].
+
+	self ensureSubjectAvailable.
+	pair := self offsetsAt: groupNumber + 1.
+	(self isUnsetOffset: pair first) ifTrue: [ ^ nil ].
+	^ self readSubjectFrom: pair first + 1 to: pair second
+]
+
+{ #category : 'group access' }
+PCRE2Match >> groupNamed: groupName [
+	"Answer the matched text for groupName, or nil when the name is absent or the group did not participate. For duplicate names, answer the first participating capture."
+
+	^ self groupNamed: groupName ifAbsent: [ nil ]
+]
+
+{ #category : 'group access' }
+PCRE2Match >> groupNamed: groupName ifAbsent: absentBlock [
+	"Answer the matched text for groupName. Evaluate absentBlock when the pattern has no such named group. If the name exists but the group did not participate, answer nil."
+
+	| indexes |
+	indexes := self captureIndexesNamed: groupName.
+	indexes isEmpty ifTrue: [ ^ absentBlock value ].
+	indexes do: [ :captureIndex |
+		| group |
+		group := self groupAt: captureIndex.
+		group ifNotNil: [ ^ group ] ].
+	^ nil
+]
+
+{ #category : 'group access' }
+PCRE2Match >> groupsByName [
+	"Answer a Dictionary mapping each named capture to its matched text. For duplicate names, use the first participating capture, matching groupNamed:."
+
+	| groups |
+	groups := Dictionary new.
+	self namedGroups do: [ :name |
+		(name notNil and: [ (groups includesKey: name) not ]) ifTrue: [
+			groups at: name put: (self groupNamed: name) ] ].
+	^ groups
+]
+
+{ #category : 'group access' }
+PCRE2Match >> groupsNamed: groupName [
+	"Answer all matched texts for groupName in capture order. Duplicate names are preserved; optional captures that did not participate answer nil in their position."
+
+	^ (self captureIndexesNamed: groupName) collect: [ :captureIndex |
+		  self groupAt: captureIndex ]
+]
+
 { #category : 'initialization' }
 PCRE2Match >> initialize [
 
@@ -121,6 +188,13 @@ PCRE2Match >> initialize [
 PCRE2Match >> isPersistent [
 
 	^ isPersistent
+]
+
+{ #category : 'private' }
+PCRE2Match >> isUnsetOffset: anInteger [
+	"Answer whether anInteger is PCRE2_UNSET."
+
+	^ anInteger = self unsetOffset
 ]
 
 { #category : 'enumerating' }
@@ -144,21 +218,36 @@ PCRE2Match >> mark [
 	^ mark ifNil: [ mark := self getMark ifEmpty: [ nil ] ]
 ]
 
+{ #category : 'accessing' }
+PCRE2Match >> namedGroups [
+	"Answer a sparse Array mapping PCRE2 capture group numbers to their names.
+	Capture group 1 is the first parenthesized group; group 0 is the whole match and is not named."
+
+	^ nameTable ifNil: [ #(  ) ]
+]
+
+{ #category : 'private' }
+PCRE2Match >> namedGroups: aNameTable [
+	"Remember the matcher's named-capture table for later group lookup."
+
+	nameTable := aNameTable
+]
+
 { #category : 'enumerating' }
 PCRE2Match >> offsets [
-	"Returns the array containing offset pairs for the match and captured substrings. (DO NOT MODIFY IT!)
-	The start offsets are at odd indexes, and the corresponding end offsets are at the following even indexes.
+	"Returns the raw PCRE2 offset pairs for the match and captured substrings. (DO NOT MODIFY IT!)
+	The start offsets are at odd indexes, and the corresponding exclusive end offsets are at the following even indexes.
 	The first pair identifies the part of the subject string that was matched by the entire pattern.
 	Subsequent pairs identify the captured substrings."
 
-	| copy index |
-	"use this opportunity to copy external data locally if not already done, to ensure persistence"
+	| copy pair |
+	"Use this opportunity to copy external data locally if not already done, preserving PCRE2's zero-based offset convention."
 	offsets isArray ifTrue: [ ^ offsets ].
 	copy := Array new: 2 * self count.
-	index := 0.
-	self offsetsDo: [ :start :end |
-		copy at: index + 1 put: start.
-		copy at: (index := index + 2) put: end ].
+	1 to: self count do: [ :pairIndex |
+		pair := self offsetsAt: pairIndex.
+		copy at: 2 * pairIndex - 1 put: pair first.
+		copy at: 2 * pairIndex put: pair second ].
 	^ offsets := copy
 ]
 
@@ -194,8 +283,12 @@ PCRE2Match >> offsetsDo: aBlock [
 
 	| wordSize |
 	offsets isArray ifTrue: [ "offsets have already been copied to a local array"
-		1 to: count by: 2 do: [ :i |
-		aBlock value: (offsets at: i) value: (offsets at: i + 1) ].
+		1 to: self count do: [ :pairIndex |
+			| index |
+			index := 2 * (pairIndex - 1).
+			aBlock
+				value: (offsets at: index + 1) + 1
+				value: (offsets at: index + 2) ].
 		^ self ].
 
 	offsets ifNil: [ offsets := self getOffsets ]. "table containing pairs of 0-based indexes"
@@ -289,6 +382,15 @@ PCRE2Match >> readMatches: subject decodeWith: decoder [
 	^ matches
 ]
 
+{ #category : 'private' }
+PCRE2Match >> readSubjectFrom: start to: end [
+	"Answer remembered subject bytes from start to end, decoding when the match came from a non-ASCII UTF-8 input."
+
+	| bytes |
+	bytes := subject copyFrom: start to: end.
+	^ decoder ifNil: [ bytes ] ifNotNil: [ decoder decodeBytes: bytes ]
+]
+
 { #category : 'initialization' }
 PCRE2Match >> reset [
 
@@ -297,7 +399,8 @@ PCRE2Match >> reset [
 	offsets := nil.
 	mark := nil.
 	subject := nil.
-	decoder := nil
+	decoder := nil.
+	nameTable := nil
 ]
 
 { #category : 'accessing' }
@@ -334,4 +437,11 @@ PCRE2Match >> subject: aByteArray decoder: aDecoder [
 
 	subject := aByteArray.
 	decoder := aDecoder
+]
+
+{ #category : 'private' }
+PCRE2Match >> unsetOffset [
+	"Answer PCRE2_UNSET for the current platform's PCRE2_SIZE width."
+
+	^ (1 bitShift: 8 * ExternalAddress wordSize) - 1
 ]

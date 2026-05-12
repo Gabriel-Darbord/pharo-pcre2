@@ -22,7 +22,8 @@ Class {
 		'context',
 		'compiler',
 		'isJIT',
-		'options'
+		'options',
+		'nameTable'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -426,9 +427,10 @@ PCRE2Matcher >> info: what output: where [
 
 { #category : 'initialization' }
 PCRE2Matcher >> initialize [
-	"Initialize matcher-local options. Match data is created per match operation."
+	"Initialize matcher-local options and lazily-computed metadata. Match data is created per match operation."
 
-	options := 0
+	options := 0.
+	nameTable := nil
 ]
 
 { #category : 'accessing' }
@@ -527,6 +529,7 @@ PCRE2Matcher >> matchBytes: subject from: start to: end into: aPCRE2Match [
 	| rc |
 	self validateUsableMatchData: aPCRE2Match.
 	aPCRE2Match reset.
+	aPCRE2Match namedGroups: self namedGroups.
 
 	rc := isJIT
 		      ifFalse: [
@@ -634,43 +637,10 @@ PCRE2Matcher >> matchingRangesIn: subject [
 
 { #category : 'documentation' }
 PCRE2Matcher >> namedGroups [
-	"Returns the table of named capture groups associated to their index
-	Because multiple groups can have the same name when using dupNames compile option, the index is used as the key"
+	"Answer a sparse Array mapping PCRE2 capture group numbers to their names.
+	Capture group 1 is the first parenthesized group; group 0 is the whole match and is not named. Duplicate names can appear at multiple indexes when the pattern was compiled with PCRE2 dupNames."
 
-	| table buffer rc count entrySize |
-	buffer := ByteArray new: 4.
-
-	"get the number of named capture groups"
-	rc := self info: PCRE2 infoNameCount output: buffer.
-	rc < 0 ifTrue: [ self errorCode: rc ].
-	(count := buffer uint32AtOffset: 0) = 0 ifTrue: [ ^ {  } ].
-
-	"get the size of each name table entry"
-	rc := self info: PCRE2 infoNameEntrySize output: buffer.
-	rc < 0 ifTrue: [ self errorCode: rc ].
-	entrySize := buffer uint32AtOffset: 0.
-
-	"get the name table"
-	buffer := ByteArray new: ExternalAddress wordSize.
-	rc := self info: PCRE2 infoNameTable output: buffer.
-	rc < 0 ifTrue: [ self errorCode: rc ].
-	buffer := buffer pointerAtOffset: 0. "buffer is a pointer to the name table"
-
-	"each entry begins with a uint16 for the index, followed by the name as a C string"
-	table := Array new: count.
-	1 to: count do: [ :i |
-		| offset index name |
-		offset := entrySize * (i - 1).
-		"index is encoded as `(entry[0] << 8) | entry[1]`"
-		index := ((buffer uint8AtOffset: offset) bitShift: 8) bitOr:
-			         (buffer uint8AtOffset: (offset := offset + 1)).
-		name := ByteArray new: entrySize - 3 streamContents: [ :s |
-			        | char |
-			        [
-			        (char := buffer uint8AtOffset: (offset := offset + 1)) == 0 ]
-				        whileFalse: [ s nextPut: char ] ].
-		table at: index put: name utf8Decoded ].
-	^ table
+	^ nameTable ifNil: [ nameTable := self readNamedGroups ]
 ]
 
 { #category : 'external resource management' }
@@ -704,9 +674,10 @@ PCRE2Matcher >> pattern [
 
 { #category : 'accessing' }
 PCRE2Matcher >> pattern: aString [
-	"Must only be used by the compiler"
+	"Must only be used by the compiler."
 
-	pattern := aString
+	pattern := aString.
+	nameTable := nil
 ]
 
 { #category : 'copying' }
@@ -728,6 +699,43 @@ PCRE2Matcher >> privateCopy [
 	The yield of the function is NULL if code is NULL or if sufficient memory cannot be obtained."
 
 	self ffiCall: #(void *pcre2_code_copy_8(self))
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> readNamedGroups [
+	"Read PCRE2's name table into a sparse Array keyed by capture group number."
+
+	| buffer captureCount entrySize nameCount rc table |
+	buffer := ByteArray new: 4.
+
+	rc := self info: PCRE2 infoNameCount output: buffer.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	(nameCount := buffer uint32AtOffset: 0) = 0 ifTrue: [ ^ #(  ) ].
+
+	captureCount := self info: PCRE2 infoCaptureCount.
+	table := Array new: captureCount.
+
+	rc := self info: PCRE2 infoNameEntrySize output: buffer.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	entrySize := buffer uint32AtOffset: 0.
+
+	buffer := ByteArray new: ExternalAddress wordSize.
+	rc := self info: PCRE2 infoNameTable output: buffer.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	buffer := buffer pointerAtOffset: 0.
+
+	1 to: nameCount do: [ :i |
+		| captureIndex name offset |
+		offset := entrySize * (i - 1).
+		captureIndex := ((buffer uint8AtOffset: offset) bitShift: 8) bitOr:
+			                (buffer uint8AtOffset: (offset := offset + 1)).
+		name := ByteArray new: entrySize - 3 streamContents: [ :stream |
+			        | char |
+			        [
+			        (char := buffer uint8AtOffset: (offset := offset + 1)) = 0 ]
+				        whileFalse: [ stream nextPut: char ] ].
+		table at: captureIndex put: name utf8Decoded ].
+	^ table
 ]
 
 { #category : 'persistence' }

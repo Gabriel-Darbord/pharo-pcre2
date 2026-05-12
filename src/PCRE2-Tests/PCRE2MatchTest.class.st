@@ -28,6 +28,19 @@ PCRE2MatchTest >> testCount [
 ]
 
 { #category : 'tests' }
+PCRE2MatchTest >> testDuplicateNamedGroups [
+
+	| match regex |
+	regex := '(?<part>cat)|(?<part>dog)'
+		         asPerlCompatibleRegexWithOptions: PCRE2 dupNames.
+	match := regex findMatch: 'dog'.
+
+	self assert: regex namedGroups equals: #( 'part' 'part' ).
+	self assert: (match groupsNamed: 'part') equals: { nil. 'dog' }.
+	self assert: (match groupNamed: 'part') equals: 'dog'
+]
+
+{ #category : 'tests' }
 PCRE2MatchTest >> testLastMatchIndex [
 
 	| match |
@@ -38,6 +51,53 @@ PCRE2MatchTest >> testLastMatchIndex [
 
 	match := 'é' asPerlCompatibleRegex findMatch: 'éé'.
 	self assert: match lastMatchIndex equals: 2
+]
+
+{ #category : 'tests' }
+PCRE2MatchTest >> testNamedGroups [
+
+	| groups match regex |
+	regex := '(?<word>\p{L}+)-(?<digits>\d+)' asPerlCompatibleRegex.
+	match := regex findMatch: 'café-123'.
+
+	self assert: regex namedGroups equals: #( 'word' 'digits' ).
+	self assert: match namedGroups equals: regex namedGroups.
+	self assert: (match groupAt: 0) equals: 'café-123'.
+	self assert: (match groupAt: 1) equals: 'café'.
+	self assert: (match groupNamed: 'word') equals: 'café'.
+	self assert: (match groupNamed: 'digits') equals: '123'.
+	self
+		assert: (match groupNamed: 'missing' ifAbsent: [ 'absent' ])
+		equals: 'absent'.
+
+	groups := match groupsByName.
+	self assert: (groups at: 'word') equals: 'café'.
+	self assert: (groups at: 'digits') equals: '123'
+]
+
+{ #category : 'tests' }
+PCRE2MatchTest >> testNamedGroupsAfterUnnamedCapture [
+
+	| match regex |
+	regex := '(a)(?<letter>b)' asPerlCompatibleRegex.
+	match := regex findMatch: 'ab'.
+
+	self assert: regex namedGroups size equals: 2.
+	self assert: (regex namedGroups at: 1) equals: nil.
+	self assert: (regex namedGroups at: 2) equals: 'letter'.
+	self assert: (match groupNamed: 'letter') equals: 'b'
+]
+
+{ #category : 'tests' }
+PCRE2MatchTest >> testNamedGroupsSurvivePersistence [
+
+	| match |
+	match := '(?<word>\w+)' asPerlCompatibleRegex findMatch: 'hello'.
+	match bePersistent.
+
+	self assert: match isPersistent.
+	self assert: (match groupNamed: 'word') equals: 'hello'.
+	self assert: (match groupsByName at: 'word') equals: 'hello'
 ]
 
 { #category : 'tests' }
