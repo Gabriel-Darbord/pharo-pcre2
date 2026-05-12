@@ -111,12 +111,13 @@ LibPCRE2 >> deserialize: bytes [
 
 { #category : 'private' }
 LibPCRE2 >> deserialize: bytes count: count output: buffer [
-	"This function decodes a serialized set of compiled patterns back into a list of individual patterns.
-	This is possible only on a host that is running the same version of PCRE2, with the same code unit width, and the host must also have the same endianness, pointer width and PCRE2_SIZE type."
+	"Decode a serialized byte stream into compiled-pattern pointers. Both arguments are raw byte/pointer buffers prepared by the caller, so keep UFFI out of their contents with void*."
 
-	"int32_t pcre2_serialize_decode(pcre2_code **codes, int32_t number_of_codes, const uint8_t *bytes, pcre2_general_context *gcontext)"
+	"int32_t pcre2_serialize_decode_8(pcre2_code **codes, int32_t number_of_codes, const uint8_t *bytes, pcre2_general_context *gcontext)"
 
-	self ffiCall: #(int32 pcre2_serialize_decode_8(void *buffer, int32 count, const uint8 *bytes, nil))
+	self ffiCall:
+		#( int32 pcre2_serialize_decode_8 #( void #* buffer #, int32 count
+		      #, void #* bytes #, nil ) )
 ]
 
 { #category : 'error handling' }
@@ -207,33 +208,30 @@ LibPCRE2 >> serialize: matchers [
 
 { #category : 'private' }
 LibPCRE2 >> serialize: matchers count: count output: bytes size: bufferSize [
-	"Encodes a list of compiled patterns into a byte stream.
-	Note that this is not an abstract format like Java or .NET.
-	Conversion of the byte stream back into usable compiled patterns can only happen
-	on a host that is running the same version of PCRE2, with the same code unit width,
-	and the host must also have the same endianness, pointer width and PCRE2_SIZE type."
+	"Encode compiled-pattern pointers into a PCRE2-owned serialized byte stream. The pointers table and output pointer slot are raw memory buffers, so pass them as void*."
 
-	"int32_t pcre2_serialize_encode(const pcre2_code **codes, int32_t number_of_codes, uint8_t **serialized_bytes, PCRE2_SIZE *serialized_size, pcre2_general_context *gcontext)"
+	"int32_t pcre2_serialize_encode_8(const pcre2_code **codes, int32_t number_of_codes, uint8_t **serialized_bytes, PCRE2_SIZE *serialized_size, pcre2_general_context *gcontext)"
 
-	self ffiCall: #(int32 pcre2_serialize_encode_8(void *matchers, int32 count, uint8 *bytes, SizeTHolder *bufferSize, nil))
+	self ffiCall:
+		#( int32 pcre2_serialize_encode_8 #( void #* matchers #, int32 count
+		      #, void #* bytes #, SizeTHolder #* bufferSize #, nil ) )
 ]
 
 { #category : 'private' }
 LibPCRE2 >> serializeFree: bytes [
+	"Free a serialized byte stream allocated by PCRE2."
 
-	self ffiCall: #(void pcre2_serialize_free_8(uint8 *bytes))
+	self ffiCall: #( void pcre2_serialize_free_8 #( void #* bytes ) )
 ]
 
 { #category : 'private' }
 LibPCRE2 >> serializedNumberOfCodes: bytes [
-	"returns the number of serialized patterns in the byte stream, or one of the following negative error codes:
-	PCRE2_ERROR_BADMAGIC  mismatch of id bytes in bytes
-	PCRE2_ERROR_BADMODE   mismatch of variable unit size or PCRE version
-	PCRE2_ERROR_NULL      the argument is NULL"
+	"Return the number of compiled patterns in a serialized byte stream. The byte stream is already materialized, so pass it as an opaque buffer."
 
-	"int32_t pcre2_serialize_get_number_of_codes(const uint8_t *bytes)"
+	"int32_t pcre2_serialize_get_number_of_codes_8(const uint8_t *bytes)"
 
-	self ffiCall: #(int32 pcre2_serialize_get_number_of_codes_8(const uint8 *bytes))
+	self ffiCall: #( int32 pcre2_serialize_get_number_of_codes_8
+		   #( void #* bytes ) )
 ]
 
 { #category : 'accessing - platform' }

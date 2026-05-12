@@ -113,23 +113,14 @@ PCRE2Compiler >> compile: pattern [
 
 { #category : 'private' }
 PCRE2Compiler >> compile: pattern upTo: length errorCode: errorCode errorOffset: errorOffset [
-"This function reads a regular expression in the form of a string and returns
-a pointer to a block of store holding a compiled version of the expression.
-
-Arguments:
-  pattern       the regular expression
-  patlen        the length of the pattern, or PCRE2_ZERO_TERMINATED
-  options       option bits
-  errorptr      pointer to errorcode
-  erroroffset   pointer to error offset
-  ccontext      points to a compile context or is NULL
-
-Returns:        pointer to compiled data block, or NULL on error,
-                with errorcode and erroroffset set"
+	"Compile a UTF-8 encoded pattern buffer. The pattern argument is already prepared as bytes, so use void* to avoid UFFI string encoding policy."
 
 	"pcre2_code *pcre2_compile_8(PCRE2_SPTR pattern, PCRE2_SIZE length, uint32_t options, int *errorcode, PCRE2_SIZE *erroroffset, pcre2_compile_context *ccontext)"
 
-	self ffiCall: #(void *pcre2_compile_8(uint8 *pattern, size_t length, uint32 options, IntHolder errorCode, SizeTHolder errorOffset, void *context))
+	self ffiCall:
+		#( void #* pcre2_compile_8 #( void #* pattern #, size_t length
+		      #, uint32 options #, IntHolder errorCode #, SizeTHolder
+		      errorOffset #, void #* context ) )
 ]
 
 { #category : 'compiling' }

@@ -236,9 +236,9 @@ PCRE2Matcher >> dfaMatch: subject [
 
 { #category : 'private' }
 PCRE2Matcher >> dfaMatch: subject from: start to: end matchData: aMatchData workspace: workspace size: workspaceSize [
-	"Run a DFA match with caller-managed match data and workspace storage."
+	"Run a DFA match with caller-managed match data and workspace storage. Subject and workspace are prepared raw buffers, so both use void* to avoid UFFI element/string conversion."
 
-	"int pcre2_dfa_match(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, int *workspace, PCRE2_SIZE wscount)"
+	"int pcre2_dfa_match_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, int *workspace, PCRE2_SIZE wscount)"
 
 	self ffiCall:
 		#( int pcre2_dfa_match_8 #( self #, void #* subject #, size_t end
@@ -495,13 +495,13 @@ PCRE2Matcher >> isJIT: aBoolean [
 
 { #category : 'private' }
 PCRE2Matcher >> jitMatch: subject from: start to: end matchData: aMatchData [
-	"Run a JIT pattern match and write offsets into the provided match data."
+	"Run pcre2_jit_match_8 on a prepared UTF-8 subject buffer and write offsets into the provided match data. Use void* for the subject because encoding and lifetime are managed explicitly before the FFI call."
 
-	"int pcre2_jit_match(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
+	"int pcre2_jit_match_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
 
 	self ffiCall:
-		#( int pcre2_jit_match_8 #( self #, uint8 #* subject #, size_t
-		      end #, size_t start #, uint32 options #, PCRE2Match #* aMatchData
+		#( int pcre2_jit_match_8 #( self #, void #* subject #, size_t end
+		      #, size_t start #, uint32 options #, PCRE2Match #* aMatchData
 		      #, void #* context ) )
 ]
 
@@ -515,12 +515,12 @@ PCRE2Matcher >> mark [
 
 { #category : 'private' }
 PCRE2Matcher >> match: subject from: start to: end matchData: aMatchData [
-	"This function applies a compiled pattern to a subject string and writes offsets into the provided match data."
+	"Run pcre2_match_8 on a prepared UTF-8 subject buffer and write offsets into the provided match data. Use void* for the subject because encoding and lifetime are managed explicitly before the FFI call."
 
-	"int pcre2_match(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
+	"int pcre2_match_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
 
 	self ffiCall:
-		#( int pcre2_match_8 #( self #, uint8 #* subject #, size_t end #, size_t
+		#( int pcre2_match_8 #( self #, void #* subject #, size_t end #, size_t
 		      start #, uint32 options #, PCRE2Match #* aMatchData #, void
 		      #* context ) )
 ]
@@ -850,14 +850,14 @@ PCRE2Matcher >> startIndex [
 
 { #category : 'private' }
 PCRE2Matcher >> substitute: subject from: start to: end replacement: replacement upTo: rLength output: buffer size: outSize [
-	"Apply substitutions into caller-provided output storage. PCRE2 may use internal match data for this call."
+	"Apply substitutions into caller-provided output storage. Subject, replacement, and output are prepared byte buffers, so use void* for them and let PCRE2 handle the bytes exactly as supplied."
 
-	"int pcre2_substitute(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, PCRE2_SPTR replacement, PCRE2_SIZE rlength, PCRE2_UCHAR *outputbuffer, PCRE2_SIZE *outlengthptr)"
+	"int pcre2_substitute_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, PCRE2_SPTR replacement, PCRE2_SIZE rlength, PCRE2_UCHAR *outputbuffer, PCRE2_SIZE *outlengthptr)"
 
 	self ffiCall:
-		#( int pcre2_substitute_8 #( self #, uint8 #* subject #, size_t
+		#( int pcre2_substitute_8 #( self #, void #* subject #, size_t
 		      end #, size_t start #, uint32 options #, nil #, void #* context
-		      #, uint8 #* replacement #, size_t rLength #, void #* buffer
+		      #, void #* replacement #, size_t rLength #, void #* buffer
 		      #, SizeTHolder outSize ) )
 ]
 
