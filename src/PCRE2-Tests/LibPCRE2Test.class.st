@@ -10,5 +10,14 @@ LibPCRE2Test >> testConfig [
 
 	self
 		shouldnt: [ LibPCRE2 uniqueInstance allConfigs ]
-		raise: PCRE2Error
+		raise: PCRE2Error.
+	self shouldnt: [ LibPCRE2 assertCompatibleLibrary ] raise: PCRE2Error.
+	self assert: LibPCRE2 versionString notEmpty.
+	self
+		assert: LibPCRE2 versionMajor
+		equals: LibPCRE2 requiredMajorVersion.
+	self assert: LibPCRE2 versionMinor isInteger.
+	self assert: LibPCRE2 versionDate notEmpty.
+	self assert: LibPCRE2 supports8BitCodeUnitWidth.
+	self assert: LibPCRE2 supportsUnicode
 ]

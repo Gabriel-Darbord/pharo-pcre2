@@ -23,27 +23,21 @@ PCRE2MatcherTest >> assertRegex: pattern matchPersists: subject [
 { #category : 'tests' }
 PCRE2MatcherTest >> testAllInfo [
 
-	| regex infos infoNameTable infoFrameSize infoJITSize |
+	| regex infos |
 	regex := '' asPCRegex.
 	infos := regex allInfo.
 
-	"25 = index of infoFrameSize, which may vary depending on the architecture"
-	infoFrameSize := infos at: 25.
-	infos := infos copyWithoutIndex: 25.
-
-	"20 = index of infoNameTable, which is a pointer to a table, so it is different each time"
-	infoNameTable := infos at: 20.
-	infos := infos copyWithoutIndex: 20.
-
-	"11 = index of infoJITSize, which may vary depending on the architecture"
-	infoJITSize := infos at: 11.
-	infos := infos copyWithoutIndex: 11.
-
-	self
-		assert: infos
-		equals:
-			#( 524288 524288 0 1 0 0 0 nil 0 0 0 0 1 nil 0 0 0 0 2 nil 143 0 nil
-			   0 )
+	self assert: infos size equals: 27.
+	self assert: (infos at: PCRE2 infoAllOptions + 1) equals: PCRE2 utf.
+	self assert: (infos at: PCRE2 infoArgOptions + 1) equals: PCRE2 utf.
+	self assert: (infos at: PCRE2 infoBackrefMax + 1) equals: 0.
+	self assert: (infos at: PCRE2 infoCaptureCount + 1) equals: 0.
+	self assert: (infos at: PCRE2 infoMatchEmpty + 1) equals: 1.
+	self assert: (infos at: PCRE2 infoNameCount + 1) equals: 0.
+	self assert: (infos at: PCRE2 infoSize + 1) > 0.
+	self assert: (infos at: PCRE2 infoJITSize + 1) >= 0.
+	self assert: (infos at: PCRE2 infoFrameSize + 1) > 0.
+	self assert: (infos at: PCRE2 infoNewline + 1) isInteger
 ]
 
 { #category : 'tests' }

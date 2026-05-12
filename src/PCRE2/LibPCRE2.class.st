@@ -8,6 +8,12 @@ Class {
 	#package : 'PCRE2'
 }
 
+{ #category : 'version management' }
+LibPCRE2 class >> assertCompatibleLibrary [
+
+	^ self uniqueInstance assertCompatibleLibrary
+]
+
 { #category : 'documentation' }
 LibPCRE2 class >> config: option [
 
@@ -32,6 +38,13 @@ LibPCRE2 class >> newMatchContext [
 	^ self uniqueInstance newMatchContext
 ]
 
+{ #category : 'version management' }
+LibPCRE2 class >> requiredMajorVersion [
+	"This binding targets PCRE2 10.x. Minor releases may change diagnostics or reported sizes, but a different major version should be reviewed before use."
+
+	^ 10
+]
+
 { #category : 'persistence' }
 LibPCRE2 class >> restore: matchers from: bytes [
 
@@ -44,12 +57,78 @@ LibPCRE2 class >> serialize: matchers [
 	^ self uniqueInstance serialize: matchers
 ]
 
+{ #category : 'version management' }
+LibPCRE2 class >> supports8BitCodeUnitWidth [
+
+	^ self uniqueInstance supports8BitCodeUnitWidth
+]
+
+{ #category : 'version management' }
+LibPCRE2 class >> supportsJIT [
+
+	^ self uniqueInstance supportsJIT
+]
+
+{ #category : 'version management' }
+LibPCRE2 class >> supportsUnicode [
+
+	^ self uniqueInstance supportsUnicode
+]
+
+{ #category : 'version management' }
+LibPCRE2 class >> version [
+
+	^ self uniqueInstance version
+]
+
+{ #category : 'version management' }
+LibPCRE2 class >> versionDate [
+
+	^ self uniqueInstance versionDate
+]
+
+{ #category : 'version management' }
+LibPCRE2 class >> versionMajor [
+
+	^ self uniqueInstance versionMajor
+]
+
+{ #category : 'version management' }
+LibPCRE2 class >> versionMinor [
+
+	^ self uniqueInstance versionMinor
+]
+
+{ #category : 'version management' }
+LibPCRE2 class >> versionString [
+
+	^ self uniqueInstance versionString
+]
+
 { #category : 'documentation' }
 LibPCRE2 >> allConfigs [
 	"All configuration information about the PCRE2 library.
 	Includes the obsolete PCRE2_CONFIG_STACKRECURSE at index 9 which is always 0."
 
 	^ (0 to: 15) collect: [ :option | self config: option ]
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> assertCompatibleLibrary [
+	"Fail early when the loaded native library does not match the assumptions of this binding."
+
+	self versionMajor = self class requiredMajorVersion ifFalse: [
+		PCRE2Error signal:
+			'Unsupported PCRE2 major version ' , self versionMajor asString
+			, ' from ' , self versionString , '. This binding targets PCRE2 '
+			, self class requiredMajorVersion asString , '.x' ].
+	self supports8BitCodeUnitWidth ifFalse: [
+		PCRE2Error signal:
+			'The loaded PCRE2 library was not compiled with 8-bit code unit support' ].
+	self supportsUnicode ifFalse: [
+		PCRE2Error signal:
+			'The loaded PCRE2 library was not compiled with Unicode support' ].
+	^ self
 ]
 
 { #category : 'documentation' }
@@ -234,6 +313,25 @@ LibPCRE2 >> serializedNumberOfCodes: bytes [
 		   #( void #* bytes ) )
 ]
 
+{ #category : 'version management' }
+LibPCRE2 >> supports8BitCodeUnitWidth [
+	"PCRE2_CONFIG_COMPILED_WIDTHS is a bitmask; bit 0 means 8-bit support."
+
+	^ ((self config: PCRE2 configCompiledWidths) bitAnd: 1) = 1
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> supportsJIT [
+
+	^ (self config: PCRE2 configJIT) = 1
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> supportsUnicode [
+
+	^ (self config: PCRE2 configUnicode) = 1
+]
+
 { #category : 'accessing - platform' }
 LibPCRE2 >> unix32LibraryName [
 
@@ -252,6 +350,44 @@ LibPCRE2 >> unix64LibraryName [
 LibPCRE2 >> unixLibraryName [
 
 	^ self unix32LibraryName
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> version [
+	"Answer { major. minor. dateStringOrNil } parsed from the PCRE2 runtime version."
+
+	| fields numbers |
+	fields := self versionString substrings.
+	numbers := fields first findTokens: '.'.
+	^ {
+		  numbers first asInteger.
+		  (numbers at: 2 ifAbsent: [ '0' ]) asInteger.
+		  (fields at: 2 ifAbsent: [ nil ]) }
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> versionDate [
+
+	^ self version third
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> versionMajor [
+
+	^ self version first
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> versionMinor [
+
+	^ self version second
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> versionString [
+	"Answer the raw PCRE2 version string, for example '10.47 2025-10-21'."
+
+	^ self config: PCRE2 configVersion
 ]
 
 { #category : 'accessing - platform' }

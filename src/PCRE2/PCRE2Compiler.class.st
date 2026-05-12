@@ -81,11 +81,12 @@ PCRE2Compiler class >> pattern: aString options: anInteger [
 
 { #category : 'system startup' }
 PCRE2Compiler class >> startUp: resuming [
-	"Verify that the library supports JIT compilation on the current platform"
+	"Verify that the loaded native library matches the assumptions of this binding."
 
 	resuming ifFalse: [ ^ self ].
 	PCRE2Types initialize. "TODO handle dependency in baseline"
-	SupportsJIT := (LibPCRE2 config: PCRE2 configJIT) == 1
+	LibPCRE2 assertCompatibleLibrary.
+	SupportsJIT := LibPCRE2 supportsJIT
 ]
 
 { #category : 'accessing' }
