@@ -143,14 +143,13 @@ PCRE2DebugSession >> runTrace [
 	^ trace
 ]
 
-{ #category : 'stepping' }
+{ #category : 'accessing' }
 PCRE2DebugSession >> selectStep: aTraceStep [
 
 	aTraceStep ifNil: [
 		selectedStepIndex := 0.
 		^ self ].
-	selectedStepIndex := self steps indexOf: aTraceStep ifAbsent: [ 0 ].
-	^ self
+	^ self selectStepIndex: aTraceStep index
 ]
 
 { #category : 'stepping' }

@@ -29,7 +29,7 @@ PCRE2TraceStepRow >> firstStep [
 { #category : 'testing' }
 PCRE2TraceStepRow >> includesStep: aTraceStep [
 
-	^ steps includes: aTraceStep
+	^ steps anySatisfy: [ :step | step index = aTraceStep index ]
 ]
 
 { #category : 'accessing' }

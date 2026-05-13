@@ -11,6 +11,39 @@ Class {
 }
 
 { #category : 'tests' }
+PCRE2DebugSessionTest >> testDebugSessionSelectStepUsesStableStepIndex [
+
+	| externalStep session |
+	session := PCRE2DebugSession
+		           pattern: '(cat|cater|caterpillar)'
+		           subject: 'caterpillar'.
+	session runTrace.
+	externalStep := session trace steps second.
+
+	session selectStep: externalStep.
+	self assert: session selectedStepIndex equals: externalStep index.
+	self assert: session selectedStep index equals: externalStep index
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testDebuggerPresenterRowSelectionUpdatesSessionStepIndex [
+
+	| presenter row session |
+	session := PCRE2DebugSession
+		           pattern: '(cat|cater|caterpillar)'
+		           subject: 'caterpillar'.
+	presenter := PCRE2DebuggerPresenter on: session.
+	presenter runTrace.
+	row := presenter tracePresenter stepsTable items second.
+
+	presenter tracePresenter stepsTable selectItem: row.
+	self
+		assert: session selectedStepIndex
+		equals: row representativeStep index.
+	self assert: session stepStatusString equals: 'Step 2 / 6'
+]
+
+{ #category : 'tests' }
 PCRE2DebugSessionTest >> testDebuggerPresenterUsesSession [
 
 	| presenter session |
@@ -66,6 +99,40 @@ PCRE2DebugSessionTest >> testTracePresenterAcceptsTraceModel [
 ]
 
 { #category : 'tests' }
+PCRE2DebugSessionTest >> testTracePresenterCanSelectEquivalentStepInsideGroup [
+
+	| externalStep group presenter trace |
+	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch:
+		         'caterpillar'.
+	presenter := PCRE2TracePresenter on: trace.
+	group := presenter stepsTable items detect: [ :row | row isGroup ].
+	externalStep := trace steps third.
+
+	presenter selectedStep: externalStep.
+	self assert: presenter selectedRow equals: group.
+	self assert: presenter selectedStep equals: externalStep.
+	self assert: presenter stepsTable selectedItem equals: group
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testTracePresenterGroupedContextMarksWholeRun [
+
+	| context group presenter trace |
+	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch:
+		         'caterpillar'.
+	presenter := PCRE2TracePresenter on: trace.
+	group := presenter stepsTable items detect: [ :row | row isGroup ].
+	context := presenter
+		           patternContextTextForRow: group
+		           range: (presenter patternRangeForRow: group).
+
+	self assert:
+		(context includesSubstring: 'Pattern 2-5 "cat|" | automatic x5').
+	self assert: (context includesSubstring: '(cat|cater|caterpillar)').
+	self assert: (context includesSubstring: '^^^^')
+]
+
+{ #category : 'tests' }
 PCRE2DebugSessionTest >> testTracePresenterGroupsLongAutomaticProgressRuns [
 
 	| group presenter rows trace |
@@ -104,6 +171,25 @@ PCRE2DebugSessionTest >> testTracePresenterLabelsSingleRowsWithSourceSnippets [
 ]
 
 { #category : 'tests' }
+PCRE2DebugSessionTest >> testTracePresenterPatternContextShowsCalloutNeighborhood [
+
+	| context presenter row trace |
+	trace := '(?C1)a(?C"step")b' asPerlCompatibleRegex traceMatch: 'ab'.
+	presenter := PCRE2TracePresenter on: trace.
+	row := presenter stepsTable items detect: [ :each |
+		       each firstStep event number = 1 ].
+	context := presenter
+		           patternContextTextForRow: row
+		           range: row firstStep patternRange.
+
+	self
+		assert: context
+		equals:
+			'Pattern 6 "a" | #1' , String cr , '(?C1)a(?C"step")b' , String cr
+			, '     ^'
+]
+
+{ #category : 'tests' }
 PCRE2DebugSessionTest >> testTracePresenterSelectingStepInsideGroupKeepsThatStep [
 
 	| group presenter step trace |
@@ -131,4 +217,22 @@ PCRE2DebugSessionTest >> testTracePresenterSelectionCanUseGroupedRows [
 	self assert: presenter selectedRow equals: group.
 	self assert: presenter selectedStep equals: group representativeStep.
 	self assert: presenter selectedStep index equals: 2
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testTracePresenterUpdatesRenderedContextPanes [
+
+	| presenter row trace |
+	trace := '(?C1)a(?C"step")b' asPerlCompatibleRegex traceMatch: 'ab'.
+	presenter := PCRE2TracePresenter on: trace.
+	row := presenter stepsTable items detect: [ :each |
+		       each firstStep event number = 1 ].
+
+	presenter selectedRow: row.
+	self assert: (presenter patternContextText text includesSubstring:
+			 '(?C1)a(?C"step")b').
+	self assert:
+		(presenter patternContextText text includesSubstring: '^').
+	self assert: (presenter subjectContextText text includesSubstring:
+			 'Subject at 1 | #1')
 ]
