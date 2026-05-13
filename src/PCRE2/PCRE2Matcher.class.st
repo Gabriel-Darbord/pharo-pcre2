@@ -5,9 +5,10 @@ High-level methods accept normal Pharo strings and prepared `PCRE2UTF8Input` ins
 
 Match operations create standalone `PCRE2Match` objects. The matcher does not own a reusable match result; callers may keep the returned match data and ask it for the matched text, groups, offsets, mark, partial/complete status, or persistence later.
 
-The API has three layers:
+The API has four layers:
 - Convenience matching such as `matches:`, `matchesPrefix:`, `search:`, `find:`, `findWithGroups:`, and `findPartialMatch:`.
 - Enumeration, splitting, and rewriting such as `findAll:`, `split:indicesDo:`, `copy:replacingMatchesWith:`, `copy:translatingMatchesUsing:`, and `substitute:with:`.
+- Debugging hooks such as `calloutSites`, runtime match-context callouts, and `traceMatch:`.
 - Byte-level operations such as `matchBytes:from:to:` and DFA matching for callers that already manage UTF-8 storage and offsets.
 
 Instances may be JIT-compiled when the native library supports it. Lifecycle restoration is handled by `PCRE2SessionManager`, which either deserializes compatible native codes or recompiles from the recorded pattern and options.
@@ -1276,6 +1277,55 @@ PCRE2Matcher >> substitutionOptions [
 	"Answer matcher options that are safe to pass to pcre2_substitute_8. Partial matching options are not valid for substitution."
 
 	^ options bitAnd: (PCRE2 partialSoft | PCRE2 partialHard) bitInvert
+]
+
+{ #category : 'debugging' }
+PCRE2Matcher >> traceMatch: aStringOrInput [
+	"Run an instrumented non-JIT match and answer a trace without mutating the receiver."
+
+	| eventSnapshots input match resultCode traceMatcher |
+	traceMatcher := self traceMatcher.
+	input := self utf8InputFor: aStringOrInput.
+	eventSnapshots := OrderedCollection new.
+	traceMatcher context calloutBlock: [ :event |
+		eventSnapshots add: event.
+		0 ].
+	match := traceMatcher newMatchData.
+	resultCode := traceMatcher
+		              matchBytes: input bytes
+		              from: 1
+		              to: input size
+		              into: match.
+	resultCode = PCRE2 errorNoMatch
+		ifTrue: [ match := nil ]
+		ifFalse: [ input recordOn: match ].
+	^ PCRE2MatchTrace
+		  pattern: pattern
+		  subject: aStringOrInput
+		  input: input
+		  calloutSites: traceMatcher calloutSites
+		  events: eventSnapshots asArray
+		  match: match
+		  resultCode: resultCode
+]
+
+{ #category : 'debugging' }
+PCRE2Matcher >> traceMatcher [
+	"Answer a temporary matcher compiled for tracing. The receiver is not mutated."
+
+	| sourceCompiler traceCompiler traceMatcher |
+	sourceCompiler := compiler ifNil: [ PCRE2Compiler new ].
+	traceCompiler := PCRE2Compiler new.
+	sourceCompiler copyContextIfPresent ifNotNil: [ :contextCopy |
+		traceCompiler context: contextCopy ].
+	traceCompiler
+		options: ((sourceCompiler options bitOr: PCRE2 autoCallout) bitOr:
+					 PCRE2 noStartOptimize);
+		optionsJIT: sourceCompiler optionsJIT.
+	traceMatcher := traceCompiler compile: pattern.
+	traceMatcher options: (options bitOr: PCRE2 noJIT).
+	context ifNotNil: [ traceMatcher context: context copy autoRelease ].
+	^ traceMatcher
 ]
 
 { #category : 'private' }

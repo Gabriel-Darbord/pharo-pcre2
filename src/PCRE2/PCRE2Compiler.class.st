@@ -173,6 +173,13 @@ PCRE2Compiler >> context: aCompileContext [
 	context := aCompileContext
 ]
 
+{ #category : 'copying' }
+PCRE2Compiler >> copyContextIfPresent [
+	"Answer a copy of the compile context when one was explicitly created, without forcing a new context."
+
+	^ context ifNotNil: [ context copy ]
+]
+
 { #category : 'private' }
 PCRE2Compiler >> createCompileContext [
 	"This function creates and initializes a new compile context.
