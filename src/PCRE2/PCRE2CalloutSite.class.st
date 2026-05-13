@@ -1,0 +1,146 @@
+"
+I represent a callout site discovered in a compiled PCRE2 pattern.
+
+PCRE2 can enumerate callout points without running a match. That is useful for tools such as regex explainers/debuggers because it reveals where numbered or string callouts appear in the compiled pattern while leaving normal matching behavior untouched.
+
+My offsets are PCRE2 pattern offsets, expressed in UTF-8 code units because this binding targets the 8-bit PCRE2 API.
+"
+Class {
+	#name : 'PCRE2CalloutSite',
+	#superclass : 'Object',
+	#instVars : [
+		'version',
+		'patternPosition',
+		'nextItemLength',
+		'number',
+		'stringOffset',
+		'stringLength',
+		'string'
+	],
+	#category : 'PCRE2',
+	#package : 'PCRE2'
+}
+
+{ #category : 'instance creation' }
+PCRE2CalloutSite class >> fromEnumerationBlock: anExternalAddress [
+
+	^ self new initializeFromEnumerationBlock: anExternalAddress
+]
+
+{ #category : 'private' }
+PCRE2CalloutSite class >> sizeTFrom: anExternalAddress atOffset: byteOffset [
+
+	| wordSize |
+	wordSize := ExternalAddress wordSize.
+	wordSize == 8 ifTrue: [
+		^ anExternalAddress uint64AtOffset: byteOffset ].
+	wordSize == 4 ifTrue: [
+		^ anExternalAddress uint32AtOffset: byteOffset ].
+	^ anExternalAddress platformSizeTAt: byteOffset + 1
+]
+
+{ #category : 'private' }
+PCRE2CalloutSite class >> stringFrom: anExternalAddress length: length [
+
+	| bytes |
+	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [
+		^ nil ].
+	bytes := ByteArray new: length.
+	1 to: length do: [ :index |
+		bytes at: index put: (anExternalAddress uint8AtOffset: index - 1) ].
+	^ bytes utf8Decoded
+]
+
+{ #category : 'testing' }
+PCRE2CalloutSite >> hasString [
+
+	^ string notNil
+]
+
+{ #category : 'initialization' }
+PCRE2CalloutSite >> initializeFromEnumerationBlock: anExternalAddress [
+
+	| pointerOffset sizeOffset wordSize |
+	wordSize := ExternalAddress wordSize.
+	sizeOffset := wordSize.
+
+	version := anExternalAddress uint32AtOffset: 0.
+	patternPosition := self class
+		                   sizeTFrom: anExternalAddress
+		                   atOffset: sizeOffset.
+	nextItemLength := self class
+		                  sizeTFrom: anExternalAddress
+		                  atOffset: sizeOffset + wordSize.
+	number := anExternalAddress uint32AtOffset:
+		          sizeOffset + (2 * wordSize).
+	stringOffset := self class
+		                sizeTFrom: anExternalAddress
+		                atOffset: sizeOffset + (3 * wordSize).
+	stringLength := self class
+		                sizeTFrom: anExternalAddress
+		                atOffset: sizeOffset + (4 * wordSize).
+	pointerOffset := sizeOffset + (5 * wordSize).
+	string := self class
+		          stringFrom:
+		          (anExternalAddress pointerAtOffset: pointerOffset)
+		          length: stringLength.
+	^ self
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutSite >> nextItemLength [
+
+	^ nextItemLength
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutSite >> number [
+
+	^ number
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutSite >> patternPosition [
+
+	^ patternPosition
+]
+
+{ #category : 'printing' }
+PCRE2CalloutSite >> printOn: aStream [
+
+	super printOn: aStream.
+	aStream
+		nextPut: $(;
+		print: patternPosition;
+		nextPutAll: ', ';
+		print: number.
+	string ifNotNil: [
+		aStream
+			nextPutAll: ', ';
+			print: string ].
+	aStream nextPut: $)
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutSite >> string [
+
+	^ string
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutSite >> stringLength [
+
+	^ stringLength
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutSite >> stringOffset [
+
+	^ stringOffset
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutSite >> version [
+
+	^ version
+]

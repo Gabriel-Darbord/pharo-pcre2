@@ -43,6 +43,33 @@ PCRE2Matcher >> bePersistent [
 	^ self
 ]
 
+{ #category : 'documentation' }
+PCRE2Matcher >> calloutSites [
+	"Answer the static callout sites compiled into this pattern. This is passive metadata: it does not install a runtime callout or affect matching."
+
+	| sites |
+	sites := OrderedCollection new.
+	self calloutSitesDo: [ :site | sites add: site ].
+	^ sites asArray
+]
+
+{ #category : 'documentation' }
+PCRE2Matcher >> calloutSitesDo: aBlock [
+	"Evaluate aBlock with each static callout site in this compiled pattern. This is passive metadata: it does not install a runtime callout or affect matching."
+
+	| callback rc |
+	callback := FFICallback
+		            signature:
+		            #( int #( void #* calloutBlock #, void #* userData ) )
+		            block: [ :calloutBlock :userData |
+			            aBlock value:
+				            (PCRE2CalloutSite fromEnumerationBlock: calloutBlock).
+			            0 ].
+	rc := self enumerateCalloutsWith: callback.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	^ self
+]
+
 { #category : 'private' }
 PCRE2Matcher >> canUseJITForOptions: matchOptions [
 	"Answer whether the compiled pattern has JIT code for the requested matching mode. The direct pcre2_jit_match() fast path does not fall back when a complete/partial mode was not JIT-compiled."
@@ -306,6 +333,17 @@ PCRE2Matcher >> dfaMatches: subject workspaceSize: workspaceSize ovectorSize: ov
 		   ovectorSize: ovectorSize)
 		  ifNil: [ #(  ) ]
 		  ifNotNil: [ :match | match readMatches ]
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> enumerateCalloutsWith: callback [
+	"Enumerate static callout sites in the compiled pattern. This does not run a match or change the matcher."
+
+	"int pcre2_callout_enumerate_8(const pcre2_code *code, int (*callback)(pcre2_callout_enumerate_block *, void *), void *user_data)"
+
+	self ffiCall:
+		#( int pcre2_callout_enumerate_8 #( self #, FFICallback callback
+		      #, nil ) )
 ]
 
 { #category : 'error handling' }
