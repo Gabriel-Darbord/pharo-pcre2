@@ -33,7 +33,7 @@ PCRE2TracePresenter class >> title [
 ]
 
 { #category : 'display' }
-PCRE2TracePresenter >> applySourceContextHighlightTo: aText range: anInterval [
+PCRE2TracePresenter >> applySourceHighlightTo: aText range: anInterval [
 
 	aText
 		addAttribute: (TextBackgroundColor color: (Color red alpha: 0.12))
@@ -87,15 +87,6 @@ PCRE2TracePresenter >> capturesTable [
 ]
 
 { #category : 'display' }
-PCRE2TracePresenter >> caretLineFor: characterPosition in: sourceString [
-
-	| caretPosition |
-	caretPosition := (characterPosition max: 1) min:
-		                 sourceString size + 1.
-	^ (String new: caretPosition - 1 withAll: Character space) , '^'
-]
-
-{ #category : 'display' }
 PCRE2TracePresenter >> combinedRangeForRow: aTraceStepRow using: rangeBlock [
 
 	| first firstRange last ranges |
@@ -138,7 +129,7 @@ PCRE2TracePresenter >> defaultLayout [
 		               spacing: 4;
 		               add: (self
 				                labelledPresenter: patternText
-				                label: 'Pattern'
+				                label: 'Traced pattern'
 				                help: self patternSourceHelpString);
 		               add: (self
 				                labelledPresenter: patternContextText
@@ -150,7 +141,7 @@ PCRE2TracePresenter >> defaultLayout [
 		               spacing: 4;
 		               add: (self
 				                labelledPresenter: subjectText
-				                label: 'Subject'
+				                label: 'Traced subject'
 				                help: self subjectSourceHelpString);
 		               add: (self
 				                labelledPresenter: subjectContextText
@@ -313,23 +304,20 @@ PCRE2TracePresenter >> flushProgressRun: pendingSteps into: rows [
 { #category : 'display' }
 PCRE2TracePresenter >> highlightedTextFor: aString range: anIntervalOrNil [
 
-	| source stop text |
+	| highlightPosition source start stop text |
 	source := aString ifNil: [ '' ] ifNotNil: [ aString asString ].
-	anIntervalOrNil ifNil: [ ^ source asText ].
-	anIntervalOrNil isEmpty ifTrue: [
-		^ (source , String cr
-		   , (self caretLineFor: anIntervalOrNil first in: source)) asText ].
 	text := source asText.
+	(anIntervalOrNil isNil or: [ source isEmpty ]) ifTrue: [ ^ text ].
+	anIntervalOrNil isEmpty ifTrue: [
+		highlightPosition := (anIntervalOrNil first max: 1) min: source size.
+		self
+			applySourceHighlightTo: text
+			range: (highlightPosition to: highlightPosition).
+		^ text ].
+	start := anIntervalOrNil first max: 1.
 	stop := anIntervalOrNil last min: source size.
-	anIntervalOrNil first <= stop ifTrue: [
-		text
-			addAttribute: TextEmphasis bold
-			from: anIntervalOrNil first
-			to: stop.
-		text
-			addAttribute: (TextColor color: Color red)
-			from: anIntervalOrNil first
-			to: stop ].
+	start <= stop ifTrue: [
+		self applySourceHighlightTo: text range: (start to: stop) ].
 	^ text
 ]
 
@@ -401,9 +389,9 @@ PCRE2TracePresenter >> initializeStepsTable [
 				 beNotExpandable;
 				 yourself);
 		addColumn: ((SpStringTableColumn
-				  title: 'Subject'
+				  title: 'Subject range'
 				  evaluated: [ :row | self subjectLabelForRow: row ])
-				 width: 120;
+				 width: 90;
 				 beNotExpandable;
 				 yourself);
 		addColumn: ((SpStringTableColumn
@@ -497,7 +485,7 @@ PCRE2TracePresenter >> patternRangeForRow: aTraceStepRow [
 { #category : 'layout' }
 PCRE2TracePresenter >> patternSourceHelpString [
 
-	^ 'Full regular expression. Highlight shows the pattern range reached by the selected trace row.'
+	^ 'Pattern used by the current trace. Highlight shows the pattern range reached by the selected trace row.'
 ]
 
 { #category : 'accessing' }
@@ -649,7 +637,7 @@ PCRE2TracePresenter >> sourceContextTextFor: sourceObject range: anIntervalOrNil
 		                     excerpt: excerpt
 		                     hasLeadingEllipsis: start > 1.
 	highlightInterval ifNotNil: [
-		self applySourceContextHighlightTo: text range: highlightInterval ].
+		self applySourceHighlightTo: text range: highlightInterval ].
 	^ text
 ]
 
@@ -726,8 +714,8 @@ PCRE2TracePresenter >> subjectContextTextForRow: aTraceStepRow range: anInterval
 PCRE2TracePresenter >> subjectLabelForRow: aTraceStepRow [
 
 	^ self
-		  sourceLabelFor: trace subject asString
-		  range: (self subjectRangeForRow: aTraceStepRow)
+		  rangeLabelFor: (self subjectRangeForRow: aTraceStepRow)
+		  in: trace subject asString
 ]
 
 { #category : 'display' }
@@ -741,7 +729,7 @@ PCRE2TracePresenter >> subjectRangeForRow: aTraceStepRow [
 { #category : 'layout' }
 PCRE2TracePresenter >> subjectSourceHelpString [
 
-	^ 'Full subject string. Highlight shows the subject range reached by the selected trace row.'
+	^ 'Subject used by the current trace. Highlight shows the subject range reached by the selected trace row.'
 ]
 
 { #category : 'accessing' }

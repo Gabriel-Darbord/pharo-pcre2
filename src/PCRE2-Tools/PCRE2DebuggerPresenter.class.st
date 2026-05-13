@@ -79,9 +79,9 @@ PCRE2DebuggerPresenter >> defaultLayout [
 	editorPane := SpBoxLayout newTopToBottom
 		              borderWidth: 8;
 		              spacing: 6;
-		              add: 'Pattern' height: 20;
+		              add: 'Input pattern' height: 20;
 		              add: patternInput height: 30;
-		              add: 'Subject' height: 20;
+		              add: 'Input subject' height: 20;
 		              add: subjectText;
 		              add: controls height: 68;
 		              add: statusLabel height: 24;
@@ -128,9 +128,11 @@ PCRE2DebuggerPresenter >> initializePresenters [
 	patternInput := self newTextInput
 		                text: session pattern;
 		                placeholder: 'Pattern';
+		                help: self patternInputHelpString;
 		                yourself.
 	subjectText := self newText
 		               text: session subject;
+		               help: self subjectInputHelpString;
 		               yourself.
 	maximumStepsInput := self newNumberInput
 		                     beInteger;
@@ -170,6 +172,18 @@ PCRE2DebuggerPresenter >> initializeWindow: aWindowPresenter [
 
 	super initializeWindow: aWindowPresenter.
 	aWindowPresenter initialExtent: 1200 @ 760
+]
+
+{ #category : 'accessing' }
+PCRE2DebuggerPresenter >> patternInput [
+
+	^ patternInput
+]
+
+{ #category : 'layout' }
+PCRE2DebuggerPresenter >> patternInputHelpString [
+
+	^ 'Editable pattern for the next trace run.'
 ]
 
 { #category : 'updating' }
@@ -219,6 +233,18 @@ PCRE2DebuggerPresenter >> session [
 PCRE2DebuggerPresenter >> setModelBeforeInitialization: aPCRE2DebugSession [
 
 	session := aPCRE2DebugSession
+]
+
+{ #category : 'layout' }
+PCRE2DebuggerPresenter >> subjectInputHelpString [
+
+	^ 'Editable subject for the next trace run. This may differ from the traced subject until Trace is pressed.'
+]
+
+{ #category : 'accessing' }
+PCRE2DebuggerPresenter >> subjectText [
+
+	^ subjectText
 ]
 
 { #category : 'accessing' }

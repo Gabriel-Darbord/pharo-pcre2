@@ -43,6 +43,21 @@ PCRE2DebugSessionTest >> testDebugSessionSelectStepUsesStableStepIndex [
 ]
 
 { #category : 'tests' }
+PCRE2DebugSessionTest >> testDebuggerPresenterInputsHaveHelpText [
+
+	| presenter session |
+	session := PCRE2DebugSession pattern: 'cat' subject: 'cat'.
+	presenter := PCRE2DebuggerPresenter on: session.
+
+	self
+		assert: presenter patternInput help
+		equals: presenter patternInputHelpString.
+	self
+		assert: presenter subjectText help
+		equals: presenter subjectInputHelpString
+]
+
+{ #category : 'tests' }
 PCRE2DebugSessionTest >> testDebuggerPresenterRowSelectionUpdatesSessionStepIndex [
 
 	| presenter row session |
@@ -177,16 +192,25 @@ PCRE2DebugSessionTest >> testTracePresenterGroupsLongAutomaticProgressRuns [
 	self
 		assert: (presenter patternLabelForRow: group)
 		equals: '2-5 "cat|"'.
-	self
-		assert: (presenter subjectLabelForRow: group)
-		equals: '1-3 "cat"'.
+	self assert: (presenter subjectLabelForRow: group) equals: '1-3'.
 	self
 		assert: (presenter calloutLabelForRow: group)
 		equals: 'automatic x5'
 ]
 
 { #category : 'tests' }
-PCRE2DebugSessionTest >> testTracePresenterLabelsSingleRowsWithSourceSnippets [
+PCRE2DebugSessionTest >> testTracePresenterHighlightsEmptyFullSourceRangeWithoutCaretLine [
+
+	| presenter text |
+	presenter := PCRE2TracePresenter new.
+	text := presenter highlightedTextFor: 'abc' range: (1 to: 0).
+
+	self assert: text asString equals: 'abc'.
+	self assertContextText: text highlights: 'a' at: (1 to: 1)
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testTracePresenterLabelsRowsWithPatternSnippetsAndSubjectRanges [
 
 	| presenter row trace |
 	trace := '(?C1)a(?C"step")b' asPerlCompatibleRegex traceMatch: 'ab'.
