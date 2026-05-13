@@ -1260,6 +1260,15 @@ PCRE2 class >> ungreedy [
 	^ 16r00040000
 ]
 
+{ #category : 'constants' }
+PCRE2 class >> unsetOffset [
+	"PCRE2_UNSET is the maximum PCRE2_SIZE value for the active native word size."
+
+	ExternalAddress wordSize == 8 ifTrue: [ ^ 16rFFFFFFFFFFFFFFFF ].
+	ExternalAddress wordSize == 4 ifTrue: [ ^ 16rFFFFFFFF ].
+	^ -1
+]
+
 { #category : 'options' }
 PCRE2 class >> useOffsetLimit [
 	"Enable offset limit for unanchored matching

@@ -3,7 +3,9 @@ I describe one instrumented PCRE2 match attempt.
 
 A trace is produced by compiling a temporary debug matcher with automatic callouts, running a non-JIT match, and collecting runtime PCRE2CalloutEvent snapshots. The original matcher is not mutated.
 
-I am intentionally a data object for now: UI/debugger tools can use my static callout sites, runtime events, match result, UTF-8 byte-to-character helpers, and event-to-site correlation methods to build a step-by-step explanation.
+I am intentionally a data object for now: UI/debugger tools can use my static callout sites, runtime events, match result, UTF-8 byte-to-character helpers, and event-to-site correlation methods.
+
+My `steps` API builds `PCRE2TraceStep` objects that pretranslate pattern/subject positions and capture ranges, giving a future debugger a headless model to present or replay.
 "
 Class {
 	#name : 'PCRE2MatchTrace',
@@ -54,6 +56,24 @@ PCRE2MatchTrace >> calloutSiteForEvent: aPCRE2CalloutEvent ifAbsent: absentBlock
 PCRE2MatchTrace >> calloutSites [
 
 	^ calloutSites
+]
+
+{ #category : 'capture access' }
+PCRE2MatchTrace >> captureRangesAtEvent: aPCRE2CalloutEvent [
+	"Answer character ranges for the callout event ovector. Nil entries are unset captures."
+
+	| ranges |
+	ranges := Array new: aPCRE2CalloutEvent captureTop.
+	1 to: aPCRE2CalloutEvent captureTop do: [ :pairIndex |
+		| offsetPair |
+		offsetPair := aPCRE2CalloutEvent offsetsAt: pairIndex.
+		ranges at: pairIndex put: ((self offsetPairIsUnset: offsetPair)
+				 ifTrue: [ nil ]
+				 ifFalse: [
+					 self
+						 subjectCharacterRangeFromStartOffset: offsetPair first
+						 endOffset: offsetPair second ]) ].
+	^ ranges
 ]
 
 { #category : 'accessing' }
@@ -133,16 +153,88 @@ PCRE2MatchTrace >> matchedString [
 	^ match ifNotNil: [ match readMatch ]
 ]
 
+{ #category : 'private' }
+PCRE2MatchTrace >> offsetPairIsUnset: offsetPair [
+	"Answer whether a PCRE2 ovector pair contains PCRE2_UNSET."
+
+	^ offsetPair first = PCRE2 unsetOffset or: [
+		  offsetPair second = PCRE2 unsetOffset ]
+]
+
 { #category : 'accessing' }
 PCRE2MatchTrace >> pattern [
 
 	^ pattern
 ]
 
+{ #category : 'decoding' }
+PCRE2MatchTrace >> patternCharacterRangeForEvent: aPCRE2CalloutEvent [
+	"Answer the Pharo character range for the pattern item associated with this event."
+
+	^ self
+		  patternCharacterRangeFromStartOffset:
+		  aPCRE2CalloutEvent patternPosition
+		  endOffset:
+		  aPCRE2CalloutEvent patternPosition
+		  + aPCRE2CalloutEvent nextItemLength
+]
+
+{ #category : 'decoding' }
+PCRE2MatchTrace >> patternCharacterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset [
+	"Translate PCRE2's zero-based UTF-8 pattern offsets to a 1-based Pharo character range."
+
+	^ pattern asPCRE2UTF8Input
+		  characterRangeFromStartOffset: zeroBasedStartOffset
+		  endOffset: exclusiveEndOffset
+]
+
 { #category : 'accessing' }
 PCRE2MatchTrace >> resultCode [
 
 	^ resultCode
+]
+
+{ #category : 'debugging' }
+PCRE2MatchTrace >> stepForEvent: aPCRE2CalloutEvent index: stepIndex [
+	"Answer a debugger-ready step for one runtime callout event."
+
+	| site |
+	site := self calloutSiteForEvent: aPCRE2CalloutEvent.
+	^ PCRE2TraceStep
+		  index: stepIndex
+		  event: aPCRE2CalloutEvent
+		  site: site
+		  kind: aPCRE2CalloutEvent eventKind
+		  patternRange:
+		  (self patternCharacterRangeForEvent: aPCRE2CalloutEvent)
+		  subjectPosition:
+		  (self subjectCharacterPositionAtEvent: aPCRE2CalloutEvent)
+		  subjectRange:
+		  (self subjectCharacterRangeAtEvent: aPCRE2CalloutEvent)
+		  captureRanges: (self captureRangesAtEvent: aPCRE2CalloutEvent)
+		  mark: aPCRE2CalloutEvent mark
+]
+
+{ #category : 'debugging' }
+PCRE2MatchTrace >> steps [
+	"Answer debugger-ready steps derived from the runtime callout events."
+
+	| steps |
+	steps := Array new: events size.
+	1 to: events size do: [ :stepIndex |
+		steps
+			at: stepIndex
+			put: (self stepForEvent: (events at: stepIndex) index: stepIndex) ].
+	^ steps
+]
+
+{ #category : 'debugging' }
+PCRE2MatchTrace >> stepsDo: aBlock [
+	"Evaluate aBlock with each debugger-ready step in match order."
+
+	1 to: events size do: [ :stepIndex |
+		aBlock value:
+			(self stepForEvent: (events at: stepIndex) index: stepIndex) ]
 ]
 
 { #category : 'accessing' }
@@ -164,6 +256,16 @@ PCRE2MatchTrace >> subjectCharacterPositionForByteOffset: byteOffset [
 	"Translate a zero-based UTF-8 byte offset to the corresponding 1-based Pharo character position."
 
 	^ (input characterCountUpToByteOffset: byteOffset) + 1
+]
+
+{ #category : 'decoding' }
+PCRE2MatchTrace >> subjectCharacterRangeAtEvent: aPCRE2CalloutEvent [
+	"Answer the subject character range consumed by the current match attempt when this event fired."
+
+	^ self
+		  subjectCharacterRangeFromStartOffset:
+		  aPCRE2CalloutEvent startMatch
+		  endOffset: aPCRE2CalloutEvent currentPosition
 ]
 
 { #category : 'decoding' }

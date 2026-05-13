@@ -107,6 +107,62 @@ PCRE2MatchTraceTest >> testTraceMatchReportsNoMatchWithEvents [
 ]
 
 { #category : 'tests' }
+PCRE2MatchTraceTest >> testTraceStepsDescribeRuntimeEvents [
+
+	| captureStep steps trace |
+	trace := '(?C1)(a)(?C2)b' asPerlCompatibleRegex traceMatch: 'ab'.
+	steps := trace steps.
+
+	self assert: steps size equals: trace events size.
+	self assert: steps first index equals: 1.
+	self assert: steps first event equals: trace events first.
+	self
+		assert: steps first site
+		equals: (trace calloutSiteForEvent: trace events first).
+	self assert: steps first isStartMatch.
+	self assert: steps first hasSite.
+	self assert: steps first subjectPosition equals: 1.
+
+	captureStep := steps detect: [ :step | step event number = 2 ].
+	self assert: captureStep isProgress.
+	self assert: (captureStep captureRangeAt: 1) equals: (1 to: 1).
+	self assert: captureStep subjectRange equals: (1 to: 1)
+]
+
+{ #category : 'tests' }
+PCRE2MatchTraceTest >> testTraceStepsPreserveMarks [
+
+	| step trace |
+	trace := '(*MARK:before)(?C1)a' asPerlCompatibleRegex traceMatch: 'a'.
+	step := trace steps detect: [ :each | each event number = 1 ].
+
+	self assert: step mark equals: 'before'
+]
+
+{ #category : 'tests' }
+PCRE2MatchTraceTest >> testTraceStepsRepresentUnsetCapturesAsNil [
+
+	| step trace |
+	trace := '(?C1)(a)?(?C2)b' asPerlCompatibleRegex traceMatch: 'b'.
+	step := trace steps detect: [ :each | each event number = 2 ].
+
+	self assert: step fullMatchRange isNil.
+	self assert: (step captureRangeAt: 1) isNil
+]
+
+{ #category : 'tests' }
+PCRE2MatchTraceTest >> testTraceStepsTranslateUTF8PatternRanges [
+
+	| steps trace |
+	trace := 'éa' asPerlCompatibleRegex traceMatch: 'éa'.
+	steps := trace steps.
+
+	self assert: steps first patternRange equals: (1 to: 1).
+	self assert: steps second patternRange equals: (2 to: 2).
+	self assert: (steps allSatisfy: [ :step | step site isAutomatic ])
+]
+
+{ #category : 'tests' }
 PCRE2MatchTraceTest >> testTraceTranslatesUTF8EventPositions [
 
 	| event trace |
