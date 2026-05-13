@@ -47,9 +47,9 @@ PCRE2DebuggerPresenter >> connectPresenters [
 	previousButton action: [ self goPreviousStep ].
 	nextButton action: [ self goNextStep ].
 	lastButton action: [ self goLastStep ].
-	tracePresenter stepsTable whenSelectedItemChangedDo: [ :step |
-		step ifNotNil: [
-			session selectStep: step.
+	tracePresenter stepsTable whenSelectedItemChangedDo: [ :row |
+		row ifNotNil: [
+			session selectStep: row representativeStep.
 			self refreshStepStatus ] ]
 ]
 
@@ -179,7 +179,6 @@ PCRE2DebuggerPresenter >> refreshFromSession [
 	session trace ifNotNil: [
 		session selectedStep ifNil: [ session firstStep ].
 		session selectedStep ifNotNil: [ :step |
-			tracePresenter stepsTable selectItem: step.
 			tracePresenter selectedStep: step ] ].
 	statusLabel label: session statusString.
 	self refreshStepStatus
@@ -206,8 +205,7 @@ PCRE2DebuggerPresenter >> runTrace [
 PCRE2DebuggerPresenter >> selectSessionStepInTracePresenter [
 
 	session selectedStep ifNotNil: [ :step |
-		tracePresenter stepsTable selectItem: step ].
-	tracePresenter selectedStep: session selectedStep.
+		tracePresenter selectedStep: step ].
 	self refreshStepStatus
 ]
 

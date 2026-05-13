@@ -5,16 +5,19 @@ PCRE2TraceStep >> debuggerCalloutLabel [
 
 	| calloutEvent |
 	calloutEvent := self event.
-	calloutEvent isAutomatic ifTrue: [ ^ 'auto' ].
+	calloutEvent isAutomatic ifTrue: [ ^ 'automatic' ].
 	calloutEvent string ifNotNil: [ :string |
-		^ calloutEvent number asString , ' ' , string ].
-	^ calloutEvent number asString
+		^ '#' , calloutEvent number asString , ' ' , string printString ].
+	^ '#' , calloutEvent number asString
 ]
 
 { #category : '*PCRE2-Tools' }
 PCRE2TraceStep >> debuggerKindLabel [
 
-	^ self kind asString
+	kind = #startMatch ifTrue: [ ^ 'start' ].
+	kind = #progress ifTrue: [ ^ 'advance' ].
+	kind = #backtrack ifTrue: [ ^ 'backtrack' ].
+	^ kind asString
 ]
 
 { #category : '*PCRE2-Tools' }
