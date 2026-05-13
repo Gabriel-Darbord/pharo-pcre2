@@ -10,11 +10,45 @@ Class {
 		'depthLimit',
 		'heapLimit',
 		'matchLimit',
-		'offsetLimit'
+		'offsetLimit',
+		'calloutCallback'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
 }
+
+{ #category : 'callouts' }
+PCRE2MatchContext >> calloutBlock: aBlock [
+	"Install a runtime callout. aBlock receives a PCRE2CalloutEvent and may answer an integer PCRE2 return code; non-integer answers continue matching."
+
+	| callback rc |
+	callback := FFICallback
+		            signature:
+		            #( int #( void #* calloutBlock #, void #* userData ) )
+		            block: [ :calloutBlock :userData |
+			            | answer |
+			            answer := aBlock value:
+				                      (PCRE2CalloutEvent fromCalloutBlock:
+					                       calloutBlock).
+			            answer isInteger
+				            ifTrue: [ answer ]
+				            ifFalse: [ 0 ] ].
+	rc := self setCalloutCallback: callback.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	calloutCallback := callback.
+	^ self
+]
+
+{ #category : 'callouts' }
+PCRE2MatchContext >> clearCallout [
+	"Remove the runtime callout from this match context."
+
+	| rc |
+	rc := self unsetCalloutCallback.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	calloutCallback := nil.
+	^ self
+]
 
 { #category : 'accessing' }
 PCRE2MatchContext >> depthLimit [
@@ -97,6 +131,16 @@ PCRE2MatchContext >> privateCopy [
 ]
 
 { #category : 'private' }
+PCRE2MatchContext >> setCalloutCallback: callback [
+	"Set the runtime match callout function for this context."
+
+	"int pcre2_set_callout_8(pcre2_match_context *mcontext, int (*callout_function)(pcre2_callout_block *, void *), void *callout_data)"
+
+	self ffiCall:
+		#( int pcre2_set_callout_8 #( self #, FFICallback callback #, nil ) )
+]
+
+{ #category : 'private' }
 PCRE2MatchContext >> setDepthLimit: value [
 	"This function sets the backtracking depth limit field in a match context. The result is always zero."
 
@@ -130,4 +174,13 @@ PCRE2MatchContext >> setOffsetLimit: value [
 	"int pcre2_set_offset_limit(pcre2_match_context *mcontext, PCRE2_SIZE value)"
 
 	self ffiCall: #(int pcre2_set_offset_limit_8(self, size_t value))
+]
+
+{ #category : 'private' }
+PCRE2MatchContext >> unsetCalloutCallback [
+	"Clear the runtime match callout function for this context."
+
+	"int pcre2_set_callout_8(pcre2_match_context *mcontext, NULL, NULL)"
+
+	self ffiCall: #( int pcre2_set_callout_8 #( self #, nil #, nil ) )
 ]

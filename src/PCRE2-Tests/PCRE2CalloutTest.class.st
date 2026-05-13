@@ -72,3 +72,128 @@ PCRE2CalloutTest >> testCalloutSitesExposeNumberedAndStringCallouts [
 	self assert: second stringOffset > 0.
 	self assert: second patternPosition > first patternPosition
 ]
+
+{ #category : 'tests' }
+PCRE2CalloutTest >> testRuntimeCalloutCanAbortWithCalloutError [
+
+	| events regex |
+	regex := '(?C1)ab' asPerlCompatibleRegex.
+	regex addOptions: PCRE2 noJIT.
+	events := OrderedCollection new.
+	regex context calloutBlock: [ :event |
+		events add: event.
+		PCRE2 errorCallout ].
+
+	self
+		should: [ regex matches: 'ab' ]
+		raise: PCRE2MatchError
+		withExceptionDo: [ :error |
+			self assert: error messageText equals: 'callout error code' ].
+	self assert: events size equals: 1
+]
+
+{ #category : 'tests' }
+PCRE2CalloutTest >> testRuntimeCalloutCanAbortWithNoMatch [
+
+	| events regex |
+	regex := '(?C1)ab' asPerlCompatibleRegex.
+	regex addOptions: PCRE2 noJIT.
+	events := OrderedCollection new.
+	regex context calloutBlock: [ :event |
+		events add: event.
+		PCRE2 errorNoMatch ].
+
+	self deny: (regex matches: 'ab').
+	self assert: events size equals: 1
+]
+
+{ #category : 'tests' }
+PCRE2CalloutTest >> testRuntimeCalloutCanBeCleared [
+
+	| events regex |
+	regex := '(?C1)ab' asPerlCompatibleRegex.
+	regex addOptions: PCRE2 noJIT.
+	events := OrderedCollection new.
+	regex context calloutBlock: [ :event |
+		events add: event.
+		0 ].
+	regex context clearCallout.
+
+	self assert: (regex matches: 'ab').
+	self assert: events isEmpty
+]
+
+{ #category : 'tests' }
+PCRE2CalloutTest >> testRuntimeCalloutReceivesMatchState [
+
+	| events first regex second sites |
+	regex := '(?C1)a(?C"step")b' asPerlCompatibleRegex.
+	regex addOptions: PCRE2 noJIT.
+	sites := regex calloutSites.
+	events := OrderedCollection new.
+	regex context calloutBlock: [ :event |
+		events add: event.
+		0 ].
+
+	self assert: (regex matches: 'ab').
+	self assert: events size equals: 2.
+	first := events first.
+	second := events second.
+	self assert: first version equals: 2.
+	self assert: first number equals: 1.
+	self assert: first subjectLength equals: 2.
+	self assert: first startMatch equals: 0.
+	self assert: first currentPosition equals: 0.
+	self assert: first isStartMatch.
+	self deny: first isBacktrack.
+	self deny: first hasString.
+	self
+		assert: first patternPosition
+		equals: sites first patternPosition.
+
+	self assert: second number equals: 0.
+	self assert: second string equals: 'step'.
+	self assert: second currentPosition equals: 1.
+	self
+		assert: second patternPosition
+		equals: sites second patternPosition
+]
+
+{ #category : 'tests' }
+PCRE2CalloutTest >> testRuntimeCalloutReportsBacktracking [
+
+	| events regex |
+	regex := '(?C1)(a(?C2)b|a(?C3)c)' asPerlCompatibleRegex.
+	regex addOptions: PCRE2 noJIT.
+	events := OrderedCollection new.
+	regex context calloutBlock: [ :event |
+		events add: event.
+		0 ].
+
+	self assert: (regex matches: 'ac').
+	self
+		assert: (events collect: [ :event | event number ]) asArray
+		equals: #( 1 2 3 ).
+	self assert: events first isStartMatch.
+	self deny: events first isBacktrack.
+	self assert: events third isBacktrack
+]
+
+{ #category : 'tests' }
+PCRE2CalloutTest >> testRuntimeCalloutReportsMarksAndCaptures [
+
+	| event events regex |
+	regex := '(*MARK:before)(a)(?C1)b' asPerlCompatibleRegex.
+	regex addOptions: PCRE2 noJIT.
+	events := OrderedCollection new.
+	regex context calloutBlock: [ :each |
+		events add: each.
+		0 ].
+
+	self assert: (regex matches: 'ab').
+	event := events first.
+	self assert: event mark equals: 'before'.
+	self assert: event captureTop equals: 2.
+	self assert: event captureLast equals: 1.
+	self assert: (event offsetsAt: 2) equals: #( 0 1 )
+]

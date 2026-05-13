@@ -104,6 +104,20 @@ PCRE2 class >> autoCallout [
 ]
 
 { #category : 'options' }
+PCRE2 class >> calloutBacktrack [
+	"Callout flag set when matching has backtracked since the previous callout."
+
+	^ 2
+]
+
+{ #category : 'options' }
+PCRE2 class >> calloutStartMatch [
+	"Callout flag set for the first callout after a new match attempt starts."
+
+	^ 1
+]
+
+{ #category : 'options' }
 PCRE2 class >> caseless [
 	"Do caseless matching"
 
@@ -337,6 +351,13 @@ PCRE2 class >> endAnchored [
 
 	<pcre2Option: #( compile match dfa_match )>
 	^ 16r20000000
+]
+
+{ #category : 'errors' }
+PCRE2 class >> errorCallout [
+	"Reserved for callout functions that intentionally abort matching. PCRE2 never generates this error itself."
+
+	^ -37
 ]
 
 { #category : 'errors' }

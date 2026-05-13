@@ -1,0 +1,263 @@
+"
+I am a snapshot of a runtime PCRE2 callout.
+
+PCRE2 creates me while a match is running at an explicit callout such as (?C1) or a generated automatic callout. I copy the numeric match state and callout strings out of the native callout block so clients can safely keep events after the callback returns.
+
+Offsets are PCRE2 byte/code-unit offsets in the prepared UTF-8 subject and pattern. They are intentionally not translated here because a debugger may need the exact native positions first, then decide how and when to map them back to Pharo character indexes.
+"
+Class {
+	#name : 'PCRE2CalloutEvent',
+	#superclass : 'Object',
+	#instVars : [
+		'version',
+		'number',
+		'captureTop',
+		'captureLast',
+		'offsets',
+		'mark',
+		'subjectLength',
+		'startMatch',
+		'currentPosition',
+		'patternPosition',
+		'nextItemLength',
+		'stringOffset',
+		'stringLength',
+		'string',
+		'flags'
+	],
+	#category : 'PCRE2',
+	#package : 'PCRE2'
+}
+
+{ #category : 'instance creation' }
+PCRE2CalloutEvent class >> fromCalloutBlock: anExternalAddress [
+
+	^ self new initializeFromCalloutBlock: anExternalAddress
+]
+
+{ #category : 'private' }
+PCRE2CalloutEvent class >> offsetsFrom: anExternalAddress count: count [
+
+	| values wordSize |
+	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [
+		^ #(  ) ].
+	values := Array new: count.
+	wordSize := ExternalAddress wordSize.
+	1 to: count do: [ :index |
+		values
+			at: index
+			put:
+			(self sizeTFrom: anExternalAddress atOffset: wordSize * (index - 1)) ].
+	^ values
+]
+
+{ #category : 'private' }
+PCRE2CalloutEvent class >> sizeTFrom: anExternalAddress atOffset: byteOffset [
+
+	^ PCRE2CalloutSite sizeTFrom: anExternalAddress atOffset: byteOffset
+]
+
+{ #category : 'private' }
+PCRE2CalloutEvent class >> stringFrom: anExternalAddress length: length [
+
+	^ PCRE2CalloutSite stringFrom: anExternalAddress length: length
+]
+
+{ #category : 'private' }
+PCRE2CalloutEvent class >> zeroTerminatedStringFrom: anExternalAddress [
+
+	| bytes byte index |
+	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [
+		^ nil ].
+	bytes := ByteArray new writeStream.
+	index := 0.
+	[ (byte := anExternalAddress uint8AtOffset: index) = 0 ] whileFalse: [
+		bytes nextPut: byte.
+		index := index + 1 ].
+	^ bytes contents utf8Decoded
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> captureLast [
+
+	^ captureLast
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> captureTop [
+
+	^ captureTop
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> currentPosition [
+
+	^ currentPosition
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> flags [
+
+	^ flags
+]
+
+{ #category : 'testing' }
+PCRE2CalloutEvent >> hasString [
+
+	^ string notNil
+]
+
+{ #category : 'initialization' }
+PCRE2CalloutEvent >> initializeFromCalloutBlock: anExternalAddress [
+
+	| offsetVectorOffset pointerOffset sizeOffset wordSize |
+	wordSize := ExternalAddress wordSize.
+	offsetVectorOffset := 16.
+	sizeOffset := offsetVectorOffset + (3 * wordSize).
+
+	version := anExternalAddress uint32AtOffset: 0.
+	number := anExternalAddress uint32AtOffset: 4.
+	captureTop := anExternalAddress uint32AtOffset: 8.
+	captureLast := anExternalAddress uint32AtOffset: 12.
+	offsets := self class
+		           offsetsFrom:
+		           (anExternalAddress pointerAtOffset: offsetVectorOffset)
+		           count: captureTop * 2.
+	mark := self class zeroTerminatedStringFrom:
+		        (anExternalAddress pointerAtOffset:
+			         offsetVectorOffset + wordSize).
+	subjectLength := self class
+		                 sizeTFrom: anExternalAddress
+		                 atOffset: sizeOffset.
+	startMatch := self class
+		              sizeTFrom: anExternalAddress
+		              atOffset: sizeOffset + wordSize.
+	currentPosition := self class
+		                   sizeTFrom: anExternalAddress
+		                   atOffset: sizeOffset + (2 * wordSize).
+	patternPosition := self class
+		                   sizeTFrom: anExternalAddress
+		                   atOffset: sizeOffset + (3 * wordSize).
+	nextItemLength := self class
+		                  sizeTFrom: anExternalAddress
+		                  atOffset: sizeOffset + (4 * wordSize).
+	stringOffset := self class
+		                sizeTFrom: anExternalAddress
+		                atOffset: sizeOffset + (5 * wordSize).
+	stringLength := self class
+		                sizeTFrom: anExternalAddress
+		                atOffset: sizeOffset + (6 * wordSize).
+	pointerOffset := sizeOffset + (7 * wordSize).
+	string := self class
+		          stringFrom:
+		          (anExternalAddress pointerAtOffset: pointerOffset)
+		          length: stringLength.
+	flags := anExternalAddress uint32AtOffset: pointerOffset + wordSize.
+	^ self
+]
+
+{ #category : 'testing' }
+PCRE2CalloutEvent >> isBacktrack [
+
+	^ (flags bitAnd: PCRE2 calloutBacktrack) ~~ 0
+]
+
+{ #category : 'testing' }
+PCRE2CalloutEvent >> isStartMatch [
+
+	^ (flags bitAnd: PCRE2 calloutStartMatch) ~~ 0
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> mark [
+
+	^ mark
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> nextItemLength [
+
+	^ nextItemLength
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> number [
+
+	^ number
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> offsets [
+
+	^ offsets
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> offsetsAt: pairIndex [
+
+	| index |
+	index := 2 * (pairIndex - 1).
+	^ {
+		  (offsets at: index + 1).
+		  (offsets at: index + 2) }
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> patternPosition [
+
+	^ patternPosition
+]
+
+{ #category : 'printing' }
+PCRE2CalloutEvent >> printOn: aStream [
+
+	super printOn: aStream.
+	aStream
+		nextPut: $(;
+		print: patternPosition;
+		nextPutAll: ', ';
+		print: currentPosition;
+		nextPutAll: ', ';
+		print: number.
+	string ifNotNil: [
+		aStream
+			nextPutAll: ', ';
+			print: string ].
+	aStream nextPut: $)
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> startMatch [
+
+	^ startMatch
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> string [
+
+	^ string
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> stringLength [
+
+	^ stringLength
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> stringOffset [
+
+	^ stringOffset
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> subjectLength [
+
+	^ subjectLength
+]
+
+{ #category : 'accessing' }
+PCRE2CalloutEvent >> version [
+
+	^ version
+]
