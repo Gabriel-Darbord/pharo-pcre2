@@ -62,6 +62,26 @@ PCRE2PartialMatcherTest >> testPartialMatchWorksWithDefaultJITCompiler [
 ]
 
 { #category : 'tests' }
+PCRE2PartialMatcherTest >> testPartialOptionValidation [
+
+	| regex options |
+	regex := 'abc' asPerlCompatibleRegex.
+	regex addOptions: PCRE2 partialHard.
+
+	options := regex optionsWithPartialOption: PCRE2 partialSoft.
+	self
+		assert: (options bitAnd: PCRE2 partialSoft)
+		equals: PCRE2 partialSoft.
+	self assert: (options bitAnd: PCRE2 partialHard) equals: 0.
+	self
+		should: [ regex optionsWithPartialOption: PCRE2 noJIT ]
+		raise: Error
+		withExceptionDo: [ :error |
+			self assert: (error messageText includesSubstring:
+					 'Partial matching option must be') ]
+]
+
+{ #category : 'tests' }
 PCRE2PartialMatcherTest >> testSoftPartialMatch [
 
 	| match |

@@ -10,100 +10,112 @@ Class {
 	#package : 'PCRE2-Tests'
 }
 
+{ #category : 'private' }
+PCRE2Test >> optionSelectorsFrom: optionsByFunction [
+
+	^ optionsByFunction collect: [ :optionsByValue |
+		  optionsByValue collect: [ :method | method selector ] ]
+]
+
 { #category : 'tests' }
 PCRE2Test >> testAllOptions [
 
-	self assert: PCRE2 allOptions equals: (Dictionary newFrom: {
-				 (#compile -> (Dictionary newFrom: {
-						   (1 -> (PCRE2 class >> #allowEmptyClass)).
-						   (2 -> (PCRE2 class >> #altBSUX)).
-						   (4 -> (PCRE2 class >> #autoCallout)).
-						   (8 -> (PCRE2 class >> #caseless)).
-						   (16 -> (PCRE2 class >> #dollarEndOnly)).
-						   (32 -> (PCRE2 class >> #dotAll)).
-						   (64 -> (PCRE2 class >> #dupNames)).
-						   (128 -> (PCRE2 class >> #extended)).
-						   (256 -> (PCRE2 class >> #firstLine)).
-						   (512 -> (PCRE2 class >> #matchUnsetBackref)).
-						   (1024 -> (PCRE2 class >> #multiline)).
-						   (2048 -> (PCRE2 class >> #neverUCP)).
-						   (4096 -> (PCRE2 class >> #neverUTF)).
-						   (8192 -> (PCRE2 class >> #noAutoCapture)).
-						   (16384 -> (PCRE2 class >> #noAutoPossess)).
-						   (32768 -> (PCRE2 class >> #noDotstarAnchor)).
-						   (65536 -> (PCRE2 class >> #noStartOptimize)).
-						   (131072 -> (PCRE2 class >> #ucp)).
-						   (262144 -> (PCRE2 class >> #ungreedy)).
-						   (524288 -> (PCRE2 class >> #utf)).
-						   (1048576 -> (PCRE2 class >> #neverBackslashC)).
-						   (2097152 -> (PCRE2 class >> #altCircumflex)).
-						   (4194304 -> (PCRE2 class >> #altVerbNames)).
-						   (8388608 -> (PCRE2 class >> #useOffsetLimit)).
-						   (16777216 -> (PCRE2 class >> #extendedMore)).
-						   (33554432 -> (PCRE2 class >> #literal)).
-						   (67108864 -> (PCRE2 class >> #matchInvalidUTF)).
-						   (536870912 -> (PCRE2 class >> #endAnchored)).
-						   (1073741824 -> (PCRE2 class >> #noUTFCheck)).
-						   (2147483648 -> (PCRE2 class >> #anchored)) })).
-				 (#convert -> (Dictionary newFrom: {
-						   (1 -> (PCRE2 class >> #convertUTF)).
-						   (2 -> (PCRE2 class >> #convertNoUTFCheck)).
-						   (4 -> (PCRE2 class >> #convertPOSIXBasic)).
-						   (8 -> (PCRE2 class >> #convertPOSIXExtended)).
-						   (16 -> (PCRE2 class >> #convertGlob)).
-						   (48 -> (PCRE2 class >> #convertGlobNoWildSeparator)).
-						   (80 -> (PCRE2 class >> #convertGlobNoStarStar)) })).
-				 (#dfa_match -> (Dictionary newFrom: {
-						   (1 -> (PCRE2 class >> #notBOL)).
-						   (2 -> (PCRE2 class >> #notEOL)).
-						   (4 -> (PCRE2 class >> #notEmpty)).
-						   (8 -> (PCRE2 class >> #notEmptyAtStart)).
-						   (16 -> (PCRE2 class >> #partialSoft)).
-						   (32 -> (PCRE2 class >> #partialHard)).
-						   (64 -> (PCRE2 class >> #dfaRestart)).
-						   (128 -> (PCRE2 class >> #dfaShortest)).
-						   (16384 -> (PCRE2 class >> #copyMatchedSubject)).
-						   (536870912 -> (PCRE2 class >> #endAnchored)).
-						   (1073741824 -> (PCRE2 class >> #noUTFCheck)).
-						   (2147483648 -> (PCRE2 class >> #anchored)) })).
-				 (#jit_compile -> (Dictionary newFrom: {
-						   (1 -> (PCRE2 class >> #jitComplete)).
-						   (2 -> (PCRE2 class >> #jitPartialSoft)).
-						   (4 -> (PCRE2 class >> #jitPartialHard)) })).
-				 (#jit_match -> (Dictionary newFrom: {
-						   (1 -> (PCRE2 class >> #notBOL)).
-						   (2 -> (PCRE2 class >> #notEOL)).
-						   (4 -> (PCRE2 class >> #notEmpty)).
-						   (8 -> (PCRE2 class >> #notEmptyAtStart)).
-						   (16 -> (PCRE2 class >> #partialSoft)).
-						   (32 -> (PCRE2 class >> #partialHard)).
-						   (8192 -> (PCRE2 class >> #noJIT)).
-						   (16384 -> (PCRE2 class >> #copyMatchedSubject)) })).
-				 (#match -> (Dictionary newFrom: {
-						   (1 -> (PCRE2 class >> #notBOL)).
-						   (2 -> (PCRE2 class >> #notEOL)).
-						   (4 -> (PCRE2 class >> #notEmpty)).
-						   (8 -> (PCRE2 class >> #notEmptyAtStart)).
-						   (16 -> (PCRE2 class >> #partialSoft)).
-						   (32 -> (PCRE2 class >> #partialHard)).
-						   (8192 -> (PCRE2 class >> #noJIT)).
-						   (16384 -> (PCRE2 class >> #copyMatchedSubject)).
-						   (262144 -> (PCRE2 class >> #disableRecurseloopCheck)).
-						   (536870912 -> (PCRE2 class >> #endAnchored)).
-						   (1073741824 -> (PCRE2 class >> #noUTFCheck)).
-						   (2147483648 -> (PCRE2 class >> #anchored)) })).
-				 (#substitute -> (Dictionary newFrom: {
-						   (256 -> (PCRE2 class >> #substituteGlobal)).
-						   (512 -> (PCRE2 class >> #substituteExtended)).
-						   (1024 -> (PCRE2 class >> #substituteUnsetEmpty)).
-						   (2048 -> (PCRE2 class >> #substituteUnknownUnset)).
-						   (4096 -> (PCRE2 class >> #substituteOverflowLength)).
-						   (8192 -> (PCRE2 class >> #noJIT)).
-						   (16384 -> (PCRE2 class >> #copyMatchedSubject)).
-						   (32768 -> (PCRE2 class >> #substituteLiteral)).
-						   (65536 -> (PCRE2 class >> #substituteMatched)).
-						   (131072 -> (PCRE2 class >> #substituteReplacementOnly)).
-						   (262144 -> (PCRE2 class >> #disableRecurseloopCheck)) })) })
+	| expected |
+	expected := Dictionary newFrom: {
+			            (#compile -> (Dictionary newFrom: {
+					              (1 -> #allowEmptyClass).
+					              (2 -> #altBSUX).
+					              (4 -> #autoCallout).
+					              (8 -> #caseless).
+					              (16 -> #dollarEndOnly).
+					              (32 -> #dotAll).
+					              (64 -> #dupNames).
+					              (128 -> #extended).
+					              (256 -> #firstLine).
+					              (512 -> #matchUnsetBackref).
+					              (1024 -> #multiline).
+					              (2048 -> #neverUCP).
+					              (4096 -> #neverUTF).
+					              (8192 -> #noAutoCapture).
+					              (16384 -> #noAutoPossess).
+					              (32768 -> #noDotstarAnchor).
+					              (65536 -> #noStartOptimize).
+					              (131072 -> #ucp).
+					              (262144 -> #ungreedy).
+					              (524288 -> #utf).
+					              (1048576 -> #neverBackslashC).
+					              (2097152 -> #altCircumflex).
+					              (4194304 -> #altVerbNames).
+					              (8388608 -> #useOffsetLimit).
+					              (16777216 -> #extendedMore).
+					              (33554432 -> #literal).
+					              (67108864 -> #matchInvalidUTF).
+					              (536870912 -> #endAnchored).
+					              (1073741824 -> #noUTFCheck).
+					              (2147483648 -> #anchored) })).
+			            (#convert -> (Dictionary newFrom: {
+					              (1 -> #convertUTF).
+					              (2 -> #convertNoUTFCheck).
+					              (4 -> #convertPOSIXBasic).
+					              (8 -> #convertPOSIXExtended).
+					              (16 -> #convertGlob).
+					              (48 -> #convertGlobNoWildSeparator).
+					              (80 -> #convertGlobNoStarStar) })).
+			            (#dfa_match -> (Dictionary newFrom: {
+					              (1 -> #notBOL).
+					              (2 -> #notEOL).
+					              (4 -> #notEmpty).
+					              (8 -> #notEmptyAtStart).
+					              (16 -> #partialSoft).
+					              (32 -> #partialHard).
+					              (64 -> #dfaRestart).
+					              (128 -> #dfaShortest).
+					              (16384 -> #copyMatchedSubject).
+					              (536870912 -> #endAnchored).
+					              (1073741824 -> #noUTFCheck).
+					              (2147483648 -> #anchored) })).
+			            (#jit_compile -> (Dictionary newFrom: {
+					              (1 -> #jitComplete).
+					              (2 -> #jitPartialSoft).
+					              (4 -> #jitPartialHard) })).
+			            (#jit_match -> (Dictionary newFrom: {
+					              (1 -> #notBOL).
+					              (2 -> #notEOL).
+					              (4 -> #notEmpty).
+					              (8 -> #notEmptyAtStart).
+					              (16 -> #partialSoft).
+					              (32 -> #partialHard).
+					              (8192 -> #noJIT).
+					              (16384 -> #copyMatchedSubject) })).
+			            (#match -> (Dictionary newFrom: {
+					              (1 -> #notBOL).
+					              (2 -> #notEOL).
+					              (4 -> #notEmpty).
+					              (8 -> #notEmptyAtStart).
+					              (16 -> #partialSoft).
+					              (32 -> #partialHard).
+					              (8192 -> #noJIT).
+					              (16384 -> #copyMatchedSubject).
+					              (262144 -> #disableRecurseloopCheck).
+					              (536870912 -> #endAnchored).
+					              (1073741824 -> #noUTFCheck).
+					              (2147483648 -> #anchored) })).
+			            (#substitute -> (Dictionary newFrom: {
+					              (256 -> #substituteGlobal).
+					              (512 -> #substituteExtended).
+					              (1024 -> #substituteUnsetEmpty).
+					              (2048 -> #substituteUnknownUnset).
+					              (4096 -> #substituteOverflowLength).
+					              (8192 -> #noJIT).
+					              (16384 -> #copyMatchedSubject).
+					              (32768 -> #substituteLiteral).
+					              (65536 -> #substituteMatched).
+					              (131072 -> #substituteReplacementOnly).
+					              (262144 -> #disableRecurseloopCheck) })) }.
+
+	self
+		assert: (self optionSelectorsFrom: PCRE2 allOptions)
+		equals: expected
 ]
 
 { #category : 'tests' }

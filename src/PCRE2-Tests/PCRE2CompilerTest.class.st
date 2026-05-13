@@ -27,6 +27,33 @@ PCRE2CompilerTest >> assertInvalidPattern: aString [
 ]
 
 { #category : 'tests' }
+PCRE2CompilerTest >> testCompileContextOptionsBSRAndCopy [
+
+	| compiler context copy |
+	compiler := PCRE2Compiler new.
+	context := compiler context.
+
+	context options: 0.
+	context addOptions: PCRE2 extraBadEscapeIsLiteral.
+	self assert:
+		(context options bitAnd: PCRE2 extraBadEscapeIsLiteral) ~~ 0.
+	context removeOptions: PCRE2 extraBadEscapeIsLiteral.
+	self assert:
+		(context options bitAnd: PCRE2 extraBadEscapeIsLiteral) = 0.
+
+	context useBSRAnyCRLF.
+	self assert: context bsr equals: 2.
+	context useBSRUnicode.
+	self assert: context bsr equals: 1.
+
+	context options: PCRE2 extraAltBsux.
+	copy := context copy.
+	self deny: copy identicalTo: context.
+	self assert: copy options equals: context options.
+	self assert: copy bsr equals: context bsr
+]
+
+{ #category : 'tests' }
 PCRE2CompilerTest >> testErrorCode [
 	"PCRE2 minor versions may report slightly different diagnostic offsets, so keep this test focused on binding-level error handling."
 

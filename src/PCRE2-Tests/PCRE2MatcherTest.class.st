@@ -88,6 +88,35 @@ PCRE2MatcherTest >> testBePersistent [
 ]
 
 { #category : 'tests' }
+PCRE2MatcherTest >> testCallerManagedMatchDataCanBeReused [
+
+	| regex input match |
+	regex := '(?<word>\w+)' asPerlCompatibleRegex.
+	input := 'one two' asPCRE2UTF8Input.
+	match := regex newMatchData.
+
+	regex
+		matchBytes: input bytes
+		from: 1
+		to: input size
+		into: match.
+	input recordOn: match.
+	self assert: match isComplete.
+	self assert: match readMatch equals: 'one'.
+	self assert: (match groupNamed: 'word') equals: 'one'.
+
+	regex
+		matchBytes: input bytes
+		from: 5
+		to: input size
+		into: match.
+	input recordOn: match.
+	self assert: match isComplete.
+	self assert: match readMatch equals: 'two'.
+	self assert: (match groupNamed: 'word') equals: 'two'
+]
+
+{ #category : 'tests' }
 PCRE2MatcherTest >> testCompileJIT [
 
 	| regex originalCompiler optionsJIT |
@@ -100,7 +129,12 @@ PCRE2MatcherTest >> testCompileJIT [
 	regex compileJIT: optionsJIT.
 
 	self deny: regex compiler identicalTo: originalCompiler.
-	self assert: regex compiler optionsJIT identicalTo: optionsJIT
+	self assert: regex compiler optionsJIT identicalTo: optionsJIT.
+	self assert: regex isJIT.
+
+	regex isJIT: false.
+	regex compileJIT.
+	self assert: regex isJIT
 ]
 
 { #category : 'tests' }
@@ -425,6 +459,53 @@ PCRE2MatcherTest >> testMark [
 ]
 
 { #category : 'tests' }
+PCRE2MatcherTest >> testMatchAllOffsetsDo [
+
+	| input offsets regex |
+	regex := 'ab' asPerlCompatibleRegex.
+	input := 'ab ab' asPCRE2UTF8Input.
+	offsets := OrderedCollection new.
+
+	regex
+		matchAll: input bytes
+		from: 1
+		to: input size
+		offsetsDo: [ :each | offsets add: each ].
+
+	self assert: offsets asArray equals: {
+			#( 0 2 ).
+			#( 3 5 ) }
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testMatchContextLimitsAndCopy [
+
+	| regex context copy |
+	regex := 'a' asPerlCompatibleRegex.
+	context := regex context.
+
+	context
+		depthLimit: 10;
+		heapLimit: 100;
+		matchLimit: 1000;
+		offsetLimit: 3.
+
+	self assert: context depthLimit equals: 10.
+	self assert: context heapLimit equals: 100.
+	self assert: context matchLimit equals: 1000.
+	self assert: context offsetLimit equals: 3.
+
+	copy := context copy.
+	[
+	self deny: copy identicalTo: context.
+	self assert: copy depthLimit equals: context depthLimit.
+	self assert: copy heapLimit equals: context heapLimit.
+	self assert: copy matchLimit equals: context matchLimit.
+	self assert: copy offsetLimit equals: context offsetLimit ] ensure: [
+		copy free ]
+]
+
+{ #category : 'tests' }
 PCRE2MatcherTest >> testMatchLimit [
 
 	| regex |
@@ -436,6 +517,51 @@ PCRE2MatcherTest >> testMatchLimit [
 		raise: PCRE2MatchError
 		withExceptionDo: [ :e |
 		self assert: e messageText equals: 'match limit exceeded' ]
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testMatcherNoLongerStoresMatchData [
+
+	| regex |
+	regex := 'a' asPerlCompatibleRegex.
+
+	self
+		should: [ regex matchData ]
+		raise: Error
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring: 'no longer keeps match data') ].
+	self
+		should: [ regex matchData: regex newMatchData ]
+		raise: Error
+		withExceptionDo: [ :error |
+			self assert: (error messageText includesSubstring:
+					 'no longer accepts stored match data') ].
+	self should: [ regex mark ] raise: Error withExceptionDo: [ :error |
+		self assert:
+			(error messageText includesSubstring:
+				 'no longer keeps the last match') ].
+	self
+		should: [ regex startIndex ]
+		raise: Error
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring:
+					 'no longer keeps the last match') ]
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testMatcherOptionsCanBeSetAddedAndRemoved [
+
+	| regex |
+	regex := 'a' asPerlCompatibleRegex.
+
+	regex options: 0.
+	self assert: regex options equals: 0.
+	regex addOptions: PCRE2 caseless.
+	self assert: regex options equals: PCRE2 caseless.
+	regex removeOptions: PCRE2 caseless.
+	self assert: regex options equals: 0
 ]
 
 { #category : 'tests' }
@@ -617,6 +743,24 @@ PCRE2MatcherTest >> testRecompile [
 ]
 
 { #category : 'tests' }
+PCRE2MatcherTest >> testRegexAPIMatchEnumerationCompatibility [
+
+	| collected regex seen |
+	regex := '\w+' asPerlCompatibleRegex.
+
+	self
+		assert: (regex matchesIn: 'one two') asArray
+		equals: #( 'one' 'two' ).
+	seen := OrderedCollection new.
+	regex matchesIn: 'one two' do: [ :match | seen add: match ].
+	self assert: seen asArray equals: #( 'one' 'two' ).
+	collected := regex
+		             matchesIn: 'one two'
+		             collect: [ :match | match asUppercase ].
+	self assert: collected asArray equals: #( 'ONE' 'TWO' )
+]
+
+{ #category : 'tests' }
 PCRE2MatcherTest >> testReusableASCIIInputKeepsOriginalStorage [
 
 	| input match subject |
@@ -628,6 +772,41 @@ PCRE2MatcherTest >> testReusableASCIIInputKeepsOriginalStorage [
 	self assert: match subject identicalTo: input bytes.
 	self assert: match decoder identicalTo: nil.
 	self assert: match readMatch equals: subject
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testReusableMatchDataRejectsPersistentMatchData [
+
+	| regex input match |
+	regex := 'a' asPerlCompatibleRegex.
+	input := 'a' asPCRE2UTF8Input.
+	match := regex findMatch: input.
+	match bePersistent.
+
+	self
+		should: [
+			regex
+				matchBytes: input bytes
+				from: 1
+				to: input size
+				into: match ]
+		raise: PCRE2Error
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring: 'external PCRE2 match data') ].
+	self
+		should: [
+			regex
+				dfaMatchBytes: input bytes
+				from: 1
+				to: input size
+				workspaceSize: 20
+				ovectorSize: 1
+				into: match ]
+		raise: PCRE2Error
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring: 'external PCRE2 match data') ]
 ]
 
 { #category : 'tests' }

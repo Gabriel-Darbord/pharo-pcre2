@@ -1268,12 +1268,15 @@ PCRE2Matcher >> validatePartialOption: partialOption [
 { #category : 'private' }
 PCRE2Matcher >> validateSubstitutionMatchData: aPCRE2Match [
 
-	(aPCRE2Match isNil or: [ aPCRE2Match isNull ]) ifTrue: [
+	aPCRE2Match ifNil: [
 		PCRE2Error signal:
 			'Substitution match data must hold an external PCRE2 match data block' ].
 	aPCRE2Match isPersistent ifTrue: [
 		PCRE2Error signal:
 			'Persistent match data cannot be passed back to pcre2_substitute_8' ].
+	aPCRE2Match isNull ifTrue: [
+		PCRE2Error signal:
+			'Substitution match data must hold an external PCRE2 match data block' ].
 	aPCRE2Match subject ifNil: [
 		PCRE2Error signal:
 			'Substitution match data must remember its subject bytes' ].

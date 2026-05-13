@@ -51,6 +51,27 @@ PCRE2SubstitutionTest >> testSubstituteAllAcceptsReusableUTF8InputAndReplacement
 ]
 
 { #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteAllConvenienceVariants [
+
+	| regex |
+	regex := 'a' asPerlCompatibleRegex.
+	self
+		assert: (regex substituteAll: 'a a' withLiteral: '$0')
+		equals: '$0 $0'.
+
+	regex := 'b' asPerlCompatibleRegex.
+	self
+		assert:
+		(regex substituteAll: 'b b' withUnknownCapturesEmpty: '<$1>')
+		equals: '<> <>'.
+
+	regex := '(a)?b' asPerlCompatibleRegex.
+	self
+		assert: (regex substituteAll: 'b ab' withUnsetCapturesEmpty: '<$1>')
+		equals: '<> <a>'
+]
+
+{ #category : 'tests' }
 PCRE2SubstitutionTest >> testSubstituteAllDoesNotMutateMatcherOptions [
 
 	| regex |
@@ -89,6 +110,54 @@ PCRE2SubstitutionTest >> testSubstituteUsingExistingMatch [
 				 with: '[$0]'
 				 options: PCRE2 substituteGlobal)
 		equals: '[one] [two]'
+]
+
+{ #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteUsingMatchRejectsUnsuitableMatchData [
+
+	| regex input match partialMatch |
+	regex := 'a' asPerlCompatibleRegex.
+
+	self
+		should: [ regex substituteUsingMatch: nil with: 'x' ]
+		raise: PCRE2Error
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring: 'external PCRE2 match data') ].
+
+	match := regex findMatch: 'a'.
+	match bePersistent.
+	self
+		should: [ regex substituteUsingMatch: match with: 'x' ]
+		raise: PCRE2Error
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring: 'Persistent match data') ].
+
+	input := 'a' asPCRE2UTF8Input.
+	match := regex newMatchData.
+	regex
+		matchBytes: input bytes
+		from: 1
+		to: input size
+		into: match.
+	self
+		should: [ regex substituteUsingMatch: match with: 'x' ]
+		raise: PCRE2Error
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring: 'remember its subject bytes') ].
+
+	partialMatch := 'abc' asPerlCompatibleRegex findPartialMatch: 'ab'.
+	self
+		should: [
+			'abc' asPerlCompatibleRegex
+				substituteUsingMatch: partialMatch
+				with: 'x' ]
+		raise: PCRE2Error
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring: 'complete match') ]
 ]
 
 { #category : 'tests' }

@@ -76,12 +76,14 @@ PCRE2CompileContext >> postCopy [
 
 { #category : 'private' }
 PCRE2CompileContext >> privateCopy [
-	"This function makes a new copy of a compile context.
-	The result is NULL if the memory cannot be obtained."
+	"This function makes a new copy of a compile context."
 
-	"pcre2_compile_context *pcre2_compile_context_copy( pcre2_compile_context *ccontext)"
+	"The result is NULL if the memory cannot be obtained."
 
-	self ffiCall: #(void *pcre2_compile_context_copy(self))
+	"pcre2_compile_context *pcre2_compile_context_copy_8(pcre2_compile_context *ccontext)"
+
+	self ffiCall: #( void #* pcre2_compile_context_copy_8
+	   #( self ) )
 ]
 
 { #category : 'accessing' }
@@ -93,11 +95,13 @@ PCRE2CompileContext >> removeOptions: anInteger [
 
 { #category : 'private' }
 PCRE2CompileContext >> setBSR: value [
-	"This function sets the convention for processing \R within a compile context.
-	The second argument must be one of PCRE2_BSR_ANYCRLF or PCRE2_BSR_UNICODE.
-	The result is zero for success or PCRE2_ERROR_BADDATA if the second argument is invalid."
+	"This function sets the convention for processing \R within a compile context."
 
-	self ffiCall: #(int pcre2_set_bsr(self, uint32 value))
+	"The second argument must be one of PCRE2_BSR_ANYCRLF or PCRE2_BSR_UNICODE."
+
+	"The result is zero for success or PCRE2_ERROR_BADDATA if the second argument is invalid."
+
+	self ffiCall: #( int pcre2_set_bsr_8 #( self #, uint32 value ) )
 ]
 
 { #category : 'private' }

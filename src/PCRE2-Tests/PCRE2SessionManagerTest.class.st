@@ -11,6 +11,37 @@ Class {
 }
 
 { #category : 'tests' }
+PCRE2SessionManagerTest >> testClassSideConfigurationToggles [
+
+	| original |
+	original := PCRE2SessionManager shouldUseSerialization.
+
+	[
+	PCRE2SessionManager useRecompilation.
+	self deny: PCRE2SessionManager shouldUseSerialization.
+	PCRE2SessionManager useSerialization.
+	self assert: PCRE2SessionManager shouldUseSerialization ] ensure: [
+		original
+			ifTrue: [ PCRE2SessionManager useSerialization ]
+			ifFalse: [ PCRE2SessionManager useRecompilation ] ]
+]
+
+{ #category : 'tests' }
+PCRE2SessionManagerTest >> testMatcherSerializationConvenienceRoundTrip [
+
+	| bytes regex |
+	regex := 'a+' asPerlCompatibleRegex.
+	bytes := regex serialize.
+
+	regex finalize.
+	self assert: regex isNull.
+	regex restoreFrom: bytes.
+
+	self deny: regex isNull.
+	self assert: (regex matches: 'aaa')
+]
+
+{ #category : 'tests' }
 PCRE2SessionManagerTest >> testShutDownWithRecompilation [
 
 	| manager regex |
@@ -68,6 +99,19 @@ PCRE2SessionManagerTest >> testStartUpWithInvalidSerializationFallsBackToRecompi
 
 	self deny: regex isNull.
 	self assert: (regex matches: 'a')
+]
+
+{ #category : 'tests' }
+PCRE2SessionManagerTest >> testStartUpWithNoMatchersDoesNothing [
+
+	| manager |
+	PCRE2MockSessionManager useSerialization: true.
+	manager := PCRE2MockSessionManager new.
+
+	manager startUp.
+
+	self assert: manager serializedMatchers identicalTo: nil.
+	self assert: manager serializedSignature identicalTo: nil
 ]
 
 { #category : 'tests' }

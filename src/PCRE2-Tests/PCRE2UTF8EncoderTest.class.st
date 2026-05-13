@@ -53,6 +53,20 @@ PCRE2UTF8EncoderTest >> encoderClass [
 ]
 
 { #category : 'tests' }
+PCRE2UTF8EncoderTest >> testEmptyEncodingAndRangeAccessors [
+
+	| encoder bytes |
+	encoder := self encoderClass from: 2 to: 3.
+	self assert: encoder start equals: 2.
+	self assert: encoder end equals: 3.
+
+	bytes := encoder encodeString: ''.
+	self assert: bytes equals: ByteArray new.
+	self assert: encoder utfStart equals: 0.
+	self assert: encoder utfEnd equals: 0
+]
+
+{ #category : 'tests' }
 PCRE2UTF8EncoderTest >> testEncodeString [
 
 	self assertAllSubstrings: 'ascii'. "only ASCII (single bytes)"
@@ -72,6 +86,18 @@ PCRE2UTF8EncoderTest >> testEncodeStringMatchesZinc [
 	{ 'ascii'. 'éa'. 'éab'. 'aé'. 'aéa'. 'ûnïcòdé'. 'ùñîçöðè'. '€où'.
 	'こんにちは'. '😊👍🏽'. 'a̐éö̲' } do: [ :string |
 		self assertEncodingMatchesZinc: string ]
+]
+
+{ #category : 'tests' }
+PCRE2UTF8EncoderTest >> testInvalidCodePointRaisesError [
+
+	| stream |
+	stream := ByteArray new writeStream.
+
+	self
+		should: [
+		self encoderClass new nextPutCodePoint: 16r110000 toStream: stream ]
+		raise: Error
 ]
 
 { #category : 'tests' }

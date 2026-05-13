@@ -86,12 +86,14 @@ PCRE2MatchContext >> postCopy [
 
 { #category : 'private' }
 PCRE2MatchContext >> privateCopy [
-	"This function makes a new copy of a match context, using the memory allocation function that was used for the original context.
-	The result is NULL if the memory cannot be obtained. "
+	"This function makes a new copy of a match context, using the memory allocation function that was used for the original context."
 
-	"pcre2_match_context *pcre2_match_context_copy( pcre2_match_context *mcontext)"
+	"The result is NULL if the memory cannot be obtained."
 
-	self ffiCall: #(void *pcre2_match_context_copy(self))
+	"pcre2_match_context *pcre2_match_context_copy_8(pcre2_match_context *mcontext)"
+
+	self ffiCall: #( void #* pcre2_match_context_copy_8
+	   #( self ) )
 ]
 
 { #category : 'private' }

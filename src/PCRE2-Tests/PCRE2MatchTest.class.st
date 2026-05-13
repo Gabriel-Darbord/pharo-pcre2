@@ -41,6 +41,25 @@ PCRE2MatchTest >> testDuplicateNamedGroups [
 ]
 
 { #category : 'tests' }
+PCRE2MatchTest >> testGroupAccessEdgeCases [
+
+	| match |
+	match := '(?<optional>a)?b' asPerlCompatibleRegex findMatch: 'b'.
+
+	self assert: (match groupAt: 0) equals: 'b'.
+	self assert: (match groupAt: 1) isNil.
+	self assert: (match groupAt: 99) isNil.
+	self assert: (match groupNamed: 'optional') isNil.
+	self assert: (match groupsByName at: 'optional') isNil.
+	self
+		assert: (match groupNamed: 'missing' ifAbsent: [ 'absent' ])
+		equals: 'absent'.
+
+	self should: [ match groupAt: -1 ] raise: Error.
+	self should: [ match groupAt: '1' ] raise: Error
+]
+
+{ #category : 'tests' }
 PCRE2MatchTest >> testLastMatchIndex [
 
 	| match |
@@ -114,6 +133,35 @@ PCRE2MatchTest >> testOffsetsAt [
 ]
 
 { #category : 'tests' }
+PCRE2MatchTest >> testRememberedSubjectRequiredForLateQueries [
+
+	| regex input match |
+	regex := '(a)' asPerlCompatibleRegex.
+	input := 'a' asPCRE2UTF8Input.
+	match := regex newMatchData.
+	regex
+		matchBytes: input bytes
+		from: 1
+		to: input size
+		into: match.
+
+	self
+		should: [ match readMatch ]
+		raise: Error
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring:
+					 'does not remember a subject') ].
+	self
+		should: [ match groupAt: 0 ]
+		raise: Error
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring:
+					 'does not remember a subject') ]
+]
+
+{ #category : 'tests' }
 PCRE2MatchTest >> testStandaloneMatchKeepsItsOwnResult [
 
 	| firstMatch regex secondMatch |
@@ -123,5 +171,6 @@ PCRE2MatchTest >> testStandaloneMatchKeepsItsOwnResult [
 	secondMatch := regex findMatch: 'two'.
 
 	self assert: firstMatch readMatches equals: #( 'one' 'one' ).
-	self assert: secondMatch readMatches equals: #( 'two' 'two' )
+	self assert: secondMatch readMatches equals: #( 'two' 'two' ).
+	self assert: firstMatch ovectorCount >= firstMatch count
 ]

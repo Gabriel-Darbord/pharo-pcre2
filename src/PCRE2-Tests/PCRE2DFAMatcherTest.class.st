@@ -24,6 +24,43 @@ PCRE2DFAMatcherTest >> testDFAMatchAnswersStandaloneMatchData [
 ]
 
 { #category : 'tests' }
+PCRE2DFAMatcherTest >> testDFAMatchConvenienceSelectors [
+
+	| regex |
+	regex := 'cat(er(pillar)?)?' asPerlCompatibleRegex.
+
+	self
+		assert: (regex dfaMatch: 'the caterpillar catchment') readMatches
+		equals: #( 'caterpillar' 'cater' 'cat' ).
+	self
+		assert:
+			(regex dfaMatch: 'the caterpillar catchment' workspaceSize: 40)
+				readMatches
+		equals: #( 'caterpillar' 'cater' 'cat' )
+]
+
+{ #category : 'tests' }
+PCRE2DFAMatcherTest >> testDFAMatchValidatesWorkspaceAndOvectorSizes [
+
+	| regex |
+	regex := 'a' asPerlCompatibleRegex.
+
+	self
+		should: [ regex dfaMatches: 'a' workspaceSize: 19 ]
+		raise: Error
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring:
+					 'greater than or equal to 20') ].
+	self
+		should: [ regex dfaMatch: 'a' workspaceSize: 20 ovectorSize: 0 ]
+		raise: Error
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring: 'positive integer') ]
+]
+
+{ #category : 'tests' }
 PCRE2DFAMatcherTest >> testDFAMatchesDecodesUTF8Results [
 
 	| eclair matches regex subject |
