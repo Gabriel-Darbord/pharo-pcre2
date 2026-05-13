@@ -1,7 +1,9 @@
 "
 I wrap a PCRE2 match context.
 
-A match context carries runtime limits and matching policy such as depth, heap, match, and offset limits. Matchers use me when the caller needs to constrain or tune native matching behavior beyond the compiled pattern itself.
+A match context carries runtime limits and matching policy such as depth, heap, match, and offset limits. It can also hold a native callout callback for the duration of matching.
+
+Most clients should prefer PCRE2Matcher>>withCallout:do: or the callout-aware matching conveniences. Those methods install callbacks on temporary matchers so the receiver is not left with callback state after the operation. Directly using calloutBlock: is useful for lower-level integrations that explicitly manage context lifetime.
 "
 Class {
 	#name : 'PCRE2MatchContext',

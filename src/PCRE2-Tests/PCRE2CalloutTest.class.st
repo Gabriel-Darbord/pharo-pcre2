@@ -76,6 +76,71 @@ PCRE2CalloutTest >> testCalloutSitesExposeNumberedAndStringCallouts [
 ]
 
 { #category : 'tests' }
+PCRE2CalloutTest >> testFindMatchCalloutsDoAnswersStandaloneMatch [
+
+	| events match regex |
+	regex := '(a)(?C7)b' asPerlCompatibleRegex.
+	events := OrderedCollection new.
+
+	match := regex findMatch: 'zab' calloutsDo: [ :event |
+		         events add: event.
+		         0 ].
+	self assert: match readMatch equals: 'ab'.
+	self assert: match readMatches equals: #( 'ab' 'a' ).
+	self assert: events size equals: 1.
+	self assert: events first number equals: 7
+]
+
+{ #category : 'tests' }
+PCRE2CalloutTest >> testMatcherCalloutsDoCanAbortWithCalloutError [
+
+	| events regex |
+	regex := '(?C1)ab' asPerlCompatibleRegex.
+	events := OrderedCollection new.
+
+	self
+		should: [
+			regex matches: 'ab' calloutsDo: [ :event |
+				events add: event.
+				PCRE2 errorCallout ] ]
+		raise: PCRE2MatchError
+		withExceptionDo: [ :error |
+			self assert: error messageText equals: 'callout error code' ].
+	self assert: events size equals: 1.
+	self assert: (regex matches: 'ab')
+]
+
+{ #category : 'tests' }
+PCRE2CalloutTest >> testMatcherCalloutsDoCanAbortWithNoMatch [
+
+	| events regex |
+	regex := '(?C1)ab' asPerlCompatibleRegex.
+	events := OrderedCollection new.
+
+	self deny: (regex matches: 'ab' calloutsDo: [ :event |
+			 events add: event.
+			 PCRE2 errorNoMatch ]).
+	self assert: events size equals: 1.
+	self assert: (regex matches: 'ab')
+]
+
+{ #category : 'tests' }
+PCRE2CalloutTest >> testMatcherCalloutsDoInvokesCallbackTemporarily [
+
+	| events regex |
+	regex := '(?C1)ab' asPerlCompatibleRegex.
+	events := OrderedCollection new.
+
+	self assert: (regex matches: 'ab' calloutsDo: [ :event |
+			 events add: event.
+			 nil ]).
+	self assert: events size equals: 1.
+	self assert: events first number equals: 1.
+	self assert: (regex matches: 'ab').
+	self assert: events size equals: 1
+]
+
+{ #category : 'tests' }
 PCRE2CalloutTest >> testRuntimeCalloutCanAbortWithCalloutError [
 
 	| events regex |
@@ -201,4 +266,38 @@ PCRE2CalloutTest >> testRuntimeCalloutReportsMarksAndCaptures [
 	self assert: event captureTop equals: 2.
 	self assert: event captureLast equals: 1.
 	self assert: (event offsetsAt: 2) equals: #( 0 1 )
+]
+
+{ #category : 'tests' }
+PCRE2CalloutTest >> testWithAutomaticCalloutsDoGeneratesCallbacksWithoutChangingReceiver [
+
+	| events regex result |
+	regex := 'ab' asPerlCompatibleRegex.
+	events := OrderedCollection new.
+
+	result := regex
+		          withAutomaticCallouts: [ :event |
+			          events add: event.
+			          0 ]
+		          do: [ :callbackMatcher | callbackMatcher matches: 'ab' ].
+	self assert: result.
+	self assert: events size >= 3.
+	self assert: (events allSatisfy: [ :event | event isAutomatic ]).
+	self assert: regex calloutSites isEmpty
+]
+
+{ #category : 'tests' }
+PCRE2CalloutTest >> testWithCalloutDoSupportsCustomOperation [
+
+	| answer events regex |
+	regex := '(?C1)ab' asPerlCompatibleRegex.
+	events := OrderedCollection new.
+
+	answer := regex
+		          withCallout: [ :event |
+			          events add: event.
+			          0 ]
+		          do: [ :callbackMatcher | callbackMatcher find: 'zab' ].
+	self assert: answer equals: 'ab'.
+	self assert: events size equals: 1
 ]

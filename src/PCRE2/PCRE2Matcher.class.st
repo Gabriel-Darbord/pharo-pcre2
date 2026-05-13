@@ -1,17 +1,17 @@
 "
 I wrap a compiled PCRE2 pattern and provide the public matching API.
 
-High-level methods accept normal Pharo strings and prepared `PCRE2UTF8Input` instances. Strings are prepared as UTF-8 bytes before calling PCRE2; ASCII ByteStrings can be reused directly, while other strings are encoded and decoded through Zinc.
+High-level methods accept normal Pharo strings and prepared PCRE2UTF8Input instances. Strings are prepared as UTF-8 bytes before calling PCRE2; ASCII ByteStrings can be reused directly, while other strings are encoded and decoded through Zinc.
 
-Match operations create standalone `PCRE2Match` objects. The matcher does not own a reusable match result; callers may keep the returned match data and ask it for the matched text, groups, offsets, mark, partial/complete status, or persistence later.
+Match operations create standalone PCRE2Match objects. The matcher does not own a reusable match result; callers may keep the returned match data and ask it for the matched text, groups, offsets, mark, partial/complete status, or persistence later.
 
 The API has four layers:
-- Convenience matching such as `matches:`, `matchesPrefix:`, `search:`, `find:`, `findWithGroups:`, and `findPartialMatch:`.
-- Enumeration, splitting, and rewriting such as `findAll:`, `split:indicesDo:`, `copy:replacingMatchesWith:`, `copy:translatingMatchesUsing:`, and `substitute:with:`.
-- Debugging hooks such as `calloutSites`, runtime match-context callouts, and `traceMatch:`.
-- Byte-level operations such as `matchBytes:from:to:` and DFA matching for callers that already manage UTF-8 storage and offsets.
+- Convenience matching such as matches:, matchesPrefix:, search:, find:, findWithGroups:, and findPartialMatch:.
+- Enumeration, splitting, and rewriting such as findAll:, split:indicesDo:, copy:replacingMatchesWith:, copy:translatingMatchesUsing:, and substitute:with:.
+- Debugging and callback hooks such as calloutSites, withCallout:do:, withAutomaticCallouts:do:, callout-aware matching conveniences, and traceMatch:.
+- Byte-level operations such as matchBytes:from:to: and DFA matching for callers that already manage UTF-8 storage and offsets.
 
-Instances may be JIT-compiled when the native library supports it. Lifecycle restoration is handled by `PCRE2SessionManager`, which either deserializes compatible native codes or recompiles from the recorded pattern and options.
+Instances may be JIT-compiled when the native library supports it. Lifecycle restoration is handled by PCRE2SessionManager, which either deserializes compatible native codes or recompiles from the recorded pattern and options.
 "
 Class {
 	#name : 'PCRE2Matcher',
@@ -361,6 +361,15 @@ PCRE2Matcher >> find: subject [
 	^ (self findMatch: subject) ifNotNil: [ :match | match readMatch ]
 ]
 
+{ #category : 'callouts' }
+PCRE2Matcher >> find: subject calloutsDo: calloutBlock [
+	"Answer the first matching substring while invoking calloutBlock for runtime PCRE2 callouts."
+
+	^ self
+		  withCallout: calloutBlock
+		  do: [ :callbackMatcher | callbackMatcher find: subject ]
+]
+
 { #category : 'match enumeration' }
 PCRE2Matcher >> findAll: subject [
 	"Returns all matching substrings within the subject."
@@ -376,6 +385,15 @@ PCRE2Matcher >> findAll: subject [
 			input recordOn: match.
 			result add: match readMatch ].
 	^ result
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> findAll: subject calloutsDo: calloutBlock [
+	"Answer all matching substrings while invoking calloutBlock for runtime PCRE2 callouts."
+
+	^ self
+		  withCallout: calloutBlock
+		  do: [ :callbackMatcher | callbackMatcher findAll: subject ]
 ]
 
 { #category : 'match enumeration' }
@@ -426,6 +444,15 @@ PCRE2Matcher >> findMatch: subject [
 	match := self matchBytes: input bytes from: 1 to: input size.
 	match ifNotNil: [ input recordOn: match ].
 	^ match
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> findMatch: subject calloutsDo: calloutBlock [
+	"Answer the first match while invoking calloutBlock for runtime PCRE2 callouts."
+
+	^ self
+		  withCallout: calloutBlock
+		  do: [ :callbackMatcher | callbackMatcher findMatch: subject ]
 ]
 
 { #category : 'matching' }
@@ -638,6 +665,14 @@ PCRE2Matcher >> matchBytes: subject from: start to: end [
 	^ match
 ]
 
+{ #category : 'callouts' }
+PCRE2Matcher >> matchBytes: subject from: start to: end calloutsDo: calloutBlock [
+	"Run a byte-level match while invoking calloutBlock for runtime PCRE2 callouts."
+
+	^ self withCallout: calloutBlock do: [ :callbackMatcher |
+		  callbackMatcher matchBytes: subject from: start to: end ]
+]
+
 { #category : 'byte matching' }
 PCRE2Matcher >> matchBytes: subject from: start to: end into: aPCRE2Match [
 	"Run a match over a UTF-encoded subject range and populate caller-provided match data."
@@ -708,6 +743,15 @@ PCRE2Matcher >> matches: subject [
 	^ false
 ]
 
+{ #category : 'callouts' }
+PCRE2Matcher >> matches: subject calloutsDo: calloutBlock [
+	"Answer whether the subject is fully matched while invoking calloutBlock for runtime PCRE2 callouts."
+
+	^ self
+		  withCallout: calloutBlock
+		  do: [ :callbackMatcher | callbackMatcher matches: subject ]
+]
+
 { #category : 'match enumeration' }
 PCRE2Matcher >> matchesIn: subject [
 	"Equivalent of RxMatcher >> #matchesIn:"
@@ -745,6 +789,15 @@ PCRE2Matcher >> matchesPrefix: subject [
 	match isPartial ifTrue: [ ^ false ].
 	match offsetsDo: [ :start :end | ^ start == 1 ].
 	^ false
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> matchesPrefix: subject calloutsDo: calloutBlock [
+	"Answer whether the subject prefix matches while invoking calloutBlock for runtime PCRE2 callouts."
+
+	^ self
+		  withCallout: calloutBlock
+		  do: [ :callbackMatcher | callbackMatcher matchesPrefix: subject ]
 ]
 
 { #category : 'match enumeration' }
@@ -956,6 +1009,15 @@ PCRE2Matcher >> search: subject [
 	"Returns whether the regex partially matches the subject."
 
 	^ (self findMatch: subject) notNil
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> search: subject calloutsDo: calloutBlock [
+	"Answer whether the subject contains a match while invoking calloutBlock for runtime PCRE2 callouts."
+
+	^ self
+		  withCallout: calloutBlock
+		  do: [ :callbackMatcher | callbackMatcher search: subject ]
 ]
 
 { #category : 'persistence' }
@@ -1279,6 +1341,37 @@ PCRE2Matcher >> substitutionOptions [
 	^ options bitAnd: (PCRE2 partialSoft | PCRE2 partialHard) bitInvert
 ]
 
+{ #category : 'private' }
+PCRE2Matcher >> temporaryMatcherAddingCompileOptions: compileOptions matchOptions: matchOptions [
+	"Answer a temporary matcher compiled from the receiver's source with additional options."
+
+	| sourceCompiler temporaryCompiler temporaryMatcher |
+	sourceCompiler := compiler ifNil: [ PCRE2Compiler new ].
+	temporaryCompiler := PCRE2Compiler new.
+	sourceCompiler copyContextIfPresent ifNotNil: [ :contextCopy |
+		temporaryCompiler context: contextCopy ].
+	temporaryCompiler
+		options: (sourceCompiler options bitOr: compileOptions);
+		optionsJIT: sourceCompiler optionsJIT.
+	temporaryMatcher := temporaryCompiler compile: pattern.
+	temporaryMatcher options: (options bitOr: matchOptions).
+	context ifNotNil: [
+		temporaryMatcher context: context copy autoRelease ].
+	^ temporaryMatcher
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> temporaryMatcherForCallout [
+	"Answer a temporary matcher that can carry a runtime callout without mutating the receiver."
+
+	| callbackMatcher |
+	callbackMatcher := self copy.
+	callbackMatcher options: options.
+	context ifNotNil: [
+		callbackMatcher context: context copy autoRelease ].
+	^ callbackMatcher
+]
+
 { #category : 'debugging' }
 PCRE2Matcher >> traceMatch: aStringOrInput [
 	"Run an instrumented non-JIT match and answer a trace without mutating the receiver."
@@ -1313,19 +1406,10 @@ PCRE2Matcher >> traceMatch: aStringOrInput [
 PCRE2Matcher >> traceMatcher [
 	"Answer a temporary matcher compiled for tracing. The receiver is not mutated."
 
-	| sourceCompiler traceCompiler traceMatcher |
-	sourceCompiler := compiler ifNil: [ PCRE2Compiler new ].
-	traceCompiler := PCRE2Compiler new.
-	sourceCompiler copyContextIfPresent ifNotNil: [ :contextCopy |
-		traceCompiler context: contextCopy ].
-	traceCompiler
-		options: ((sourceCompiler options bitOr: PCRE2 autoCallout) bitOr:
-					 PCRE2 noStartOptimize);
-		optionsJIT: sourceCompiler optionsJIT.
-	traceMatcher := traceCompiler compile: pattern.
-	traceMatcher options: (options bitOr: PCRE2 noJIT).
-	context ifNotNil: [ traceMatcher context: context copy autoRelease ].
-	^ traceMatcher
+	^ self
+		  temporaryMatcherAddingCompileOptions:
+		  (PCRE2 autoCallout bitOr: PCRE2 noStartOptimize)
+		  matchOptions: PCRE2 noJIT
 ]
 
 { #category : 'private' }
@@ -1379,4 +1463,29 @@ PCRE2Matcher >> validateUsableMatchData: aPCRE2Match [
 	(aPCRE2Match isPersistent or: [ aPCRE2Match isNull ]) ifTrue: [
 		PCRE2Error signal:
 			'Match data must hold an external PCRE2 match data block' ]
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> withAutomaticCallouts: calloutBlock do: aBlock [
+	"Evaluate aBlock with a temporary matcher compiled with automatic callouts. This is intended for tools and diagnostics: it does not mutate the receiver, and it disables start optimization on the temporary matcher so generated callouts expose matching progress."
+
+	| callbackMatcher |
+	callbackMatcher := self
+		                   temporaryMatcherAddingCompileOptions:
+		                   (PCRE2 autoCallout bitOr: PCRE2 noStartOptimize)
+		                   matchOptions: 0.
+	callbackMatcher context calloutBlock: calloutBlock.
+	^ [ aBlock cull: callbackMatcher ] ensure: [
+		  callbackMatcher context clearCallout ]
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> withCallout: calloutBlock do: aBlock [
+	"Evaluate aBlock with a temporary matcher whose match context invokes calloutBlock for runtime PCRE2 callouts. The callout block receives a PCRE2CalloutEvent and may answer an integer PCRE2 return code to control matching, or any non-integer value to continue."
+
+	| callbackMatcher |
+	callbackMatcher := self temporaryMatcherForCallout.
+	callbackMatcher context calloutBlock: calloutBlock.
+	^ [ aBlock cull: callbackMatcher ] ensure: [
+		  callbackMatcher context clearCallout ]
 ]
