@@ -200,6 +200,27 @@ PCRE2DebugSessionTest >> testTracePresenterLabelsSingleRowsWithSourceSnippets [
 ]
 
 { #category : 'tests' }
+PCRE2DebugSessionTest >> testTracePresenterMainPresentersHaveHelpText [
+
+	| presenter trace widgets |
+	trace := '(?C1)a(?C"step")b' asPerlCompatibleRegex traceMatch: 'ab'.
+	presenter := PCRE2TracePresenter on: trace.
+	widgets := {
+		           presenter statusLabel.
+		           presenter patternText.
+		           presenter subjectText.
+		           presenter patternContextText.
+		           presenter subjectContextText.
+		           presenter stepsTable.
+		           presenter capturesTable.
+		           presenter detailsText }.
+
+	widgets do: [ :each |
+		self deny: each help isNil.
+		self deny: each help isEmpty ]
+]
+
+{ #category : 'tests' }
 PCRE2DebugSessionTest >> testTracePresenterPatternContextShowsCalloutNeighborhood [
 
 	| context excerpt highlightInterval presenter row title trace |

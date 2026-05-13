@@ -74,6 +74,18 @@ PCRE2TracePresenter >> captureRowsForStep: aTraceStep [
 	^ rows asArray
 ]
 
+{ #category : 'layout' }
+PCRE2TracePresenter >> capturesHelpString [
+
+	^ 'Capture groups produced at the selected trace row.'
+]
+
+{ #category : 'accessing' }
+PCRE2TracePresenter >> capturesTable [
+
+	^ capturesTable
+]
+
 { #category : 'display' }
 PCRE2TracePresenter >> caretLineFor: characterPosition in: sourceString [
 
@@ -124,13 +136,27 @@ PCRE2TracePresenter >> defaultLayout [
 	| bottomPane detailsPane patternPane sourcePane subjectPane |
 	patternPane := SpBoxLayout newTopToBottom
 		               spacing: 4;
-		               add: patternText;
-		               add: patternContextText height: 62;
+		               add: (self
+				                labelledPresenter: patternText
+				                label: 'Pattern'
+				                help: self patternSourceHelpString);
+		               add: (self
+				                labelledPresenter: patternContextText
+				                label: 'Pattern context'
+				                help: self patternContextHelpString)
+		               height: 88;
 		               yourself.
 	subjectPane := SpBoxLayout newTopToBottom
 		               spacing: 4;
-		               add: subjectText;
-		               add: subjectContextText height: 62;
+		               add: (self
+				                labelledPresenter: subjectText
+				                label: 'Subject'
+				                help: self subjectSourceHelpString);
+		               add: (self
+				                labelledPresenter: subjectContextText
+				                label: 'Subject context'
+				                help: self subjectContextHelpString)
+		               height: 88;
 		               yourself.
 	sourcePane := SpPanedLayout newLeftToRight
 		              positionOfSlider: 50 percent;
@@ -139,21 +165,37 @@ PCRE2TracePresenter >> defaultLayout [
 		              yourself.
 	detailsPane := SpBoxLayout newTopToBottom
 		               spacing: 4;
-		               add: capturesTable;
-		               add: detailsText;
+		               add: (self
+				                labelledPresenter: capturesTable
+				                label: 'Captures'
+				                help: self capturesHelpString);
+		               add: (self
+				                labelledPresenter: detailsText
+				                label: 'Event details'
+				                help: self eventDetailsHelpString)
+		               height: 130;
 		               yourself.
 	bottomPane := SpPanedLayout newLeftToRight
 		              positionOfSlider: 70 percent;
-		              add: stepsTable;
+		              add: (self
+				               labelledPresenter: stepsTable
+				               label: 'Trace timeline'
+				               help: self traceTimelineHelpString);
 		              add: detailsPane;
 		              yourself.
 	^ SpBoxLayout newTopToBottom
 		  borderWidth: 8;
 		  spacing: 6;
 		  add: statusLabel height: 24;
-		  add: sourcePane height: 230;
+		  add: sourcePane height: 270;
 		  add: bottomPane;
 		  yourself
+]
+
+{ #category : 'accessing' }
+PCRE2TracePresenter >> detailsText [
+
+	^ detailsText
 ]
 
 { #category : 'display' }
@@ -250,6 +292,12 @@ PCRE2TracePresenter >> detailsTextForStep: aTraceStep [
 				  print: site nextItemLength ] ]
 ]
 
+{ #category : 'layout' }
+PCRE2TracePresenter >> eventDetailsHelpString [
+
+	^ 'Raw PCRE2 callout fields for the selected event or grouped row.'
+]
+
 { #category : 'display' }
 PCRE2TracePresenter >> flushProgressRun: pendingSteps into: rows [
 
@@ -303,7 +351,9 @@ PCRE2TracePresenter >> initializeCapturesTable [
 { #category : 'initialization' }
 PCRE2TracePresenter >> initializePresenters [
 
-	statusLabel := self newLabel.
+	statusLabel := self newLabel
+		               help: self statusHelpString;
+		               yourself.
 	patternText := self newText
 		               beNotEditable;
 		               yourself.
@@ -370,6 +420,22 @@ PCRE2TracePresenter >> isGroupableProgressStep: aTraceStep [
 	^ aTraceStep isProgress and: [ aTraceStep event isAutomatic ]
 ]
 
+{ #category : 'layout' }
+PCRE2TracePresenter >> labelledPresenter: aPresenter label: labelString help: helpString [
+
+	| label |
+	aPresenter help: helpString.
+	label := self newLabel
+		         label: labelString;
+		         help: helpString;
+		         yourself.
+	^ SpBoxLayout newTopToBottom
+		  spacing: 2;
+		  add: label height: 20;
+		  add: aPresenter;
+		  yourself
+]
+
 { #category : 'display' }
 PCRE2TracePresenter >> minimumProgressRunSizeForGrouping [
 
@@ -388,6 +454,12 @@ PCRE2TracePresenter >> oneLineSourceFor: sourceObject [
 			  (character = Character cr or: [ character = Character lf ])
 				  ifTrue: [ stream nextPut: Character space ]
 				  ifFalse: [ stream nextPut: character ] ] ]
+]
+
+{ #category : 'layout' }
+PCRE2TracePresenter >> patternContextHelpString [
+
+	^ 'Focused pattern excerpt around the selected trace row, with the relevant token highlighted.'
 ]
 
 { #category : 'accessing' }
@@ -420,6 +492,18 @@ PCRE2TracePresenter >> patternRangeForRow: aTraceStepRow [
 	^ self
 		  combinedRangeForRow: aTraceStepRow
 		  using: [ :step | step patternRange ]
+]
+
+{ #category : 'layout' }
+PCRE2TracePresenter >> patternSourceHelpString [
+
+	^ 'Full regular expression. Highlight shows the pattern range reached by the selected trace row.'
+]
+
+{ #category : 'accessing' }
+PCRE2TracePresenter >> patternText [
+
+	^ patternText
 ]
 
 { #category : 'display' }
@@ -582,6 +666,12 @@ PCRE2TracePresenter >> sourceLabelFor: sourceObject range: anIntervalOrNil [
 	^ label , ' ' , (self quotedSnippet: snippet)
 ]
 
+{ #category : 'layout' }
+PCRE2TracePresenter >> statusHelpString [
+
+	^ 'Summary of the trace result, return code, event count, grouped row count, callout sites, and matched text.'
+]
+
 { #category : 'accessing' }
 PCRE2TracePresenter >> statusLabel [
 
@@ -608,6 +698,12 @@ PCRE2TracePresenter >> stepRowsForSteps: traceSteps [
 PCRE2TracePresenter >> stepsTable [
 
 	^ stepsTable
+]
+
+{ #category : 'layout' }
+PCRE2TracePresenter >> subjectContextHelpString [
+
+	^ 'Focused subject excerpt around the selected trace row, with the consumed subject span highlighted.'
 ]
 
 { #category : 'accessing' }
@@ -640,6 +736,18 @@ PCRE2TracePresenter >> subjectRangeForRow: aTraceStepRow [
 	^ self
 		  combinedRangeForRow: aTraceStepRow
 		  using: [ :step | step subjectRange ]
+]
+
+{ #category : 'layout' }
+PCRE2TracePresenter >> subjectSourceHelpString [
+
+	^ 'Full subject string. Highlight shows the subject range reached by the selected trace row.'
+]
+
+{ #category : 'accessing' }
+PCRE2TracePresenter >> subjectText [
+
+	^ subjectText
 ]
 
 { #category : 'display' }
@@ -691,6 +799,12 @@ PCRE2TracePresenter >> traceStatusString [
 			  stream
 				  nextPutAll: ' | matched ';
 				  print: matched ] ]
+]
+
+{ #category : 'layout' }
+PCRE2TracePresenter >> traceTimelineHelpString [
+
+	^ 'Callout events in execution order. Automatic rows may group repeated progress events.'
 ]
 
 { #category : 'updating' }
