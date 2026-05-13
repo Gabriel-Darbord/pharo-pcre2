@@ -10,6 +10,23 @@ Class {
 	#package : 'PCRE2-Tests'
 }
 
+{ #category : 'helpers' }
+PCRE2DebugSessionTest >> assertContextText: aText highlights: expectedSubstring at: highlightInterval [
+
+	| attributes |
+	self
+		assert: (aText asString
+				 copyFrom: highlightInterval first
+				 to: highlightInterval last)
+		equals: expectedSubstring.
+	attributes := aText attributesAt: highlightInterval first.
+	self assert:
+		(attributes anySatisfy: [ :each | each isKindOf: TextColor ]).
+	self assert:
+		(attributes anySatisfy: [ :each |
+			 each isKindOf: TextBackgroundColor ])
+]
+
 { #category : 'tests' }
 PCRE2DebugSessionTest >> testDebugSessionSelectStepUsesStableStepIndex [
 
@@ -115,9 +132,9 @@ PCRE2DebugSessionTest >> testTracePresenterCanSelectEquivalentStepInsideGroup [
 ]
 
 { #category : 'tests' }
-PCRE2DebugSessionTest >> testTracePresenterGroupedContextMarksWholeRun [
+PCRE2DebugSessionTest >> testTracePresenterGroupedContextHighlightsWholeRun [
 
-	| context group presenter trace |
+	| context excerpt group highlightInterval presenter title trace |
 	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch:
 		         'caterpillar'.
 	presenter := PCRE2TracePresenter on: trace.
@@ -125,11 +142,23 @@ PCRE2DebugSessionTest >> testTracePresenterGroupedContextMarksWholeRun [
 	context := presenter
 		           patternContextTextForRow: group
 		           range: (presenter patternRangeForRow: group).
+	title := 'Pattern 2-5 "cat|" | automatic x5'.
+	excerpt := '(cat|cater|caterpillar)'.
+	highlightInterval := presenter
+		                     sourceContextHighlightIntervalFor:
+		                     (presenter patternRangeForRow: group)
+		                     contextStart: 1
+		                     titleLineSize: title size
+		                     excerpt: excerpt
+		                     hasLeadingEllipsis: false.
 
-	self assert:
-		(context includesSubstring: 'Pattern 2-5 "cat|" | automatic x5').
-	self assert: (context includesSubstring: '(cat|cater|caterpillar)').
-	self assert: (context includesSubstring: '^^^^')
+	self assert: (context asString includesSubstring: title).
+	self assert: (context asString includesSubstring: excerpt).
+	self deny: (context asString includesSubstring: '^^^^').
+	self
+		assertContextText: context
+		highlights: 'cat|'
+		at: highlightInterval
 ]
 
 { #category : 'tests' }
@@ -173,7 +202,7 @@ PCRE2DebugSessionTest >> testTracePresenterLabelsSingleRowsWithSourceSnippets [
 { #category : 'tests' }
 PCRE2DebugSessionTest >> testTracePresenterPatternContextShowsCalloutNeighborhood [
 
-	| context presenter row trace |
+	| context excerpt highlightInterval presenter row title trace |
 	trace := '(?C1)a(?C"step")b' asPerlCompatibleRegex traceMatch: 'ab'.
 	presenter := PCRE2TracePresenter on: trace.
 	row := presenter stepsTable items detect: [ :each |
@@ -181,12 +210,18 @@ PCRE2DebugSessionTest >> testTracePresenterPatternContextShowsCalloutNeighborhoo
 	context := presenter
 		           patternContextTextForRow: row
 		           range: row firstStep patternRange.
+	title := 'Pattern 6 "a" | #1'.
+	excerpt := '(?C1)a(?C"step")b'.
+	highlightInterval := presenter
+		                     sourceContextHighlightIntervalFor:
+		                     row firstStep patternRange
+		                     contextStart: 1
+		                     titleLineSize: title size
+		                     excerpt: excerpt
+		                     hasLeadingEllipsis: false.
 
-	self
-		assert: context
-		equals:
-			'Pattern 6 "a" | #1' , String cr , '(?C1)a(?C"step")b' , String cr
-			, '     ^'
+	self assert: context asString equals: title , String cr , excerpt.
+	self assertContextText: context highlights: 'a' at: highlightInterval
 ]
 
 { #category : 'tests' }
@@ -229,10 +264,13 @@ PCRE2DebugSessionTest >> testTracePresenterUpdatesRenderedContextPanes [
 		       each firstStep event number = 1 ].
 
 	presenter selectedRow: row.
-	self assert: (presenter patternContextText text includesSubstring:
-			 '(?C1)a(?C"step")b').
 	self assert:
-		(presenter patternContextText text includesSubstring: '^').
-	self assert: (presenter subjectContextText text includesSubstring:
+		(presenter patternContextText text asString includesSubstring:
+			 '(?C1)a(?C"step")b').
+	self deny:
+		(presenter patternContextText text asString includesSubstring:
+			 '^^^^').
+	self assert:
+		(presenter subjectContextText text asString includesSubstring:
 			 'Subject at 1 | #1')
 ]

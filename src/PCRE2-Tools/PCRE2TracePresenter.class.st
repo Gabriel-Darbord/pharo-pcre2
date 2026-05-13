@@ -33,6 +33,23 @@ PCRE2TracePresenter class >> title [
 ]
 
 { #category : 'display' }
+PCRE2TracePresenter >> applySourceContextHighlightTo: aText range: anInterval [
+
+	aText
+		addAttribute: (TextBackgroundColor color: (Color red alpha: 0.12))
+		from: anInterval first
+		to: anInterval last.
+	aText
+		addAttribute: (TextColor color: Color red)
+		from: anInterval first
+		to: anInterval last.
+	aText
+		addAttribute: TextEmphasis bold
+		from: anInterval first
+		to: anInterval last
+]
+
+{ #category : 'display' }
 PCRE2TracePresenter >> calloutLabelForRow: aTraceStepRow [
 
 	aTraceStepRow isGroup ifFalse: [
@@ -354,24 +371,6 @@ PCRE2TracePresenter >> isGroupableProgressStep: aTraceStep [
 ]
 
 { #category : 'display' }
-PCRE2TracePresenter >> markerLineFor: anIntervalOrNil contextStart: contextStart excerpt: excerptString hasLeadingEllipsis: hasLeadingEllipsis [
-
-	| leadingOffset markerStart markerSize |
-	anIntervalOrNil ifNil: [ ^ '' ].
-	leadingOffset := hasLeadingEllipsis
-		                 ifTrue: [ 3 ]
-		                 ifFalse: [ 0 ].
-	markerStart := anIntervalOrNil first - contextStart + 1
-	               + leadingOffset.
-	markerStart := (markerStart max: 1) min: excerptString size + 1.
-	markerSize := anIntervalOrNil isEmpty
-		              ifTrue: [ 1 ]
-		              ifFalse: [ anIntervalOrNil size ].
-	^ (String new: markerStart - 1 withAll: Character space)
-	  , (String new: markerSize withAll: $^)
-]
-
-{ #category : 'display' }
 PCRE2TracePresenter >> minimumProgressRunSizeForGrouping [
 
 	^ 4
@@ -505,6 +504,28 @@ PCRE2TracePresenter >> setModelBeforeInitialization: aPCRE2MatchTrace [
 ]
 
 { #category : 'display' }
+PCRE2TracePresenter >> sourceContextHighlightIntervalFor: anIntervalOrNil contextStart: contextStart titleLineSize: titleLineSize excerpt: excerptString hasLeadingEllipsis: hasLeadingEllipsis [
+
+	| excerptEnd excerptStart highlightStart highlightStop leadingOffset size |
+	(anIntervalOrNil isNil or: [ excerptString isEmpty ]) ifTrue: [
+		^ nil ].
+	excerptStart := titleLineSize + 2.
+	excerptEnd := excerptStart + excerptString size - 1.
+	leadingOffset := hasLeadingEllipsis
+		                 ifTrue: [ 3 ]
+		                 ifFalse: [ 0 ].
+	highlightStart := excerptStart + leadingOffset
+	                  + (anIntervalOrNil first - contextStart).
+	highlightStart := (highlightStart max: excerptStart) min: excerptEnd.
+	size := anIntervalOrNil isEmpty
+		        ifTrue: [ 1 ]
+		        ifFalse: [ anIntervalOrNil size ].
+	highlightStop := highlightStart + size - 1 min: excerptEnd.
+	highlightStop < highlightStart ifTrue: [ ^ nil ].
+	^ highlightStart to: highlightStop
+]
+
+{ #category : 'display' }
 PCRE2TracePresenter >> sourceContextRadius [
 
 	^ 24
@@ -527,27 +548,25 @@ PCRE2TracePresenter >> sourceContextRangeFor: sourceString range: anIntervalOrNi
 { #category : 'display' }
 PCRE2TracePresenter >> sourceContextTextFor: sourceObject range: anIntervalOrNil title: titleString callout: calloutString [
 
-	| excerpt marker range source start stop |
+	| excerpt highlightInterval range source start stop text titleLine |
+	titleLine := titleString , ' | ' , calloutString.
 	source := self oneLineSourceFor: sourceObject.
-	anIntervalOrNil ifNil: [ ^ titleString , ' | ' , calloutString ].
+	anIntervalOrNil ifNil: [ ^ titleLine asText ].
 	range := self sourceContextRangeFor: source range: anIntervalOrNil.
 	start := range first.
 	stop := range last.
 	excerpt := self contextExcerptFor: source from: start to: stop.
-	marker := self
-		          markerLineFor: anIntervalOrNil
-		          contextStart: start
-		          excerpt: excerpt
-		          hasLeadingEllipsis: start > 1.
-	^ String streamContents: [ :stream |
-		  stream
-			  nextPutAll: titleString;
-			  nextPutAll: ' | ';
-			  nextPutAll: calloutString;
-			  cr;
-			  nextPutAll: excerpt;
-			  cr;
-			  nextPutAll: marker ]
+	text := (titleLine , String cr , excerpt) asText.
+	highlightInterval := self
+		                     sourceContextHighlightIntervalFor:
+		                     anIntervalOrNil
+		                     contextStart: start
+		                     titleLineSize: titleLine size
+		                     excerpt: excerpt
+		                     hasLeadingEllipsis: start > 1.
+	highlightInterval ifNotNil: [
+		self applySourceContextHighlightTo: text range: highlightInterval ].
+	^ text
 ]
 
 { #category : 'display' }
