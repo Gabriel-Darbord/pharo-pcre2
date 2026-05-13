@@ -104,6 +104,13 @@ PCRE2 class >> autoCallout [
 ]
 
 { #category : 'options' }
+PCRE2 class >> automaticCalloutNumber [
+	"PCRE2 reports generated automatic callout sites and events with callout number 255."
+
+	^ 255
+]
+
+{ #category : 'options' }
 PCRE2 class >> calloutBacktrack [
 	"Callout flag set when matching has backtracked since the previous callout."
 

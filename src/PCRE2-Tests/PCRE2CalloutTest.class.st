@@ -21,7 +21,9 @@ PCRE2CalloutTest >> testAutomaticCalloutsExposePatternProgressSites [
 	self
 		assert: (sites collect: [ :site | site patternPosition ])
 		equals: #( 0 1 2 ).
-	self assert: (sites allSatisfy: [ :site | site number = 255 ]).
+	self assert: (sites allSatisfy: [ :site |
+			 site number = PCRE2 automaticCalloutNumber ]).
+	self assert: (sites allSatisfy: [ :site | site isAutomatic ]).
 	self assert: (regex matches: 'ab')
 ]
 
@@ -176,7 +178,10 @@ PCRE2CalloutTest >> testRuntimeCalloutReportsBacktracking [
 		equals: #( 1 2 3 ).
 	self assert: events first isStartMatch.
 	self deny: events first isBacktrack.
-	self assert: events third isBacktrack
+	self assert: events first eventKind equals: #startMatch.
+	self assert: events second eventKind equals: #progress.
+	self assert: events third isBacktrack.
+	self assert: events third eventKind equals: #backtrack
 ]
 
 { #category : 'tests' }

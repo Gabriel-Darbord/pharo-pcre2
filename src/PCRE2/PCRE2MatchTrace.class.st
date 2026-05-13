@@ -3,7 +3,7 @@ I describe one instrumented PCRE2 match attempt.
 
 A trace is produced by compiling a temporary debug matcher with automatic callouts, running a non-JIT match, and collecting runtime PCRE2CalloutEvent snapshots. The original matcher is not mutated.
 
-I am intentionally a data object for now: UI/debugger tools can use my static callout sites, runtime events, match result, and UTF-8 byte-to-character helpers to build a step-by-step explanation.
+I am intentionally a data object for now: UI/debugger tools can use my static callout sites, runtime events, match result, UTF-8 byte-to-character helpers, and event-to-site correlation methods to build a step-by-step explanation.
 "
 Class {
 	#name : 'PCRE2MatchTrace',
@@ -35,6 +35,22 @@ PCRE2MatchTrace class >> pattern: patternString subject: subjectObject input: aP
 ]
 
 { #category : 'accessing' }
+PCRE2MatchTrace >> calloutSiteForEvent: aPCRE2CalloutEvent [
+	"Answer the static callout site corresponding to a runtime event, or nil if none is known."
+
+	^ self calloutSiteForEvent: aPCRE2CalloutEvent ifAbsent: [ nil ]
+]
+
+{ #category : 'accessing' }
+PCRE2MatchTrace >> calloutSiteForEvent: aPCRE2CalloutEvent ifAbsent: absentBlock [
+	"Answer the static callout site corresponding to a runtime event."
+
+	^ calloutSites
+		  detect: [ :site | site matchesEvent: aPCRE2CalloutEvent ]
+		  ifNone: absentBlock
+]
+
+{ #category : 'accessing' }
 PCRE2MatchTrace >> calloutSites [
 
 	^ calloutSites
@@ -44,6 +60,21 @@ PCRE2MatchTrace >> calloutSites [
 PCRE2MatchTrace >> events [
 
 	^ events
+]
+
+{ #category : 'enumerating' }
+PCRE2MatchTrace >> eventsDo: aBlock [
+	"Evaluate aBlock with each runtime callout event in match order."
+
+	events do: aBlock
+]
+
+{ #category : 'enumerating' }
+PCRE2MatchTrace >> eventsWithSitesDo: aBlock [
+	"Evaluate aBlock with each runtime event and its matching static callout site, if any."
+
+	events do: [ :event |
+		aBlock value: event value: (self calloutSiteForEvent: event) ]
 ]
 
 { #category : 'initialization' }

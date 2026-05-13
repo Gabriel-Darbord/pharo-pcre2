@@ -11,6 +11,26 @@ Class {
 }
 
 { #category : 'tests' }
+PCRE2MatchTraceTest >> testTraceCorrelatesEventsWithStaticSites [
+
+	| numbers sites trace |
+	trace := '(?C1)a(?C"step")b' asPerlCompatibleRegex traceMatch: 'ab'.
+	numbers := OrderedCollection new.
+	sites := OrderedCollection new.
+
+	trace eventsWithSitesDo: [ :event :site |
+		self assert: site notNil.
+		self assert: (site matchesEvent: event).
+		numbers add: event number.
+		sites add: site ].
+
+	self assert: (numbers includes: 1).
+	self assert: (numbers includes: PCRE2 automaticCalloutNumber).
+	self assert:
+		(sites includes: (trace calloutSiteForEvent: trace events first))
+]
+
+{ #category : 'tests' }
 PCRE2MatchTraceTest >> testTraceMatchCollectsAutomaticCalloutEvents [
 
 	| regex trace |
@@ -24,9 +44,11 @@ PCRE2MatchTraceTest >> testTraceMatchCollectsAutomaticCalloutEvents [
 	self assert: trace events notEmpty.
 	self assert: trace calloutSites notEmpty.
 	self assert:
-		(trace calloutSites allSatisfy: [ :site | site number = 255 ]).
+		(trace calloutSites allSatisfy: [ :site | site isAutomatic ]).
 	self assert:
-		(trace events anySatisfy: [ :event | event number = 255 ])
+		(trace events allSatisfy: [ :event | event isAutomatic ]).
+	self assert:
+		(trace events anySatisfy: [ :event | event eventKind = #startMatch ])
 ]
 
 { #category : 'tests' }
