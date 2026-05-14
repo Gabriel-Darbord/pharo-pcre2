@@ -112,6 +112,10 @@ PCRE2CompileContext >> maxPatternCompiledLength [
 PCRE2CompileContext >> maxPatternCompiledLength: anInteger [
 	"Set the maximum compiled pattern size in bytes accepted by pcre2_compile()."
 
+	self
+		requireSupportedFeature: 'Maximum compiled pattern length'
+		since: '10.44'
+		when: LibPCRE2 supportsMaxPatternCompiledLength.
 	self checkSettingResult:
 		(self setMaxPatternCompiledLength: anInteger).
 	maxPatternCompiledLength := anInteger.
@@ -145,6 +149,10 @@ PCRE2CompileContext >> maxVarLookbehind [
 PCRE2CompileContext >> maxVarLookbehind: anInteger [
 	"Set the maximum length for bounded variable-length lookbehind assertions."
 
+	self
+		requireSupportedFeature: 'Variable lookbehind limit'
+		since: '10.43'
+		when: LibPCRE2 supportsMaxVarLookbehind.
 	self checkSettingResult: (self setMaxVarLookbehind: anInteger).
 	maxVarLookbehind := anInteger.
 	^ self
@@ -177,6 +185,10 @@ PCRE2CompileContext >> optimizationDirectives [
 PCRE2CompileContext >> optimize: directive [
 	"Apply one PCRE2 optimization directive. Directives are cumulative; later directives may override earlier ones."
 
+	self
+		requireSupportedFeature: 'Optimization directives'
+		since: '10.45'
+		when: LibPCRE2 supportsOptimizationDirectives.
 	self checkSettingResult: (self setOptimize: directive).
 	optimizationDirectives := self optimizationDirectives copyWith:
 		                          directive.
@@ -242,6 +254,15 @@ PCRE2CompileContext >> privateCopy [
 PCRE2CompileContext >> removeOptions: anInteger [
 
 	^ self options: (self options bitAnd: anInteger bitInvert)
+]
+
+{ #category : 'private' }
+PCRE2CompileContext >> requireSupportedFeature: featureName since: versionString when: aBoolean [
+	"Fail before calling an FFI entry point that may not exist in older PCRE2 10.x runtimes."
+
+	aBoolean ifTrue: [ ^ self ].
+	PCRE2Error signal: featureName , ' requires PCRE2 ' , versionString
+		, ' or newer; loaded ' , LibPCRE2 versionString
 ]
 
 { #category : 'private' }

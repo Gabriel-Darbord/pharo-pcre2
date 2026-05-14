@@ -40,6 +40,7 @@ PCRE2CompilerTest >> assertInvalidPattern: aString [
 PCRE2CompilerTest >> testCompileContextLimitsCompiledPatternLength [
 
 	| compiler |
+	LibPCRE2 supportsMaxPatternCompiledLength ifFalse: [ ^ self ].
 	compiler := PCRE2Compiler new.
 	compiler context maxPatternCompiledLength: 1.
 
@@ -89,6 +90,7 @@ PCRE2CompilerTest >> testCompileContextNewlineAffectsMultilineMatching [
 PCRE2CompilerTest >> testCompileContextOptimizationDirectivesAndValidation [
 
 	| context matcher |
+	LibPCRE2 supportsOptimizationDirectives ifFalse: [ ^ self ].
 	context := PCRE2Compiler new context.
 	context
 		useNoOptimization;
@@ -137,24 +139,31 @@ PCRE2CompilerTest >> testCompileContextOptionsBSRAndCopy [
 		options: PCRE2 extraAltBsux;
 		useNewlineCRLF;
 		maxPatternLength: 64;
-		maxPatternCompiledLength: 4096;
-		maxVarLookbehind: 300;
-		parensNestLimit: 12;
-		disableStartOptimization.
+		parensNestLimit: 12.
+	LibPCRE2 supportsMaxPatternCompiledLength ifTrue: [
+		context maxPatternCompiledLength: 4096 ].
+	LibPCRE2 supportsMaxVarLookbehind ifTrue: [
+		context maxVarLookbehind: 300 ].
+	LibPCRE2 supportsOptimizationDirectives ifTrue: [
+		context disableStartOptimization ].
+
 	copy := context copy.
 	self deny: copy identicalTo: context.
 	self assert: copy options equals: context options.
 	self assert: copy bsr equals: context bsr.
 	self assert: copy newline equals: context newline.
 	self assert: copy maxPatternLength equals: context maxPatternLength.
-	self
-		assert: copy maxPatternCompiledLength
-		equals: context maxPatternCompiledLength.
-	self assert: copy maxVarLookbehind equals: context maxVarLookbehind.
 	self assert: copy parensNestLimit equals: context parensNestLimit.
-	self
-		assert: copy optimizationDirectives
-		equals: context optimizationDirectives
+	LibPCRE2 supportsMaxPatternCompiledLength ifTrue: [
+		self
+			assert: copy maxPatternCompiledLength
+			equals: context maxPatternCompiledLength ].
+	LibPCRE2 supportsMaxVarLookbehind ifTrue: [
+		self assert: copy maxVarLookbehind equals: context maxVarLookbehind ].
+	LibPCRE2 supportsOptimizationDirectives ifTrue: [
+		self
+			assert: copy optimizationDirectives
+			equals: context optimizationDirectives ]
 ]
 
 { #category : 'tests' }
@@ -173,6 +182,7 @@ PCRE2CompilerTest >> testCompileContextParensNestLimit [
 PCRE2CompilerTest >> testCompileContextVariableLookbehindLimit [
 
 	| compiler matcher |
+	LibPCRE2 supportsMaxVarLookbehind ifFalse: [ ^ self ].
 	self
 		assertCompileErrorFrom: [
 		PCRE2Compiler new compile: '(?<=a{0,300})b' ]

@@ -77,6 +77,27 @@ LibPCRE2 class >> supportsJIT [
 ]
 
 { #category : 'version management' }
+LibPCRE2 class >> supportsMaxPatternCompiledLength [
+	"PCRE2 10.44 added pcre2_set_max_pattern_compiled_length()."
+
+	^ self uniqueInstance supportsMaxPatternCompiledLength
+]
+
+{ #category : 'version management' }
+LibPCRE2 class >> supportsMaxVarLookbehind [
+	"PCRE2 10.43 added bounded variable-length lookbehind support and its compile-context limit."
+
+	^ self uniqueInstance supportsMaxVarLookbehind
+]
+
+{ #category : 'version management' }
+LibPCRE2 class >> supportsOptimizationDirectives [
+	"PCRE2 10.45 added pcre2_set_optimize()."
+
+	^ self uniqueInstance supportsOptimizationDirectives
+]
+
+{ #category : 'version management' }
 LibPCRE2 class >> supportsUnicode [
 
 	^ self uniqueInstance supportsUnicode
@@ -332,6 +353,24 @@ LibPCRE2 >> supportsJIT [
 ]
 
 { #category : 'version management' }
+LibPCRE2 >> supportsMaxPatternCompiledLength [
+
+	^ self versionAtLeastMajor: 10 minor: 44
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> supportsMaxVarLookbehind [
+
+	^ self versionAtLeastMajor: 10 minor: 43
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> supportsOptimizationDirectives [
+
+	^ self versionAtLeastMajor: 10 minor: 45
+]
+
+{ #category : 'version management' }
 LibPCRE2 >> supportsUnicode [
 
 	^ (self config: PCRE2 configUnicode) = 1
@@ -368,6 +407,15 @@ LibPCRE2 >> version [
 		  numbers first asInteger.
 		  (numbers at: 2 ifAbsent: [ '0' ]) asInteger.
 		  (fields at: 2 ifAbsent: [ nil ]) }
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> versionAtLeastMajor: major minor: minor [
+	"Answer whether the loaded runtime is at least the given PCRE2 version."
+
+	self versionMajor > major ifTrue: [ ^ true ].
+	self versionMajor = major ifFalse: [ ^ false ].
+	^ self versionMinor >= minor
 ]
 
 { #category : 'version management' }
