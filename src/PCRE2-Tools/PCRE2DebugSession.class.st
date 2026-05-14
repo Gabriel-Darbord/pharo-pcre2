@@ -1,7 +1,9 @@
 "
 I am the UI-facing model for a PCRE2 debugging session.
 
-I keep editable pattern and subject strings, compile and run an explicit trace on demand, remember the latest PCRE2MatchTrace, and track the currently selected trace step. Presenters use me as the single session state object so inspector tabs and standalone debugger windows can share the same behavior without owning trace data themselves.
+I keep editable pattern and subject strings, run either a complete trace or a controlled stepping run, remember the current trace/recorder, and track the selected recorded step. Presenters use me as the single session state object so inspector tabs and standalone debugger windows can share behavior without owning trace data themselves.
+
+Trace-all mode produces a completed PCRE2MatchTrace in one operation. Step-live mode delegates execution to PCRE2LiveDebugRun, which records callout prefixes without suspending inside the native callback.
 "
 Class {
 	#name : 'PCRE2DebugSession',
@@ -13,7 +15,9 @@ Class {
 		'matcher',
 		'trace',
 		'selectedStepIndex',
-		'lastError'
+		'lastError',
+		'executionMode',
+		'liveRun'
 	],
 	#category : 'PCRE2-Tools-Debugging',
 	#package : 'PCRE2-Tools',
@@ -27,6 +31,49 @@ PCRE2DebugSession class >> pattern: patternString subject: subjectString [
 		  pattern: patternString;
 		  subject: subjectString;
 		  yourself
+]
+
+{ #category : 'live debugging' }
+PCRE2DebugSession >> abortLiveRun [
+
+	liveRun ifNil: [ ^ self ].
+	liveRun abort.
+	liveRun waitForCompletionMilliseconds: 1000.
+	self refreshLiveTrace.
+	^ self
+]
+
+{ #category : 'live debugging' }
+PCRE2DebugSession >> continueLiveRun [
+
+	| run |
+	executionMode := #stepLive.
+	run := self ensureLiveRun.
+	run ifNil: [ ^ nil ].
+	run continue.
+	^ self refreshLiveTrace
+]
+
+{ #category : 'private' }
+PCRE2DebugSession >> ensureLiveRun [
+
+	(liveRun isNil or: [ liveRun isFinished ]) ifTrue: [
+		^ self prepareLiveRun ].
+	^ liveRun
+]
+
+{ #category : 'accessing' }
+PCRE2DebugSession >> executionMode [
+
+	^ executionMode
+]
+
+{ #category : 'accessing' }
+PCRE2DebugSession >> executionMode: aSymbol [
+
+	executionMode := aSymbol = #stepLive
+		                 ifTrue: [ #stepLive ]
+		                 ifFalse: [ #traceAll ]
 ]
 
 { #category : 'stepping' }
@@ -54,7 +101,8 @@ PCRE2DebugSession >> initialize [
 	pattern := ''.
 	subject := ''.
 	maximumSteps := 1000.
-	selectedStepIndex := 0
+	selectedStepIndex := 0.
+	executionMode := #traceAll
 ]
 
 { #category : 'accessing' }
@@ -67,6 +115,47 @@ PCRE2DebugSession >> lastError [
 PCRE2DebugSession >> lastStep [
 
 	^ self selectStepIndex: self stepCount
+]
+
+{ #category : 'accessing' }
+PCRE2DebugSession >> liveRun [
+
+	^ liveRun
+]
+
+{ #category : 'live debugging' }
+PCRE2DebugSession >> liveRunState [
+
+	^ liveRun ifNil: [ #idle ] ifNotNil: [ liveRun runState ]
+]
+
+{ #category : 'status' }
+PCRE2DebugSession >> liveStatusString [
+
+	liveRun ifNil: [ ^ 'Live debugger idle.' ].
+	^ String streamContents: [ :stream |
+		  stream
+			  nextPutAll: 'Live ';
+			  nextPutAll: liveRun runState asString.
+		  trace ifNotNil: [
+			  stream
+				  nextPutAll: ' | steps ';
+				  print: self stepCount;
+				  nextPutAll: ' | events ';
+				  print: trace events size.
+			  trace isFinished ifTrue: [
+				  stream
+					  nextPutAll: ' | result code ';
+					  print: trace resultCode.
+				  trace matchedString ifNotNil: [ :matched |
+					  stream
+						  nextPutAll: ' | matched ';
+						  print: matched ] ].
+			  trace isAborted ifTrue: [ stream nextPutAll: ' | aborted' ] ].
+		  liveRun lastError ifNotNil: [ :errorText |
+			  stream
+				  nextPutAll: ' | error ';
+				  nextPutAll: errorText ] ]
 ]
 
 { #category : 'accessing' }
@@ -105,6 +194,37 @@ PCRE2DebugSession >> pattern: aString [
 	pattern := aString ifNil: [ '' ] ifNotNil: [ aString asString ]
 ]
 
+{ #category : 'accessing' }
+PCRE2DebugSession >> pattern: patternString subject: subjectString maximumSteps: stepLimit [
+	"Update debugger inputs. A changed pattern or subject invalidates an in-progress live run."
+
+	| newPattern newSubject |
+	newPattern := patternString
+		              ifNil: [ '' ]
+		              ifNotNil: [ patternString asString ].
+	newSubject := subjectString
+		              ifNil: [ '' ]
+		              ifNotNil: [ subjectString asString ].
+	(pattern ~= newPattern or: [ subject ~= newSubject ]) ifTrue: [
+		self stopLiveRun.
+		trace := nil.
+		selectedStepIndex := 0.
+		lastError := nil ].
+	pattern := newPattern.
+	subject := newSubject.
+	self maximumSteps: stepLimit.
+	^ self
+]
+
+{ #category : 'live debugging' }
+PCRE2DebugSession >> pauseLiveRun [
+
+	liveRun ifNil: [ ^ self ].
+	liveRun pause.
+	self refreshLiveTrace.
+	^ self
+]
+
 { #category : 'private' }
 PCRE2DebugSession >> persistTraceMatch [
 	"Keep the final match queryable after native match-data lifetime changes."
@@ -113,16 +233,57 @@ PCRE2DebugSession >> persistTraceMatch [
 	trace match ifNotNil: [ :match | match bePersistent ]
 ]
 
+{ #category : 'live debugging' }
+PCRE2DebugSession >> prepareLiveRun [
+	"Compile a fresh automatic-callout matcher for live stepping."
+
+	lastError := nil.
+	matcher := nil.
+	trace := nil.
+	selectedStepIndex := 0.
+	liveRun := PCRE2LiveDebugRun pattern: pattern subject: subject.
+	[
+	liveRun prepare.
+	matcher := liveRun matcher.
+	trace := liveRun recorder ]
+		on: Error
+		do: [ :error |
+			lastError := error messageText ifNil: [ error printString ].
+			matcher := nil.
+			trace := nil.
+			liveRun := nil ].
+	^ liveRun
+]
+
 { #category : 'stepping' }
 PCRE2DebugSession >> previousStep [
 
 	^ self selectStepIndex: selectedStepIndex - 1
 ]
 
+{ #category : 'live debugging' }
+PCRE2DebugSession >> refreshLiveTrace [
+
+	liveRun ifNil: [ ^ trace ].
+	trace := liveRun recorder.
+	liveRun lastError ifNotNil: [ :errorText | lastError := errorText ].
+	trace ifNil: [
+		selectedStepIndex := 0.
+		^ trace ].
+	self stepCount = 0
+		ifTrue: [ selectedStepIndex := 0 ]
+		ifFalse: [
+			selectedStepIndex = 0 ifTrue: [ selectedStepIndex := 1 ].
+			selectedStepIndex := selectedStepIndex min: self stepCount ].
+	^ trace
+]
+
 { #category : 'tracing' }
 PCRE2DebugSession >> runTrace [
 	"Compile the current pattern and run an explicit instrumented trace. Normal matcher usage is not affected."
 
+	self stopLiveRun.
+	executionMode := #traceAll.
 	lastError := nil.
 	matcher := nil.
 	trace := nil.
@@ -179,6 +340,7 @@ PCRE2DebugSession >> selectedStepIndex [
 PCRE2DebugSession >> statusString [
 
 	lastError ifNotNil: [ ^ 'Error: ' , lastError ].
+	executionMode = #stepLive ifTrue: [ ^ self liveStatusString ].
 	trace ifNil: [ ^ 'No trace yet.' ].
 	^ String streamContents: [ :stream |
 		  stream
@@ -205,6 +367,20 @@ PCRE2DebugSession >> stepCount [
 	^ self steps size
 ]
 
+{ #category : 'live debugging' }
+PCRE2DebugSession >> stepLiveRun [
+
+	| run |
+	executionMode := #stepLive.
+	run := self ensureLiveRun.
+	run ifNil: [ ^ nil ].
+	run step.
+	run waitForPauseOrFinishMilliseconds: 1000.
+	self refreshLiveTrace.
+	self lastStep.
+	^ trace
+]
+
 { #category : 'status' }
 PCRE2DebugSession >> stepStatusString [
 
@@ -224,6 +400,18 @@ PCRE2DebugSession >> steps [
 	trace ifNil: [ ^ #(  ) ].
 	allSteps := trace steps.
 	^ allSteps first: (maximumSteps min: allSteps size)
+]
+
+{ #category : 'private' }
+PCRE2DebugSession >> stopLiveRun [
+	"Stop a live run before replacing it. The existing trace recorder is intentionally left alone until the caller installs new state."
+
+	liveRun ifNil: [ ^ self ].
+	liveRun isFinished ifFalse: [
+		liveRun abort.
+		liveRun waitForCompletionMilliseconds: 250 ].
+	liveRun := nil.
+	^ self
 ]
 
 { #category : 'accessing' }
@@ -249,4 +437,26 @@ PCRE2DebugSession >> traceWasLimited [
 
 	trace ifNil: [ ^ false ].
 	^ trace events size > maximumSteps
+]
+
+{ #category : 'live debugging' }
+PCRE2DebugSession >> waitForLiveCompletionMilliseconds: timeoutMilliseconds [
+
+	| completed |
+	liveRun ifNil: [ ^ false ].
+	[
+	completed := liveRun waitForCompletionMilliseconds:
+		             timeoutMilliseconds ] ensure: [ self refreshLiveTrace ].
+	^ completed
+]
+
+{ #category : 'live debugging' }
+PCRE2DebugSession >> waitForLivePauseOrFinishMilliseconds: timeoutMilliseconds [
+
+	| completed |
+	liveRun ifNil: [ ^ false ].
+	[
+	completed := liveRun waitForPauseOrFinishMilliseconds:
+		             timeoutMilliseconds ] ensure: [ self refreshLiveTrace ].
+	^ completed
 ]

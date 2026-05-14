@@ -767,6 +767,20 @@ PCRE2TracePresenter >> traceStatusString [
 	| rowCount |
 	trace ifNil: [ ^ 'No trace.' ].
 	rowCount := (self stepRowsForSteps: trace steps) size.
+	((trace respondsTo: #isFinished) and: [ trace isFinished not ])
+		ifTrue: [
+			^ String streamContents: [ :stream |
+				  stream
+					  nextPutAll: 'Live trace';
+					  nextPutAll: ' | events ';
+					  print: trace events size.
+				  rowCount < trace events size ifTrue: [
+					  stream
+						  nextPutAll: ' | rows ';
+						  print: rowCount ].
+				  stream
+					  nextPutAll: ' | callout sites ';
+					  print: trace calloutSites size ] ].
 	^ String streamContents: [ :stream |
 		  stream
 			  nextPutAll: (trace isMatch

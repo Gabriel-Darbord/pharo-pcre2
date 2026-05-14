@@ -175,9 +175,13 @@ PCRE2Compiler >> context: aCompileContext [
 
 { #category : 'copying' }
 PCRE2Compiler >> copyContextIfPresent [
-	"Answer a copy of the compile context when one was explicitly created, without forcing a new context."
+	"Answer a copy of the compile context when one was explicitly created, without forcing a new context. A stale wrapper whose native handle is already null is treated as absent."
 
-	^ context ifNotNil: [ context copy ]
+	context ifNil: [ ^ nil ].
+	context isNull ifTrue: [
+		context := nil.
+		^ nil ].
+	^ context copy
 ]
 
 { #category : 'private' }

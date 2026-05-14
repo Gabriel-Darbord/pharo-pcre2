@@ -43,6 +43,23 @@ PCRE2DebugSessionTest >> testDebugSessionSelectStepUsesStableStepIndex [
 ]
 
 { #category : 'tests' }
+PCRE2DebugSessionTest >> testDebugSessionStepLiveRunSelectsNewestRecordedStep [
+
+	| session |
+	session := PCRE2DebugSession pattern: 'ab' subject: 'ab'.
+	[
+	session executionMode: #stepLive.
+	session stepLiveRun.
+	self assert: session liveRun isPaused.
+	self assert: session stepCount equals: 1.
+	session stepLiveRun.
+	self assert: session liveRun isPaused.
+	self assert: session stepCount > 1.
+	self assert: session selectedStepIndex equals: session stepCount ]
+		ensure: [ session abortLiveRun ]
+]
+
+{ #category : 'tests' }
 PCRE2DebugSessionTest >> testDebuggerPresenterInputsHaveHelpText [
 
 	| presenter session |
@@ -55,6 +72,27 @@ PCRE2DebugSessionTest >> testDebuggerPresenterInputsHaveHelpText [
 	self
 		assert: presenter subjectText help
 		equals: presenter subjectInputHelpString
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testDebuggerPresenterLiveControlsUseTracePresenter [
+
+	| presenter session |
+	session := PCRE2DebugSession pattern: 'ab' subject: 'ab'.
+	presenter := PCRE2DebuggerPresenter on: session.
+	[
+	presenter stepLiveRun.
+	self assert: session executionMode equals: #stepLive.
+	self assert: session hasTrace.
+	self assert: presenter tracePresenter trace equals: session trace.
+	self
+		assert: presenter tracePresenter selectedStep index
+		equals: session selectedStep index.
+	self deny: presenter stepButton help isEmpty.
+	self deny: presenter continueButton help isEmpty.
+	self deny: presenter pauseButton help isEmpty.
+	self deny: presenter abortButton help isEmpty ] ensure: [
+		session abortLiveRun ]
 ]
 
 { #category : 'tests' }
@@ -87,6 +125,55 @@ PCRE2DebugSessionTest >> testDebuggerPresenterUsesSession [
 	self assert: session selectedStep notNil.
 	self assert: session selectedStepIndex equals: 1.
 	self assert: presenter tracePresenter trace equals: session trace
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testLiveDebugRunContinueCompletes [
+
+	| run |
+	run := PCRE2LiveDebugRun pattern: 'ab' subject: 'ab'.
+	[
+	run start.
+	self assert: (run waitForPauseOrFinishMilliseconds: 1000).
+	run continue.
+	self assert: (run waitForCompletionMilliseconds: 1000).
+	self assert: run runState equals: #completed.
+	self assert: run recorder isFinished.
+	self assert: run recorder isMatch.
+	self assert: run recorder matchedString equals: 'ab' ] ensure: [
+		run abort.
+		run waitForCompletionMilliseconds: 1000 ]
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testLiveDebugRunStartsPausedAtFirstCallout [
+
+	| run |
+	run := PCRE2LiveDebugRun pattern: 'ab' subject: 'ab'.
+	[
+	run start.
+	self assert: (run waitForPauseOrFinishMilliseconds: 1000).
+	self assert: run isPaused.
+	self assert: run recorder events size equals: 1 ] ensure: [
+		run abort.
+		run waitForCompletionMilliseconds: 1000 ]
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testLiveDebugRunStepAdvancesOneCallout [
+
+	| firstEventCount run |
+	run := PCRE2LiveDebugRun pattern: 'ab' subject: 'ab'.
+	[
+	run start.
+	self assert: (run waitForPauseOrFinishMilliseconds: 1000).
+	firstEventCount := run recorder events size.
+	run step.
+	self assert: (run waitForPauseOrFinishMilliseconds: 1000).
+	self assert: run isPaused.
+	self assert: run recorder events size > firstEventCount ] ensure: [
+		run abort.
+		run waitForCompletionMilliseconds: 1000 ]
 ]
 
 { #category : 'tests' }
