@@ -96,6 +96,30 @@ PCRE2DebugSessionTest >> testDebuggerPresenterLiveControlsUseTracePresenter [
 ]
 
 { #category : 'tests' }
+PCRE2DebugSessionTest >> testDebuggerPresenterRefreshPreservesSelectedTraceRow [
+
+	| presenter row session |
+	session := PCRE2DebugSession
+		           pattern: '(cat|cater|caterpillar)'
+		           subject: 'caterpillar'.
+	presenter := PCRE2DebuggerPresenter on: session.
+	presenter runTrace.
+	row := presenter tracePresenter stepsTable items second.
+	presenter tracePresenter stepsTable selectItem: row.
+	self
+		assert: session selectedStepIndex
+		equals: row representativeStep index.
+
+	presenter refreshFromSession.
+	self
+		assert: presenter tracePresenter selectedStep index
+		equals: row representativeStep index.
+	self
+		assert: session selectedStepIndex
+		equals: row representativeStep index
+]
+
+{ #category : 'tests' }
 PCRE2DebugSessionTest >> testDebuggerPresenterRowSelectionUpdatesSessionStepIndex [
 
 	| presenter row session |
@@ -114,6 +138,21 @@ PCRE2DebugSessionTest >> testDebuggerPresenterRowSelectionUpdatesSessionStepInde
 ]
 
 { #category : 'tests' }
+PCRE2DebugSessionTest >> testDebuggerPresenterShowsCompileErrorsInTraceStatus [
+
+	| presenter session |
+	session := PCRE2DebugSession pattern: '(' subject: 'cat'.
+	presenter := PCRE2DebuggerPresenter on: session.
+
+	presenter runTrace.
+
+	self assert: session hasError.
+	self assert:
+		(presenter tracePresenter statusLabel label includesSubstring:
+			 'Error:')
+]
+
+{ #category : 'tests' }
 PCRE2DebugSessionTest >> testDebuggerPresenterUsesSession [
 
 	| presenter session |
@@ -125,6 +164,41 @@ PCRE2DebugSessionTest >> testDebuggerPresenterUsesSession [
 	self assert: session selectedStep notNil.
 	self assert: session selectedStepIndex equals: 1.
 	self assert: presenter tracePresenter trace equals: session trace
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testLiveDebugRunCompletionCallbackFiresWhenContinueFinishes [
+
+	| callbackRun callbackSemaphore run |
+	callbackSemaphore := Semaphore new.
+	run := PCRE2LiveDebugRun pattern: 'ab' subject: 'ab'.
+	[
+	run start.
+	self assert: (run waitForPauseOrFinishMilliseconds: 1000).
+	run whenCompletedDo: [ :completedRun |
+		callbackRun := completedRun.
+		callbackSemaphore signal ].
+	run continue.
+	self assert: (run waitForCompletionMilliseconds: 1000).
+	self assert: (callbackSemaphore waitTimeoutMilliseconds: 1000) not.
+	self assert: callbackRun equals: run.
+	self assert: run runState equals: #completed ] ensure: [
+		run abort.
+		run waitForCompletionMilliseconds: 1000 ]
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testLiveDebugRunCompletionCallbackRunsImmediatelyWhenAlreadyFinished [
+
+	| callbackRun run |
+	run := PCRE2LiveDebugRun pattern: 'ab' subject: 'ab'.
+	[
+	run startContinuing.
+	self assert: (run waitForCompletionMilliseconds: 1000).
+	run whenCompletedDo: [ :completedRun | callbackRun := completedRun ].
+	self assert: callbackRun equals: run ] ensure: [
+		run abort.
+		run waitForCompletionMilliseconds: 1000 ]
 ]
 
 { #category : 'tests' }
@@ -354,6 +428,20 @@ PCRE2DebugSessionTest >> testTracePresenterPatternContextShowsCalloutNeighborhoo
 
 	self assert: context asString equals: title , String cr , excerpt.
 	self assertContextText: context highlights: 'a' at: highlightInterval
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testTracePresenterRefreshPreservesSelectedStep [
+
+	| presenter selectedStep trace |
+	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch:
+		         'caterpillar'.
+	presenter := PCRE2TracePresenter on: trace.
+	selectedStep := trace steps third.
+	presenter selectedStep: selectedStep.
+
+	presenter trace: trace.
+	self assert: presenter selectedStep index equals: selectedStep index
 ]
 
 { #category : 'tests' }

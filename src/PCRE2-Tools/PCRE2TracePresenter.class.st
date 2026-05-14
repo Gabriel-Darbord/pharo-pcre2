@@ -812,7 +812,8 @@ PCRE2TracePresenter >> traceTimelineHelpString [
 { #category : 'updating' }
 PCRE2TracePresenter >> updatePresenter [
 
-	| rows |
+	| matchingStep previousStep rows |
+	previousStep := selectedStep.
 	trace ifNil: [
 		statusLabel label: 'No trace.'.
 		stepsTable items: #(  ).
@@ -823,6 +824,18 @@ PCRE2TracePresenter >> updatePresenter [
 	rows := self stepRowsForSteps: trace steps.
 	statusLabel label: self traceStatusString.
 	stepsTable items: rows.
+	previousStep ifNotNil: [
+		selectedRow := rows
+			               detect: [ :row | row includesStep: previousStep ]
+			               ifNone: [ nil ].
+		selectedRow ifNotNil: [
+			matchingStep := selectedRow
+				                stepMatching: previousStep
+				                ifAbsent: [ selectedRow representativeStep ].
+			stepsTable selectItem: selectedRow.
+			selectedStep := matchingStep.
+			self updateSelectedStep.
+			^ self ] ].
 	selectedRow := rows isEmpty
 		               ifTrue: [ nil ]
 		               ifFalse: [ rows first ].

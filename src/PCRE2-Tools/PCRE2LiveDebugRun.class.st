@@ -3,7 +3,7 @@ I run PCRE2 matches under debugger control.
 
 I compile a temporary automatic-callout matcher and record PCRE2CalloutEvent snapshots into a PCRE2TraceRecorder. I never suspend inside the native callback: callbacks append the event and immediately return either success or PCRE2_ERROR_CALLOUT. This keeps ThreadedFFI callback unwinding simple and avoids leaving PCRE2 parked inside Pharo UI control flow.
 
-Step mode records a deterministic prefix by rerunning the match and stopping after the requested callout count. Continue mode runs the same instrumented matcher to completion. Presenters observe my recorder through PCRE2DebugSession.
+Step mode records a deterministic prefix by rerunning the match and stopping after the requested callout count. Continue mode runs the same instrumented matcher to completion. Clients can register completion callbacks with whenCompletedDo: to refresh after a continued run finishes.
 "
 Class {
 	#name : 'PCRE2LiveDebugRun',
@@ -20,7 +20,9 @@ Class {
 		'runState',
 		'abortRequested',
 		'targetEventCount',
-		'lastError'
+		'lastError',
+		'completionCallbacks',
+		'callbackMutex'
 	],
 	#category : 'PCRE2-Tools-Debugging',
 	#package : 'PCRE2-Tools',
@@ -102,6 +104,8 @@ PCRE2LiveDebugRun >> initialize [
 	pattern := ''.
 	subject := ''.
 	stateSemaphore := Semaphore new.
+	callbackMutex := Mutex new.
+	completionCallbacks := OrderedCollection new.
 	controlMode := #step.
 	runState := #idle.
 	abortRequested := false.
@@ -148,6 +152,21 @@ PCRE2LiveDebugRun >> lastError [
 PCRE2LiveDebugRun >> matcher [
 
 	^ matcher
+]
+
+{ #category : 'callbacks' }
+PCRE2LiveDebugRun >> notifyCompletionCallbacks [
+
+	| callbacks |
+	callbackMutex critical: [
+		callbacks := completionCallbacks asArray.
+		completionCallbacks removeAll ].
+	callbacks do: [ :callback |
+		[ callback cull: self ]
+			on: Error
+			do: [ :error | "Completion callbacks are observers; they must not change the recorded run result."
+				 ] ].
+	^ self
 ]
 
 { #category : 'accessing' }
@@ -262,8 +281,11 @@ PCRE2LiveDebugRun >> runState [
 { #category : 'private' }
 PCRE2LiveDebugRun >> runState: aSymbol [
 
+	| becameFinished |
 	runState := aSymbol.
 	stateSemaphore signal.
+	becameFinished := self isFinished.
+	becameFinished ifTrue: [ self notifyCompletionCallbacks ].
 	^ runState
 ]
 
@@ -336,4 +358,16 @@ PCRE2LiveDebugRun >> waitUntil: conditionBlock timeoutMilliseconds: timeoutMilli
 		remaining <= 0 ifTrue: [ ^ false ].
 		stateSemaphore waitTimeoutMilliseconds: (remaining min: 20) ].
 	^ true
+]
+
+{ #category : 'callbacks' }
+PCRE2LiveDebugRun >> whenCompletedDo: aBlock [
+	"Evaluate aBlock with me when this run reaches a terminal state. If I am already finished, evaluate it immediately."
+
+	| shouldRunNow |
+	callbackMutex critical: [
+		shouldRunNow := self isFinished.
+		shouldRunNow ifFalse: [ completionCallbacks add: aBlock ] ].
+	shouldRunNow ifTrue: [ aBlock cull: self ].
+	^ self
 ]

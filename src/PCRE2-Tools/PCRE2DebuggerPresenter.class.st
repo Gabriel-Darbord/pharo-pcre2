@@ -1,9 +1,9 @@
 "
 I am the standalone PCRE2 pattern debugger window.
 
-I own a PCRE2DebugSession and provide editing controls for the pattern, subject, trace display limit, and execution mode. Trace-all mode records a complete instrumented match in one operation. Step-live mode records deterministic callout prefixes and continues through the same controls, without suspending inside a native callback.
+I own a PCRE2DebugSession and provide editing controls for the pattern, subject, trace display limit, trace-all execution, and live stepping. Trace-all mode records a complete instrumented match in one operation. Live controls record deterministic callout prefixes or continue the same instrumented matcher to completion, without suspending inside a native callback.
 
-The trace visualization is delegated to PCRE2TracePresenter so the same source, timeline, capture, and detail panes can be reused by inspector integrations.
+The trace visualization is delegated to PCRE2TracePresenter so the same source, timeline, capture, detail, and trace-status panes can be reused by inspector integrations.
 "
 Class {
 	#name : 'PCRE2DebuggerPresenter',
@@ -12,7 +12,6 @@ Class {
 		'session',
 		'patternInput',
 		'subjectText',
-		'executionModeDropList',
 		'maximumStepsInput',
 		'runButton',
 		'stepButton',
@@ -24,9 +23,8 @@ Class {
 		'firstButton',
 		'lastButton',
 		'stepLabel',
-		'statusLabel',
 		'tracePresenter',
-		'liveRefreshProcess'
+		'refreshingTrace'
 	],
 	#category : 'PCRE2-Tools-Presenters',
 	#package : 'PCRE2-Tools',
@@ -63,12 +61,6 @@ PCRE2DebuggerPresenter >> abortLiveRun [
 { #category : 'initialization' }
 PCRE2DebuggerPresenter >> connectPresenters [
 
-	executionModeDropList whenSelectedItemChangedDo: [ :mode |
-		mode ifNotNil: [
-			session executionMode: mode.
-			mode = #traceAll ifTrue: [ session abortLiveRun ].
-			self refreshModeControls.
-			self refreshFromSession ] ].
 	runButton action: [ self runTrace ].
 	stepButton action: [ self stepLiveRun ].
 	continueButton action: [ self continueLiveRun ].
@@ -79,9 +71,10 @@ PCRE2DebuggerPresenter >> connectPresenters [
 	nextButton action: [ self goNextStep ].
 	lastButton action: [ self goLastStep ].
 	tracePresenter stepsTable whenSelectedItemChangedDo: [ :row |
-		row ifNotNil: [
-			session selectStep: row representativeStep.
-			self refreshStepStatus ] ]
+		refreshingTrace ifFalse: [
+			row ifNotNil: [
+				session selectStep: row representativeStep.
+				self refreshStepStatus ] ] ]
 ]
 
 { #category : 'accessing' }
@@ -93,12 +86,16 @@ PCRE2DebuggerPresenter >> continueButton [
 { #category : 'actions' }
 PCRE2DebuggerPresenter >> continueLiveRun [
 
-	executionModeDropList selectItem: #stepLive.
+	| run |
 	session executionMode: #stepLive.
 	self syncSessionInputs.
 	session continueLiveRun.
-	self refreshFromSession.
-	self scheduleLiveRefresh
+	run := session liveRun.
+	run ifNotNil: [
+		run whenCompletedDo: [ :completedRun |
+			completedRun == session liveRun ifTrue: [
+				self defer: [ self refreshFromSession ] ] ] ].
+	self refreshFromSession
 ]
 
 { #category : 'layout' }
@@ -107,18 +104,16 @@ PCRE2DebuggerPresenter >> defaultLayout [
 	| controls editorPane liveRow navigationRow optionsRow |
 	optionsRow := SpBoxLayout newLeftToRight
 		              spacing: 6;
-		              add: 'Mode' expand: false;
-		              add: executionModeDropList width: 120;
 		              add: 'Max steps' expand: false;
 		              add: maximumStepsInput width: 90;
-		              add: runButton width: 100;
+		              add: runButton width: 120;
 		              yourself.
 	liveRow := SpBoxLayout newLeftToRight
 		           spacing: 6;
-		           add: stepButton width: 70;
-		           add: continueButton width: 90;
-		           add: pauseButton width: 70;
-		           add: abortButton width: 70;
+		           add: stepButton width: 80;
+		           add: continueButton width: 100;
+		           add: pauseButton width: 80;
+		           add: abortButton width: 80;
 		           yourself.
 	navigationRow := SpBoxLayout newLeftToRight
 		                 spacing: 6;
@@ -142,32 +137,12 @@ PCRE2DebuggerPresenter >> defaultLayout [
 		              add: 'Input subject' height: 20;
 		              add: subjectText;
 		              add: controls height: 104;
-		              add: statusLabel height: 24;
 		              yourself.
 	^ SpPanedLayout newLeftToRight
 		  positionOfSlider: 35 percent;
 		  add: editorPane;
 		  add: tracePresenter;
 		  yourself
-]
-
-{ #category : 'accessing' }
-PCRE2DebuggerPresenter >> executionModeDropList [
-
-	^ executionModeDropList
-]
-
-{ #category : 'layout' }
-PCRE2DebuggerPresenter >> executionModeHelpString [
-
-	^ 'Choose whether Trace records a complete match at once or live controls pause at runtime callouts.'
-]
-
-{ #category : 'layout' }
-PCRE2DebuggerPresenter >> executionModeLabelFor: aSymbol [
-
-	aSymbol = #stepLive ifTrue: [ ^ 'Step live' ].
-	^ 'Trace all'
 ]
 
 { #category : 'actions' }
@@ -199,6 +174,13 @@ PCRE2DebuggerPresenter >> goPreviousStep [
 ]
 
 { #category : 'initialization' }
+PCRE2DebuggerPresenter >> initialize [
+
+	refreshingTrace := false.
+	super initialize
+]
+
+{ #category : 'initialization' }
 PCRE2DebuggerPresenter >> initializePresenters [
 
 	session ifNil: [ session := PCRE2DebugSession new ].
@@ -211,17 +193,11 @@ PCRE2DebuggerPresenter >> initializePresenters [
 		               text: session subject;
 		               help: self subjectInputHelpString;
 		               yourself.
-	executionModeDropList := self newDropList
-		                         items: #( traceAll stepLive );
-		                         display: [ :mode |
-			                         self executionModeLabelFor: mode ];
-		                         selectItem: session executionMode;
-		                         help: self executionModeHelpString;
-		                         yourself.
 	maximumStepsInput := self newNumberInput
 		                     beInteger;
 		                     rangeMinimum: 1 maximum: 100000;
 		                     number: session maximumSteps;
+		                     help: 'Maximum trace rows to display.';
 		                     yourself.
 	runButton := self newButton
 		             label: 'Trace all';
@@ -264,7 +240,6 @@ PCRE2DebuggerPresenter >> initializePresenters [
 		              help: 'Last step';
 		              yourself.
 	stepLabel := self newLabel.
-	statusLabel := self newLabel.
 	tracePresenter := self instantiate: PCRE2TracePresenter.
 	self refreshModeControls.
 	self layout: self defaultLayout
@@ -274,7 +249,9 @@ PCRE2DebuggerPresenter >> initializePresenters [
 PCRE2DebuggerPresenter >> initializeWindow: aWindowPresenter [
 
 	super initializeWindow: aWindowPresenter.
-	aWindowPresenter initialExtent: 1200 @ 760
+	aWindowPresenter
+		initialExtent: 1200 @ 680;
+		initialPosition: 20 @ 40
 ]
 
 { #category : 'accessing' }
@@ -305,16 +282,17 @@ PCRE2DebuggerPresenter >> pauseLiveRun [
 { #category : 'updating' }
 PCRE2DebuggerPresenter >> refreshFromSession [
 
-	(executionModeDropList notNil and: [
-		 executionModeDropList selectedItem ~= session executionMode ])
-		ifTrue: [ executionModeDropList selectItem: session executionMode ].
 	session executionMode = #stepLive ifTrue: [ session refreshLiveTrace ].
+	refreshingTrace := true.
+	[
 	tracePresenter trace: session trace.
+	session hasError ifTrue: [
+		tracePresenter statusLabel label: session statusString ].
 	session trace ifNotNil: [
 		session selectedStep ifNil: [ session firstStep ].
 		session selectedStep ifNotNil: [ :step |
-			tracePresenter selectedStep: step ] ].
-	statusLabel label: session statusString.
+			tracePresenter selectedStep: step ] ] ] ensure: [
+		refreshingTrace := false ].
 	self refreshStepStatus.
 	self refreshModeControls
 ]
@@ -322,12 +300,17 @@ PCRE2DebuggerPresenter >> refreshFromSession [
 { #category : 'updating' }
 PCRE2DebuggerPresenter >> refreshModeControls [
 
-	| liveMode |
-	liveMode := session executionMode = #stepLive.
-	stepButton enabled: liveMode.
-	continueButton enabled: liveMode.
-	pauseButton enabled: liveMode.
-	abortButton enabled: liveMode.
+	{
+		runButton.
+		stepButton.
+		continueButton.
+		pauseButton.
+		abortButton.
+		firstButton.
+		previousButton.
+		nextButton.
+		lastButton } do: [ :button |
+		button ifNotNil: [ button enabled: true ] ].
 	^ self
 ]
 
@@ -340,35 +323,10 @@ PCRE2DebuggerPresenter >> refreshStepStatus [
 { #category : 'actions' }
 PCRE2DebuggerPresenter >> runTrace [
 
-	executionModeDropList selectItem: #traceAll.
 	session executionMode: #traceAll.
 	self syncSessionInputs.
 	session runTrace.
 	self refreshFromSession
-]
-
-{ #category : 'updating' }
-PCRE2DebuggerPresenter >> scheduleLiveRefresh [
-
-	(session liveRun isNil or: [ session liveRun isFinished ]) ifTrue: [
-		^ self ].
-	(liveRefreshProcess notNil and: [
-		 liveRefreshProcess isTerminated not ]) ifTrue: [ ^ self ].
-	liveRefreshProcess := [
-	                      [
-	                      [
-	                      session liveRun notNil and: [
-		                      session liveRun isFinished not ] ] whileTrue: [
-		                      (Delay forMilliseconds: 100) wait.
-		                      self defer: [
-			                      session refreshLiveTrace.
-			                      self refreshFromSession ] ].
-	                      self defer: [
-		                      session refreshLiveTrace.
-		                      self refreshFromSession ] ] ensure: [
-		                      liveRefreshProcess := nil ] ] forkNamed:
-		                      'PCRE2 debugger live refresh'.
-	^ self
 ]
 
 { #category : 'actions' }
@@ -400,12 +358,10 @@ PCRE2DebuggerPresenter >> stepButton [
 { #category : 'actions' }
 PCRE2DebuggerPresenter >> stepLiveRun [
 
-	executionModeDropList selectItem: #stepLive.
 	session executionMode: #stepLive.
 	self syncSessionInputs.
 	session stepLiveRun.
-	self refreshFromSession.
-	self scheduleLiveRefresh
+	self refreshFromSession
 ]
 
 { #category : 'layout' }
@@ -427,8 +383,6 @@ PCRE2DebuggerPresenter >> syncSessionInputs [
 		pattern: patternInput text
 		subject: subjectText text
 		maximumSteps: maximumStepsInput number.
-	executionModeDropList selectedItem ifNotNil: [ :mode |
-		session executionMode: mode ].
 	^ self
 ]
 
