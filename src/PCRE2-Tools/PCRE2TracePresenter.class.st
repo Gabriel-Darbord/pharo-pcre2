@@ -33,6 +33,15 @@ PCRE2TracePresenter class >> title [
 ]
 
 { #category : 'display' }
+PCRE2TracePresenter >> applyContextMetaAttributesTo: aText range: anInterval [
+
+	aText
+		addAttribute: TextColor gray
+		from: anInterval first
+		to: anInterval last
+]
+
+{ #category : 'display' }
 PCRE2TracePresenter >> applySourceHighlightTo: aText range: anInterval [
 
 	aText
@@ -283,6 +292,14 @@ PCRE2TracePresenter >> detailsTextForStep: aTraceStep [
 				  print: site nextItemLength ] ]
 ]
 
+{ #category : 'updating' }
+PCRE2TracePresenter >> display: aTextOrString inTextPresenter: aTextPresenter [
+
+	aTextPresenter text asString = aTextOrString asString ifTrue: [
+		aTextPresenter text: '' ].
+	aTextPresenter text: aTextOrString
+]
+
 { #category : 'layout' }
 PCRE2TracePresenter >> eventDetailsHelpString [
 
@@ -343,6 +360,8 @@ PCRE2TracePresenter >> initializePresenters [
 		               help: self statusHelpString;
 		               yourself.
 	patternText := self newText
+		               beWrapWord;
+		               withoutScrollBars;
 		               beNotEditable;
 		               yourself.
 	patternContextText := self newText
@@ -350,6 +369,8 @@ PCRE2TracePresenter >> initializePresenters [
 		                      beNotEditable;
 		                      yourself.
 	subjectText := self newText
+		               beWrapWord;
+		               withoutScrollBars;
 		               beNotEditable;
 		               yourself.
 	subjectContextText := self newText
@@ -620,7 +641,7 @@ PCRE2TracePresenter >> sourceContextRangeFor: sourceString range: anIntervalOrNi
 { #category : 'display' }
 PCRE2TracePresenter >> sourceContextTextFor: sourceObject range: anIntervalOrNil title: titleString callout: calloutString [
 
-	| excerpt highlightInterval range source start stop text titleLine |
+	| excerpt excerptEnd excerptStart hasLeadingEllipsis hasTrailingEllipsis highlightInterval range source start stop text titleLine |
 	titleLine := titleString , ' | ' , calloutString.
 	source := self oneLineSourceFor: sourceObject.
 	anIntervalOrNil ifNil: [ ^ titleLine asText ].
@@ -629,13 +650,26 @@ PCRE2TracePresenter >> sourceContextTextFor: sourceObject range: anIntervalOrNil
 	stop := range last.
 	excerpt := self contextExcerptFor: source from: start to: stop.
 	text := (titleLine , String cr , excerpt) asText.
+	hasLeadingEllipsis := start > 1.
+	hasTrailingEllipsis := stop < source size.
+	excerpt ifNotEmpty: [
+		excerptStart := titleLine size + 2.
+		excerptEnd := excerptStart + excerpt size - 1.
+		hasLeadingEllipsis ifTrue: [
+			self
+				applyContextMetaAttributesTo: text
+				range: (excerptStart to: excerptStart + 2) ].
+		hasTrailingEllipsis ifTrue: [
+			self
+				applyContextMetaAttributesTo: text
+				range: (excerptEnd - 2 to: excerptEnd) ] ].
 	highlightInterval := self
 		                     sourceContextHighlightIntervalFor:
 		                     anIntervalOrNil
 		                     contextStart: start
 		                     titleLineSize: titleLine size
 		                     excerpt: excerpt
-		                     hasLeadingEllipsis: start > 1.
+		                     hasLeadingEllipsis: hasLeadingEllipsis.
 	highlightInterval ifNotNil: [
 		self applySourceHighlightTo: text range: highlightInterval ].
 	^ text
@@ -851,13 +885,16 @@ PCRE2TracePresenter >> updateSelectedStep [
 
 	| contextRow patternRange row showsGroup subjectRange |
 	selectedStep ifNil: [
-		patternText text: (trace ifNil: [ '' ] ifNotNil: [ trace pattern ]).
-		patternContextText text: ''.
-		subjectText text:
-			(trace ifNil: [ '' ] ifNotNil: [ trace subject asString ]).
-		subjectContextText text: ''.
+		self
+			display: (trace ifNil: [ '' ] ifNotNil: [ trace pattern ])
+			inTextPresenter: patternText.
+		self display: '' inTextPresenter: patternContextText.
+		self
+			display: (trace ifNil: [ '' ] ifNotNil: [ trace subject asString ])
+			inTextPresenter: subjectText.
+		self display: '' inTextPresenter: subjectContextText.
 		capturesTable items: #(  ).
-		detailsText text: ''.
+		self display: '' inTextPresenter: detailsText.
 		^ self ].
 	row := selectedRow ifNil: [
 		       PCRE2TraceStepRow steps: { selectedStep } ].
@@ -872,16 +909,26 @@ PCRE2TracePresenter >> updateSelectedStep [
 	subjectRange := showsGroup
 		                ifTrue: [ self subjectRangeForRow: row ]
 		                ifFalse: [ selectedStep subjectRange ].
-	patternText text:
-		(self highlightedTextFor: trace pattern range: patternRange).
-	patternContextText text:
-		(self patternContextTextForRow: contextRow range: patternRange).
-	subjectText text:
-		(self highlightedTextFor: trace subject asString range: subjectRange).
-	subjectContextText text:
-		(self subjectContextTextForRow: contextRow range: subjectRange).
+	self
+		display:
+		(self highlightedTextFor: trace pattern range: patternRange)
+		inTextPresenter: patternText.
+	self
+		display:
+		(self patternContextTextForRow: contextRow range: patternRange)
+		inTextPresenter: patternContextText.
+	self
+		display:
+		(self highlightedTextFor: trace subject asString range: subjectRange)
+		inTextPresenter: subjectText.
+	self
+		display:
+		(self subjectContextTextForRow: contextRow range: subjectRange)
+		inTextPresenter: subjectContextText.
 	capturesTable items: (self captureRowsForStep: selectedStep).
-	detailsText text: (showsGroup
-			 ifTrue: [ self detailsTextForRow: row ]
-			 ifFalse: [ self detailsTextForStep: selectedStep ])
+	self
+		display: (showsGroup
+				 ifTrue: [ self detailsTextForRow: row ]
+				 ifFalse: [ self detailsTextForStep: selectedStep ])
+		inTextPresenter: detailsText
 ]

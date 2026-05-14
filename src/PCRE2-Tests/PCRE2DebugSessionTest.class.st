@@ -60,6 +60,22 @@ PCRE2DebugSessionTest >> testDebugSessionStepLiveRunSelectsNewestRecordedStep [
 ]
 
 { #category : 'tests' }
+PCRE2DebugSessionTest >> testDebuggerPatternInputWrapsAndScrollsAsMultilineText [
+
+	| presenter session |
+	session := PCRE2DebugSession
+		           pattern: 'first line second line'
+		           subject: 'subject'.
+	presenter := PCRE2DebuggerPresenter on: session.
+
+	self assert: presenter patternInput isWrapWord.
+	self assert: presenter patternInput hasScrollBars.
+	self
+		assert: presenter patternInput text asString
+		equals: session pattern
+]
+
+{ #category : 'tests' }
 PCRE2DebugSessionTest >> testDebuggerPresenterInputsHaveHelpText [
 
 	| presenter session |
@@ -72,6 +88,27 @@ PCRE2DebugSessionTest >> testDebuggerPresenterInputsHaveHelpText [
 	self
 		assert: presenter subjectText help
 		equals: presenter subjectInputHelpString
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testDebuggerPresenterLastStepSelectsConcreteLastStepInsideGroupedRow [
+
+	| presenter session |
+	session := PCRE2DebugSession
+		           pattern: '(cat|cater|caterpillar)'
+		           subject: 'caterpillar'.
+	presenter := PCRE2DebuggerPresenter on: session.
+	presenter runTrace.
+
+	presenter goLastStep.
+	self assert: presenter tracePresenter selectedRow isGroup.
+	self assert: session selectedStepIndex equals: session stepCount.
+	self
+		assert: presenter tracePresenter selectedStep index
+		equals: session stepCount.
+	self
+		assert: presenter tracePresenter selectedRow lastStep index
+		equals: session stepCount
 ]
 
 { #category : 'tests' }
@@ -305,6 +342,56 @@ PCRE2DebugSessionTest >> testTracePresenterCanSelectEquivalentStepInsideGroup [
 	self assert: presenter selectedRow equals: group.
 	self assert: presenter selectedStep equals: externalStep.
 	self assert: presenter stepsTable selectedItem equals: group
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testTracePresenterContextEllipsesUseMetaColor [
+
+	| callout context excerptStart presenter source title titleLine trailingStart |
+	presenter := PCRE2TracePresenter new.
+	source := 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'.
+	title := 'Pattern 40-42'.
+	callout := 'automatic'.
+	titleLine := title , ' | ' , callout.
+	context := presenter
+		           sourceContextTextFor: source
+		           range: (40 to: 42)
+		           title: title
+		           callout: callout.
+	excerptStart := titleLine size + 2.
+	trailingStart := context size - 2.
+
+	self
+		assert:
+		(context asString copyFrom: excerptStart to: excerptStart + 2)
+		equals: '...'.
+	self
+		assert: (context asString copyFrom: trailingStart to: context size)
+		equals: '...'.
+	self assert:
+		((context attributesAt: excerptStart) includes: TextColor gray).
+	self assert:
+		((context attributesAt: trailingStart) includes: TextColor gray)
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testTracePresenterFullSourcePanesHighlightSelectedRanges [
+
+	| presenter row trace |
+	trace := '(?C1)a(?C"step")b' asPerlCompatibleRegex traceMatch: 'ab'.
+	presenter := PCRE2TracePresenter on: trace.
+	row := presenter stepsTable items detect: [ :each |
+		       each firstStep event number = 1 ].
+
+	presenter selectedRow: row.
+	self
+		assertContextText: presenter patternText text
+		highlights: 'a'
+		at: (6 to: 6).
+	self
+		assertContextText: presenter subjectText text
+		highlights: 'a'
+		at: (1 to: 1)
 ]
 
 { #category : 'tests' }

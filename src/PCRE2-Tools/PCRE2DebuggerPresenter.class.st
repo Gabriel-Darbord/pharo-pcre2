@@ -133,7 +133,7 @@ PCRE2DebuggerPresenter >> defaultLayout [
 		              borderWidth: 8;
 		              spacing: 6;
 		              add: 'Input pattern' height: 20;
-		              add: patternInput height: 30;
+		              add: patternInput height: 72;
 		              add: 'Input subject' height: 20;
 		              add: subjectText;
 		              add: controls height: 104;
@@ -184,9 +184,10 @@ PCRE2DebuggerPresenter >> initialize [
 PCRE2DebuggerPresenter >> initializePresenters [
 
 	session ifNil: [ session := PCRE2DebugSession new ].
-	patternInput := self newTextInput
+	patternInput := self newText
+		                beWrapWord;
+		                withScrollBars;
 		                text: session pattern;
-		                placeholder: 'Pattern';
 		                help: self patternInputHelpString;
 		                yourself.
 	subjectText := self newText
@@ -333,7 +334,9 @@ PCRE2DebuggerPresenter >> runTrace [
 PCRE2DebuggerPresenter >> selectSessionStepInTracePresenter [
 
 	session selectedStep ifNotNil: [ :step |
-		tracePresenter selectedStep: step ].
+		refreshingTrace := true.
+		[ tracePresenter selectedStep: step ] ensure: [
+			refreshingTrace := false ] ].
 	self refreshStepStatus
 ]
 
