@@ -1,18 +1,22 @@
 "
-A compile context is required if you want to provide an external function for stack checking during compilation or to change the default values of any of the following compile-time parameters:
-- What `\R` matches (Unicode newlines or CR, LF, CRLF only)
-- PCRE2's character tables
-- The newline character sequence
-- The compile time nested parentheses limit
-- The maximum length of the pattern string
-- The extra options bits (none set by default)
+A compile context carries PCRE2 options that affect pattern compilation and the compiled pattern's saved defaults.
+
+Use it through `PCRE2Compiler>>context` when you need to change less common compile-time behavior such as what `\R` means, which newline convention is saved with the pattern, how deeply parentheses may nest, maximum pattern sizes, variable-lookbehind limits, extra compile options, or which compiler optimizations PCRE2 should apply.
+
+The context wrapper remembers values set from Pharo for inspection and copying, while PCRE2 remains the authority for validation.
 "
 Class {
 	#name : 'PCRE2CompileContext',
 	#superclass : 'PCRE2Object',
 	#instVars : [
 		'bsr',
-		'options'
+		'options',
+		'newline',
+		'maxPatternLength',
+		'maxPatternCompiledLength',
+		'maxVarLookbehind',
+		'parensNestLimit',
+		'optimizationDirectives'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -21,8 +25,7 @@ Class {
 { #category : 'accessing' }
 PCRE2CompileContext >> addOptions: anInteger [
 
-	options := options bitOr: anInteger.
-	self setOptions
+	^ self options: (self options bitOr: anInteger)
 ]
 
 { #category : 'accessing' }
@@ -33,13 +36,61 @@ PCRE2CompileContext >> bsr [
 
 { #category : 'accessing' }
 PCRE2CompileContext >> bsr: anInteger [
-	"Preferably use `useBSRAnyCRLF` and `useBSRUnicode`.
-	The value is used by the JIT compiler and the two interpreted matching functions: match and dfa_match."
+	"Set what \R matches. Prefer `useBSRAnyCRLF` and `useBSRUnicode` for named values."
 
-	| rc |
-	rc := self setBSR: anInteger.
-	rc < 0 ifTrue: [ self errorCode: rc ].
-	bsr := anInteger
+	self checkSettingResult: (self setBSR: anInteger).
+	bsr := anInteger.
+	^ self
+]
+
+{ #category : 'private' }
+PCRE2CompileContext >> checkSettingResult: resultCode [
+	"PCRE2 context setters answer zero or a negative error code. Keep native validation centralized so accessors can stay small."
+
+	resultCode < 0 ifTrue: [ self errorCode: resultCode ].
+	^ resultCode
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> disableAutoPossessification [
+	"Disable PCRE2's auto-possessification optimization."
+
+	^ self optimize: PCRE2 optimizeAutoPossessOff
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> disableDotstarAnchoring [
+	"Disable PCRE2's implicit dot-star anchoring optimization."
+
+	^ self optimize: PCRE2 optimizeDotstarAnchorOff
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> disableStartOptimization [
+	"Disable PCRE2's start-of-match optimizations."
+
+	^ self optimize: PCRE2 optimizeStartOff
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> enableAutoPossessification [
+	"Enable PCRE2's auto-possessification optimization."
+
+	^ self optimize: PCRE2 optimizeAutoPossess
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> enableDotstarAnchoring [
+	"Enable PCRE2's implicit dot-star anchoring optimization."
+
+	^ self optimize: PCRE2 optimizeDotstarAnchor
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> enableStartOptimization [
+	"Enable PCRE2's start-of-match optimizations."
+
+	^ self optimize: PCRE2 optimizeStart
 ]
 
 { #category : 'external resource management' }
@@ -51,18 +102,117 @@ PCRE2CompileContext >> free [
 ]
 
 { #category : 'accessing' }
-PCRE2CompileContext >> options [
+PCRE2CompileContext >> maxPatternCompiledLength [
+	"Maximum compiled pattern size in bytes, or nil when PCRE2 uses its default."
 
-	^ options
+	^ maxPatternCompiledLength
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> maxPatternCompiledLength: anInteger [
+	"Set the maximum compiled pattern size in bytes accepted by pcre2_compile()."
+
+	self checkSettingResult:
+		(self setMaxPatternCompiledLength: anInteger).
+	maxPatternCompiledLength := anInteger.
+	^ self
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> maxPatternLength [
+	"Maximum pattern length in code units, or nil when PCRE2 uses its default."
+
+	^ maxPatternLength
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> maxPatternLength: anInteger [
+	"Set the maximum pattern length in code units accepted by pcre2_compile()."
+
+	self checkSettingResult: (self setMaxPatternLength: anInteger).
+	maxPatternLength := anInteger.
+	^ self
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> maxVarLookbehind [
+	"Maximum length for bounded variable-length lookbehind, or nil when PCRE2 uses its default."
+
+	^ maxVarLookbehind
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> maxVarLookbehind: anInteger [
+	"Set the maximum length for bounded variable-length lookbehind assertions."
+
+	self checkSettingResult: (self setMaxVarLookbehind: anInteger).
+	maxVarLookbehind := anInteger.
+	^ self
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> newline [
+	"Configured newline convention, or nil when PCRE2 uses the library default."
+
+	^ newline
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> newline: anInteger [
+	"Set which character sequence PCRE2 recognizes as a newline for compiled patterns."
+
+	self checkSettingResult: (self setNewline: anInteger).
+	newline := anInteger.
+	^ self
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> optimizationDirectives [
+	"Optimization directives applied to this context in order."
+
+	^ optimizationDirectives ifNil: [ #(  ) ]
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> optimize: directive [
+	"Apply one PCRE2 optimization directive. Directives are cumulative; later directives may override earlier ones."
+
+	self checkSettingResult: (self setOptimize: directive).
+	optimizationDirectives := self optimizationDirectives copyWith:
+		                          directive.
+	^ self
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> options [
+	"Extra compile option bits set through this context."
+
+	^ options ifNil: [ 0 ]
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> options: anInteger [
-	"Set the extra compile options.
-	See class-side methods of PCRE2 starting with 'extra' to find valid arguments."
+	"Set PCRE2 extra compile options. See PCRE2 class-side methods beginning with 'extra' for known values."
 
+	self checkSettingResult: (self setOptions: anInteger).
 	options := anInteger.
-	self setOptions
+	^ self
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> parensNestLimit [
+	"Maximum parenthesis nesting depth, or nil when PCRE2 uses its default."
+
+	^ parensNestLimit
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> parensNestLimit: anInteger [
+	"Set the maximum parenthesis nesting depth accepted by pcre2_compile()."
+
+	self checkSettingResult: (self setParensNestLimit: anInteger).
+	parensNestLimit := anInteger.
+	^ self
 ]
 
 { #category : 'copying' }
@@ -71,6 +221,8 @@ PCRE2CompileContext >> postCopy [
 	handle := self privateCopy.
 	handle isNull ifTrue: [
 		PCRE2Error signal: 'Failed to obtain memory to copy compile context' ].
+	optimizationDirectives ifNotNil: [
+		optimizationDirectives := optimizationDirectives copy ].
 	self autoRelease
 ]
 
@@ -89,8 +241,7 @@ PCRE2CompileContext >> privateCopy [
 { #category : 'accessing' }
 PCRE2CompileContext >> removeOptions: anInteger [
 
-	options := options bitAnd: anInteger bitInvert.
-	self setOptions
+	^ self options: (self options bitAnd: anInteger bitInvert)
 ]
 
 { #category : 'private' }
@@ -105,21 +256,147 @@ PCRE2CompileContext >> setBSR: value [
 ]
 
 { #category : 'private' }
-PCRE2CompileContext >> setOptions [
+PCRE2CompileContext >> setMaxPatternCompiledLength: value [
+	"Set the native compiled-pattern size limit."
 
-	self ffiCall: #(int pcre2_set_compile_extra_options_8(self, uint32 options))
+	"int pcre2_set_max_pattern_compiled_length_8(pcre2_compile_context *ccontext, PCRE2_SIZE value)"
+
+	self ffiCall: #( int pcre2_set_max_pattern_compiled_length_8
+		   #( self #, size_t value ) )
+]
+
+{ #category : 'private' }
+PCRE2CompileContext >> setMaxPatternLength: value [
+	"Set the native pattern length limit."
+
+	"int pcre2_set_max_pattern_length_8(pcre2_compile_context *ccontext, PCRE2_SIZE value)"
+
+	self ffiCall:
+		#( int pcre2_set_max_pattern_length_8 #( self #, size_t value ) )
+]
+
+{ #category : 'private' }
+PCRE2CompileContext >> setMaxVarLookbehind: value [
+	"Set the native bounded variable-lookbehind limit."
+
+	"int pcre2_set_max_varlookbehind_8(pcre2_compile_context *ccontext, uint32_t value)"
+
+	self ffiCall:
+		#( int pcre2_set_max_varlookbehind_8 #( self #, uint32 value ) )
+]
+
+{ #category : 'private' }
+PCRE2CompileContext >> setNewline: value [
+	"Set the newline convention in the native compile context."
+
+	"int pcre2_set_newline_8(pcre2_compile_context *ccontext, uint32_t value)"
+
+	self ffiCall: #( int pcre2_set_newline_8 #( self #, uint32 value ) )
+]
+
+{ #category : 'private' }
+PCRE2CompileContext >> setOptimize: directive [
+	"Apply an optimization directive to the native compile context."
+
+	"int pcre2_set_optimize_8(pcre2_compile_context *ccontext, uint32_t directive)"
+
+	self ffiCall:
+		#( int pcre2_set_optimize_8 #( self #, uint32 directive ) )
+]
+
+{ #category : 'private' }
+PCRE2CompileContext >> setOptions [
+	"Backward-compatible private wrapper used by older callers in this package."
+
+	^ self setOptions: self options
+]
+
+{ #category : 'private' }
+PCRE2CompileContext >> setOptions: value [
+	"Set extra compile options on the native context."
+
+	"int pcre2_set_compile_extra_options_8(pcre2_compile_context *ccontext, uint32_t extra_options)"
+
+	self ffiCall: #( int pcre2_set_compile_extra_options_8
+		   #( self #, uint32 value ) )
+]
+
+{ #category : 'private' }
+PCRE2CompileContext >> setParensNestLimit: value [
+	"Set the native parenthesis nesting limit."
+
+	"int pcre2_set_parens_nest_limit_8(pcre2_compile_context *ccontext, uint32_t value)"
+
+	self ffiCall:
+		#( int pcre2_set_parens_nest_limit_8 #( self #, uint32 value ) )
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> useBSRAnyCRLF [
-	"\R matches only CR, LF, or CRLF"
+	"\R matches only CR, LF, or CRLF."
 
-	self bsr: 2
+	^ self bsr: PCRE2 bsrAnyCRLF
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> useBSRUnicode [
-	"\R matches any Unicode line ending sequence"
+	"\R matches any Unicode line ending sequence."
 
-	self bsr: 1
+	^ self bsr: PCRE2 bsrUnicode
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> useFullOptimization [
+	"Enable all optional compiler optimizations."
+
+	^ self optimize: PCRE2 optimizationFull
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> useNewlineAny [
+	"Use any Unicode newline sequence."
+
+	^ self newline: PCRE2 newlineAny
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> useNewlineAnyCRLF [
+	"Use CR, LF, or CRLF as newline sequences."
+
+	^ self newline: PCRE2 newlineAnyCRLF
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> useNewlineCR [
+	"Use carriage return as the newline sequence."
+
+	^ self newline: PCRE2 newlineCR
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> useNewlineCRLF [
+	"Use CRLF as the newline sequence."
+
+	^ self newline: PCRE2 newlineCRLF
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> useNewlineLF [
+	"Use line feed as the newline sequence."
+
+	^ self newline: PCRE2 newlineLF
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> useNewlineNul [
+	"Use NUL as the newline sequence."
+
+	^ self newline: PCRE2 newlineNul
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> useNoOptimization [
+	"Disable all optional compiler optimizations."
+
+	^ self optimize: PCRE2 optimizationNone
 ]

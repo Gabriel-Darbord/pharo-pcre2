@@ -111,6 +111,20 @@ PCRE2 class >> automaticCalloutNumber [
 ]
 
 { #category : 'options' }
+PCRE2 class >> bsrAnyCRLF [
+	"Compile-context value: \R matches only CR, LF, or CRLF."
+
+	^ 2
+]
+
+{ #category : 'options' }
+PCRE2 class >> bsrUnicode [
+	"Compile-context value: \R matches any Unicode line ending sequence."
+
+	^ 1
+]
+
+{ #category : 'options' }
 PCRE2 class >> calloutBacktrack [
 	"Callout flag set when matching has backtracked since the previous callout."
 
@@ -1107,6 +1121,62 @@ PCRE2 class >> notEmptyAtStart [
 
 	<pcre2Option: #( match dfa_match jit_match )>
 	^ 16r00000008
+]
+
+{ #category : 'options' }
+PCRE2 class >> optimizationFull [
+	"Directive for compile contexts: enable all optional performance optimizations."
+
+	^ 1
+]
+
+{ #category : 'options' }
+PCRE2 class >> optimizationNone [
+	"Directive for compile contexts: disable all optional performance optimizations."
+
+	^ 0
+]
+
+{ #category : 'options' }
+PCRE2 class >> optimizeAutoPossess [
+	"Directive for compile contexts: enable auto-possessification."
+
+	^ 64
+]
+
+{ #category : 'options' }
+PCRE2 class >> optimizeAutoPossessOff [
+	"Directive for compile contexts: disable auto-possessification."
+
+	^ 65
+]
+
+{ #category : 'options' }
+PCRE2 class >> optimizeDotstarAnchor [
+	"Directive for compile contexts: enable implicit dot-star anchoring."
+
+	^ 66
+]
+
+{ #category : 'options' }
+PCRE2 class >> optimizeDotstarAnchorOff [
+	"Directive for compile contexts: disable implicit dot-star anchoring."
+
+	^ 67
+]
+
+{ #category : 'options' }
+PCRE2 class >> optimizeStart [
+	"Directive for compile contexts: enable start-of-match optimizations."
+
+	^ 68
+]
+
+{ #category : 'options' }
+PCRE2 class >> optimizeStartOff [
+	"Directive for compile contexts: disable start-of-match optimizations."
+
+	^ 69
 ]
 
 { #category : 'documentation' }
