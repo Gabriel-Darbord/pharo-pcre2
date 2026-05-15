@@ -16,6 +16,23 @@ PCRE2UTF32MatcherTest >> skipUnlessUTF32Supported [
 ]
 
 { #category : 'tests' }
+PCRE2UTF32MatcherTest >> testByteBackedInputMatchesAndReportsCharacterRanges [
+
+	| input match ranges regex subject |
+	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+
+	subject := '1 café 2'.
+	input := subject asPCRE2UTF32Input bytes asPCRE2UTF32Input.
+	regex := PCRE2UTF32Compiler new compile: '\p{L}+'.
+	match := regex findMatch: input.
+	ranges := regex matchingRangesIn: input.
+
+	self assert: match readMatch equals: 'café'.
+	self assert: match offsets equals: #( 2 6 ).
+	self assert: ranges asArray equals: { (3 to: 6) }
+]
+
+{ #category : 'tests' }
 PCRE2UTF32MatcherTest >> testCapturesAndNamedGroupsReadFromUTF32Input [
 
 	| match regex |

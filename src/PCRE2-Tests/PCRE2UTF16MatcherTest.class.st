@@ -22,6 +22,24 @@ PCRE2UTF16MatcherTest >> skipUnlessUTF16Supported [
 ]
 
 { #category : 'tests' }
+PCRE2UTF16MatcherTest >> testByteBackedInputMatchesAndReportsCharacterRanges [
+
+	| emoji input match ranges regex subject |
+	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
+
+	emoji := self emojiString.
+	subject := 'a' , emoji , 'b'.
+	input := subject asPCRE2UTF16Input bytes asPCRE2UTF16Input.
+	regex := PCRE2UTF16Compiler new compile: emoji.
+	match := regex findMatch: input.
+	ranges := regex matchingRangesIn: input.
+
+	self assert: match readMatch equals: emoji.
+	self assert: match offsets equals: #( 1 3 ).
+	self assert: ranges asArray equals: { (2 to: 2) }
+]
+
+{ #category : 'tests' }
 PCRE2UTF16MatcherTest >> testCapturesAndNamedGroupsReadFromUTF16Input [
 
 	| match regex |

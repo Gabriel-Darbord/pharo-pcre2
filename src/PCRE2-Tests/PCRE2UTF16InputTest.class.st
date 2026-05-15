@@ -15,6 +15,39 @@ PCRE2UTF16InputTest >> emojiString [
 ]
 
 { #category : 'tests' }
+PCRE2UTF16InputTest >> testBigEndianUTF16BytesAreNormalized [
+
+	| input |
+	input := #[ 0 99 0 97 0 102 0 233 ] asPCRE2UTF16BigEndianInput.
+
+	self assert: input size equals: 4.
+	self assert: (input readFrom: 1 to: 4) equals: 'café'
+]
+
+{ #category : 'tests' }
+PCRE2UTF16InputTest >> testLittleEndianUTF16BytesAreNormalized [
+
+	| input |
+	input := #[ 99 0 97 0 102 0 233 0 ] asPCRE2UTF16LittleEndianInput.
+
+	self assert: input size equals: 4.
+	self assert: (input readFrom: 1 to: 4) equals: 'café'
+]
+
+{ #category : 'tests' }
+PCRE2UTF16InputTest >> testNativeEndianBytesCanCreateReusableUTF16Input [
+
+	| input subject |
+	subject := 'café'.
+	input := PCRE2UTF16Input fromBytes: subject asPCRE2UTF16Input bytes.
+
+	self assert: input class equals: PCRE2UTF16Input.
+	self assert: input size equals: subject size.
+	self assert: input bytes size equals: subject size * 2.
+	self assert: (input readFrom: 1 to: 4) equals: subject
+]
+
+{ #category : 'tests' }
 PCRE2UTF16InputTest >> testStringCanCreateReusableUTF16Input [
 
 	| input subject |
@@ -27,6 +60,17 @@ PCRE2UTF16InputTest >> testStringCanCreateReusableUTF16Input [
 	self assert: (input bytes uint16AtOffset: 0) equals: $c asInteger.
 	self assert: (input bytes uint16AtOffset: 6) equals: $é asInteger.
 	self assert: (input readFrom: 2 to: 4) equals: 'afé'
+]
+
+{ #category : 'tests' }
+PCRE2UTF16InputTest >> testUTF16ByteInputRejectsOddSize [
+
+	self
+		should: [ PCRE2UTF16Input fromBytes: #[ 97 ] ]
+		raise: PCRE2Error
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring: 'even byte size') ]
 ]
 
 { #category : 'tests' }

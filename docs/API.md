@@ -52,6 +52,18 @@ match isPartial.
 
 UTF-16 and UTF-32 matchers support the same core matching and capture queries. Substitution, DFA matching, callouts, tracing, and compile/match contexts are currently exposed by the UTF-8 API.
 
+Wide matchers also accept prepared byte input:
+
+```smalltalk
+bytes asPCRE2UTF16Input.              "native-endian UTF-16"
+bytes asPCRE2UTF16LittleEndianInput.
+bytes asPCRE2UTF16BigEndianInput.
+
+bytes asPCRE2UTF32Input.              "native-endian UTF-32"
+bytes asPCRE2UTF32LittleEndianInput.
+bytes asPCRE2UTF32BigEndianInput.
+```
+
 ## Splitting and Substitution
 
 A matcher can split by reporting the ranges that should be kept:

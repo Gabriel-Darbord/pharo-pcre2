@@ -99,4 +99,12 @@ matcher := PCRE2UTF32Compiler new compile: '\p{L}+'.
 matcher findAll: 'café déjà'.
 ```
 
+If the subject is already stored as UTF-16 or UTF-32 bytes, prepare the bytes directly. Native-endian bytes can use `asPCRE2UTF16Input` or `asPCRE2UTF32Input`; file bytes with known byte order can use the explicit endian variants.
+
+```smalltalk
+input := bytesFromFile asPCRE2UTF16LittleEndianInput.
+matcher := PCRE2UTF16Compiler new compile: '\p{L}+'.
+matcher findAll: input.
+```
+
 UTF-16 and UTF-32 matching support the core matcher and capture APIs. Use the default UTF-8 API for substitution, DFA matching, callouts, tracing, and context knobs.
