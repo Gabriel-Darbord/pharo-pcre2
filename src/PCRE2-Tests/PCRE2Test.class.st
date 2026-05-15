@@ -25,6 +25,7 @@ PCRE2Test >> testAbstractClassDeclarations [
 		                   PCRE2Object.
 		                   PCRE2CompileContext.
 		                   PCRE2Compiler.
+		                   PCRE2JITStack.
 		                   PCRE2Match.
 		                   PCRE2MatchContext.
 		                   PCRE2Matcher }.
@@ -35,6 +36,9 @@ PCRE2Test >> testAbstractClassDeclarations [
 		                   PCRE2UTF8Compiler.
 		                   PCRE2UTF16Compiler.
 		                   PCRE2UTF32Compiler.
+		                   PCRE2UTF8JITStack.
+		                   PCRE2UTF16JITStack.
+		                   PCRE2UTF32JITStack.
 		                   PCRE2UTF8Match.
 		                   PCRE2UTF16Match.
 		                   PCRE2UTF32Match.

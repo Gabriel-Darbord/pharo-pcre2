@@ -25,6 +25,14 @@ LibPCRE2UTF32 >> deserialize: bytes count: count output: buffer [
 		      #, void #* bytes #, nil ) )
 ]
 
+{ #category : 'JIT' }
+LibPCRE2UTF32 >> jitFreeUnusedMemory [
+	"Release unused executable memory retained by PCRE2's JIT allocator for libpcre2-32."
+
+	self ffiCall: #( void pcre2_jit_free_unused_memory_32
+		   #( nil ) )
+]
+
 { #category : 'private' }
 LibPCRE2UTF32 >> serialize: matchers count: count output: bytes size: bufferSize [
 	"Encode UTF-32 compiled-pattern pointers into a PCRE2-owned serialized byte stream."

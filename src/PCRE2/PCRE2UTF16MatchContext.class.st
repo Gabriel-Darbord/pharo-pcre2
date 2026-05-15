@@ -65,6 +65,14 @@ PCRE2UTF16MatchContext >> setHeapLimit: value [
 ]
 
 { #category : 'private' }
+PCRE2UTF16MatchContext >> setJITStack: aJITStack [
+	"Assign a libpcre2-16 JIT stack to this match context. Passing NULL as callback tells PCRE2 that callback data is the stack pointer."
+
+	self ffiCall:
+		#( void pcre2_jit_stack_assign_16 #( self #, nil #, void #* aJITStack ) )
+]
+
+{ #category : 'private' }
 PCRE2UTF16MatchContext >> setMatchLimit: value [
 	"This function sets the match limit field in a match context. The result is always zero.
 	int pcre2_set_match_limit(pcre2_match_context *mcontext, uint32_t value)"
@@ -105,6 +113,14 @@ PCRE2UTF16MatchContext >> unsetCalloutCallback [
 	int pcre2_set_callout_16(pcre2_match_context *mcontext, NULL, NULL)"
 
 	self ffiCall: #( int pcre2_set_callout_16 #( self #, nil #, nil ) )
+]
+
+{ #category : 'private' }
+PCRE2UTF16MatchContext >> unsetJITStack [
+	"Clear the explicit libpcre2-16 JIT stack assignment."
+
+	self ffiCall:
+		#( void pcre2_jit_stack_assign_16 #( self #, nil #, nil ) )
 ]
 
 { #category : 'private' }

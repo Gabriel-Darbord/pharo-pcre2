@@ -1,7 +1,9 @@
 "
 Abstract superclass for PCRE2 match contexts.
 
-Concrete subclasses bind PCRE2's width-specific native setters and lifetime functions: PCRE2UTF8MatchContext, PCRE2UTF16MatchContext, and PCRE2UTF32MatchContext. This class keeps the shared Pharo-side runtime limit accessors and callback installation protocol.
+Concrete subclasses bind PCRE2's width-specific native setters and lifetime functions: PCRE2UTF8MatchContext, PCRE2UTF16MatchContext, and PCRE2UTF32MatchContext. This class keeps the shared Pharo-side runtime limit accessors, callback installation protocol, and explicit JIT stack assignment.
+
+A non-nil JIT stack is an advanced ownership-sensitive resource. Use it only when large or complex JIT-compiled patterns need more runtime stack than PCRE2's default.
 "
 Class {
 	#name : 'PCRE2MatchContext',
@@ -13,7 +15,8 @@ Class {
 		'offsetLimit',
 		'calloutCallback',
 		'substituteCalloutCallback',
-		'substituteCaseCalloutCallback'
+		'substituteCaseCalloutCallback',
+		'jitStack'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -55,6 +58,15 @@ PCRE2MatchContext >> clearCallout [
 	rc := self unsetCalloutCallback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
 	calloutCallback := nil.
+	^ self
+]
+
+{ #category : 'accessing' }
+PCRE2MatchContext >> clearJITStack [
+	"Remove the explicit JIT stack assignment so PCRE2 uses its default stack."
+
+	self unsetJITStack.
+	jitStack := nil.
 	^ self
 ]
 
@@ -119,6 +131,26 @@ PCRE2MatchContext >> heapLimit: anInteger [
 ]
 
 { #category : 'accessing' }
+PCRE2MatchContext >> jitStack [
+	"Assigned JIT stack, or nil when PCRE2 uses its default thread-local machine stack."
+
+	^ jitStack
+]
+
+{ #category : 'accessing' }
+PCRE2MatchContext >> jitStack: aJITStack [
+	"Assign an explicit JIT stack to this match context. Use nil or clearJITStack to return to PCRE2's default stack. The same non-nil stack must not be used by concurrent or nested matches."
+
+	aJITStack ifNil: [ ^ self clearJITStack ].
+	aJITStack codeUnitWidth = self codeUnitWidth ifFalse: [
+		PCRE2Error signal:
+			'JIT stack code-unit width does not match this match context' ].
+	self setJITStack: aJITStack.
+	jitStack := aJITStack.
+	^ self
+]
+
+{ #category : 'accessing' }
 PCRE2MatchContext >> matchLimit [
 
 	^ matchLimit
@@ -149,7 +181,8 @@ PCRE2MatchContext >> postCopy [
 
 	handle := self privateCopy.
 	handle isNull ifTrue: [
-		PCRE2Error signal: 'Failed to obtain memory to copy match context' ]
+		PCRE2Error signal: 'Failed to obtain memory to copy match context' ].
+	jitStack ifNotNil: [ self setJITStack: jitStack ]
 ]
 
 { #category : 'private' }
@@ -169,6 +202,12 @@ PCRE2MatchContext >> setDepthLimit: value [
 
 { #category : 'private' }
 PCRE2MatchContext >> setHeapLimit: value [
+	^ self subclassResponsibility
+]
+
+{ #category : 'private' }
+PCRE2MatchContext >> setJITStack: aJITStack [
+
 	^ self subclassResponsibility
 ]
 
@@ -278,6 +317,12 @@ PCRE2MatchContext >> substituteCaseCalloutResultFor: event output: outputPointer
 
 { #category : 'private' }
 PCRE2MatchContext >> unsetCalloutCallback [
+	^ self subclassResponsibility
+]
+
+{ #category : 'private' }
+PCRE2MatchContext >> unsetJITStack [
+
 	^ self subclassResponsibility
 ]
 

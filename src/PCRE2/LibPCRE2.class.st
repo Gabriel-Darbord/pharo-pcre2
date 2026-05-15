@@ -51,6 +51,12 @@ LibPCRE2 class >> deserialize: bytes [
 	^ self uniqueInstance deserialize: bytes
 ]
 
+{ #category : 'JIT' }
+LibPCRE2 class >> jitFreeUnusedMemory [
+
+	^ self uniqueInstance jitFreeUnusedMemory
+]
+
 { #category : 'library path' }
 LibPCRE2 class >> libraryBasename [
 
@@ -362,6 +368,14 @@ LibPCRE2 >> errorCode: errorCode [
 
 	<debuggerCompleteToSender>
 	PCRE2Error signal: (PCRE2 translateErrorCode: errorCode)
+]
+
+{ #category : 'JIT' }
+LibPCRE2 >> jitFreeUnusedMemory [
+	"Release unused executable memory retained by PCRE2's JIT allocator for libpcre2-8."
+
+	self ffiCall: #( void pcre2_jit_free_unused_memory_8
+	   #( nil ) )
 ]
 
 { #category : 'accessing - platform' }
