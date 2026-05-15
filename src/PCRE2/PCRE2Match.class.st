@@ -1,9 +1,9 @@
 "
 Abstract superclass for PCRE2 match data.
 
-Concrete subclasses bind the native match-data accessors for PCRE2's 8-bit, 16-bit, and 32-bit APIs. This class stores shared result state: result code, offsets, remembered subject/input, decoder, named-capture metadata, and persistence state.
+Concrete subclasses bind the native match-data accessors for PCRE2's 8-bit, 16-bit, and 32-bit APIs. This class stores shared result state: result code, offsets, remembered subject/input, decoder, named-capture metadata, persistence state, and cached native memory diagnostics.
 
-Use match objects to inspect captures after matching. Persistent matches copy native offset data into Pharo memory and release the native match-data handle.
+Use match objects to inspect captures after matching. Persistent matches copy native offset data into Pharo memory, cache native diagnostics, and release the native match-data handle.
 "
 Class {
 	#name : 'PCRE2Match',
@@ -18,7 +18,9 @@ Class {
 		'decoder',
 		'input',
 		'nameTable',
-		'resultCode'
+		'resultCode',
+		'matchDataSize',
+		'heapframesSize'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -32,9 +34,11 @@ PCRE2Match class >> isAbstract [
 
 { #category : 'persistence' }
 PCRE2Match >> bePersistent [
-	"Copy native offset data into Pharo memory and release my external match-data handle. Named-group metadata is already Pharo-side state."
+	"Copy native offset data and diagnostics into Pharo memory, then release my external match-data handle. Named-group metadata is already Pharo-side state."
 
 	self count.
+	self matchDataSize.
+	self heapframesSize.
 	offsets isArray ifFalse: [ "copy external data into local memory"
 		self offsets ].
 	self free.
@@ -107,7 +111,19 @@ PCRE2Match >> getCount [
 ]
 
 { #category : 'private' }
+PCRE2Match >> getHeapframesSize [
+
+	^ self subclassResponsibility
+]
+
+{ #category : 'private' }
 PCRE2Match >> getMark [
+	^ self subclassResponsibility
+]
+
+{ #category : 'private' }
+PCRE2Match >> getMatchDataSize [
+
 	^ self subclassResponsibility
 ]
 
@@ -177,6 +193,13 @@ PCRE2Match >> groupsNamed: groupName [
 		  self groupAt: captureIndex ]
 ]
 
+{ #category : 'diagnostics' }
+PCRE2Match >> heapframesSize [
+	"Answer the native heap-frame memory currently retained by this match-data block, in bytes. The value is cached so persistent matches can still report it after freeing the native handle."
+
+	^ heapframesSize ifNil: [ heapframesSize := self getHeapframesSize ]
+]
+
 { #category : 'initialization' }
 PCRE2Match >> initialize [
 
@@ -244,6 +267,13 @@ PCRE2Match >> lastMatchIndex [
 PCRE2Match >> mark [
 
 	^ mark ifNil: [ mark := self getMark ifEmpty: [ nil ] ]
+]
+
+{ #category : 'diagnostics' }
+PCRE2Match >> matchDataSize [
+	"Answer the native memory used by this PCRE2 match-data block, in bytes. The value is cached so persistent matches can still report it after freeing the native handle."
+
+	^ matchDataSize ifNil: [ matchDataSize := self getMatchDataSize ]
 ]
 
 { #category : 'accessing' }
@@ -443,7 +473,9 @@ PCRE2Match >> reset [
 	decoder := nil.
 	input := nil.
 	nameTable := nil.
-	resultCode := nil
+	resultCode := nil.
+	matchDataSize := nil.
+	heapframesSize := nil
 ]
 
 { #category : 'accessing' }

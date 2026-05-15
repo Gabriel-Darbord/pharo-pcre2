@@ -264,6 +264,21 @@ PCRE2UTF32MatcherTest >> testMark [
 ]
 
 { #category : 'tests' }
+PCRE2UTF32MatcherTest >> testMatchDataDiagnosticsUseUTF32NativeAPI [
+
+	| match |
+	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+
+	match := (PCRE2UTF32Compiler new compile: '(a)(b)') findMatch: 'zab'.
+
+	self assert: match class equals: PCRE2UTF32Match.
+	self assert: match matchDataSize isInteger.
+	self assert: match matchDataSize > 0.
+	self assert: match heapframesSize isInteger.
+	self assert: match heapframesSize >= 0
+]
+
+{ #category : 'tests' }
 PCRE2UTF32MatcherTest >> testMatchingRangesUseCharacterOffsets [
 
 	| ranges regex |

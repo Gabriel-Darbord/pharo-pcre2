@@ -32,6 +32,14 @@ PCRE2UTF32Match >> getCount [
 ]
 
 { #category : 'private' }
+PCRE2UTF32Match >> getHeapframesSize [
+	"Answer the native heap-frame memory retained by this libpcre2-32 match-data block, in bytes."
+
+	self ffiCall: #( size_t pcre2_get_match_data_heapframes_size_32
+		   #( self ) )
+]
+
+{ #category : 'private' }
 PCRE2UTF32Match >> getMark [
 	"Answer the last MARK/PRUNE/THEN name as a Pharo string, or an empty string when PCRE2 reports no mark."
 
@@ -46,6 +54,14 @@ PCRE2UTF32Match >> getMarkPointer [
 	"Answer PCRE2's native pointer to the last 32-bit MARK/PRUNE/THEN name, or NULL when no mark is available."
 
 	self ffiCall: #( void #* pcre2_get_mark_32 #( self ) )
+]
+
+{ #category : 'private' }
+PCRE2UTF32Match >> getMatchDataSize [
+	"Answer the native memory used by this libpcre2-32 match-data block, in bytes."
+
+	self ffiCall: #( size_t pcre2_get_match_data_size_32
+	   #( self ) )
 ]
 
 { #category : 'private' }

@@ -271,6 +271,21 @@ PCRE2UTF16MatcherTest >> testMark [
 ]
 
 { #category : 'tests' }
+PCRE2UTF16MatcherTest >> testMatchDataDiagnosticsUseUTF16NativeAPI [
+
+	| match |
+	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
+
+	match := (PCRE2UTF16Compiler new compile: '(a)(b)') findMatch: 'zab'.
+
+	self assert: match class equals: PCRE2UTF16Match.
+	self assert: match matchDataSize isInteger.
+	self assert: match matchDataSize > 0.
+	self assert: match heapframesSize isInteger.
+	self assert: match heapframesSize >= 0
+]
+
+{ #category : 'tests' }
 PCRE2UTF16MatcherTest >> testMatchingRangesUseCharacterOffsets [
 
 	| ranges regex |

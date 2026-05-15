@@ -29,12 +29,28 @@ PCRE2UTF8Match >> getCount [
 ]
 
 { #category : 'private' }
+PCRE2UTF8Match >> getHeapframesSize [
+	"Answer the native heap-frame memory retained by this libpcre2-8 match-data block, in bytes."
+
+	self ffiCall: #( size_t pcre2_get_match_data_heapframes_size_8
+		   #( self ) )
+]
+
+{ #category : 'private' }
 PCRE2UTF8Match >> getMark [
 	"After a call of match() that was passed the match block that is this function's argument,
 	this function returns a pointer to the last (*MARK), (*PRUNE), or (*THEN) name that was
 	encountered during the matching process. If no name is available, NULL is returned."
 
 	self ffiCall: #(char *pcre2_get_mark_8(self))
+]
+
+{ #category : 'private' }
+PCRE2UTF8Match >> getMatchDataSize [
+	"Answer the native memory used by this libpcre2-8 match-data block, in bytes."
+
+	self ffiCall: #( size_t pcre2_get_match_data_size_8
+	   #( self ) )
 ]
 
 { #category : 'private' }

@@ -73,6 +73,27 @@ PCRE2MatchTest >> testLastMatchIndex [
 ]
 
 { #category : 'tests' }
+PCRE2MatchTest >> testMatchDataDiagnosticsSurvivePersistence [
+
+	| heapframesSize match matchDataSize |
+	match := '(a)(b)' asPerlCompatibleRegex findMatch: 'zab'.
+
+	matchDataSize := match matchDataSize.
+	heapframesSize := match heapframesSize.
+
+	self assert: matchDataSize isInteger.
+	self assert: matchDataSize > 0.
+	self assert: heapframesSize isInteger.
+	self assert: heapframesSize >= 0.
+
+	match bePersistent.
+
+	self assert: match isPersistent.
+	self assert: match matchDataSize equals: matchDataSize.
+	self assert: match heapframesSize equals: heapframesSize
+]
+
+{ #category : 'tests' }
 PCRE2MatchTest >> testNamedGroups [
 
 	| groups match regex |
