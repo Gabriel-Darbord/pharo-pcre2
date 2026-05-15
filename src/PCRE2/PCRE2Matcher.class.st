@@ -1,17 +1,17 @@
 "
-I wrap a compiled PCRE2 pattern and provide the public matching API.
+Represents a compiled PCRE2 pattern and provides the public matching API.
+
+Typical use:
+
+    matcher := '(?<name>\\w+)' asPerlCompatibleRegex.
+    match := matcher findMatch: 'alice'.
+    match groupNamed: 'name'.
 
 High-level methods accept normal Pharo strings and prepared PCRE2UTF8Input instances. Strings are prepared as UTF-8 bytes before calling PCRE2; ASCII ByteStrings can be reused directly, while other strings are encoded and decoded through Zinc.
 
-Match operations create standalone PCRE2Match objects. The matcher does not own a reusable match result; callers may keep the returned match data and ask it for the matched text, groups, offsets, mark, partial/complete status, or persistence later.
+Match operations create standalone PCRE2Match objects. The matcher does not own a reusable match result, so callers can keep a returned match and ask it for text, groups, offsets, marks, and partial/complete status later.
 
-The API has four layers:
-- Convenience matching such as matches:, matchesPrefix:, search:, find:, findWithGroups:, and findPartialMatch:.
-- Enumeration, splitting, and rewriting such as findAll:, split:indicesDo:, copy:replacingMatchesWith:, copy:translatingMatchesUsing:, and substitute:with:.
-- Debugging and callback hooks such as calloutSites, withCallout:do:, withAutomaticCallouts:do:, callout-aware matching conveniences, and traceMatch:.
-- Byte-level operations such as matchBytes:from:to: and DFA matching for callers that already manage UTF-8 storage and offsets.
-
-Instances may be JIT-compiled when the native library supports it. Lifecycle restoration is handled by PCRE2SessionManager, which either deserializes compatible native codes or recompiles from the recorded pattern and options.
+The API includes full/prefix/search matching, match enumeration, splitting, substitution, callouts, tracing, byte-level matching, and DFA matching. Instances may be JIT-compiled when the native library supports it. Lifecycle restoration is handled by PCRE2SessionManager.
 "
 Class {
 	#name : 'PCRE2Matcher',

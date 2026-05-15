@@ -1,9 +1,14 @@
 "
-I contain standalone match data produced by a compiled PCRE2 pattern.
+Stores the result of one PCRE2 match attempt.
 
-A matcher creates me for a match attempt and then returns me to the caller. I keep PCRE2's result code, ovector, optional subject bytes, optional UTF-8 decoder, and named-capture metadata so callers can ask for matched text or groups later without asking the matcher to remember mutable result state.
+Use a match object when you want to inspect captures after matching:
 
-When made persistent, I copy native offset data into Pharo memory and release the native match-data handle.
+    match := '(?<key>\\w+)=(?<value>\\d+)' asPerlCompatibleRegex findMatch: 'size=42'.
+    match groupAt: 0.
+    match groupNamed: 'value'.
+    match offsetsAt: 1.
+
+A matcher creates a fresh PCRE2Match for each high-level match operation. The match keeps PCRE2's result code, offsets, optional subject bytes, decoder, and named-capture metadata. Persistent matches copy native offset data into Pharo memory and release the native match-data handle.
 "
 Class {
 	#name : 'PCRE2Match',

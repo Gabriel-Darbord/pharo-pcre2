@@ -1,9 +1,11 @@
 "
-I am the UI-facing model for a PCRE2 debugging session.
+Models one debugger session for a pattern and subject.
 
-I keep editable pattern and subject strings, run either a complete trace or a controlled stepping run, remember the current trace/recorder, and track the selected recorded step. Presenters use me as the single session state object so inspector tabs and standalone debugger windows can share behavior without owning trace data themselves.
+Users normally open it through the String convenience method:
 
-Trace-all mode produces a completed PCRE2MatchTrace in one operation. Step-live mode delegates execution to PCRE2LiveDebugRun, which records callout prefixes without suspending inside the native callback.
+    'pattern' openPerlCompatibleRegexDebuggerOn: 'subject'.
+
+The session stores editable pattern and subject strings, trace results, current step selection, and live-run state. Trace-all mode records a completed PCRE2MatchTrace. Step-live mode delegates execution to PCRE2LiveDebugRun, which records callout events without suspending inside the native callback.
 "
 Class {
 	#name : 'PCRE2DebugSession',

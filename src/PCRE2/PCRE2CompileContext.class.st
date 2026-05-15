@@ -1,9 +1,13 @@
 "
-A compile context carries PCRE2 options that affect pattern compilation and the compiled pattern's saved defaults.
+Holds compile-time PCRE2 settings used by PCRE2Compiler.
 
-Use it through `PCRE2Compiler>>context` when you need to change less common compile-time behavior such as what `\R` means, which newline convention is saved with the pattern, how deeply parentheses may nest, maximum pattern sizes, variable-lookbehind limits, extra compile options, or which compiler optimizations PCRE2 should apply.
+Most patterns do not need a compile context. Use one when you need to tune behavior saved into the compiled pattern, for example newline handling, \R semantics, pattern-size limits, variable-lookbehind limits, or compiler optimizations.
 
-The context wrapper remembers values set from Pharo for inspection and copying, while PCRE2 remains the authority for validation.
+    compiler := PCRE2Compiler new.
+    compiler context newline: PCRE2 newlineAnyCRLF.
+    matcher := compiler compile: '^value'.
+
+The context records values set from Pharo for inspection and copying; PCRE2 validates them when the native context is configured.
 "
 Class {
 	#name : 'PCRE2CompileContext',

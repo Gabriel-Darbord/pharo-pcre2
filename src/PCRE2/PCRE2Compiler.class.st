@@ -1,11 +1,17 @@
 "
-I compile Pharo string patterns into `PCRE2Matcher` instances.
+Compiles Pharo string patterns into PCRE2Matcher instances.
 
-Most users compile patterns through `String>>asPerlCompatibleRegex`. Use me directly when you need explicit compile options, compile contexts, or JIT policy.
+Most users can start with `String>>asPerlCompatibleRegex`:
 
-Patterns are prepared as UTF-8 bytes before crossing the FFI boundary. ASCII ByteStrings can be passed directly because they are already valid UTF-8; other strings are encoded through Zinc.
+    matcher := '\\d+' asPerlCompatibleRegex.
 
-By default I enable PCRE2's UTF mode and attempt JIT compilation when the loaded native library supports it. The compiled matcher records enough pattern and option state for lifecycle restoration.
+Use PCRE2Compiler directly when you need compile options, a compile context, or explicit JIT policy:
+
+    compiler := PCRE2Compiler new.
+    compiler addOptions: PCRE2 caseless.
+    matcher := compiler compile: 'name'.
+
+Patterns are prepared as UTF-8 bytes before crossing the FFI boundary. The compiler enables PCRE2 UTF mode by default and attempts JIT compilation when the loaded native library supports it. The compiled matcher records enough pattern and option state for lifecycle restoration.
 "
 Class {
 	#name : 'PCRE2Compiler',
