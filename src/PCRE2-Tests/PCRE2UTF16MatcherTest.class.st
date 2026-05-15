@@ -227,6 +227,38 @@ PCRE2UTF16MatcherTest >> testMatchingRangesUseCharacterOffsets [
 ]
 
 { #category : 'tests' }
+PCRE2UTF16MatcherTest >> testSubstitutionAndCopyReuseHighLevelFlow [
+
+	| input match regex replacement |
+	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
+
+	regex := PCRE2UTF16Compiler new compile: 'é'.
+	self
+		assert: (regex substituteAll: 'café café' with: 'e')
+		equals: 'cafe cafe'.
+
+	input := 'café café' asPCRE2UTF16Input.
+	replacement := 'e' asPCRE2UTF16Input.
+	self
+		assert: (regex substituteAll: input with: replacement)
+		equals: 'cafe cafe'.
+
+	regex := PCRE2UTF16Compiler new compile: '(\p{L}+)'.
+	input := 'one two' asPCRE2UTF16Input.
+	match := regex findMatch: input.
+	self
+		assert: (regex substituteUsingMatch: match with: '[$0]')
+		equals: '[one] two'.
+
+	regex := PCRE2UTF16Compiler new compile: '\d+'.
+	self
+		assert: (regex
+				 copy: 'a12b3'
+				 translatingMatchesUsing: [ :each | '[' , each , ']' ])
+		equals: 'a[12]b[3]'
+]
+
+{ #category : 'tests' }
 PCRE2UTF16MatcherTest >> testSupplementaryCharacterOffsetsUseUTF16CodeUnits [
 
 	| emoji match ranges regex subject |

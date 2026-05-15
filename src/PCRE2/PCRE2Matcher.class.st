@@ -85,6 +85,13 @@ PCRE2Matcher >> canUseJITForOptions: matchOptions [
 	^ (compiler optionsJIT bitAnd: PCRE2 jitComplete) ~~ 0
 ]
 
+{ #category : 'private' }
+PCRE2Matcher >> codeUnitByteSize [
+	"Answer the number of bytes in one PCRE2 code unit for this matcher."
+
+	^ self codeUnitWidth // 8
+]
+
 { #category : 'documentation' }
 PCRE2Matcher >> codeUnitWidth [
 	^ self subclassResponsibility
@@ -137,7 +144,37 @@ PCRE2Matcher >> context: aMatchContext [
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> copy: subject matchesDo: aBlock [
-	^ self subclassResponsibility
+	"Copy the subject and execute aBlock for each match.
+	The block receives the output stream, raw subject bytes, and 1-based byte indexes for the matched slice."
+
+	| bytesPerCodeUnit input lastByteIndex rs ws |
+	input := self preparedInputFor: subject.
+	bytesPerCodeUnit := self codeUnitByteSize.
+	lastByteIndex := 0.
+	rs := ReadStream on: input bytes.
+	ws := WriteStream on: (String new: 100).
+	self
+		matchAll: input bytes
+		from: 1
+		to: input size
+		do: [ :match |
+			| byteEnd byteStart startOffset |
+			startOffset := match startOffsetAt: 1.
+			byteStart := startOffset * bytesPerCodeUnit + 1.
+			byteEnd := (match endOffsetAt: 1) * bytesPerCodeUnit.
+			rs position: lastByteIndex.
+			[ rs position < (byteStart - 1) ] whileTrue: [
+				ws nextPut: (input nextFromStream: rs) ].
+			aBlock
+				value: ws
+				value: input bytes
+				value: byteStart
+				value: byteEnd.
+			lastByteIndex := byteEnd ].
+
+	rs position: lastByteIndex.
+	[ rs atEnd ] whileFalse: [ ws nextPut: (input nextFromStream: rs) ].
+	^ ws contents
 ]
 
 { #category : 'match enumeration' }
@@ -172,6 +209,12 @@ PCRE2Matcher >> createMatchDataFromPattern [
 
 { #category : 'private' }
 PCRE2Matcher >> createMatchDataWithOvectorSize: ovectorSize [
+	^ self subclassResponsibility
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
+
 	^ self subclassResponsibility
 ]
 
@@ -940,7 +983,28 @@ PCRE2Matcher >> startIndex [
 
 { #category : 'private' }
 PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions matchData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
-	^ self subclassResponsibility
+	"Dispatch pcre2_substitute() with or without caller-supplied match data. A nil match data lets PCRE2 perform the match; a non-nil match data is used with PCRE2 substituteMatched."
+
+	aPCRE2Match ifNil: [
+		^ self
+			  substitute: subject
+			  from: start
+			  to: end
+			  options: substituteOptions
+			  replacement: replacement
+			  upTo: rLength
+			  output: buffer
+			  size: outSize ].
+	^ self
+		  substitute: subject
+		  from: start
+		  to: end
+		  options: substituteOptions
+		  matchedData: aPCRE2Match
+		  replacement: replacement
+		  upTo: rLength
+		  output: buffer
+		  size: outSize
 ]
 
 { #category : 'private' }
@@ -1008,7 +1072,15 @@ PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions
 
 { #category : 'private' }
 PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions matchData: aPCRE2Match [
-	^ self subclassResponsibility
+	"Private helper for pcre2_substitute(). Prepare a normal subject or reuse a prepared input, then pass optional PCRE2 match data to the byte-level helper."
+
+	| input |
+	input := self preparedInputFor: subject.
+	^ self
+		  substituteBytes: input bytes
+		  replacement: replacement
+		  options: substituteOptions
+		  matchData: aPCRE2Match
 ]
 
 { #category : 'matching' }
@@ -1108,7 +1180,49 @@ PCRE2Matcher >> substituteAllReplacementsOnly: subject with: replacement [
 
 { #category : 'private' }
 PCRE2Matcher >> substituteBytes: subjectBytes replacement: replacement options: substituteOptions matchData: aPCRE2Match [
-	^ self subclassResponsibility
+	"Apply pcre2_substitute() to prepared subject bytes.
+	The SizeTHolder values are PCRE2 code-unit counts, while ByteArray storage is sized in bytes."
+
+	| buffer bufferCodeUnitSize bytesPerCodeUnit effectiveOptions rc replacementInput subjectCodeUnitSize |
+	bytesPerCodeUnit := self codeUnitByteSize.
+	subjectCodeUnitSize := subjectBytes size // bytesPerCodeUnit.
+	replacementInput := self preparedInputFor: replacement.
+	effectiveOptions := substituteOptions bitOr:
+		                    PCRE2 substituteOverflowLength.
+	bufferCodeUnitSize := 4096.
+	buffer := ByteArray new: bufferCodeUnitSize * bytesPerCodeUnit.
+	bufferCodeUnitSize := SizeTHolder new value: bufferCodeUnitSize.
+
+	rc := self
+		      substitute: subjectBytes
+		      from: 0
+		      to: subjectCodeUnitSize
+		      options: effectiveOptions
+		      matchData: aPCRE2Match
+		      replacement: replacementInput bytes
+		      upTo: replacementInput size
+		      output: buffer
+		      size: bufferCodeUnitSize.
+
+	rc < 0 ifTrue: [
+		rc == PCRE2 errorNoMemory ifFalse: [ self errorCode: rc ].
+		rc := self
+			      substitute: subjectBytes
+			      from: 0
+			      to: subjectCodeUnitSize
+			      options: effectiveOptions
+			      matchData: aPCRE2Match
+			      replacement: replacementInput bytes
+			      upTo: replacementInput size
+			      output:
+			      (buffer := ByteArray new:
+				                 bufferCodeUnitSize value * bytesPerCodeUnit)
+			      size: bufferCodeUnitSize.
+		rc < 0 ifTrue: [ self errorCode: rc ] ].
+
+	^ self
+		  decodeSubstitutionOutput: buffer
+		  codeUnits: bufferCodeUnitSize value
 ]
 
 { #category : 'matching' }

@@ -31,13 +31,6 @@ PCRE2UTF16Matcher >> compileJIT: anInteger [
 	compiler := newCompiler
 ]
 
-{ #category : 'match enumeration' }
-PCRE2UTF16Matcher >> copy: subject matchesDo: aBlock [
-	"UTF-16 copy/replacement helpers need width-specific streaming before they are exposed."
-
-	PCRE2Error signal: 'UTF-16 copy helpers are not implemented yet'
-]
-
 { #category : 'private' }
 PCRE2UTF16Matcher >> createMatchContext [
 	"UTF-16 match contexts need width-specific wrappers before callouts/tracing can be safely exposed."
@@ -60,6 +53,17 @@ PCRE2UTF16Matcher >> createMatchDataWithOvectorSize: ovectorSize [
 	self ffiCall:
 		#( void #* pcre2_match_data_create_16 #( uint32 ovectorSize
 		      #, nil ) )
+]
+
+{ #category : 'private' }
+PCRE2UTF16Matcher >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
+	"Decode a native-endian UTF-16 substitution output buffer."
+
+	| byteSize bytes |
+	codeUnitCount = 0 ifTrue: [ ^ String new ].
+	byteSize := codeUnitCount * self codeUnitByteSize.
+	bytes := buffer copyFrom: 1 to: byteSize.
+	^ (PCRE2UTF16Input fromNativeEndianBytes: bytes) decodeBytes: bytes
 ]
 
 { #category : 'private' }
@@ -178,17 +182,28 @@ PCRE2UTF16Matcher >> readNamedGroups [
 ]
 
 { #category : 'private' }
-PCRE2UTF16Matcher >> substitute: subject with: replacement options: substituteOptions matchData: aPCRE2Match [
-	"UTF-16 substitution needs width-specific output decoding before it is exposed."
+PCRE2UTF16Matcher >> substitute: subject from: start to: end options: substituteOptions matchedData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
+	"Apply substitutions into caller-provided UTF-16 output storage using precomputed match data for the first match."
 
-	PCRE2Error signal: 'UTF-16 substitution is not implemented yet'
+	self ffiCall:
+		#( int pcre2_substitute_16 #( self #, void #* subject #, size_t
+		      end #, size_t start #, uint32 substituteOptions
+		      #, #PCRE2UTF16Match #* aPCRE2Match #, void #* context #, void
+		      #* replacement #, size_t rLength #, void #* buffer #, SizeTHolder
+		      outSize ) )
 ]
 
 { #category : 'private' }
-PCRE2UTF16Matcher >> substituteBytes: subjectBytes replacement: replacement options: substituteOptions matchData: aPCRE2Match [
-	"UTF-16 substitution needs width-specific output decoding before it is exposed."
+PCRE2UTF16Matcher >> substitute: subject from: start to: end options: substituteOptions replacement: replacement upTo: rLength output: buffer size: outSize [
+	"Apply substitutions into caller-provided UTF-16 output storage without precomputed match data.
+	Subject, replacement, and output are prepared native-endian code-unit buffers, so use void* to keep UFFI string conversion out of the call.
+	int pcre2_substitute_16(const pcre2_code_16 *code, PCRE2_SPTR16 subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data_16 *match_data, pcre2_match_context_16 *mcontext, PCRE2_SPTR16 replacement, PCRE2_SIZE rlength, PCRE2_UCHAR16 *outputbuffer, PCRE2_SIZE *outlengthptr)"
 
-	PCRE2Error signal: 'UTF-16 substitution is not implemented yet'
+	self ffiCall:
+		#( int pcre2_substitute_16 #( self #, void #* subject #, size_t
+		      end #, size_t start #, uint32 substituteOptions
+		      #, nil #, void #* context #, void #* replacement #, size_t
+		      rLength #, void #* buffer #, SizeTHolder outSize ) )
 ]
 
 { #category : 'private' }

@@ -32,37 +32,6 @@ PCRE2UTF8Matcher >> compileJIT: anInteger [
 	compiler := newCompiler
 ]
 
-{ #category : 'match enumeration' }
-PCRE2UTF8Matcher >> copy: subject matchesDo: aBlock [
-	"Copy the subject and execute a block for each match."
-
-	| input lastIndex rs ws |
-	input := self preparedInputFor: subject.
-	lastIndex := 0.
-	rs := ReadStream on: input bytes.
-	ws := WriteStream on: (String new: 100).
-	self
-		matchAll: input bytes
-		from: 1
-		to: input size
-		do: [ :match |
-			| start |
-			rs position: lastIndex.
-			start := match startOffsetAt: 1.
-			lastIndex := match endOffsetAt: 1.
-			[ rs position < start ] whileTrue: [
-				ws nextPut: (input nextFromStream: rs) ].
-			aBlock
-				value: ws
-				value: input bytes
-				value: start + 1
-				value: lastIndex ].
-
-	rs position: lastIndex.
-	[ rs atEnd ] whileFalse: [ ws nextPut: (input nextFromStream: rs) ].
-	^ ws contents
-]
-
 { #category : 'private' }
 PCRE2UTF8Matcher >> createMatchContext [
 	"This function creates and initializes a new match context.
@@ -88,6 +57,12 @@ PCRE2UTF8Matcher >> createMatchDataWithOvectorSize: ovectorSize [
 	self ffiCall:
 		#( void #* pcre2_match_data_create_8 #( uint32 ovectorSize
 		      #, nil ) )
+]
+
+{ #category : 'private' }
+PCRE2UTF8Matcher >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
+
+	^ self decodeUTF8Output: buffer upTo: codeUnitCount
 ]
 
 { #category : 'private' }
@@ -216,32 +191,6 @@ PCRE2UTF8Matcher >> readNamedGroups [
 ]
 
 { #category : 'private' }
-PCRE2UTF8Matcher >> substitute: subject from: start to: end options: substituteOptions matchData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
-	"Dispatch pcre2_substitute_8 with or without caller-supplied match data. A nil match data lets PCRE2 perform the match; a non-nil match data is used with PCRE2 substituteMatched."
-
-	aPCRE2Match ifNil: [
-		^ self
-			  substitute: subject
-			  from: start
-			  to: end
-			  options: substituteOptions
-			  replacement: replacement
-			  upTo: rLength
-			  output: buffer
-			  size: outSize ].
-	^ self
-		  substitute: subject
-		  from: start
-		  to: end
-		  options: substituteOptions
-		  matchedData: aPCRE2Match
-		  replacement: replacement
-		  upTo: rLength
-		  output: buffer
-		  size: outSize
-]
-
-{ #category : 'private' }
 PCRE2UTF8Matcher >> substitute: subject from: start to: end options: substituteOptions matchedData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
 	"Apply substitutions into caller-provided output storage using precomputed match data for the first match. Subject, replacement, and output are prepared byte buffers, so use void* for them and let PCRE2 handle the bytes exactly as supplied.
 	int pcre2_substitute_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, PCRE2_SPTR replacement, PCRE2_SIZE rlength, PCRE2_UCHAR *outputbuffer, PCRE2_SIZE *outlengthptr)"
@@ -263,58 +212,6 @@ PCRE2UTF8Matcher >> substitute: subject from: start to: end options: substituteO
 		      end #, size_t start #, uint32 substituteOptions
 		      #, nil #, void #* context #, void #* replacement #, size_t
 		      rLength #, void #* buffer #, SizeTHolder outSize ) )
-]
-
-{ #category : 'private' }
-PCRE2UTF8Matcher >> substitute: subject with: replacement options: substituteOptions matchData: aPCRE2Match [
-	"Private helper for pcre2_substitute_8. Encode a normal subject or reuse a prepared UTF-8 input, then pass optional PCRE2 match data to the byte-level helper."
-
-	| input |
-	input := self preparedInputFor: subject.
-	^ self
-		  substituteBytes: input bytes
-		  replacement: replacement
-		  options: substituteOptions
-		  matchData: aPCRE2Match
-]
-
-{ #category : 'private' }
-PCRE2UTF8Matcher >> substituteBytes: subjectBytes replacement: replacement options: substituteOptions matchData: aPCRE2Match [
-	"Apply pcre2_substitute_8 to prepared subject bytes. Automatically enable PCRE2 substituteOverflowLength so large outputs can be retried with the exact required buffer size."
-
-	| buffer bufferSize effectiveOptions rc replacementInput |
-	replacementInput := self preparedInputFor: replacement.
-	effectiveOptions := substituteOptions bitOr:
-		                    PCRE2 substituteOverflowLength.
-	buffer := ByteArray new: (bufferSize := 4096).
-	bufferSize := SizeTHolder new value: bufferSize.
-
-	rc := self
-		      substitute: subjectBytes
-		      from: 0
-		      to: subjectBytes size
-		      options: effectiveOptions
-		      matchData: aPCRE2Match
-		      replacement: replacementInput bytes
-		      upTo: replacementInput size
-		      output: buffer
-		      size: bufferSize.
-
-	rc < 0 ifTrue: [
-		rc == PCRE2 errorNoMemory ifFalse: [ self errorCode: rc ].
-		rc := self
-			      substitute: subjectBytes
-			      from: 0
-			      to: subjectBytes size
-			      options: effectiveOptions
-			      matchData: aPCRE2Match
-			      replacement: replacementInput bytes
-			      upTo: replacementInput size
-			      output: (buffer := ByteArray new: bufferSize value)
-			      size: bufferSize.
-		rc < 0 ifTrue: [ self errorCode: rc ] ].
-
-	^ self decodeUTF8Output: buffer upTo: bufferSize value
 ]
 
 { #category : 'private' }

@@ -218,3 +218,35 @@ PCRE2UTF32MatcherTest >> testMatchingRangesUseCharacterOffsets [
 
 	self assert: ranges asArray equals: { (3 to: 6) }
 ]
+
+{ #category : 'tests' }
+PCRE2UTF32MatcherTest >> testSubstitutionAndCopyReuseHighLevelFlow [
+
+	| input match regex replacement |
+	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+
+	regex := PCRE2UTF32Compiler new compile: 'é'.
+	self
+		assert: (regex substituteAll: 'café café' with: 'e')
+		equals: 'cafe cafe'.
+
+	input := 'café café' asPCRE2UTF32Input.
+	replacement := 'e' asPCRE2UTF32Input.
+	self
+		assert: (regex substituteAll: input with: replacement)
+		equals: 'cafe cafe'.
+
+	regex := PCRE2UTF32Compiler new compile: '(\p{L}+)'.
+	input := 'one two' asPCRE2UTF32Input.
+	match := regex findMatch: input.
+	self
+		assert: (regex substituteUsingMatch: match with: '[$0]')
+		equals: '[one] two'.
+
+	regex := PCRE2UTF32Compiler new compile: '\d+'.
+	self
+		assert: (regex
+				 copy: 'a12b3'
+				 translatingMatchesUsing: [ :each | '[' , each , ']' ])
+		equals: 'a[12]b[3]'
+]
