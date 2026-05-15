@@ -6,6 +6,8 @@ Pharo-PCRE2 binds to the PCRE2 8-bit API. The host must provide a compatible PCR
 
 Minor PCRE2 versions may report different configuration strings or Unicode versions. Prefer checking capabilities over comparing exact minor-version text.
 
+The optional UTF-16 and UTF-32 matchers bind to PCRE2's separate `libpcre2-16` and `libpcre2-32` libraries. Check `LibPCRE2 supports16BitCodeUnitWidth` or `LibPCRE2 supports32BitCodeUnitWidth` before depending on them in portable code.
+
 ## Compiled Patterns and Image Restarts
 
 A compiled PCRE2 pattern is a native object outside the Pharo object memory. `PCRE2SessionManager` keeps matchers usable across image restarts.

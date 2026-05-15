@@ -1,0 +1,211 @@
+"
+Represents a Pharo string prepared as UTF-16 input for PCRE2.
+
+PCRE2's 16-bit API counts offsets in UTF-16 code units. Supplementary Unicode characters therefore occupy two native code units even though they are one Pharo Character. The object keeps native-endian UTF-16 storage for FFI calls and a code-unit-to-character map for reading match results back as Pharo strings and ranges.
+"
+Class {
+	#name : 'PCRE2UTF16Input',
+	#superclass : 'Object',
+	#instVars : [
+		'bytes',
+		'string',
+		'codeUnitStartOffsets'
+	],
+	#category : 'PCRE2',
+	#package : 'PCRE2'
+}
+
+{ #category : 'instance creation' }
+PCRE2UTF16Input class >> bytes: bytesObject string: aString codeUnitStartOffsets: offsets [
+
+	^ self new
+		  bytes: bytesObject string: aString codeUnitStartOffsets: offsets;
+		  yourself
+]
+
+{ #category : 'instance creation' }
+PCRE2UTF16Input class >> fromString: aString [
+	"Encode a Pharo string as native-endian UTF-16 code units for PCRE2-16."
+
+	| bytes codeUnitCount codeUnitOffset copy offsets |
+	copy := aString copy.
+	codeUnitCount := 0.
+	1 to: copy size do: [ :index |
+		(copy at: index) asInteger <= 16rFFFF
+			ifTrue: [ codeUnitCount := codeUnitCount + 1 ]
+			ifFalse: [ codeUnitCount := codeUnitCount + 2 ] ].
+
+	bytes := ByteArray new: codeUnitCount * 2.
+	offsets := Array new: copy size + 1.
+	codeUnitOffset := 0.
+	1 to: copy size do: [ :index |
+		| codePoint |
+		offsets at: index put: codeUnitOffset.
+		codePoint := (copy at: index) asInteger.
+		codePoint <= 16rFFFF
+			ifTrue: [
+				bytes uint16AtOffset: codeUnitOffset * 2 put: codePoint.
+				codeUnitOffset := codeUnitOffset + 1 ]
+			ifFalse: [
+				| high low nextCodeUnitOffset scalar |
+				scalar := codePoint - 16r10000.
+				high := 16rD800 + (scalar bitShift: -10).
+				low := 16rDC00 + (scalar bitAnd: 16r3FF).
+				nextCodeUnitOffset := codeUnitOffset + 1.
+				bytes uint16AtOffset: codeUnitOffset * 2 put: high.
+				bytes uint16AtOffset: nextCodeUnitOffset * 2 put: low.
+				codeUnitOffset := codeUnitOffset + 2 ] ].
+	offsets at: copy size + 1 put: codeUnitOffset.
+	^ self bytes: bytes string: copy codeUnitStartOffsets: offsets
+]
+
+{ #category : 'converting' }
+PCRE2UTF16Input >> asPCRE2UTF16Input [
+	"Answer myself so matcher APIs can accept either Strings or prepared UTF-16 inputs."
+
+	^ self
+]
+
+{ #category : 'accessing' }
+PCRE2UTF16Input >> bytes [
+
+	^ bytes
+]
+
+{ #category : 'initialization' }
+PCRE2UTF16Input >> bytes: bytesObject string: aString codeUnitStartOffsets: offsets [
+
+	bytes := bytesObject.
+	string := aString.
+	codeUnitStartOffsets := offsets
+]
+
+{ #category : 'decoding' }
+PCRE2UTF16Input >> characterCountUpToByteOffset: codeUnitOffset [
+	"Compatibility with UTF-8 input protocol; for UTF-16 the offset is a code-unit count."
+
+	| count |
+	codeUnitOffset <= 0 ifTrue: [ ^ 0 ].
+	codeUnitOffset >= self size ifTrue: [ ^ string size ].
+	count := 0.
+	[
+	count < string size and: [
+		(codeUnitStartOffsets at: count + 2) <= codeUnitOffset ] ]
+		whileTrue: [ count := count + 1 ].
+	^ count
+]
+
+{ #category : 'decoding' }
+PCRE2UTF16Input >> characterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset [
+	"Translate PCRE2's zero-based UTF-16 code-unit offsets to a 1-based Pharo character range."
+
+	^ (self characterCountUpToByteOffset: zeroBasedStartOffset) + 1 to:
+	  (self characterCountUpToByteOffset: exclusiveEndOffset)
+]
+
+{ #category : 'decoding' }
+PCRE2UTF16Input >> codePointFromHighSurrogate: highSurrogate lowSurrogate: lowSurrogate [
+
+	| highBits lowBits |
+	highBits := highSurrogate - 16rD800.
+	lowBits := lowSurrogate - 16rDC00.
+	^ 16r10000 + (highBits bitShift: 10) + lowBits
+]
+
+{ #category : 'decoding' }
+PCRE2UTF16Input >> decodeBytes: aByteCollection [
+	"Decode a native-endian UTF-16 byte collection."
+
+	^ String streamContents: [ :stream |
+		  | byteIndex |
+		  byteIndex := 1.
+		  [ byteIndex <= aByteCollection size ] whileTrue: [
+			  | first |
+			  first := aByteCollection uint16AtOffset: byteIndex - 1.
+			  ((self isHighSurrogate: first) and: [
+				   byteIndex + 2 <= aByteCollection size ])
+				  ifTrue: [
+					  | second |
+					  second := aByteCollection uint16AtOffset: byteIndex + 1.
+					  (self isLowSurrogate: second)
+						  ifTrue: [
+							  stream nextPut: (Character value:
+									   (self
+										    codePointFromHighSurrogate: first
+										    lowSurrogate: second)).
+							  byteIndex := byteIndex + 4 ]
+						  ifFalse: [
+							  stream nextPut: (Character value: first).
+							  byteIndex := byteIndex + 2 ] ]
+				  ifFalse: [
+					  stream nextPut: (Character value: first).
+					  byteIndex := byteIndex + 2 ] ] ]
+]
+
+{ #category : 'accessing' }
+PCRE2UTF16Input >> decoder [
+
+	^ nil
+]
+
+{ #category : 'decoding' }
+PCRE2UTF16Input >> isHighSurrogate: codeUnit [
+
+	^ codeUnit between: 16rD800 and: 16rDBFF
+]
+
+{ #category : 'decoding' }
+PCRE2UTF16Input >> isLowSurrogate: codeUnit [
+
+	^ codeUnit between: 16rDC00 and: 16rDFFF
+]
+
+{ #category : 'decoding' }
+PCRE2UTF16Input >> nextFromStream: aStream [
+	"Answer the next character from a stream over my UTF-16 byte storage."
+
+	| first firstBytes |
+	firstBytes := ByteArray new: 2.
+	1 to: 2 do: [ :index | firstBytes at: index put: aStream next ].
+	first := firstBytes uint16AtOffset: 0.
+	((self isHighSurrogate: first) and: [ aStream atEnd not ]) ifFalse: [
+		^ Character value: first ].
+	^ self nextSurrogatePairFromStream: aStream highSurrogate: first
+]
+
+{ #category : 'decoding' }
+PCRE2UTF16Input >> nextSurrogatePairFromStream: aStream highSurrogate: highSurrogate [
+
+	| lowSurrogate secondBytes |
+	secondBytes := ByteArray new: 2.
+	1 to: 2 do: [ :index | secondBytes at: index put: aStream next ].
+	lowSurrogate := secondBytes uint16AtOffset: 0.
+	(self isLowSurrogate: lowSurrogate) ifFalse: [
+		^ Character value: highSurrogate ].
+	^ Character value: (self
+			   codePointFromHighSurrogate: highSurrogate
+			   lowSurrogate: lowSurrogate)
+]
+
+{ #category : 'decoding' }
+PCRE2UTF16Input >> readFrom: start to: end [
+	"Answer the substring stored between the given 1-based UTF-16 code-unit indexes."
+
+	| characterEnd characterStart |
+	characterStart := (self characterCountUpToByteOffset: start - 1) + 1.
+	characterEnd := self characterCountUpToByteOffset: end.
+	characterStart > characterEnd ifTrue: [ ^ String new ].
+	^ string copyFrom: characterStart to: characterEnd
+]
+
+{ #category : 'matching' }
+PCRE2UTF16Input >> recordOn: aPCRE2Match [
+
+	aPCRE2Match input: self
+]
+
+{ #category : 'accessing' }
+PCRE2UTF16Input >> size [
+
+	^ codeUnitStartOffsets last
+]

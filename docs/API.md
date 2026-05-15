@@ -17,9 +17,12 @@ compiler context newline: PCRE2 newlineAnyCRLF.
 matcher := compiler compile: '^value'.
 ```
 
-Use `PCRE2UTF32Compiler` when you want to compile and match through PCRE2's 32-bit code-unit API.
+Use `PCRE2UTF16Compiler` or `PCRE2UTF32Compiler` when you want to compile and match through PCRE2's wider code-unit APIs.
 
 ```smalltalk
+matcher := PCRE2UTF16Compiler new compile: '\p{L}+'.
+matcher find: 'café'.
+
 matcher := PCRE2UTF32Compiler new compile: '\p{L}+'.
 matcher find: 'café'.
 ```
@@ -47,7 +50,7 @@ match isComplete.
 match isPartial.
 ```
 
-UTF-32 matchers support the same core matching and capture queries. Substitution, DFA matching, callouts, tracing, and compile/match contexts are currently exposed by the UTF-8 API.
+UTF-16 and UTF-32 matchers support the same core matching and capture queries. Substitution, DFA matching, callouts, tracing, and compile/match contexts are currently exposed by the UTF-8 API.
 
 ## Splitting and Substitution
 
