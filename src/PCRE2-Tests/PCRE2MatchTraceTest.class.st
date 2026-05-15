@@ -31,6 +31,31 @@ PCRE2MatchTraceTest >> testTraceCorrelatesEventsWithStaticSites [
 ]
 
 { #category : 'tests' }
+PCRE2MatchTraceTest >> testTraceIterationConveniences [
+
+	| events stepKinds stepIndexes steps trace |
+	trace := 'ab' asPerlCompatibleRegex traceMatch: 'ab'.
+	events := OrderedCollection new.
+	steps := OrderedCollection new.
+
+	trace eventsDo: [ :event | events add: event ].
+	trace stepsDo: [ :step | steps add: step ].
+	stepIndexes := steps collect: [ :step | step index ].
+	stepKinds := steps collect: [ :step | step kind ].
+
+	self assert: trace input notNil.
+	self deny: trace isPartial.
+	self assert: events asArray equals: trace events.
+	self assert: steps size equals: trace steps size.
+	self
+		assert: stepIndexes asArray
+		equals: ((1 to: steps size) collect: [ :each | each ]) asArray.
+	self
+		assert: stepKinds asArray
+		equals: (trace steps collect: [ :step | step kind ])
+]
+
+{ #category : 'tests' }
 PCRE2MatchTraceTest >> testTraceMatchCollectsAutomaticCalloutEvents [
 
 	| regex trace |

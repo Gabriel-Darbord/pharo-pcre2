@@ -37,6 +37,26 @@ PCRE2CompilerTest >> assertInvalidPattern: aString [
 ]
 
 { #category : 'tests' }
+PCRE2CompilerTest >> testCompileContextEnableOptimizationDirectives [
+
+	| context |
+	LibPCRE2 supportsOptimizationDirectives ifFalse: [ ^ self ].
+	context := PCRE2Compiler new context.
+
+	context
+		useFullOptimization;
+		enableAutoPossessification;
+		enableDotstarAnchoring;
+		enableStartOptimization.
+
+	self assert: context optimizationDirectives equals: {
+			PCRE2 optimizationFull.
+			PCRE2 optimizeAutoPossess.
+			PCRE2 optimizeDotstarAnchor.
+			PCRE2 optimizeStart }
+]
+
+{ #category : 'tests' }
 PCRE2CompilerTest >> testCompileContextLimitsCompiledPatternLength [
 
 	| compiler |
@@ -59,6 +79,20 @@ PCRE2CompilerTest >> testCompileContextLimitsPatternLength [
 	self
 		assertCompileErrorFrom: [ compiler compile: 'abcd' ]
 		includes: 'pattern string is longer'
+]
+
+{ #category : 'tests' }
+PCRE2CompilerTest >> testCompileContextNamedNewlineConveniences [
+
+	| context |
+	context := PCRE2Compiler new context.
+
+	context useNewlineAny.
+	self assert: context newline equals: PCRE2 newlineAny.
+	context useNewlineAnyCRLF.
+	self assert: context newline equals: PCRE2 newlineAnyCRLF.
+	context useNewlineNul.
+	self assert: context newline equals: PCRE2 newlineNul
 ]
 
 { #category : 'tests' }
@@ -193,6 +227,27 @@ PCRE2CompilerTest >> testCompileContextVariableLookbehindLimit [
 	matcher := compiler compile: '(?<=a{0,300})b'.
 	self assert: (matcher find: 'aaab') equals: 'b'.
 	self assert: (matcher info: PCRE2 infoMaxLookbehind) equals: 300
+]
+
+{ #category : 'tests' }
+PCRE2CompilerTest >> testCompilerClassConveniencesAndEagerJITToggle [
+
+	| original regex supportsJIT |
+	original := PCRE2Compiler eagerJIT.
+
+	[
+	PCRE2Compiler eagerJIT: false.
+	self deny: PCRE2Compiler eagerJIT.
+	PCRE2Compiler eagerJIT: true.
+	self assert: PCRE2Compiler eagerJIT ] ensure: [
+		PCRE2Compiler eagerJIT: original ].
+
+	regex := PCRE2Compiler pattern: 'a+'.
+	self assert: (regex matches: 'aaa').
+	regex := PCRE2Compiler pattern: 'a+' options: PCRE2 caseless.
+	self assert: (regex matches: 'AAA').
+	supportsJIT := PCRE2Compiler supportsJIT.
+	self assert: (supportsJIT == true or: [ supportsJIT == false ])
 ]
 
 { #category : 'tests' }

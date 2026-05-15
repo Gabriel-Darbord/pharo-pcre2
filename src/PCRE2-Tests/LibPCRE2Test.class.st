@@ -42,3 +42,23 @@ LibPCRE2Test >> testNewMatchContext [
 	context := LibPCRE2 newMatchContext.
 	self deny: context isNull
 ]
+
+{ #category : 'tests' }
+LibPCRE2Test >> testSerializeDeserializeConvenienceDecodesAllCodes [
+
+	| bytes handles pointers regexes wordSize |
+	regexes := {
+		           'a+' asPerlCompatibleRegex.
+		           'b+' asPerlCompatibleRegex }.
+	bytes := LibPCRE2 serialize: regexes.
+
+	pointers := LibPCRE2 deserialize: bytes.
+	wordSize := ExternalAddress wordSize.
+	handles := (1 to: regexes size) collect: [ :index |
+		           pointers pointerAtOffset: wordSize * (index - 1) ].
+
+	[
+	self assert: pointers size equals: regexes size * wordSize.
+	handles do: [ :handle | self deny: handle isNull ] ] ensure: [
+		handles do: [ :handle | (PCRE2Matcher fromHandle: handle) finalize ] ]
+]

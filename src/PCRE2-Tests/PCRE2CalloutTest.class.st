@@ -28,6 +28,44 @@ PCRE2CalloutTest >> testAutomaticCalloutsExposePatternProgressSites [
 ]
 
 { #category : 'tests' }
+PCRE2CalloutTest >> testCalloutConvenienceVariantsUseTemporaryCallbacks [
+
+	| bytes events regex |
+	regex := '(?C1)a+' asPerlCompatibleRegex.
+	bytes := ZnUTF8Encoder default encodeString: 'aaa'.
+	events := OrderedCollection new.
+
+	self
+		assert: (regex find: 'zaa' calloutsDo: [ :event |
+				 events add: event.
+				 0 ])
+		equals: 'aa'.
+	self
+		assert: (regex findAll: 'a aa' calloutsDo: [ :event |
+				 events add: event.
+				 0 ]) asArray
+		equals: #( 'a' 'aa' ).
+	self assert: (regex matchesPrefix: 'aaa!' calloutsDo: [ :event |
+			 events add: event.
+			 0 ]).
+	self assert: (regex search: 'zaa' calloutsDo: [ :event |
+			 events add: event.
+			 0 ]).
+	self
+		assert: (regex
+				 matchBytes: bytes
+				 from: 1
+				 to: bytes size
+				 calloutsDo: [ :event |
+					 events add: event.
+					 0 ]) readMatch
+		equals: bytes.
+
+	self assert: events size >= 5.
+	self assert: (regex matches: 'aaa')
+]
+
+{ #category : 'tests' }
 PCRE2CalloutTest >> testCalloutSitesDoEnumeratesInPatternOrder [
 
 	| regex visited |
