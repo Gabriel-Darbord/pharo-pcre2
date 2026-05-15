@@ -69,6 +69,31 @@ Substitution follows PCRE2 replacement rules by default:
 
 Use `withLiteral:` when the replacement text should not be parsed as a substitution expression. `substituteUsingMatch:with:` can reuse an already computed `PCRE2Match` for the first replacement.
 
+## Pattern Conversion
+
+PCRE2 can convert glob, POSIX basic, and POSIX extended patterns into PCRE2 pattern strings:
+
+```smalltalk
+PCRE2 convertGlob: '*.st'.
+PCRE2 convertPOSIXBasic: 'a\{2\}'.
+PCRE2 convertPOSIXExtended: 'a(b|c)+'.
+```
+
+The result is a regular pattern string, so compile it with the usual API:
+
+```smalltalk
+matcher := (PCRE2 convertGlob: '*.st') asPerlCompatibleRegex.
+matcher matches: 'Package.st'.
+```
+
+Use `LibPCRE2 newConvertContext` when glob conversion needs a different escape character or separator:
+
+```smalltalk
+context := LibPCRE2 newConvertContext.
+context globEscape: $!.
+matcher := (PCRE2 convertGlob: 'file!*.st' context: context) asPerlCompatibleRegex.
+```
+
 ## Partial and DFA Matching
 
 Partial matching is useful when a subject may be incomplete, such as while reading a buffer.

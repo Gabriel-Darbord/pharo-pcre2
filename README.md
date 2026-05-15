@@ -60,11 +60,19 @@ Useful collection-style operations are available on the matcher:
 'a, b,c' splitOn: '\s*,\s*' asPerlCompatibleRegex.
 ```
 
+PCRE2 can also convert glob and POSIX patterns into Perl-compatible regular expressions:
+
+```smalltalk
+matcher := (PCRE2 convertGlob: '*.st') asPerlCompatibleRegex.
+matcher matches: 'Package.st'. "true"
+```
+
 ## Features
 
 - Full, prefix, search, and match-object APIs.
 - Numbered and named capture groups.
 - Match enumeration, match ranges, splitting, and substitution.
+- Glob and POSIX pattern conversion to PCRE2 syntax.
 - Prepared UTF-8 inputs for repeated matching against the same subject.
 - Compile and match contexts for PCRE2 options and limits.
 - Partial matching and DFA matching.

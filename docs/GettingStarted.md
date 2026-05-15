@@ -62,6 +62,18 @@ For character ranges, use `matchingRangesIn:`. Ranges are translated back from P
 
 Replacement strings use PCRE2 substitution syntax unless you call one of the `withLiteral:` variants.
 
+## Convert Other Pattern Styles
+
+Use PCRE2's conversion helpers when the input pattern is a glob or POSIX regular expression:
+
+```smalltalk
+matcher := (PCRE2 convertGlob: '*.st') asPerlCompatibleRegex.
+matcher matches: 'Package.st'. "true"
+
+(PCRE2 convertPOSIXBasic: 'a\{2\}') asPerlCompatibleRegex.
+(PCRE2 convertPOSIXExtended: 'a(b|c)+') asPerlCompatibleRegex.
+```
+
 ## Reuse Prepared Input
 
 PCRE2 matches UTF-8 bytes. If you match the same subject repeatedly, prepare it once:
