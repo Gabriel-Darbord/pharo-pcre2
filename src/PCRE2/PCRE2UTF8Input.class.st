@@ -1,9 +1,9 @@
 "
-I represent a Smalltalk string prepared as UTF-8 input for PCRE2.
+Represents a Pharo string prepared as UTF-8 input for PCRE2.
 
-ASCII ByteStrings are already valid UTF-8, so I keep the original string as byte storage and use no decoder. Other strings are encoded through Zinc and remember the encoder for later decoding of PCRE2 byte offsets.
+ASCII ByteStrings are already valid UTF-8, so they can be kept as byte storage without a decoder. Other strings are encoded through Zinc and keep the encoder needed to translate PCRE2 byte offsets back to Pharo character ranges.
 
-Users may keep one of my instances and pass it to matcher APIs when the same subject is matched repeatedly. I also centralize byte-to-character range translation for APIs such as `matchingRangesIn:`.
+Matcher APIs accept this object directly when a caller wants to reuse prepared subject bytes across repeated matches.
 "
 Class {
 	#name : 'PCRE2UTF8Input',

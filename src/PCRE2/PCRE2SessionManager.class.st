@@ -1,7 +1,7 @@
 "
-I restore compiled PCRE2 matchers after an image restart.
+Restores compiled PCRE2 matchers after an image restart.
 
-The default strategy serializes matchers at shutdown and deserializes them at startup when the native library signature still matches. If the serialized cache is stale or unavailable, I fall back to recompiling from the saved pattern and options. This keeps normal users away from external-handle lifecycle details while preserving portability across PCRE2 versions and platforms.
+The default strategy serializes matchers at shutdown and deserializes them at startup when the native library signature still matches. If the serialized cache is stale or unavailable, the manager falls back to recompiling from the saved pattern and options. This keeps external PCRE2 handles out of normal matcher state while preserving portability across PCRE2 versions and platforms.
 "
 Class {
 	#name : 'PCRE2SessionManager',

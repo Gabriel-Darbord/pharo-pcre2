@@ -4,54 +4,85 @@
 
 # Pharo-PCRE2
 
-**Perl-Compatible Regular Expressions (PCRE)** for Pharo, using the [PCRE2 library](https://github.com/PCRE2Project/pcre2) via Foreign Function Interface (FFI).
+Perl-compatible regular expressions for Pharo, backed by the native [PCRE2](https://github.com/PCRE2Project/pcre2) library through FFI.
 
 ## Installation
 
-To load the project into your Pharo image, use the following script:
-```st
+Load the project into a Pharo image with Metacello:
+
+```smalltalk
 Metacello new
   githubUser: 'Gabriel-Darbord' project: 'pharo-pcre2' commitish: 'main' path: 'src';
   baseline: 'PCRE2';
   load
 ```
-Ensure that the PCRE2 library is installed on your system.
-Use the appropriate command for your platform:
-- Linux:
+
+The native PCRE2 8-bit library must be available on the host.
+
+Linux:
+
 ```sh
 sudo apt install libpcre2-dev
 ```
-- macOS:
+
+macOS:
+
 ```sh
 brew install pcre2
 ```
 
-## Usage
+## Quick Start
 
-The main way to create a matcher is to send the `asPCRegex` message to a pattern string.
-This approach is similar to the standard `Regex` package.
-For example:
-```st
-'hello\d+' asPCRegex
+Compile a pattern by sending `asPerlCompatibleRegex` to a string.
+
+```smalltalk
+matcher := '\b\w+\b' asPerlCompatibleRegex.
+matcher search: 'hello world'.
+matcher matches: 'hello'.
+matcher matchesPrefix: 'hello world'.
 ```
 
-PCRE2 provides a wide range of options for pattern matching.
-For detailed usage and available features, see the [official PCRE2 documentation](https://www.pcre.org/current/doc/html/index.html).
+Use `findMatch:` when you want to keep the match object and query it later.
+
+```smalltalk
+matcher := '(?<key>\w+)=(?<value>\d+)' asPerlCompatibleRegex.
+match := matcher findMatch: 'size=42'.
+match groupAt: 0.       "size=42"
+match groupNamed: 'key'.   "size"
+match groupNamed: 'value'. "42"
+```
+
+Useful collection-style operations are available on the matcher:
+
+```smalltalk
+'\d+' asPerlCompatibleRegex findAll: 'a1 b22 c333'.
+'\s*,\s*' asPerlCompatibleRegex substituteAll: 'a, b,c' with: '|'.
+'a, b,c' splitOn: '\s*,\s*' asPerlCompatibleRegex.
+```
+
+## Features
+
+- Full, prefix, search, and match-object APIs.
+- Numbered and named capture groups.
+- Match enumeration, match ranges, splitting, and substitution.
+- Prepared UTF-8 inputs for repeated matching against the same subject.
+- Compile and match contexts for PCRE2 options and limits.
+- Partial matching and DFA matching.
+- Match and substitution callouts.
+- Trace/debugger support in the `PCRE2-Tools` package.
 
 ## Lifecycle
 
-Compiled patterns in PCRE2 are external objects, meaning they exist outside the Pharo image memory.
-Without additional handling, these patterns would be lost after the Pharo image is restarted.
-To address this issue, Pharo-PCRE2 includes a session manager that ensures that all compiled patterns are retained throughout the lifecycle of the image.
-The manager supports two recovery strategies:
-- Recompilation: Patterns are recompiled from their source string.
-- Serialization: Patterns are stored and restored using raw bytes.
+Compiled PCRE2 patterns are native objects, so the project includes `PCRE2SessionManager` to restore them across image restarts. Serialization is used by default when the native library signature is compatible; otherwise matchers are recompiled from their saved pattern and options.
 
-By default, the session manager uses serialization for efficiency.
-This behavior can be adjusted using the `PCRE2SessionManager` API.
+The binding targets PCRE2 10.x through the 8-bit API. Minor PCRE2 versions may differ in reported configuration details, so tests and applications should prefer capability checks over exact minor-version strings.
 
-Serialization works under the following conditions:
-> The host must be running the same version of PCRE2, with the same code unit width, endianness, pointer width, and PCRE2_SIZE type.
+## Documentation
 
-Most modern architectures are compatible with this requirement.
-However, for maximum portability across different systems, switch to recompilation.
+User documentation lives in the `docs` folder and is shown by Pharo's documentation browser when the repository is available:
+
+- `docs/GettingStarted.md`
+- `docs/API.md`
+- `docs/Lifecycle.md`
+
+For the complete regular expression syntax, see the [official PCRE2 documentation](https://www.pcre.org/current/doc/html/index.html).
