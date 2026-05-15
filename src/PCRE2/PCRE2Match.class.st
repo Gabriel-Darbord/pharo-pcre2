@@ -6,9 +6,8 @@ Use a match object when you want to inspect captures after matching:
     match := '(?<key>\\w+)=(?<value>\\d+)' asPerlCompatibleRegex findMatch: 'size=42'.
     match groupAt: 0.
     match groupNamed: 'value'.
-    match offsetsAt: 1.
 
-A matcher creates a fresh PCRE2Match for each high-level match operation. The match keeps PCRE2's result code, offsets, optional subject bytes, decoder, and named-capture metadata. Persistent matches copy native offset data into Pharo memory and release the native match-data handle.
+A matcher creates a fresh PCRE2Match for each high-level match operation. The match keeps PCRE2's result code, offsets, optional prepared input or raw subject storage, decoder, and named-capture metadata. Persistent matches copy native offset data into Pharo memory and release the native match-data handle.
 "
 Class {
 	#name : 'PCRE2Match',
@@ -21,6 +20,7 @@ Class {
 		'startIndex',
 		'subject',
 		'decoder',
+		'input',
 		'nameTable',
 		'resultCode'
 	],
@@ -89,7 +89,7 @@ PCRE2Match >> endOffsetAt: pairIndex [
 { #category : 'private' }
 PCRE2Match >> ensureSubjectAvailable [
 
-	subject ifNil: [
+	(input isNil and: [ subject isNil ]) ifTrue: [
 		self error:
 			'This match does not remember a subject; use readMatch: or readMatches: with an explicit subject' ]
 ]
@@ -188,6 +188,21 @@ PCRE2Match >> groupsNamed: groupName [
 PCRE2Match >> initialize [
 
 	isPersistent := false
+]
+
+{ #category : 'accessing' }
+PCRE2Match >> input [
+
+	^ input
+]
+
+{ #category : 'accessing' }
+PCRE2Match >> input: aPreparedInput [
+	"Remember the prepared input used for this match so callers can query decoded results later."
+
+	input := aPreparedInput.
+	subject := aPreparedInput bytes.
+	decoder := aPreparedInput decoder
 ]
 
 { #category : 'testing' }
@@ -350,6 +365,9 @@ PCRE2Match >> readMatch [
 
 	| bytes |
 	self ensureSubjectAvailable.
+	input ifNotNil: [
+		self offsetsDo: [ :start :end | ^ input readFrom: start to: end ].
+		^ nil ].
 	bytes := self readMatch: subject.
 	^ decoder
 		  ifNil: [ bytes ]
@@ -368,7 +386,16 @@ PCRE2Match >> readMatch: subject [
 PCRE2Match >> readMatches [
 	"Returns all matched substrings from the remembered subject."
 
+	| index matches |
 	self ensureSubjectAvailable.
+	input ifNotNil: [
+		matches := Array new: self count.
+		index := 0.
+		self offsetsDo: [ :start :end |
+			matches
+				at: (index := index + 1)
+				put: (input readFrom: start to: end) ].
+		^ matches ].
 	^ decoder
 		  ifNil: [ self readMatches: subject ]
 		  ifNotNil: [ self readMatches: subject decodeWith: decoder ]
@@ -404,9 +431,10 @@ PCRE2Match >> readMatches: subject decodeWith: decoder [
 
 { #category : 'private' }
 PCRE2Match >> readSubjectFrom: start to: end [
-	"Answer remembered subject bytes from start to end, decoding when the match came from a non-ASCII UTF-8 input."
+	"Answer remembered subject content from start to end, decoding when needed."
 
 	| bytes |
+	input ifNotNil: [ ^ input readFrom: start to: end ].
 	bytes := subject copyFrom: start to: end.
 	^ decoder ifNil: [ bytes ] ifNotNil: [ decoder decodeBytes: bytes ]
 ]
@@ -420,6 +448,7 @@ PCRE2Match >> reset [
 	mark := nil.
 	subject := nil.
 	decoder := nil.
+	input := nil.
 	nameTable := nil.
 	resultCode := nil
 ]
@@ -468,8 +497,9 @@ PCRE2Match >> subject [
 
 { #category : 'accessing' }
 PCRE2Match >> subject: aByteArray decoder: aDecoder [
-	"Remember the encoded subject used for this match so callers can query the result later."
+	"Remember raw subject storage used for this match so callers can query the result later."
 
+	input := nil.
 	subject := aByteArray.
 	decoder := aDecoder
 ]

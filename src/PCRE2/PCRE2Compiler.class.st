@@ -102,7 +102,8 @@ PCRE2Compiler >> compile: pattern [
 	If JIT compilation fails, the pattern will still be compiled as a standard matcher."
 
 	| matcher |
-	(matcher := PCRE2Matcher fromHandle: (self compileBasic: pattern))
+	(matcher := self matcherClass fromHandle:
+			            (self compileBasic: pattern))
 		autoRelease;
 		initialize;
 		pattern: pattern;
@@ -125,22 +126,19 @@ PCRE2Compiler >> compile: pattern upTo: length errorCode: errorCode errorOffset:
 
 { #category : 'compiling' }
 PCRE2Compiler >> compileBasic: pattern [
-	"Creates a regex matcher from a pattern and returns its external address. ASCII ByteString patterns can be passed directly because they are already valid UTF-8."
+	"Creates a regex matcher from a pattern and returns its external address."
 
-	| errorCode errorOffset handle utfPattern |
-	utfPattern := (PCRE2UTF8Input fromString: pattern) bytes.
+	| errorCode errorOffset handle input |
+	input := self inputClass fromString: pattern.
 	errorCode := IntHolder new.
 	errorOffset := SizeTHolder new.
 	handle := self
-		          compile: utfPattern
-		          upTo: utfPattern size
+		          compile: input bytes
+		          upTo: input size
 		          errorCode: errorCode
 		          errorOffset: errorOffset.
 	handle isNull ifTrue: [
-		self
-			errorCode: errorCode value
-			in: utfPattern asByteArray
-			at: errorOffset value ].
+		self errorCode: errorCode value inInput: input at: errorOffset value ].
 	^ handle
 ]
 
@@ -215,6 +213,13 @@ PCRE2Compiler >> errorCode: errorCode in: pattern at: offset [
 		at: offset
 ]
 
+{ #category : 'error handling' }
+PCRE2Compiler >> errorCode: errorCode inInput: input at: offset [
+
+	<debuggerCompleteToSender>
+	self errorCode: errorCode in: input bytes asByteArray at: offset
+]
+
 { #category : 'library path' }
 PCRE2Compiler >> ffiLibraryName [
 
@@ -229,6 +234,18 @@ PCRE2Compiler >> initialize [
 
 	options := 524288. "PCRE2 utf"
 	optionsJIT := 1 "PCRE2 jitComplete"
+]
+
+{ #category : 'private' }
+PCRE2Compiler >> inputClass [
+
+	^ PCRE2UTF8Input
+]
+
+{ #category : 'private' }
+PCRE2Compiler >> matcherClass [
+
+	^ PCRE2Matcher
 ]
 
 { #category : 'accessing' }

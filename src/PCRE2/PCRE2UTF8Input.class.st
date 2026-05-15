@@ -104,10 +104,19 @@ PCRE2UTF8Input >> nextFromStream: aStream [
 		  ifNotNil: [ decoder nextFromStream: aStream ]
 ]
 
+{ #category : 'decoding' }
+PCRE2UTF8Input >> readFrom: start to: end [
+	"Answer the decoded substring stored between the given 1-based PCRE2 code-unit indexes."
+
+	| slice |
+	slice := bytes copyFrom: start to: end.
+	^ self decodeBytes: slice
+]
+
 { #category : 'matching' }
 PCRE2UTF8Input >> recordOn: aPCRE2Match [
 
-	aPCRE2Match subject: bytes decoder: decoder
+	aPCRE2Match input: self
 ]
 
 { #category : 'accessing' }

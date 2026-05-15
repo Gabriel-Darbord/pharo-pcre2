@@ -86,3 +86,14 @@ matcher matchingRangesIn: input.
 ```
 
 ASCII strings can be reused directly as byte storage. Non-ASCII strings are encoded once and keep the decoder needed for character ranges.
+
+## Use UTF-32 Matching
+
+The default API uses PCRE2's 8-bit library and prepares strings as UTF-8. If the host PCRE2 build includes 32-bit code-unit support, `PCRE2Compiler32` can compile and match through `libpcre2-32`:
+
+```smalltalk
+matcher := PCRE2Compiler32 new compile: '\p{L}+'.
+matcher findAll: 'café déjà'.
+```
+
+UTF-32 matching supports the core matcher and capture APIs. Use the default UTF-8 API for substitution, DFA matching, callouts, tracing, and context knobs.

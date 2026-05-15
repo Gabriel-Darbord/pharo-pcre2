@@ -17,7 +17,7 @@ Metacello new
   load
 ```
 
-The native PCRE2 8-bit library must be available on the host.
+The native PCRE2 8-bit library must be available on the host. The UTF-32 API also uses `libpcre2-32` when present.
 
 Linux:
 
@@ -74,6 +74,7 @@ matcher matches: 'Package.st'. "true"
 - Match enumeration, match ranges, splitting, and substitution.
 - Glob and POSIX pattern conversion to PCRE2 syntax.
 - Prepared UTF-8 inputs for repeated matching against the same subject.
+- UTF-32 compile and match support through `PCRE2Compiler32`.
 - Compile and match contexts for PCRE2 options and limits.
 - Partial matching and DFA matching.
 - Match and substitution callouts.
@@ -83,7 +84,7 @@ matcher matches: 'Package.st'. "true"
 
 Compiled PCRE2 patterns are native objects, so the project includes `PCRE2SessionManager` to restore them across image restarts. Serialization is used by default when the native library signature is compatible; otherwise matchers are recompiled from their saved pattern and options.
 
-The binding targets PCRE2 10.x through the 8-bit API. Minor PCRE2 versions may differ in reported configuration details, so tests and applications should prefer capability checks over exact minor-version strings.
+The binding targets PCRE2 10.x. The usual API uses the 8-bit library; `PCRE2Compiler32` uses PCRE2's 32-bit code-unit library for UTF-32 matching. Minor PCRE2 versions may differ in reported configuration details, so tests and applications should prefer capability checks over exact minor-version strings.
 
 ## Documentation
 

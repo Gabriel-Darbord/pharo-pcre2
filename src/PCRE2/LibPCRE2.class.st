@@ -89,6 +89,18 @@ LibPCRE2 class >> serialize: matchers [
 ]
 
 { #category : 'version management' }
+LibPCRE2 class >> supports16BitCodeUnitWidth [
+
+	^ self uniqueInstance supports16BitCodeUnitWidth
+]
+
+{ #category : 'version management' }
+LibPCRE2 class >> supports32BitCodeUnitWidth [
+
+	^ self uniqueInstance supports32BitCodeUnitWidth
+]
+
+{ #category : 'version management' }
 LibPCRE2 class >> supports8BitCodeUnitWidth [
 
 	^ self uniqueInstance supports8BitCodeUnitWidth
@@ -475,6 +487,20 @@ LibPCRE2 >> serializedNumberOfCodes: bytes [
 
 	self ffiCall: #( int32 pcre2_serialize_get_number_of_codes_8
 		   #( void #* bytes ) )
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> supports16BitCodeUnitWidth [
+	"PCRE2_CONFIG_COMPILED_WIDTHS is a bitmask; bit 1 means 16-bit support."
+
+	^ ((self config: PCRE2 configCompiledWidths) bitAnd: 2) = 2
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> supports32BitCodeUnitWidth [
+	"PCRE2_CONFIG_COMPILED_WIDTHS is a bitmask; bit 2 means 32-bit support."
+
+	^ ((self config: PCRE2 configCompiledWidths) bitAnd: 4) = 4
 ]
 
 { #category : 'version management' }

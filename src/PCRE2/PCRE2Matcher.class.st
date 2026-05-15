@@ -144,7 +144,7 @@ PCRE2Matcher >> copy: subject matchesDo: aBlock [
 	"Copy the subject and execute a block for each match."
 
 	| input lastIndex rs ws |
-	input := self utf8InputFor: subject.
+	input := self preparedInputFor: subject.
 	lastIndex := 0.
 	rs := ReadStream on: input bytes.
 	ws := WriteStream on: (String new: 100).
@@ -184,7 +184,7 @@ PCRE2Matcher >> copy: subject translatingMatchesUsing: aBlock [
 	"Copy the subject replacing each match by evaluating aBlock with the matched substring. Expect the block to answer a String, and replace the match with the answer."
 
 	| input |
-	input := self utf8InputFor: subject.
+	input := self preparedInputFor: subject.
 	^ self copy: input matchesDo: [ :ws :utfSubject :start :end |
 		  ws nextPutAll: (aBlock value:
 				   (input decodeBytes: (utfSubject copyFrom: start to: end))) ]
@@ -256,7 +256,7 @@ PCRE2Matcher >> dfaMatch: subject workspaceSize: workspaceSize ovectorSize: ovec
 	"Run a DFA match with explicit workspace and ovector sizes."
 
 	| input match |
-	input := self utf8InputFor: subject.
+	input := self preparedInputFor: subject.
 	match := self
 		         dfaMatchBytes: input bytes
 		         from: 1
@@ -372,7 +372,7 @@ PCRE2Matcher >> findAll: subject [
 
 	| input result |
 	result := OrderedCollection new.
-	input := self utf8InputFor: subject.
+	input := self preparedInputFor: subject.
 	self
 		matchAll: input bytes
 		from: 1
@@ -397,7 +397,7 @@ PCRE2Matcher >> findAll: subject do: aBlock [
 	"Iterate over all matching substrings within the subject."
 
 	| input |
-	input := self utf8InputFor: subject.
+	input := self preparedInputFor: subject.
 	self
 		matchAll: input bytes
 		from: 1
@@ -413,7 +413,7 @@ PCRE2Matcher >> findAllWithGroups: subject [
 
 	| input result |
 	result := OrderedCollection new.
-	input := self utf8InputFor: subject.
+	input := self preparedInputFor: subject.
 	self
 		matchAll: input bytes
 		from: 1
@@ -436,7 +436,7 @@ PCRE2Matcher >> findMatch: subject [
 	"Returns standalone match data for the first matching substring, or nil."
 
 	| input match |
-	input := self utf8InputFor: subject.
+	input := self preparedInputFor: subject.
 	match := self matchBytes: input bytes from: 1 to: input size.
 	match ifNotNil: [ input recordOn: match ].
 	^ match
@@ -464,7 +464,7 @@ PCRE2Matcher >> findPartialMatch: subject option: partialOption [
 
 	| input match matchOptions rc |
 	matchOptions := self optionsWithPartialOption: partialOption.
-	input := self utf8InputFor: subject.
+	input := self preparedInputFor: subject.
 	match := self newMatchData.
 	rc := self
 		      matchBytes: input bytes
@@ -683,6 +683,12 @@ PCRE2Matcher >> matchBytes: subject from: start to: end options: matchOptions in
 	^ self recordMatchResult: rc in: aPCRE2Match
 ]
 
+{ #category : 'private' }
+PCRE2Matcher >> matchClass [
+
+	^ PCRE2Match
+]
+
 { #category : 'accessing' }
 PCRE2Matcher >> matchData [
 	"Matchers no longer own match data. Use findMatch: or matchBytes:from:to: and query the returned PCRE2Match."
@@ -704,7 +710,7 @@ PCRE2Matcher >> matches: subject [
 	"Returns whether the regex fully matches the subject."
 
 	| input match |
-	input := self utf8InputFor: subject.
+	input := self preparedInputFor: subject.
 	match := self matchBytes: input bytes from: 1 to: input size.
 	match ifNil: [ ^ false ].
 	match isPartial ifTrue: [ ^ false ].
@@ -753,7 +759,7 @@ PCRE2Matcher >> matchesPrefix: subject [
 	"Returns whether the regex completely matches the start of the subject."
 
 	| input match |
-	input := self utf8InputFor: subject.
+	input := self preparedInputFor: subject.
 	match := self matchBytes: input bytes from: 1 to: input size.
 	match ifNil: [ ^ false ].
 	match isPartial ifTrue: [ ^ false ].
@@ -775,7 +781,7 @@ PCRE2Matcher >> matchingRangesIn: subject [
 	"Answer ranges of each match as 1-based Pharo character intervals."
 
 	| input ranges |
-	input := self utf8InputFor: subject.
+	input := self preparedInputFor: subject.
 	ranges := OrderedCollection new.
 	self
 		matchAll: input bytes
@@ -806,7 +812,7 @@ PCRE2Matcher >> newMatchData [
 	pointer := self createMatchDataFromPattern.
 	pointer isNull ifTrue: [
 		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
-	^ (PCRE2Match fromHandle: pointer) initialize autoRelease
+	^ (self matchClass fromHandle: pointer) initialize autoRelease
 ]
 
 { #category : 'external resource management' }
@@ -817,7 +823,7 @@ PCRE2Matcher >> newMatchDataWithOvectorSize: ovectorSize [
 	pointer := self createMatchDataWithOvectorSize: ovectorSize.
 	pointer isNull ifTrue: [
 		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
-	^ (PCRE2Match fromHandle: pointer) initialize autoRelease
+	^ (self matchClass fromHandle: pointer) initialize autoRelease
 ]
 
 { #category : 'private' }
@@ -853,6 +859,12 @@ PCRE2Matcher >> postCopy [
 		PCRE2Error signal: 'Failed to obtain memory to copy matcher' ].
 	self autoRelease initialize.
 	self restoreJITIfNeeded
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> preparedInputFor: aStringOrInput [
+
+	^ aStringOrInput asPCRE2UTF8Input
 ]
 
 { #category : 'private' }
@@ -1001,10 +1013,10 @@ PCRE2Matcher >> serialize [
 
 { #category : 'splitjoin' }
 PCRE2Matcher >> split: subject indicesDo: aBlock [
-	"Split subject on my matches, evaluating aBlock with each kept 1-based Pharo character range. Regex delimiters must consume at least one byte."
+	"Split subject on my matches, evaluating aBlock with each kept 1-based Pharo character range. Regex delimiters must consume at least one code unit."
 
 	| input lastEndOffset match nextStart subjectEnd |
-	input := self utf8InputFor: subject.
+	input := self preparedInputFor: subject.
 	lastEndOffset := 0.
 	nextStart := 1.
 	subjectEnd := input characterCountUpToByteOffset: input size.
@@ -1146,7 +1158,7 @@ PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions
 	"Private helper for pcre2_substitute_8. Encode a normal subject or reuse a prepared UTF-8 input, then pass optional PCRE2 match data to the byte-level helper."
 
 	| input |
-	input := self utf8InputFor: subject.
+	input := self preparedInputFor: subject.
 	^ self
 		  substituteBytes: input bytes
 		  replacement: replacement
@@ -1254,7 +1266,7 @@ PCRE2Matcher >> substituteBytes: subjectBytes replacement: replacement options: 
 	"Apply pcre2_substitute_8 to prepared subject bytes. Automatically enable PCRE2 substituteOverflowLength so large outputs can be retried with the exact required buffer size."
 
 	| buffer bufferSize effectiveOptions rc replacementInput |
-	replacementInput := self utf8InputFor: replacement.
+	replacementInput := self preparedInputFor: replacement.
 	effectiveOptions := substituteOptions bitOr:
 		                    PCRE2 substituteOverflowLength.
 	buffer := ByteArray new: (bufferSize := 4096).
@@ -1388,7 +1400,7 @@ PCRE2Matcher >> traceMatch: aStringOrInput [
 
 	| eventSnapshots input match resultCode traceMatcher |
 	traceMatcher := self traceMatcher.
-	input := self utf8InputFor: aStringOrInput.
+	input := self preparedInputFor: aStringOrInput.
 	eventSnapshots := OrderedCollection new.
 	traceMatcher context calloutBlock: [ :event |
 		eventSnapshots add: event.
@@ -1424,8 +1436,9 @@ PCRE2Matcher >> traceMatcher [
 
 { #category : 'private' }
 PCRE2Matcher >> utf8InputFor: aStringOrInput [
+	"Compatibility helper for callers using the old internal name."
 
-	^ aStringOrInput asPCRE2UTF8Input
+	^ self preparedInputFor: aStringOrInput
 ]
 
 { #category : 'private' }
