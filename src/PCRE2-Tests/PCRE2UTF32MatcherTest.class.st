@@ -33,6 +33,54 @@ PCRE2UTF32MatcherTest >> testByteBackedInputMatchesAndReportsCharacterRanges [
 ]
 
 { #category : 'tests' }
+PCRE2UTF32MatcherTest >> testCalloutSitesDoEnumeratesInPatternOrder [
+
+	| regex visited |
+	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+
+	regex := PCRE2UTF32Compiler new compile: '(?C2)a(?C3)b'.
+	visited := OrderedCollection new.
+
+	regex calloutSitesDo: [ :site | visited add: site number ].
+
+	self assert: visited asArray equals: #( 2 3 )
+]
+
+{ #category : 'tests' }
+PCRE2UTF32MatcherTest >> testCalloutSitesDoNotAffectMatching [
+
+	| regex |
+	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+
+	regex := PCRE2UTF32Compiler new compile: '(?C1)a(?C"déjà")b'.
+
+	self assert: regex calloutSites size equals: 2.
+	self assert: (regex matches: 'ab').
+	self deny: (regex matches: 'ac')
+]
+
+{ #category : 'tests' }
+PCRE2UTF32MatcherTest >> testCalloutSitesExposeNumberedAndStringCallouts [
+
+	| first regex second sites |
+	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+
+	regex := PCRE2UTF32Compiler new compile: '(?C1)a(?C"déjà")b'.
+	sites := regex calloutSites.
+	first := sites first.
+	second := sites second.
+
+	self assert: sites size equals: 2.
+	self assert: first number equals: 1.
+	self deny: first hasString.
+	self assert: second number equals: 0.
+	self assert: second hasString.
+	self assert: second string equals: 'déjà'.
+	self assert: second stringLength equals: 4.
+	self assert: second patternPosition > first patternPosition
+]
+
+{ #category : 'tests' }
 PCRE2UTF32MatcherTest >> testCapturesAndNamedGroupsReadFromUTF32Input [
 
 	| match regex |

@@ -44,6 +44,15 @@ PCRE2Matcher >> bePersistent [
 	^ self
 ]
 
+{ #category : 'private' }
+PCRE2Matcher >> calloutSiteFromEnumerationBlock: anExternalAddress [
+	"Answer a static callout site decoded for this matcher's code-unit width."
+
+	^ PCRE2CalloutSite
+		  fromEnumerationBlock: anExternalAddress
+		  codeUnitWidth: self codeUnitWidth
+]
+
 { #category : 'documentation' }
 PCRE2Matcher >> calloutSites [
 	"Answer the static callout sites compiled into this pattern. This is passive metadata: it does not install a runtime callout or affect matching."
@@ -64,7 +73,7 @@ PCRE2Matcher >> calloutSitesDo: aBlock [
 		            #( int #( void #* calloutBlock #, void #* userData ) )
 		            block: [ :calloutBlock :userData |
 			            aBlock value:
-				            (PCRE2CalloutSite fromEnumerationBlock: calloutBlock).
+				            (self calloutSiteFromEnumerationBlock: calloutBlock).
 			            0 ].
 	rc := self enumerateCalloutsWith: callback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
@@ -82,6 +91,13 @@ PCRE2Matcher >> canUseJITForOptions: matchOptions [
 	(matchOptions bitAnd: PCRE2 partialSoft) ~~ 0 ifTrue: [
 		^ (compiler optionsJIT bitAnd: PCRE2 jitPartialSoft) ~~ 0 ].
 	^ (compiler optionsJIT bitAnd: PCRE2 jitComplete) ~~ 0
+]
+
+{ #category : 'documentation' }
+PCRE2Matcher >> codeUnitWidth [
+	"Answer the PCRE2 code-unit width used by this matcher."
+
+	^ 8
 ]
 
 { #category : 'compiling' }

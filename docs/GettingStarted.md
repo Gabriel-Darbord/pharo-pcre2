@@ -114,4 +114,4 @@ pattern := patternBytesFromFile asPCRE2UTF16InputDetectingBOM.
 matcher := PCRE2UTF16Compiler new compile: pattern.
 ```
 
-UTF-16 and UTF-32 matching support the core matcher and capture APIs. Use the default UTF-8 API for substitution, DFA matching, callouts, tracing, and context knobs.
+UTF-16 and UTF-32 matching support the core matcher, capture, mark, and static callout-site APIs. Use the default UTF-8 API for substitution, DFA matching, runtime callouts, tracing, and context knobs.

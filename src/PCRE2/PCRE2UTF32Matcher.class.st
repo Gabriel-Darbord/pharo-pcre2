@@ -69,6 +69,16 @@ PCRE2UTF32Matcher >> dfaMatch: subject from: start to: end matchData: aMatchData
 	PCRE2Error signal: 'UTF-32 DFA matching is not implemented yet'
 ]
 
+{ #category : 'private' }
+PCRE2UTF32Matcher >> enumerateCalloutsWith: callback [
+	"Enumerate static callout sites in the compiled 32-bit pattern. This does not run a match or change the matcher.
+	int pcre2_callout_enumerate_32(const pcre2_code_32 *code, int (*callback)(pcre2_callout_enumerate_block_32 *, void *), void *user_data)"
+
+	self ffiCall:
+		#( int pcre2_callout_enumerate_32 #( self #, FFICallback callback
+		      #, nil ) )
+]
+
 { #category : 'library path' }
 PCRE2UTF32Matcher >> ffiLibraryName [
 

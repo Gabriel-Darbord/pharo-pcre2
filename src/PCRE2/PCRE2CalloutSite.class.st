@@ -27,6 +27,14 @@ PCRE2CalloutSite class >> fromEnumerationBlock: anExternalAddress [
 	^ self new initializeFromEnumerationBlock: anExternalAddress
 ]
 
+{ #category : 'instance creation' }
+PCRE2CalloutSite class >> fromEnumerationBlock: anExternalAddress codeUnitWidth: codeUnitWidth [
+
+	^ self new
+		  initializeFromEnumerationBlock: anExternalAddress
+		  codeUnitWidth: codeUnitWidth
+]
+
 { #category : 'private' }
 PCRE2CalloutSite class >> sizeTFrom: anExternalAddress atOffset: byteOffset [
 
@@ -42,13 +50,26 @@ PCRE2CalloutSite class >> sizeTFrom: anExternalAddress atOffset: byteOffset [
 { #category : 'private' }
 PCRE2CalloutSite class >> stringFrom: anExternalAddress length: length [
 
-	| bytes |
+	^ self stringFrom: anExternalAddress length: length codeUnitWidth: 8
+]
+
+{ #category : 'private' }
+PCRE2CalloutSite class >> stringFrom: anExternalAddress length: length codeUnitWidth: codeUnitWidth [
+	"Decode a string callout payload for the given PCRE2 code-unit width."
+
+	| bytes byteSize |
 	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [
 		^ nil ].
-	bytes := ByteArray new: length.
-	1 to: length do: [ :index |
+	byteSize := length * (codeUnitWidth // 8).
+	bytes := ByteArray new: byteSize.
+	1 to: byteSize do: [ :index |
 		bytes at: index put: (anExternalAddress uint8AtOffset: index - 1) ].
-	^ bytes utf8Decoded
+	codeUnitWidth = 8 ifTrue: [ ^ bytes utf8Decoded ].
+	codeUnitWidth = 16 ifTrue: [
+		^ (PCRE2UTF16Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
+	codeUnitWidth = 32 ifTrue: [
+		^ (PCRE2UTF32Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
+	PCRE2Error signal: 'Unsupported PCRE2 callout string code-unit width'
 ]
 
 { #category : 'testing' }
@@ -59,6 +80,14 @@ PCRE2CalloutSite >> hasString [
 
 { #category : 'initialization' }
 PCRE2CalloutSite >> initializeFromEnumerationBlock: anExternalAddress [
+
+	^ self
+		  initializeFromEnumerationBlock: anExternalAddress
+		  codeUnitWidth: 8
+]
+
+{ #category : 'initialization' }
+PCRE2CalloutSite >> initializeFromEnumerationBlock: anExternalAddress codeUnitWidth: codeUnitWidth [
 
 	| pointerOffset sizeOffset wordSize |
 	wordSize := ExternalAddress wordSize.
@@ -83,7 +112,8 @@ PCRE2CalloutSite >> initializeFromEnumerationBlock: anExternalAddress [
 	string := self class
 		          stringFrom:
 		          (anExternalAddress pointerAtOffset: pointerOffset)
-		          length: stringLength.
+		          length: stringLength
+		          codeUnitWidth: codeUnitWidth.
 	^ self
 ]
 

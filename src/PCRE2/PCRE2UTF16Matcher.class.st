@@ -69,6 +69,16 @@ PCRE2UTF16Matcher >> dfaMatch: subject from: start to: end matchData: aMatchData
 	PCRE2Error signal: 'UTF-16 DFA matching is not implemented yet'
 ]
 
+{ #category : 'private' }
+PCRE2UTF16Matcher >> enumerateCalloutsWith: callback [
+	"Enumerate static callout sites in the compiled 16-bit pattern. This does not run a match or change the matcher.
+	int pcre2_callout_enumerate_16(const pcre2_code_16 *code, int (*callback)(pcre2_callout_enumerate_block_16 *, void *), void *user_data)"
+
+	self ffiCall:
+		#( int pcre2_callout_enumerate_16 #( self #, FFICallback callback
+		      #, nil ) )
+]
+
 { #category : 'library path' }
 PCRE2UTF16Matcher >> ffiLibraryName [
 

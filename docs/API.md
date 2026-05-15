@@ -60,7 +60,7 @@ match isComplete.
 match isPartial.
 ```
 
-UTF-16 and UTF-32 matchers support the same core matching, capture, and mark queries. Substitution, DFA matching, callouts, tracing, and compile/match contexts are currently exposed by the UTF-8 API.
+UTF-16 and UTF-32 matchers support the same core matching, capture, mark, and static callout-site queries. Substitution, DFA matching, runtime callouts, tracing, and compile/match contexts are currently exposed by the UTF-8 API.
 
 Wide matchers also accept prepared byte input:
 
