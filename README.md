@@ -74,7 +74,7 @@ matcher matches: 'Package.st'. "true"
 - Match enumeration, match ranges, splitting, and substitution.
 - Glob and POSIX pattern conversion to PCRE2 syntax.
 - Prepared UTF-8 inputs for repeated matching against the same subject.
-- UTF-16 and UTF-32 compile and match support through `PCRE2UTF16Compiler` and `PCRE2UTF32Compiler`, including byte-backed prepared inputs.
+- UTF-16 and UTF-32 compile and match support through `PCRE2UTF16Compiler` and `PCRE2UTF32Compiler`, including byte-backed prepared inputs with explicit endian or BOM-aware helpers.
 - Compile and match contexts for PCRE2 options and limits.
 - Partial matching and DFA matching.
 - Match and substitution callouts.

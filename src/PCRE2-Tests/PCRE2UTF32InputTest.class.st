@@ -20,6 +20,40 @@ PCRE2UTF32InputTest >> testBigEndianUTF32BytesAreNormalized [
 ]
 
 { #category : 'tests' }
+PCRE2UTF32InputTest >> testDetectingUTF32BOMFallsBackToNativeEndian [
+
+	| input subject |
+	subject := 'café'.
+	input := subject asPCRE2UTF32Input bytes
+		         asPCRE2UTF32InputDetectingBOM.
+
+	self assert: input size equals: 4.
+	self assert: (input readFrom: 1 to: 4) equals: subject
+]
+
+{ #category : 'tests' }
+PCRE2UTF32InputTest >> testDetectingUTF32BOMStripsBigEndianBOM [
+
+	| input |
+	input := #[ 0 0 254 255 0 0 0 99 0 0 0 97 0 0 0 102 0 0 0 233 ]
+		         asPCRE2UTF32InputDetectingBOM.
+
+	self assert: input size equals: 4.
+	self assert: (input readFrom: 1 to: 4) equals: 'café'
+]
+
+{ #category : 'tests' }
+PCRE2UTF32InputTest >> testDetectingUTF32BOMStripsLittleEndianBOM [
+
+	| input |
+	input := #[ 255 254 0 0 99 0 0 0 97 0 0 0 102 0 0 0 233 0 0 0 ]
+		         asPCRE2UTF32InputDetectingBOM.
+
+	self assert: input size equals: 4.
+	self assert: (input readFrom: 1 to: 4) equals: 'café'
+]
+
+{ #category : 'tests' }
 PCRE2UTF32InputTest >> testLittleEndianUTF32BytesAreNormalized [
 
 	| input |
@@ -78,4 +112,23 @@ PCRE2UTF32InputTest >> testUTF32InputDecodesByteSlices [
 	self
 		assert: (input decodeBytes: (input bytes copyFrom: 1 to: 8))
 		equals: 'éc'
+]
+
+{ #category : 'tests' }
+PCRE2UTF32InputTest >> testUTF32InputWithBOMAcceptsOnlyBOM [
+
+	| input |
+	input := #[ 255 254 0 0 ] asPCRE2UTF32InputWithBOM.
+
+	self assert: input size equals: 0
+]
+
+{ #category : 'tests' }
+PCRE2UTF32InputTest >> testUTF32InputWithBOMRejectsMissingBOM [
+
+	self
+		should: [ #[ 99 0 0 0 ] asPCRE2UTF32InputWithBOM ]
+		raise: PCRE2Error
+		withExceptionDo: [ :error |
+		self assert: (error messageText includesSubstring: 'BOM') ]
 ]

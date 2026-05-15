@@ -25,6 +25,16 @@ PCRE2UTF16Input class >> bytes: bytesObject string: aString codeUnitStartOffsets
 		  yourself
 ]
 
+{ #category : 'private' }
+PCRE2UTF16Input class >> bytesAfterBOM: aByteCollection byteCount: bomByteCount [
+	"Answer bytes after a BOM, allowing a byte collection that contains only the BOM."
+
+	| byteSize |
+	byteSize := aByteCollection size.
+	byteSize <= bomByteCount ifTrue: [ ^ ByteArray new ].
+	^ aByteCollection copyFrom: bomByteCount + 1 to: byteSize
+]
+
 { #category : 'instance creation' }
 PCRE2UTF16Input class >> fromBigEndianBytes: aByteCollection [
 	"Answer input from UTF-16 big-endian bytes, normalizing to native endianness when needed."
@@ -39,6 +49,29 @@ PCRE2UTF16Input class >> fromBytes: aByteCollection [
 	"Answer input from native-endian UTF-16 bytes."
 
 	^ self fromNativeEndianBytes: aByteCollection
+]
+
+{ #category : 'instance creation' }
+PCRE2UTF16Input class >> fromBytesDetectingBOM: aByteCollection [
+	"Answer input from UTF-16 bytes, using and stripping a byte-order mark when present. Bytes without a BOM are treated as native-endian."
+
+	(self hasBigEndianBOM: aByteCollection) ifTrue: [
+		^ self fromBigEndianBytes:
+			  (self bytesAfterBOM: aByteCollection byteCount: 2) ].
+	(self hasLittleEndianBOM: aByteCollection) ifTrue: [
+		^ self fromLittleEndianBytes:
+			  (self bytesAfterBOM: aByteCollection byteCount: 2) ].
+	^ self fromNativeEndianBytes: aByteCollection
+]
+
+{ #category : 'instance creation' }
+PCRE2UTF16Input class >> fromBytesWithBOM: aByteCollection [
+	"Answer input from UTF-16 bytes that must start with a byte-order mark. The BOM is stripped before matching."
+
+	((self hasBigEndianBOM: aByteCollection) or: [
+		 self hasLittleEndianBOM: aByteCollection ]) ifFalse: [
+		PCRE2Error signal: 'UTF-16 input bytes do not start with a BOM' ].
+	^ self fromBytesDetectingBOM: aByteCollection
 ]
 
 { #category : 'instance creation' }
@@ -95,6 +128,22 @@ PCRE2UTF16Input class >> fromString: aString [
 				codeUnitOffset := codeUnitOffset + 2 ] ].
 	offsets at: copy size + 1 put: codeUnitOffset.
 	^ self bytes: bytes string: copy codeUnitStartOffsets: offsets
+]
+
+{ #category : 'testing' }
+PCRE2UTF16Input class >> hasBigEndianBOM: aByteCollection [
+
+	^ aByteCollection size >= 2 and: [
+		  (aByteCollection at: 1) = 254 and: [
+			  (aByteCollection at: 2) = 255 ] ]
+]
+
+{ #category : 'testing' }
+PCRE2UTF16Input class >> hasLittleEndianBOM: aByteCollection [
+
+	^ aByteCollection size >= 2 and: [
+		  (aByteCollection at: 1) = 255 and: [
+			  (aByteCollection at: 2) = 254 ] ]
 ]
 
 { #category : 'testing' }

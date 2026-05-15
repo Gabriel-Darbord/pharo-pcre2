@@ -69,6 +69,20 @@ PCRE2UTF16MatcherTest >> testCompileErrorFromBytePatternDecodesPattern [
 ]
 
 { #category : 'tests' }
+PCRE2UTF16MatcherTest >> testCompilePatternFromBytesDetectingBOM [
+
+	| patternInput regex |
+	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
+
+	patternInput := #[ 255 254 97 0 43 0 ] asPCRE2UTF16InputDetectingBOM.
+	regex := PCRE2UTF16Compiler new compile: patternInput.
+
+	self assert: regex pattern equals: 'a+'.
+	self assert: (regex matches: 'aaa').
+	self deny: (regex matches: 'bbb')
+]
+
+{ #category : 'tests' }
 PCRE2UTF16MatcherTest >> testCompilePatternFromLittleEndianBytes [
 
 	| regex |

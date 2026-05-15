@@ -25,6 +25,40 @@ PCRE2UTF16InputTest >> testBigEndianUTF16BytesAreNormalized [
 ]
 
 { #category : 'tests' }
+PCRE2UTF16InputTest >> testDetectingUTF16BOMFallsBackToNativeEndian [
+
+	| input subject |
+	subject := 'café'.
+	input := subject asPCRE2UTF16Input bytes
+		         asPCRE2UTF16InputDetectingBOM.
+
+	self assert: input size equals: 4.
+	self assert: (input readFrom: 1 to: 4) equals: subject
+]
+
+{ #category : 'tests' }
+PCRE2UTF16InputTest >> testDetectingUTF16BOMStripsBigEndianBOM [
+
+	| input |
+	input := #[ 254 255 0 99 0 97 0 102 0 233 ]
+		         asPCRE2UTF16InputDetectingBOM.
+
+	self assert: input size equals: 4.
+	self assert: (input readFrom: 1 to: 4) equals: 'café'
+]
+
+{ #category : 'tests' }
+PCRE2UTF16InputTest >> testDetectingUTF16BOMStripsLittleEndianBOM [
+
+	| input |
+	input := #[ 255 254 99 0 97 0 102 0 233 0 ]
+		         asPCRE2UTF16InputDetectingBOM.
+
+	self assert: input size equals: 4.
+	self assert: (input readFrom: 1 to: 4) equals: 'café'
+]
+
+{ #category : 'tests' }
 PCRE2UTF16InputTest >> testLittleEndianUTF16BytesAreNormalized [
 
 	| input |
@@ -103,4 +137,23 @@ PCRE2UTF16InputTest >> testUTF16InputEncodesSupplementaryCharactersAsSurrogatePa
 		equals: (2 to: 2).
 	self assert: (input readFrom: 2 to: 3) equals: emoji.
 	self assert: (input decodeBytes: input bytes) equals: subject
+]
+
+{ #category : 'tests' }
+PCRE2UTF16InputTest >> testUTF16InputWithBOMAcceptsOnlyBOM [
+
+	| input |
+	input := #[ 255 254 ] asPCRE2UTF16InputWithBOM.
+
+	self assert: input size equals: 0
+]
+
+{ #category : 'tests' }
+PCRE2UTF16InputTest >> testUTF16InputWithBOMRejectsMissingBOM [
+
+	self
+		should: [ #[ 99 0 ] asPCRE2UTF16InputWithBOM ]
+		raise: PCRE2Error
+		withExceptionDo: [ :error |
+		self assert: (error messageText includesSubstring: 'BOM') ]
 ]

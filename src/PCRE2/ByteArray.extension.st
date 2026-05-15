@@ -15,6 +15,20 @@ ByteArray >> asPCRE2UTF16Input [
 ]
 
 { #category : '*PCRE2' }
+ByteArray >> asPCRE2UTF16InputDetectingBOM [
+	"Prepare myself as UTF-16 input, detecting and stripping a BOM when present. Without a BOM, assume native endianness."
+
+	^ PCRE2UTF16Input fromBytesDetectingBOM: self
+]
+
+{ #category : '*PCRE2' }
+ByteArray >> asPCRE2UTF16InputWithBOM [
+	"Prepare myself as UTF-16 input, requiring and stripping a BOM."
+
+	^ PCRE2UTF16Input fromBytesWithBOM: self
+]
+
+{ #category : '*PCRE2' }
 ByteArray >> asPCRE2UTF16LittleEndianInput [
 	"Prepare myself as UTF-16 little-endian input for PCRE2 matching."
 
@@ -33,6 +47,20 @@ ByteArray >> asPCRE2UTF32Input [
 	"Prepare myself as native-endian UTF-32 input for PCRE2 matching."
 
 	^ PCRE2UTF32Input fromNativeEndianBytes: self
+]
+
+{ #category : '*PCRE2' }
+ByteArray >> asPCRE2UTF32InputDetectingBOM [
+	"Prepare myself as UTF-32 input, detecting and stripping a BOM when present. Without a BOM, assume native endianness."
+
+	^ PCRE2UTF32Input fromBytesDetectingBOM: self
+]
+
+{ #category : '*PCRE2' }
+ByteArray >> asPCRE2UTF32InputWithBOM [
+	"Prepare myself as UTF-32 input, requiring and stripping a BOM."
+
+	^ PCRE2UTF32Input fromBytesWithBOM: self
 ]
 
 { #category : '*PCRE2' }

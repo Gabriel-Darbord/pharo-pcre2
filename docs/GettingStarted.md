@@ -99,10 +99,10 @@ matcher := PCRE2UTF32Compiler new compile: '\p{L}+'.
 matcher findAll: 'café déjà'.
 ```
 
-If the subject is already stored as UTF-16 or UTF-32 bytes, prepare the bytes directly. Native-endian bytes can use `asPCRE2UTF16Input` or `asPCRE2UTF32Input`; file bytes with known byte order can use the explicit endian variants.
+If the subject is already stored as UTF-16 or UTF-32 bytes, prepare the bytes directly. Native-endian bytes can use `asPCRE2UTF16Input` or `asPCRE2UTF32Input`; file bytes with known byte order can use the explicit endian variants. If the file starts with a BOM, use the detecting helpers.
 
 ```smalltalk
-input := bytesFromFile asPCRE2UTF16LittleEndianInput.
+input := bytesFromFile asPCRE2UTF16InputDetectingBOM.
 matcher := PCRE2UTF16Compiler new compile: '\p{L}+'.
 matcher findAll: input.
 ```
@@ -110,7 +110,7 @@ matcher findAll: input.
 The pattern can also come from prepared bytes as long as it uses the same code-unit width as the compiler:
 
 ```smalltalk
-pattern := patternBytesFromFile asPCRE2UTF16LittleEndianInput.
+pattern := patternBytesFromFile asPCRE2UTF16InputDetectingBOM.
 matcher := PCRE2UTF16Compiler new compile: pattern.
 ```
 

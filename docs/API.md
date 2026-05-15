@@ -32,6 +32,9 @@ The wide compilers also accept prepared pattern input:
 ```smalltalk
 pattern := patternBytes asPCRE2UTF16LittleEndianInput.
 matcher := PCRE2UTF16Compiler new compile: pattern.
+
+pattern := patternBytesWithBOM asPCRE2UTF16InputDetectingBOM.
+matcher := PCRE2UTF16Compiler new compile: pattern.
 ```
 
 ## Matching
@@ -65,10 +68,14 @@ Wide matchers also accept prepared byte input:
 bytes asPCRE2UTF16Input.              "native-endian UTF-16"
 bytes asPCRE2UTF16LittleEndianInput.
 bytes asPCRE2UTF16BigEndianInput.
+bytes asPCRE2UTF16InputDetectingBOM.  "strip a BOM when present"
+bytes asPCRE2UTF16InputWithBOM.       "require a BOM"
 
 bytes asPCRE2UTF32Input.              "native-endian UTF-32"
 bytes asPCRE2UTF32LittleEndianInput.
 bytes asPCRE2UTF32BigEndianInput.
+bytes asPCRE2UTF32InputDetectingBOM.  "strip a BOM when present"
+bytes asPCRE2UTF32InputWithBOM.       "require a BOM"
 ```
 
 ## Splitting and Substitution
