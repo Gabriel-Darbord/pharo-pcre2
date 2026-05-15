@@ -33,9 +33,12 @@ PCRE2UTF32Matcher >> compileJIT: anInteger [
 
 { #category : 'private' }
 PCRE2UTF32Matcher >> createMatchContext [
-	"UTF-32 match contexts need width-specific wrappers before callouts/tracing can be safely exposed."
+	"Create and initialize a new UTF-32 match context.
+	The result is NULL if memory could not be obtained."
 
-	PCRE2Error signal: 'UTF-32 match contexts are not implemented yet'
+	self ffiCall:
+		#( #PCRE2UTF32MatchContext #* pcre2_match_context_create_32
+		   #( nil ) )
 ]
 
 { #category : 'private' }

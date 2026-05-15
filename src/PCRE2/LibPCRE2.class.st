@@ -319,11 +319,11 @@ LibPCRE2 >> createConvertContext [
 
 { #category : 'private' }
 LibPCRE2 >> createMatchContext [
-	"This function creates and initializes a new match context.
-	If its argument is NULL, malloc() is used to get the necessary memory; otherwise the memory allocation function within the general context is used.
-	The result is NULL if the memory could not be obtained."
+	"Create and initialize a new UTF-8 match context."
 
-	self ffiCall: #(PCRE2MatchContext *pcre2_match_context_create_8(nil))
+	self ffiCall:
+		#( #PCRE2UTF8MatchContext #* pcre2_match_context_create_8
+		   #( nil ) )
 ]
 
 { #category : 'serializing' }

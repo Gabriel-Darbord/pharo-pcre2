@@ -23,9 +23,13 @@ PCRE2UTF32Compiler >> compile: pattern upTo: length errorCode: errorCode errorOf
 
 { #category : 'private' }
 PCRE2UTF32Compiler >> createCompileContext [
-	"UTF-32 compile contexts need width-specific wrappers before they can be safely exposed."
+	"Create and initialize a new UTF-32 compile context.
+	The result is NULL if memory could not be obtained.
+	pcre2_compile_context_32 *pcre2_compile_context_create_32(pcre2_general_context *gcontext)"
 
-	PCRE2Error signal: 'UTF-32 compile contexts are not implemented yet'
+	self ffiCall:
+		#( #PCRE2UTF32CompileContext #* pcre2_compile_context_create_32
+		   #( nil ) )
 ]
 
 { #category : 'library path' }

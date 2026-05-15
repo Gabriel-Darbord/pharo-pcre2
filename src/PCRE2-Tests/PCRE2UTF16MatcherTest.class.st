@@ -101,6 +101,42 @@ PCRE2UTF16MatcherTest >> testCapturesAndNamedGroupsReadFromUTF16Input [
 ]
 
 { #category : 'tests' }
+PCRE2UTF16MatcherTest >> testCompileAndMatchContextsUseUTF16NativeAPI [
+
+	| crCompiler crRegex lfCompiler lfRegex limitRegex subject |
+	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
+
+	crCompiler := PCRE2UTF16Compiler new.
+	self
+		assert: crCompiler context class
+		equals: PCRE2UTF16CompileContext.
+	crCompiler options: (PCRE2 utf bitOr: PCRE2 multiline).
+	crCompiler context useNewlineCR.
+	crRegex := crCompiler compile: '^b$'.
+	self assert: crRegex context class equals: PCRE2UTF16MatchContext.
+
+	lfCompiler := PCRE2UTF16Compiler new.
+	lfCompiler options: (PCRE2 utf bitOr: PCRE2 multiline).
+	lfCompiler context useNewlineLF.
+	lfRegex := lfCompiler compile: '^b$'.
+
+	subject := 'a' , String cr , 'b'.
+	self assert: (crRegex find: subject) equals: 'b'.
+	self assert: (lfRegex find: subject) isNil.
+	self
+		assert: (crRegex info: PCRE2 infoNewline)
+		equals: PCRE2 newlineCR.
+	self
+		assert: (lfRegex info: PCRE2 infoNewline)
+		equals: PCRE2 newlineLF.
+
+	limitRegex := PCRE2UTF16Compiler new compile: '(a+)+'.
+	limitRegex addOptions: PCRE2 noJIT.
+	limitRegex context matchLimit: 1.
+	self should: [ limitRegex matches: 'aa' ] raise: PCRE2MatchError
+]
+
+{ #category : 'tests' }
 PCRE2UTF16MatcherTest >> testCompileErrorFromBytePatternDecodesPattern [
 
 	| patternInput |

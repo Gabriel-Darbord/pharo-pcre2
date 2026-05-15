@@ -1,13 +1,7 @@
 "
-Holds compile-time PCRE2 settings used by PCRE2Compiler.
+Abstract superclass for PCRE2 compile contexts.
 
-Most patterns do not need a compile context. Use one when you need to tune behavior saved into the compiled pattern, for example newline handling, \R semantics, pattern-size limits, variable-lookbehind limits, or compiler optimizations.
-
-    compiler := PCRE2Compiler new.
-    compiler context newline: PCRE2 newlineAnyCRLF.
-    matcher := compiler compile: '^value'.
-
-The context records values set from Pharo for inspection and copying; PCRE2 validates them when the native context is configured.
+Concrete subclasses bind PCRE2's width-specific native setters and lifetime functions: PCRE2UTF8CompileContext, PCRE2UTF16CompileContext, and PCRE2UTF32CompileContext. This class keeps the shared Pharo-side state and user-facing accessors for newline handling, \R semantics, pattern-size limits, variable-lookbehind limits, extra compile options, and compiler optimization directives.
 "
 Class {
 	#name : 'PCRE2CompileContext',
@@ -99,10 +93,7 @@ PCRE2CompileContext >> enableStartOptimization [
 
 { #category : 'external resource management' }
 PCRE2CompileContext >> free [
-	"This function frees the memory occupied by a compile context.
-	If the argument is NULL, the function returns immediately without doing anything."
-
-	self ffiCall: #(void pcre2_compile_context_free_8(self))
+	^ self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -244,12 +235,7 @@ PCRE2CompileContext >> postCopy [
 
 { #category : 'private' }
 PCRE2CompileContext >> privateCopy [
-	"This function makes a new copy of a compile context.
-	The result is NULL if the memory cannot be obtained.
-	pcre2_compile_context *pcre2_compile_context_copy_8(pcre2_compile_context *ccontext)"
-
-	self ffiCall: #( void #* pcre2_compile_context_copy_8
-	   #( self ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -269,73 +255,42 @@ PCRE2CompileContext >> requireSupportedFeature: featureName since: versionString
 
 { #category : 'private' }
 PCRE2CompileContext >> setBSR: value [
-	"This function sets the convention for processing \R within a compile context.
-	The second argument must be one of PCRE2_BSR_ANYCRLF or PCRE2_BSR_UNICODE.
-	The result is zero for success or PCRE2_ERROR_BADDATA if the second argument is invalid."
-
-	self ffiCall: #( int pcre2_set_bsr_8 #( self #, uint32 value ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setMaxPatternCompiledLength: value [
-	"Set the native compiled-pattern size limit.
-	int pcre2_set_max_pattern_compiled_length_8(pcre2_compile_context *ccontext, PCRE2_SIZE value)"
-
-	self ffiCall: #( int pcre2_set_max_pattern_compiled_length_8
-		   #( self #, size_t value ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setMaxPatternLength: value [
-	"Set the native pattern length limit.
-	int pcre2_set_max_pattern_length_8(pcre2_compile_context *ccontext, PCRE2_SIZE value)"
-
-	self ffiCall:
-		#( int pcre2_set_max_pattern_length_8 #( self #, size_t value ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setMaxVarLookbehind: value [
-	"Set the native bounded variable-lookbehind limit.
-	int pcre2_set_max_varlookbehind_8(pcre2_compile_context *ccontext, uint32_t value)"
-
-	self ffiCall:
-		#( int pcre2_set_max_varlookbehind_8 #( self #, uint32 value ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setNewline: value [
-	"Set the newline convention in the native compile context.
-	int pcre2_set_newline_8(pcre2_compile_context *ccontext, uint32_t value)"
-
-	self ffiCall: #( int pcre2_set_newline_8 #( self #, uint32 value ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setOptimize: directive [
-	"Apply an optimization directive to the native compile context.
-	int pcre2_set_optimize_8(pcre2_compile_context *ccontext, uint32_t directive)"
-
-	self ffiCall:
-		#( int pcre2_set_optimize_8 #( self #, uint32 directive ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setOptions: value [
-	"Set extra compile options on the native context.
-	int pcre2_set_compile_extra_options_8(pcre2_compile_context *ccontext, uint32_t extra_options)"
-
-	self ffiCall: #( int pcre2_set_compile_extra_options_8
-		   #( self #, uint32 value ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setParensNestLimit: value [
-	"Set the native parenthesis nesting limit.
-	int pcre2_set_parens_nest_limit_8(pcre2_compile_context *ccontext, uint32_t value)"
-
-	self ffiCall:
-		#( int pcre2_set_parens_nest_limit_8 #( self #, uint32 value ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'accessing' }

@@ -265,6 +265,17 @@ PCRE2CompilerTest >> testDefaultCompilerAnswersUTF8Family [
 ]
 
 { #category : 'tests' }
+PCRE2CompilerTest >> testDefaultContextFamiliesAreUTF8Concrete [
+
+	| regex |
+	self
+		assert: PCRE2Compiler new context class
+		equals: PCRE2UTF8CompileContext.
+	regex := 'a' asPerlCompatibleRegex.
+	self assert: regex context class equals: PCRE2UTF8MatchContext
+]
+
+{ #category : 'tests' }
 PCRE2CompilerTest >> testErrorCode [
 	"PCRE2 minor versions may report slightly different diagnostic offsets, so keep this test focused on binding-level error handling."
 
