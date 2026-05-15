@@ -267,12 +267,10 @@ LibPCRE2 >> convertPattern: pattern options: convertOptions context: convertCont
 		outputAddress isNull ifFalse: [
 			self convertedPatternFree: outputAddress ].
 		self conversionErrorCode: rc in: input bytes at: outputLength value ].
-	convertedBytes := ByteArray new: outputLength value.
 	[
-	1 to: outputLength value do: [ :index |
-		convertedBytes
-			at: index
-			put: (outputAddress uint8AtOffset: index - 1) ].
+	convertedBytes := self
+		                  copyExternalBytes: outputAddress
+		                  size: outputLength value.
 	^ ZnUTF8Encoder default decodeBytes: convertedBytes ] ensure: [
 		self convertedPatternFree: outputAddress ]
 ]
@@ -284,6 +282,17 @@ LibPCRE2 >> convertedPatternFree: convertedPattern [
 	self ffiCall:
 		#( void pcre2_converted_pattern_free_8
 		   #( void #* convertedPattern ) )
+]
+
+{ #category : 'private' }
+LibPCRE2 >> copyExternalBytes: externalBytes size: byteSize [
+	"Copy byteSize bytes from a native PCRE2 buffer into a Pharo ByteArray."
+
+	| bytes |
+	bytes := ByteArray new: byteSize.
+	1 to: byteSize do: [ :index |
+		bytes at: index put: (externalBytes uint8AtOffset: index - 1) ].
+	^ bytes
 ]
 
 { #category : 'private' }
@@ -417,33 +426,29 @@ LibPCRE2 >> runner [
 { #category : 'serializing' }
 LibPCRE2 >> serialize: matchers [
 
-	| pointers buffer bufferSize rc externBytes bytes |
-	bufferSize := ExternalAddress wordSize.
-	pointers := ByteArray new: matchers size * bufferSize.
-	1 to: matchers size do: [ :i |
+	| buffer bufferSize externBytes pointers rc wordSize |
+	wordSize := ExternalAddress wordSize.
+	pointers := ByteArray new: matchers size * wordSize.
+	1 to: matchers size do: [ :index |
 		pointers
-			pointerAtOffset: bufferSize * (i - 1)
-			put: (matchers at: i) getHandle ].
-	buffer := ByteArray new: bufferSize.
+			pointerAtOffset: wordSize * (index - 1)
+			put: (matchers at: index) getHandle ].
+	buffer := ByteArray new: wordSize.
 
-	"bufferSize is updated with the size of the allocated memory"
+	"bufferSize is updated with the size of the allocated memory."
 	rc := self
 		      serialize: pointers
 		      count: matchers size
 		      output: buffer
 		      size: (bufferSize := SizeTHolder new).
+	externBytes := buffer pointerAtOffset: 0.
 	rc < 0 ifTrue: [
-		(buffer allSatisfy: [ :bit | bit == 0 ]) ifFalse: [ "if not NULL"
-			self serializeFree: buffer ].
+		externBytes isNull ifFalse: [ self serializeFree: externBytes ].
 		self errorCode: rc ].
 
-	"copy the encoded bytes into the image and free the memory"
-	externBytes := buffer pointerAtOffset: 0.
-	bytes := ByteArray new: (bufferSize := bufferSize value).
-	1 to: bufferSize do: [ :i |
-	bytes at: i put: (externBytes uint8AtOffset: i - 1) ].
-	self serializeFree: externBytes.
-	^ bytes
+	"Copy the encoded bytes into the image and free the memory allocated by PCRE2."
+	[ ^ self copyExternalBytes: externBytes size: bufferSize value ]
+		ensure: [ self serializeFree: externBytes ]
 ]
 
 { #category : 'private' }
