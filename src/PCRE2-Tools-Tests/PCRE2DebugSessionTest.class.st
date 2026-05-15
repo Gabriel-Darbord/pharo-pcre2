@@ -6,8 +6,8 @@ These tests stay headless: they verify the model and presenter objects without o
 Class {
 	#name : 'PCRE2DebugSessionTest',
 	#superclass : 'TestCase',
-	#category : 'PCRE2-Tests',
-	#package : 'PCRE2-Tests'
+	#category : 'PCRE2-Tools-Tests',
+	#package : 'PCRE2-Tools-Tests'
 }
 
 { #category : 'helpers' }
