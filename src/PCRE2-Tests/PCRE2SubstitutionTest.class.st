@@ -1,7 +1,7 @@
 "
 Tests for PCRE2 substitution conveniences.
 
-These tests focus on the Pharo-level API layered over pcre2_substitute_8: global substitution, literal replacements, replacement-only results, unset/unknown capture handling, precomputed match data, prepared UTF-8 inputs, and output buffer growth.
+These tests focus on the Pharo-level API layered over pcre2_substitute_8: global substitution, literal replacements, replacement-only results, unset/unknown capture handling, precomputed match data, prepared UTF-8 inputs, output buffer growth, and substitution callouts.
 "
 Class {
 	#name : 'PCRE2SubstitutionTest',
@@ -9,6 +9,13 @@ Class {
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }
+
+{ #category : 'private' }
+PCRE2SubstitutionTest >> skipUnlessSubstitutionCalloutsSupported [
+
+	LibPCRE2 supportsSubstitutionCallouts ifFalse: [ ^ true ].
+	^ false
+]
 
 { #category : 'tests' }
 PCRE2SubstitutionTest >> testLiteralReplacementDoesNotExpandCaptures [
@@ -94,6 +101,143 @@ PCRE2SubstitutionTest >> testSubstituteAutomaticallyHandlesLargeOutput [
 ]
 
 { #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteCalloutCanRejectAndContinue [
+
+	| events regex result |
+	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	regex := '(\w+)' asPerlCompatibleRegex.
+	events := OrderedCollection new.
+
+	result := regex
+		          substituteAll: 'one two'
+		          with: '[$0]'
+		          calloutsDo: [ :event |
+			          events add: event.
+			          event substitutionCount = 1
+				          ifTrue: [ PCRE2 substituteCalloutRejectAndContinue ]
+				          ifFalse: [ PCRE2 substituteCalloutAccept ] ].
+
+	self assert: result equals: 'one [two]'.
+	self assert: events size equals: 2.
+	self assert: events first matchedText equals: 'one'.
+	self assert: events second matchedText equals: 'two'
+]
+
+{ #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteCalloutCanRejectAndStop [
+
+	| events regex result |
+	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	regex := '(\w+)' asPerlCompatibleRegex.
+	events := OrderedCollection new.
+
+	result := regex
+		          substituteAll: 'one two'
+		          with: '[$0]'
+		          calloutsDo: [ :event |
+			          events add: event.
+			          PCRE2 substituteCalloutRejectAndStop ].
+
+	self assert: result equals: 'one two'.
+	self assert: events size equals: 1.
+	self assert: events first matchedText equals: 'one'.
+	self assert: events first replacementText equals: '[one]'
+]
+
+{ #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteCalloutDecodesUTF8Text [
+
+	| events regex result |
+	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	regex := 'é' asPerlCompatibleRegex.
+	events := OrderedCollection new.
+
+	result := regex
+		          substituteAll: 'café café'
+		          with: 'e$0'
+		          calloutsDo: [ :event |
+			          events add: event.
+			          PCRE2 substituteCalloutAccept ].
+
+	self assert: result equals: 'cafeé cafeé'.
+	self assert: events size equals: 2.
+	self assert: events first matchedText equals: 'é'.
+	self assert: events first replacementText equals: 'eé'.
+	self assert: events first offsets equals: #( 3 5 ).
+	self assert: events first outputOffsets equals: #( 3 6 ).
+	self assert: events second matchedText equals: 'é'.
+	self assert: events second replacementText equals: 'eé'
+]
+
+{ #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteCalloutDoesNotMutateReceiver [
+
+	| calls regex |
+	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	regex := 'a' asPerlCompatibleRegex.
+	calls := 0.
+
+	self
+		assert: (regex substitute: 'a' with: 'x' calloutsDo: [ :event |
+				 calls := calls + 1.
+				 PCRE2 substituteCalloutAccept ])
+		equals: 'x'.
+	self assert: calls equals: 1.
+	self assert: (regex substitute: 'a' with: 'x') equals: 'x'.
+	self assert: calls equals: 1
+]
+
+{ #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteCalloutHandlesLargeOutputRetry [
+
+	| count regex replacement result |
+	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	regex := 'a' asPerlCompatibleRegex.
+	replacement := String new: 5000 withAll: $x.
+	count := 0.
+
+	result := regex
+		          substitute: 'a'
+		          with: replacement
+		          calloutsDo: [ :event |
+			          count := count + 1.
+			          self
+				          assert: event replacementText size
+				          equals: replacement size.
+			          PCRE2 substituteCalloutAccept ].
+
+	self assert: result size equals: replacement size.
+	self assert: count equals: 1
+]
+
+{ #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteCalloutReceivesProcessedReplacement [
+
+	| events regex result |
+	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	regex := '(\w+)' asPerlCompatibleRegex.
+	events := OrderedCollection new.
+
+	result := regex
+		          substituteAll: 'one two'
+		          with: '[$0]'
+		          calloutsDo: [ :event |
+			          events add: event.
+			          PCRE2 substituteCalloutAccept ].
+
+	self assert: result equals: '[one] [two]'.
+	self assert: events size equals: 2.
+	self assert: events first substitutionCount equals: 1.
+	self assert: events first matchedText equals: 'one'.
+	self assert: events first replacementText equals: '[one]'.
+	self assert: events first offsets equals: #( 0 3 0 3 ).
+	self assert: events first outputOffsets equals: #( 0 5 ).
+	self assert: events second substitutionCount equals: 2.
+	self assert: events second matchedText equals: 'two'.
+	self assert: events second replacementText equals: '[two]'
+]
+
+{ #category : 'tests' }
 PCRE2SubstitutionTest >> testSubstituteUsingExistingMatch [
 
 	| input match regex |
@@ -158,6 +302,29 @@ PCRE2SubstitutionTest >> testSubstituteUsingMatchRejectsUnsuitableMatchData [
 		withExceptionDo: [ :error |
 			self assert:
 				(error messageText includesSubstring: 'complete match') ]
+]
+
+{ #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteUsingMatchSupportsCallouts [
+
+	| events input match regex result |
+	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	regex := '(\w+)' asPerlCompatibleRegex.
+	input := 'one two' asPCRE2UTF8Input.
+	match := regex findMatch: input.
+	events := OrderedCollection new.
+
+	result := regex
+		          substituteUsingMatch: match
+		          with: '[$0]'
+		          calloutsDo: [ :event |
+			          events add: event.
+			          PCRE2 substituteCalloutAccept ].
+
+	self assert: result equals: '[one] two'.
+	self assert: events size equals: 1.
+	self assert: events first matchedText equals: 'one'.
+	self assert: events first replacementText equals: '[one]'
 ]
 
 { #category : 'tests' }

@@ -1155,6 +1155,17 @@ PCRE2Matcher >> substitute: subject with: replacement addingOptions: substituteO
 		  options: (self substitutionOptions bitOr: substituteOptions)
 ]
 
+{ #category : 'callouts' }
+PCRE2Matcher >> substitute: subject with: replacement calloutsDo: calloutBlock [
+	"Answer subject with the first match substituted while invoking calloutBlock after the processed replacement."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  options: self substitutionOptions
+		  calloutsDo: calloutBlock
+]
+
 { #category : 'matching' }
 PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions [
 	"Answer subject with substitutions applied using the supplied PCRE2 substitution options instead of the matcher options. PCRE2 treats replacement as a substitution expression unless PCRE2 substituteLiteral is set. The implementation may add PCRE2 substituteOverflowLength internally to size the output buffer."
@@ -1164,6 +1175,17 @@ PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions
 		  with: replacement
 		  options: substituteOptions
 		  matchData: nil
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions calloutsDo: calloutBlock [
+	"Answer subject with substitutions applied using substituteOptions while invoking calloutBlock after each processed replacement."
+
+	^ self withSubstituteCallout: calloutBlock do: [ :callbackMatcher |
+		  callbackMatcher
+			  substitute: subject
+			  with: replacement
+			  options: substituteOptions ]
 ]
 
 { #category : 'private' }
@@ -1218,6 +1240,17 @@ PCRE2Matcher >> substituteAll: subject with: replacement [
 		  substitute: subject
 		  with: replacement
 		  addingOptions: PCRE2 substituteGlobal
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> substituteAll: subject with: replacement calloutsDo: calloutBlock [
+	"Answer subject with every non-overlapping match substituted while invoking calloutBlock after each processed replacement."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  options: self substitutionOptions | PCRE2 substituteGlobal
+		  calloutsDo: calloutBlock
 ]
 
 { #category : 'matching' }
@@ -1322,6 +1355,17 @@ PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement [
 		  options: self substitutionOptions
 ]
 
+{ #category : 'callouts' }
+PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement calloutsDo: calloutBlock [
+	"Answer the subject remembered by aPCRE2Match after substituting replacement for that already-computed match, while invoking calloutBlock after each processed replacement."
+
+	^ self
+		  substituteUsingMatch: aPCRE2Match
+		  with: replacement
+		  options: self substitutionOptions
+		  calloutsDo: calloutBlock
+]
+
 { #category : 'matching' }
 PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement options: substituteOptions [
 	"Answer the subject remembered by aPCRE2Match after substituting replacement for that already-computed match. PCRE2 requires the match data to come from this pattern, subject, and compatible match options."
@@ -1332,6 +1376,19 @@ PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement options: sub
 		  replacement: replacement
 		  options: substituteOptions | PCRE2 substituteMatched
 		  matchData: aPCRE2Match
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement options: substituteOptions calloutsDo: calloutBlock [
+	"Answer the subject remembered by aPCRE2Match after substituting replacement for that already-computed match, while invoking calloutBlock after each processed replacement. This uses the receiver directly because PCRE2_SUBSTITUTE_MATCHED requires the same native compiled-pattern handle that produced the match data."
+
+	self context substituteCalloutBlock: calloutBlock.
+	^ [
+	  self
+		  substituteUsingMatch: aPCRE2Match
+		  with: replacement
+		  options: substituteOptions ] ensure: [
+		  self context clearSubstituteCallout ]
 ]
 
 { #category : 'private' }
@@ -1488,4 +1545,15 @@ PCRE2Matcher >> withCallout: calloutBlock do: aBlock [
 	callbackMatcher context calloutBlock: calloutBlock.
 	^ [ aBlock cull: callbackMatcher ] ensure: [
 		  callbackMatcher context clearCallout ]
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> withSubstituteCallout: calloutBlock do: aBlock [
+	"Evaluate aBlock with a temporary matcher whose match context invokes calloutBlock after each processed pcre2_substitute_8 replacement. The callout block receives a PCRE2SubstitutionCalloutEvent and may answer a PCRE2 substitute-callout return code; non-integer answers accept the replacement."
+
+	| callbackMatcher |
+	callbackMatcher := self temporaryMatcherForCallout.
+	callbackMatcher context substituteCalloutBlock: calloutBlock.
+	^ [ aBlock cull: callbackMatcher ] ensure: [
+		  callbackMatcher context clearSubstituteCallout ]
 ]

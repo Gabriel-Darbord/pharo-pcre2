@@ -1,9 +1,9 @@
 "
 I wrap a PCRE2 match context.
 
-A match context carries runtime limits and matching policy such as depth, heap, match, and offset limits. It can also hold a native callout callback for the duration of matching.
+A match context carries runtime limits and matching policy such as depth, heap, match, and offset limits. It can also hold native callbacks for match callouts and substitution callouts.
 
-Most clients should prefer PCRE2Matcher>>withCallout:do: or the callout-aware matching conveniences. Those methods install callbacks on temporary matchers so the receiver is not left with callback state after the operation. Directly using calloutBlock: is useful for lower-level integrations that explicitly manage context lifetime.
+Most clients should prefer the callback-aware `PCRE2Matcher` conveniences. Those methods install callbacks on temporary matchers so the receiver is not left with callback state after the operation. Directly using `calloutBlock:` or `substituteCalloutBlock:` is useful for lower-level integrations that explicitly manage context lifetime.
 "
 Class {
 	#name : 'PCRE2MatchContext',
@@ -13,7 +13,8 @@ Class {
 		'heapLimit',
 		'matchLimit',
 		'offsetLimit',
-		'calloutCallback'
+		'calloutCallback',
+		'substituteCalloutCallback'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -49,6 +50,17 @@ PCRE2MatchContext >> clearCallout [
 	rc := self unsetCalloutCallback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
 	calloutCallback := nil.
+	^ self
+]
+
+{ #category : 'callouts' }
+PCRE2MatchContext >> clearSubstituteCallout [
+	"Remove the runtime substitution callout from this match context."
+
+	| rc |
+	rc := self unsetSubstituteCalloutCallback.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	substituteCalloutCallback := nil.
 	^ self
 ]
 
@@ -179,10 +191,57 @@ PCRE2MatchContext >> setOffsetLimit: value [
 ]
 
 { #category : 'private' }
+PCRE2MatchContext >> setSubstituteCalloutCallback: callback [
+	"Set the runtime substitution callout function for this context."
+
+	"int pcre2_set_substitute_callout_8(pcre2_match_context *mcontext, int (*callout_function)(pcre2_substitute_callout_block *, void *), void *callout_data)"
+
+	self ffiCall:
+		#( int pcre2_set_substitute_callout_8 #( self #, FFICallback
+		      callback #, nil ) )
+]
+
+{ #category : 'callouts' }
+PCRE2MatchContext >> substituteCalloutBlock: aBlock [
+	"Install a runtime substitution callout. aBlock receives a PCRE2SubstitutionCalloutEvent and may answer a PCRE2 substitution-callout return code; non-integer answers accept the replacement."
+
+	| callback rc |
+	LibPCRE2 supportsSubstitutionCallouts ifFalse: [
+		PCRE2Error signal:
+			'Substitution callouts require PCRE2 10.33 or newer; loaded '
+			, LibPCRE2 versionString ].
+	callback := FFICallback
+		            signature:
+		            #( int #( void #* calloutBlock #, void #* userData ) )
+		            block: [ :calloutBlock :userData |
+			            | answer |
+			            answer := aBlock value:
+				                      (PCRE2SubstitutionCalloutEvent
+					                       fromCalloutBlock: calloutBlock).
+			            answer isInteger
+				            ifTrue: [ answer ]
+				            ifFalse: [ PCRE2 substituteCalloutAccept ] ].
+	rc := self setSubstituteCalloutCallback: callback.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	substituteCalloutCallback := callback.
+	^ self
+]
+
+{ #category : 'private' }
 PCRE2MatchContext >> unsetCalloutCallback [
 	"Clear the runtime match callout function for this context."
 
 	"int pcre2_set_callout_8(pcre2_match_context *mcontext, NULL, NULL)"
 
 	self ffiCall: #( int pcre2_set_callout_8 #( self #, nil #, nil ) )
+]
+
+{ #category : 'private' }
+PCRE2MatchContext >> unsetSubstituteCalloutCallback [
+	"Clear the runtime substitution callout function for this context."
+
+	"int pcre2_set_substitute_callout_8(pcre2_match_context *mcontext, NULL, NULL)"
+
+	self ffiCall:
+		#( int pcre2_set_substitute_callout_8 #( self #, nil #, nil ) )
 ]

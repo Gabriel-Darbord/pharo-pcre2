@@ -1241,6 +1241,27 @@ PCRE2 class >> readOptions: anInteger for: function [
 	^ (self readOptions: anInteger) at: function ifAbsent: [ #(  ) ]
 ]
 
+{ #category : 'constants' }
+PCRE2 class >> substituteCalloutAccept [
+	"Return from a substitution callout to accept the processed replacement."
+
+	^ 0
+]
+
+{ #category : 'constants' }
+PCRE2 class >> substituteCalloutRejectAndContinue [
+	"Return from a global substitution callout to reject the current replacement and keep looking."
+
+	^ 1
+]
+
+{ #category : 'constants' }
+PCRE2 class >> substituteCalloutRejectAndStop [
+	"Return from a substitution callout to reject the current replacement and stop substituting."
+
+	^ -1
+]
+
 { #category : 'options' }
 PCRE2 class >> substituteExtended [
 	"Do extended replacement processing"

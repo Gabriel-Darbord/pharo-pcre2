@@ -98,6 +98,13 @@ LibPCRE2 class >> supportsOptimizationDirectives [
 ]
 
 { #category : 'version management' }
+LibPCRE2 class >> supportsSubstitutionCallouts [
+	"PCRE2 10.33 added pcre2_set_substitute_callout()."
+
+	^ self uniqueInstance supportsSubstitutionCallouts
+]
+
+{ #category : 'version management' }
 LibPCRE2 class >> supportsUnicode [
 
 	^ self uniqueInstance supportsUnicode
@@ -368,6 +375,12 @@ LibPCRE2 >> supportsMaxVarLookbehind [
 LibPCRE2 >> supportsOptimizationDirectives [
 
 	^ self versionAtLeastMajor: 10 minor: 45
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> supportsSubstitutionCallouts [
+
+	^ self versionAtLeastMajor: 10 minor: 33
 ]
 
 { #category : 'version management' }
