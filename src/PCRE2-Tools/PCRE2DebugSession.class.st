@@ -5,7 +5,7 @@ Users normally open it through the String convenience method:
 
     'pattern' openPerlCompatibleRegexDebuggerOn: 'subject'.
 
-The session stores editable pattern and subject strings, trace results, current step selection, and live-run state. Trace-all mode records a completed PCRE2MatchTrace. Step-live mode delegates execution to PCRE2LiveDebugRun, which records callout events without suspending inside the native callback.
+The session stores editable pattern and subject strings, trace results, current step selection, live-run state, and the compiler used to choose the PCRE2 code-unit width. Trace-all mode records a completed PCRE2MatchTrace. Step-live mode delegates execution to PCRE2LiveDebugRun, which records callout events without suspending inside the native callback.
 "
 Class {
 	#name : 'PCRE2DebugSession',
@@ -13,6 +13,7 @@ Class {
 	#instVars : [
 		'pattern',
 		'subject',
+		'compiler',
 		'maximumSteps',
 		'matcher',
 		'trace',
@@ -35,6 +36,16 @@ PCRE2DebugSession class >> pattern: patternString subject: subjectString [
 		  yourself
 ]
 
+{ #category : 'instance creation' }
+PCRE2DebugSession class >> pattern: patternString subject: subjectString compiler: aPCRE2Compiler [
+
+	^ self new
+		  pattern: patternString;
+		  subject: subjectString;
+		  compiler: aPCRE2Compiler;
+		  yourself
+]
+
 { #category : 'live debugging' }
 PCRE2DebugSession >> abortLiveRun [
 
@@ -42,6 +53,30 @@ PCRE2DebugSession >> abortLiveRun [
 	liveRun abort.
 	liveRun waitForCompletionMilliseconds: 1000.
 	self refreshLiveTrace.
+	^ self
+]
+
+{ #category : 'accessing' }
+PCRE2DebugSession >> compiler [
+
+	^ compiler ifNil: [ PCRE2Compiler default ]
+]
+
+{ #category : 'accessing' }
+PCRE2DebugSession >> compiler: aPCRE2CompilerOrClass [
+	"Set the compiler used for trace-all and live debugger runs. Changing it invalidates the current trace."
+
+	| newCompiler |
+	newCompiler := aPCRE2CompilerOrClass isBehavior
+		               ifTrue: [ aPCRE2CompilerOrClass new ]
+		               ifFalse: [ aPCRE2CompilerOrClass ].
+	compiler == newCompiler ifTrue: [ ^ self ].
+	self stopLiveRun.
+	compiler := newCompiler.
+	matcher := nil.
+	trace := nil.
+	selectedStepIndex := 0.
+	lastError := nil.
 	^ self
 ]
 
@@ -243,7 +278,10 @@ PCRE2DebugSession >> prepareLiveRun [
 	matcher := nil.
 	trace := nil.
 	selectedStepIndex := 0.
-	liveRun := PCRE2LiveDebugRun pattern: pattern subject: subject.
+	liveRun := PCRE2LiveDebugRun
+		           pattern: pattern
+		           subject: subject
+		           compiler: self compiler.
 	[
 	liveRun prepare.
 	matcher := liveRun matcher.
@@ -291,7 +329,7 @@ PCRE2DebugSession >> runTrace [
 	trace := nil.
 	selectedStepIndex := 0.
 	[
-	matcher := pattern asPerlCompatibleRegex.
+	matcher := self compiler compile: pattern.
 	trace := matcher traceMatch: subject.
 	self persistTraceMatch.
 	selectedStepIndex := self stepCount = 0

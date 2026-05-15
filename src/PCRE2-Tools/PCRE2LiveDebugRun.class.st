@@ -1,7 +1,7 @@
 "
-I run PCRE2 matches under debugger control.
+Runs PCRE2 matches under debugger control.
 
-I compile a temporary automatic-callout matcher and record PCRE2CalloutEvent snapshots into a PCRE2TraceRecorder. I never suspend inside the native callback: callbacks append the event and immediately return either success or PCRE2_ERROR_CALLOUT. This keeps ThreadedFFI callback unwinding simple and avoids leaving PCRE2 parked inside Pharo UI control flow.
+I compile a temporary automatic-callout matcher with the configured compiler and record PCRE2CalloutEvent snapshots into a PCRE2TraceRecorder. I never suspend inside the native callback: callbacks append the event and immediately return either success or PCRE2_ERROR_CALLOUT. This keeps ThreadedFFI callback unwinding simple and avoids leaving PCRE2 parked inside Pharo UI control flow.
 
 Step mode records a deterministic prefix by rerunning the match and stopping after the requested callout count. Continue mode runs the same instrumented matcher to completion. Clients can register completion callbacks with whenCompletedDo: to refresh after a continued run finishes.
 "
@@ -11,6 +11,7 @@ Class {
 	#instVars : [
 		'pattern',
 		'subject',
+		'compiler',
 		'matcher',
 		'input',
 		'recorder',
@@ -38,6 +39,16 @@ PCRE2LiveDebugRun class >> pattern: patternString subject: subjectString [
 		  yourself
 ]
 
+{ #category : 'instance creation' }
+PCRE2LiveDebugRun class >> pattern: patternString subject: subjectString compiler: aPCRE2Compiler [
+
+	^ self new
+		  pattern: patternString;
+		  subject: subjectString;
+		  compiler: aPCRE2Compiler;
+		  yourself
+]
+
 { #category : 'actions' }
 PCRE2LiveDebugRun >> abort [
 
@@ -48,6 +59,20 @@ PCRE2LiveDebugRun >> abort [
 				recorder abortWithResultCode: PCRE2 errorCallout ].
 			self runState: #aborted ] ].
 	^ self
+]
+
+{ #category : 'accessing' }
+PCRE2LiveDebugRun >> compiler [
+
+	^ compiler ifNil: [ PCRE2Compiler default ]
+]
+
+{ #category : 'accessing' }
+PCRE2LiveDebugRun >> compiler: aPCRE2CompilerOrClass [
+
+	compiler := aPCRE2CompilerOrClass isBehavior
+		            ifTrue: [ aPCRE2CompilerOrClass new ]
+		            ifFalse: [ aPCRE2CompilerOrClass ]
 ]
 
 { #category : 'actions' }
@@ -194,15 +219,15 @@ PCRE2LiveDebugRun >> pause [
 PCRE2LiveDebugRun >> prepare [
 
 	matcher ifNotNil: [ ^ self ].
-	matcher := pattern asPerlCompatibleRegex traceMatcher.
-	input := matcher utf8InputFor: subject.
+	matcher := (self compiler compile: pattern) traceMatcher.
+	input := matcher preparedInputFor: subject.
 	self resetRecorder.
 	^ self
 ]
 
 { #category : 'running' }
 PCRE2LiveDebugRun >> rawMatchInto: matchData [
-	"Run pcre2_match_8 directly so debugger-stop callout return codes remain observable instead of being raised as normal matcher errors."
+	"Run the native match directly so debugger-stop callout return codes remain observable instead of being raised as normal matcher errors."
 
 	| rc |
 	matcher validateUsableMatchData: matchData.
@@ -242,6 +267,8 @@ PCRE2LiveDebugRun >> resetRecorder [
 
 	recorder := PCRE2TraceRecorder
 		            pattern: pattern
+		            patternInput:
+		            (matcher compiler preparedPatternFor: pattern)
 		            subject: subject
 		            input: input
 		            calloutSites: matcher calloutSites.

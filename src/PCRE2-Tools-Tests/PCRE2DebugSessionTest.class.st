@@ -28,6 +28,42 @@ PCRE2DebugSessionTest >> assertContextText: aText highlights: expectedSubstring 
 ]
 
 { #category : 'tests' }
+PCRE2DebugSessionTest >> testDebugSessionCanTraceWithUTF16Compiler [
+
+	| session |
+	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
+
+	session := PCRE2DebugSession
+		           pattern: 'é'
+		           subject: 'é'
+		           compiler: PCRE2UTF16Compiler.
+	session runTrace.
+
+	self deny: session hasError.
+	self assert: session matcher class equals: PCRE2UTF16Matcher.
+	self assert: session trace input class equals: PCRE2UTF16Input.
+	self assert: session trace matchedString equals: 'é'
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testDebugSessionCanTraceWithUTF32Compiler [
+
+	| session |
+	LibPCRE2 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
+
+	session := PCRE2DebugSession
+		           pattern: 'é'
+		           subject: 'é'
+		           compiler: PCRE2UTF32Compiler.
+	session runTrace.
+
+	self deny: session hasError.
+	self assert: session matcher class equals: PCRE2UTF32Matcher.
+	self assert: session trace input class equals: PCRE2UTF32Input.
+	self assert: session trace matchedString equals: 'é'
+]
+
+{ #category : 'tests' }
 PCRE2DebugSessionTest >> testDebugSessionSelectStepUsesStableStepIndex [
 
 	| externalStep session |
@@ -201,6 +237,46 @@ PCRE2DebugSessionTest >> testDebuggerPresenterUsesSession [
 	self assert: session selectedStep notNil.
 	self assert: session selectedStepIndex equals: 1.
 	self assert: presenter tracePresenter trace equals: session trace
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testLiveDebugRunCanUseUTF16Compiler [
+
+	| run |
+	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
+
+	run := PCRE2LiveDebugRun
+		       pattern: 'é'
+		       subject: 'é'
+		       compiler: PCRE2UTF16Compiler.
+	[
+	run startContinuing.
+	self assert: (run waitForCompletionMilliseconds: 1000).
+	self assert: run matcher class equals: PCRE2UTF16Matcher.
+	self assert: run recorder isMatch.
+	self assert: run recorder matchedString equals: 'é' ] ensure: [
+		run abort.
+		run waitForCompletionMilliseconds: 1000 ]
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testLiveDebugRunCanUseUTF32Compiler [
+
+	| run |
+	LibPCRE2 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
+
+	run := PCRE2LiveDebugRun
+		       pattern: 'é'
+		       subject: 'é'
+		       compiler: PCRE2UTF32Compiler.
+	[
+	run startContinuing.
+	self assert: (run waitForCompletionMilliseconds: 1000).
+	self assert: run matcher class equals: PCRE2UTF32Matcher.
+	self assert: run recorder isMatch.
+	self assert: run recorder matchedString equals: 'é' ] ensure: [
+		run abort.
+		run waitForCompletionMilliseconds: 1000 ]
 ]
 
 { #category : 'tests' }
