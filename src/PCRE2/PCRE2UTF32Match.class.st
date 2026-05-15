@@ -33,9 +33,19 @@ PCRE2UTF32Match >> getCount [
 
 { #category : 'private' }
 PCRE2UTF32Match >> getMark [
-	"PCRE2-32 returns a pointer to a 32-bit code-unit mark name. Mark decoding is not implemented for UTF-32 yet."
+	"Answer the last MARK/PRUNE/THEN name as a Pharo string, or an empty string when PCRE2 reports no mark."
 
-	^ nil
+	| pointer |
+	pointer := self getMarkPointer.
+	(pointer isNil or: [ pointer isNull ]) ifTrue: [ ^ '' ].
+	^ self stringFromZeroTerminatedMark: pointer
+]
+
+{ #category : 'private' }
+PCRE2UTF32Match >> getMarkPointer [
+	"Answer PCRE2's native pointer to the last 32-bit MARK/PRUNE/THEN name, or NULL when no mark is available."
+
+	self ffiCall: #( void #* pcre2_get_mark_32 #( self ) )
 ]
 
 { #category : 'private' }
@@ -53,7 +63,23 @@ PCRE2UTF32Match >> getStartIndex [
 
 { #category : 'accessing' }
 PCRE2UTF32Match >> mark [
-	"UTF-32 mark-name decoding is not implemented yet."
 
-	^ nil
+	^ mark ifNil: [ mark := self getMark ifEmpty: [ nil ] ]
+]
+
+{ #category : 'private' }
+PCRE2UTF32Match >> stringFromZeroTerminatedMark: anExternalAddress [
+	"Decode a zero-terminated native-endian UTF-32 mark name."
+
+	| byteStream bytes offset |
+	byteStream := ByteArray new writeStream.
+	offset := 0.
+	[ (anExternalAddress uint32AtOffset: offset) = 0 ] whileFalse: [
+		byteStream nextPut: (anExternalAddress uint8AtOffset: offset).
+		byteStream nextPut: (anExternalAddress uint8AtOffset: offset + 1).
+		byteStream nextPut: (anExternalAddress uint8AtOffset: offset + 2).
+		byteStream nextPut: (anExternalAddress uint8AtOffset: offset + 3).
+		offset := offset + 4 ].
+	bytes := byteStream contents.
+	^ (PCRE2UTF32Input fromNativeEndianBytes: bytes) decodeBytes: bytes
 ]

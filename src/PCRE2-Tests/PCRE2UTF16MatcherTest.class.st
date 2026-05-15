@@ -152,6 +152,21 @@ PCRE2UTF16MatcherTest >> testFindMatchReadsUnicodeText [
 ]
 
 { #category : 'tests' }
+PCRE2UTF16MatcherTest >> testMark [
+
+	| regex |
+	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
+
+	regex := PCRE2UTF16Compiler new compile: ''.
+	self assert: (regex findMatch: '') mark equals: nil.
+
+	regex := PCRE2UTF16Compiler new compile:
+		         '(*MARK:bye)((*MARK:café)A|D)C'.
+	self assert: (regex findMatch: 'AC') mark equals: 'café'.
+	self assert: (regex findMatch: 'DC') mark equals: 'bye'
+]
+
+{ #category : 'tests' }
 PCRE2UTF16MatcherTest >> testMatchingRangesUseCharacterOffsets [
 
 	| ranges regex |
