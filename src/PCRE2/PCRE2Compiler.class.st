@@ -97,16 +97,16 @@ PCRE2Compiler class >> supportsJIT [
 
 { #category : 'compiling' }
 PCRE2Compiler >> compile: pattern [
-	"Compile a pattern string into a regular expression matcher.
-	Try to use JIT compilation if available and enabled.
-	If JIT compilation fails, the pattern will still be compiled as a standard matcher."
+	"Compile a pattern into a regular expression matcher.
+	Patterns are usually strings. Width-specific compilers may also accept prepared encoded input."
 
-	| matcher |
+	| input matcher |
+	input := self preparedPatternFor: pattern.
 	(matcher := self matcherClass fromHandle:
-			            (self compileBasic: pattern))
+			            (self compilePreparedInput: input))
 		autoRelease;
 		initialize;
-		pattern: pattern;
+		pattern: (self patternStringFromInput: input);
 		compiler: self.
 	matcher isJIT: (EagerJIT and: [
 			 SupportsJIT and: [ (self privateJITCompile: matcher) == 0 ] ]).
@@ -128,18 +128,7 @@ PCRE2Compiler >> compile: pattern upTo: length errorCode: errorCode errorOffset:
 PCRE2Compiler >> compileBasic: pattern [
 	"Creates a regex matcher from a pattern and returns its external address."
 
-	| errorCode errorOffset handle input |
-	input := self inputClass fromString: pattern.
-	errorCode := IntHolder new.
-	errorOffset := SizeTHolder new.
-	handle := self
-		          compile: input bytes
-		          upTo: input size
-		          errorCode: errorCode
-		          errorOffset: errorOffset.
-	handle isNull ifTrue: [
-		self errorCode: errorCode value inInput: input at: errorOffset value ].
-	^ handle
+	^ self compilePreparedInput: (self preparedPatternFor: pattern)
 ]
 
 { #category : 'compiling' }
@@ -156,6 +145,23 @@ PCRE2Compiler >> compileJIT: matcher [
 	rc := self privateJITCompile: matcher.
 	rc == 0 ifFalse: [ self errorCode: rc ].
 	^ matcher isJIT: true
+]
+
+{ #category : 'compiling' }
+PCRE2Compiler >> compilePreparedInput: input [
+	"Create a regex matcher handle from prepared pattern input."
+
+	| errorCode errorOffset handle |
+	errorCode := IntHolder new.
+	errorOffset := SizeTHolder new.
+	handle := self
+		          compile: input bytes
+		          upTo: input size
+		          errorCode: errorCode
+		          errorOffset: errorOffset.
+	handle isNull ifTrue: [
+		self errorCode: errorCode value inInput: input at: errorOffset value ].
+	^ handle
 ]
 
 { #category : 'accessing' }
@@ -217,7 +223,10 @@ PCRE2Compiler >> errorCode: errorCode in: pattern at: offset [
 PCRE2Compiler >> errorCode: errorCode inInput: input at: offset [
 
 	<debuggerCompleteToSender>
-	self errorCode: errorCode in: input bytes asByteArray at: offset
+	PCRE2CompileError
+		signal: (PCRE2 translateErrorCode: errorCode)
+		inInput: input
+		at: offset
 ]
 
 { #category : 'library path' }
@@ -259,6 +268,19 @@ PCRE2Compiler >> optionsJIT: anInteger [
 	"See jitComplete, jitPartialSoft and jitPartialHard class methods of PCRE2."
 
 	optionsJIT := anInteger
+]
+
+{ #category : 'private' }
+PCRE2Compiler >> patternStringFromInput: input [
+
+	input size = 0 ifTrue: [ ^ '' ].
+	^ input readFrom: 1 to: input size
+]
+
+{ #category : 'private' }
+PCRE2Compiler >> preparedPatternFor: pattern [
+
+	^ self inputClass fromString: pattern
 ]
 
 { #category : 'private' }

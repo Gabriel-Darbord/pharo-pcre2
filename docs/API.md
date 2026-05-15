@@ -27,6 +27,13 @@ matcher := PCRE2UTF32Compiler new compile: '\p{L}+'.
 matcher find: 'café'.
 ```
 
+The wide compilers also accept prepared pattern input:
+
+```smalltalk
+pattern := patternBytes asPCRE2UTF16LittleEndianInput.
+matcher := PCRE2UTF16Compiler new compile: pattern.
+```
+
 ## Matching
 
 - `matches:` checks that the whole subject matches.

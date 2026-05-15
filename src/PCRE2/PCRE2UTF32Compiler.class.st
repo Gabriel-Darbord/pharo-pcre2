@@ -47,6 +47,12 @@ PCRE2UTF32Compiler >> matcherClass [
 ]
 
 { #category : 'private' }
+PCRE2UTF32Compiler >> preparedPatternFor: aStringOrInput [
+
+	^ aStringOrInput asPCRE2UTF32Input
+]
+
+{ #category : 'private' }
 PCRE2UTF32Compiler >> privateJITCompile: matcher [
 	"int pcre2_jit_compile_32(pcre2_code_32 *code, uint32_t options)"
 
