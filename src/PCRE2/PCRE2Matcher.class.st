@@ -1,9 +1,9 @@
 "
 Abstract superclass for compiled PCRE2 matchers.
 
-Concrete subclasses bind the width-specific native API: PCRE2UTF8Matcher, PCRE2UTF16Matcher, and PCRE2UTF32Matcher. This class keeps the shared matching, enumeration, group, split, persistence, and diagnostic behavior that can be expressed independently of the code-unit width.
+Concrete subclasses bind the width-specific native API: PCRE2UTF8Matcher, PCRE2UTF16Matcher, and PCRE2UTF32Matcher. This class keeps shared matching, enumeration, groups, split, substitution, DFA, callout, tracing, persistence, and diagnostic behavior that can be expressed independently of the code-unit width.
 
-Match operations create standalone PCRE2Match subclasses. A matcher does not own a reusable match result, so callers can keep a returned match and inspect text, groups, offsets, marks, and partial/complete status later.
+Match operations create standalone PCRE2Match subclasses. A matcher does not own a reusable match result, so callers can keep a returned match and inspect text, groups, offsets, marks, partial/complete status, and native match-data diagnostics later.
 "
 Class {
 	#name : 'PCRE2Matcher',

@@ -58,9 +58,11 @@ match offsetsAt: 1.
 match mark.
 match isComplete.
 match isPartial.
+match matchDataSize.
+match heapframesSize.
 ```
 
-UTF-16 and UTF-32 matchers support the same core matching, capture, mark, and static callout-site queries. Substitution, DFA matching, runtime callouts, tracing, and compile/match contexts are currently exposed by the UTF-8 API.
+UTF-16 and UTF-32 matchers support the same high-level matching surfaces as UTF-8: captures, ranges, splitting, substitution, DFA matching, runtime and static callouts, tracing, and compile/match contexts. Offsets are native PCRE2 code-unit offsets; prepared input translates them back to Pharo character ranges when needed.
 
 Wide matchers also accept prepared byte input:
 
@@ -107,6 +109,16 @@ Substitution follows PCRE2 replacement rules by default:
 
 Use `withLiteral:` when the replacement text should not be parsed as a substitution expression. `substituteUsingMatch:with:` can reuse an already computed `PCRE2Match` for the first replacement.
 
+Substitution callouts can inspect or reject processed replacements. Substitution case callouts can override case conversion for replacement escapes such as `\U`, `\L`, `\u`, and `\l`.
+
+```smalltalk
+'\w+' asPerlCompatibleRegex
+  substituteAll: 'one two'
+  with: '\U$0'
+  options: PCRE2 substituteExtended
+  caseCallout: [ :event | event inputText reversed ].
+```
+
 ## Pattern Conversion
 
 PCRE2 can convert glob, POSIX basic, and POSIX extended patterns into PCRE2 pattern strings:
@@ -147,6 +159,30 @@ DFA matching exposes PCRE2's alternative-matching mode. It can return several al
 matcher dfaMatch: subject.
 matcher dfaMatches: subject workspaceSize: 100.
 ```
+
+## Contexts, JIT, and Diagnostics
+
+Compile contexts expose PCRE2 compile-time knobs such as newline policy, pattern-length limits, variable-lookbehind limits, parenthesis nesting limits, and optimization directives. Match contexts expose runtime limits, callout installation, and advanced JIT stack assignment.
+
+```smalltalk
+compiler := PCRE2Compiler new.
+compiler context useNewlineAnyCRLF.
+matcher := compiler compile: '^value$'.
+
+matcher context matchLimit: 10000.
+matcher context heapLimit: 1024.
+```
+
+JIT is requested through the matcher or compiler. Explicit JIT stacks are an advanced PCRE2 feature for very large or complex JIT-compiled patterns. Keep one non-nil stack to sequential matches in one thread; concurrent or nested matches need separate stacks.
+
+```smalltalk
+matcher compileJIT.
+stack := PCRE2JITStack default.
+matcher context jitStack: stack.
+matcher context clearJITStack.
+```
+
+`PCRE2Match>>matchDataSize` and `PCRE2Match>>heapframesSize` answer native memory diagnostics from PCRE2. The values are cached before persistent matches release their native match-data handle.
 
 ## Callouts
 

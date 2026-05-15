@@ -15,9 +15,12 @@ A compiled PCRE2 pattern is a native object outside the Pharo object memory. `PC
 The default mode is serialization:
 
 1. At shutdown, the manager serializes compiled matchers as a batch.
-2. At startup, it compares the saved native-library signature with the current one.
-3. If the signature matches, it deserializes the native code.
-4. If deserialization is unsafe or unavailable, it recompiles from the saved pattern and options.
+2. Matchers are grouped by PCRE2 code-unit width, because the 8-bit, 16-bit, and 32-bit libraries deserialize their own compiled patterns.
+3. At startup, it compares the saved native-library signature with the current one.
+4. If the signature matches, it deserializes the native code.
+5. If deserialization is unsafe or unavailable, it recompiles from the saved pattern and options.
+
+Serialized PCRE2 bytecode is a cache, not a portable interchange format. It depends on the PCRE2 version, compiled code-unit widths, endianness, word size, `size_t` size, and Unicode support. JIT machine code is not serialized; requested JIT compilation is rebuilt after restore when available.
 
 Use recompilation mode when portability matters more than startup speed:
 

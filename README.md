@@ -50,6 +50,8 @@ match := matcher findMatch: 'size=42'.
 match groupAt: 0.       "size=42"
 match groupNamed: 'key'.   "size"
 match groupNamed: 'value'. "42"
+match matchDataSize.       "native PCRE2 match-data bytes"
+match heapframesSize.      "native heap-frame bytes retained by the match data"
 ```
 
 Useful collection-style operations are available on the matcher:
@@ -73,16 +75,18 @@ matcher matches: 'Package.st'. "true"
 - Numbered and named capture groups.
 - Match enumeration, match ranges, splitting, and substitution.
 - Glob and POSIX pattern conversion to PCRE2 syntax.
-- Prepared UTF-8 inputs for repeated matching against the same subject.
-- UTF-16 and UTF-32 compile and match support through `PCRE2UTF16Compiler` and `PCRE2UTF32Compiler`, including byte-backed prepared inputs with explicit endian or BOM-aware helpers.
+- Prepared UTF-8, UTF-16, and UTF-32 inputs for repeated matching against the same subject.
+- UTF-16 and UTF-32 support through `PCRE2UTF16Compiler` and `PCRE2UTF32Compiler`, including byte-backed prepared subjects and patterns with explicit-endian or BOM-aware helpers.
 - Compile and match contexts for PCRE2 options and limits.
+- JIT compilation and optional explicit JIT stack control for advanced cases.
 - Partial matching and DFA matching.
-- Match and substitution callouts.
+- Match, substitution, and substitution case callouts.
+- Native match-data memory diagnostics.
 - Trace/debugger support in the `PCRE2-Tools` package.
 
 ## Lifecycle
 
-Compiled PCRE2 patterns are native objects, so the project includes `PCRE2SessionManager` to restore them across image restarts. Serialization is used by default when the native library signature is compatible; otherwise matchers are recompiled from their saved pattern and options.
+Compiled PCRE2 patterns are native objects, so the project includes `PCRE2SessionManager` to restore them across image restarts. Serialization is used by default when the native library signature is compatible; otherwise matchers are recompiled from their saved pattern and options. Serialized caches are grouped by PCRE2 code-unit width.
 
 The binding targets PCRE2 10.x. The usual API uses the 8-bit library; `PCRE2UTF16Compiler` and `PCRE2UTF32Compiler` use PCRE2's wider code-unit libraries when available. Minor PCRE2 versions may differ in reported configuration details, so tests and applications should prefer capability checks over exact minor-version strings.
 

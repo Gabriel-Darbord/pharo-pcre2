@@ -36,6 +36,8 @@ match := matcher findMatch: 'size=42'.
 match groupAt: 0.          "size=42"
 match groupAt: 1.          "size"
 match groupNamed: 'value'. "42"
+match matchDataSize.       "native PCRE2 match-data bytes"
+match heapframesSize.      "native heap-frame bytes"
 ```
 
 ## Enumerate Matches
@@ -76,7 +78,7 @@ matcher matches: 'Package.st'. "true"
 
 ## Reuse Prepared Input
 
-PCRE2 matches UTF-8 bytes. If you match the same subject repeatedly, prepare it once:
+The default API matches UTF-8 bytes. If you match the same subject repeatedly, prepare it once:
 
 ```smalltalk
 input := 'cafe deja' asPCRE2UTF8Input.
@@ -114,4 +116,4 @@ pattern := patternBytesFromFile asPCRE2UTF16InputDetectingBOM.
 matcher := PCRE2UTF16Compiler new compile: pattern.
 ```
 
-UTF-16 and UTF-32 matching support the core matcher, capture, mark, and static callout-site APIs. Use the default UTF-8 API for substitution, DFA matching, runtime callouts, tracing, and context knobs.
+UTF-16 and UTF-32 matching support the same high-level surfaces as the default UTF-8 API, including substitution, DFA matching, runtime callouts, tracing, debugger support, and compile/match contexts. Prepared wide inputs translate native code-unit offsets back to Pharo character ranges.
