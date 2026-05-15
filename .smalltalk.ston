@@ -7,8 +7,12 @@ SmalltalkCISpec {
     }
   ],
   #testing : {
+    #packages : [
+      'PCRE2-Tests',
+      'PCRE2-Tools-Tests'
+    ],
     #coverage : {
-      #packages : [ 'PCRE2' ],
+      #packages : [ 'PCRE2', 'PCRE2-Tools' ],
       #format : #lcov
     }
   }
