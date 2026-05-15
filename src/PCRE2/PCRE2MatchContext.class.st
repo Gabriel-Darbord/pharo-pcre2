@@ -28,9 +28,9 @@ PCRE2MatchContext >> calloutBlock: aBlock [
 		            #( int #( void #* calloutBlock #, void #* userData ) )
 		            block: [ :calloutBlock :userData |
 			            | answer |
-			            answer := aBlock value:
-				                      (PCRE2CalloutEvent fromCalloutBlock:
-					                       calloutBlock).
+			            answer := aBlock value: (PCRE2CalloutEvent
+					                       fromCalloutBlock: calloutBlock
+					                       codeUnitWidth: self codeUnitWidth).
 			            answer isInteger
 				            ifTrue: [ answer ]
 				            ifFalse: [ 0 ] ].
@@ -60,6 +60,13 @@ PCRE2MatchContext >> clearSubstituteCallout [
 	rc < 0 ifTrue: [ self errorCode: rc ].
 	substituteCalloutCallback := nil.
 	^ self
+]
+
+{ #category : 'private' }
+PCRE2MatchContext >> codeUnitWidth [
+	"Answer the PCRE2 code-unit width used to decode callback payloads."
+
+	^ self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -176,9 +183,9 @@ PCRE2MatchContext >> substituteCalloutBlock: aBlock [
 		            #( int #( void #* calloutBlock #, void #* userData ) )
 		            block: [ :calloutBlock :userData |
 			            | answer |
-			            answer := aBlock value:
-				                      (PCRE2SubstitutionCalloutEvent
-					                       fromCalloutBlock: calloutBlock).
+			            answer := aBlock value: (PCRE2SubstitutionCalloutEvent
+					                       fromCalloutBlock: calloutBlock
+					                       codeUnitWidth: self codeUnitWidth).
 			            answer isInteger
 				            ifTrue: [ answer ]
 				            ifFalse: [ PCRE2 substituteCalloutAccept ] ].

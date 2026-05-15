@@ -64,6 +64,13 @@ PCRE2CalloutSite class >> stringFrom: anExternalAddress length: length codeUnitW
 	bytes := ByteArray new: byteSize.
 	1 to: byteSize do: [ :index |
 		bytes at: index put: (anExternalAddress uint8AtOffset: index - 1) ].
+	^ self stringFromBytes: bytes codeUnitWidth: codeUnitWidth
+]
+
+{ #category : 'private' }
+PCRE2CalloutSite class >> stringFromBytes: bytes codeUnitWidth: codeUnitWidth [
+	"Decode native PCRE2 string bytes for the given code-unit width."
+
 	codeUnitWidth = 8 ifTrue: [ ^ bytes utf8Decoded ].
 	codeUnitWidth = 16 ifTrue: [
 		^ (PCRE2UTF16Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].

@@ -10,6 +10,12 @@ Class {
 	#package : 'PCRE2'
 }
 
+{ #category : 'private' }
+PCRE2UTF32MatchContext >> codeUnitWidth [
+
+	^ 32
+]
+
 { #category : 'library path' }
 PCRE2UTF32MatchContext >> ffiLibraryName [
 	^ LibPCRE2UTF32

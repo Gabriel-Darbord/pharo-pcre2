@@ -276,6 +276,48 @@ PCRE2UTF32MatcherTest >> testMatchingRangesUseCharacterOffsets [
 ]
 
 { #category : 'tests' }
+PCRE2UTF32MatcherTest >> testRuntimeCalloutDecodesWidePayloadsAndMarks [
+
+	| event events regex |
+	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+
+	regex := PCRE2UTF32Compiler new compile: '(*MARK:café)(?C"cœur")x'.
+	regex addOptions: PCRE2 noJIT.
+	events := OrderedCollection new.
+
+	self assert: (regex matches: 'x' calloutsDo: [ :each |
+			 events add: each.
+			 0 ]).
+	event := events first.
+	self assert: event string equals: 'cœur'.
+	self assert: event mark equals: 'café'
+]
+
+{ #category : 'tests' }
+PCRE2UTF32MatcherTest >> testSubstituteCalloutDecodesWideText [
+
+	| events regex result |
+	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+	LibPCRE2 supportsSubstitutionCallouts ifFalse: [ ^ self ].
+
+	regex := PCRE2UTF32Compiler new compile: 'é'.
+	events := OrderedCollection new.
+	result := regex
+		          substituteAll: 'café café'
+		          with: 'e$0'
+		          calloutsDo: [ :event |
+			          events add: event.
+			          PCRE2 substituteCalloutAccept ].
+
+	self assert: result equals: 'cafeé cafeé'.
+	self assert: events size equals: 2.
+	self assert: events first matchedText equals: 'é'.
+	self assert: events first replacementText equals: 'eé'.
+	self assert: events second matchedText equals: 'é'.
+	self assert: events second replacementText equals: 'eé'
+]
+
+{ #category : 'tests' }
 PCRE2UTF32MatcherTest >> testSubstitutionAndCopyReuseHighLevelFlow [
 
 	| input match regex replacement |
@@ -305,4 +347,37 @@ PCRE2UTF32MatcherTest >> testSubstitutionAndCopyReuseHighLevelFlow [
 				 copy: 'a12b3'
 				 translatingMatchesUsing: [ :each | '[' , each , ']' ])
 		equals: 'a[12]b[3]'
+]
+
+{ #category : 'tests' }
+PCRE2UTF32MatcherTest >> testTraceMatchDecodesWideCalloutEvents [
+
+	| event trace |
+	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+
+	trace := (PCRE2UTF32Compiler new compile: '(?C"cœur")é') traceMatch:
+		         'é'.
+	event := trace events detect: [ :each | each hasString ].
+
+	self assert: trace isMatch.
+	self assert: trace matchedString equals: 'é'.
+	self assert: event string equals: 'cœur'.
+	self assert: (trace subjectCharacterPositionAtEvent: event) equals: 1
+]
+
+{ #category : 'tests' }
+PCRE2UTF32MatcherTest >> testTraceMatchTranslatesWidePatternRanges [
+
+	| emoji event trace |
+	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+
+	emoji := String with: (Character value: 16r1F600).
+	trace := (PCRE2UTF32Compiler new compile: emoji , '(?C2)a')
+		         traceMatch: emoji , 'a'.
+	event := trace events detect: [ :each | each number = 2 ].
+
+	self
+		assert: (trace patternCharacterRangeForEvent: event)
+		equals: (7 to: 7).
+	self assert: (trace subjectCharacterPositionAtEvent: event) equals: 2
 ]

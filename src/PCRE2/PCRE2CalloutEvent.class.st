@@ -34,7 +34,15 @@ Class {
 { #category : 'instance creation' }
 PCRE2CalloutEvent class >> fromCalloutBlock: anExternalAddress [
 
-	^ self new initializeFromCalloutBlock: anExternalAddress
+	^ self fromCalloutBlock: anExternalAddress codeUnitWidth: 8
+]
+
+{ #category : 'instance creation' }
+PCRE2CalloutEvent class >> fromCalloutBlock: anExternalAddress codeUnitWidth: codeUnitWidth [
+
+	^ self new
+		  initializeFromCalloutBlock: anExternalAddress
+		  codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'private' }
@@ -66,17 +74,44 @@ PCRE2CalloutEvent class >> stringFrom: anExternalAddress length: length [
 ]
 
 { #category : 'private' }
+PCRE2CalloutEvent class >> stringFrom: anExternalAddress length: length codeUnitWidth: codeUnitWidth [
+
+	^ PCRE2CalloutSite
+		  stringFrom: anExternalAddress
+		  length: length
+		  codeUnitWidth: codeUnitWidth
+]
+
+{ #category : 'private' }
 PCRE2CalloutEvent class >> zeroTerminatedStringFrom: anExternalAddress [
 
-	| bytes byte index |
+	^ self zeroTerminatedStringFrom: anExternalAddress codeUnitWidth: 8
+]
+
+{ #category : 'private' }
+PCRE2CalloutEvent class >> zeroTerminatedStringFrom: anExternalAddress codeUnitWidth: codeUnitWidth [
+	"Decode a NUL-terminated MARK name from a runtime callout block."
+
+	| bytes offset width |
 	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [
 		^ nil ].
+	width := codeUnitWidth // 8.
 	bytes := ByteArray new writeStream.
-	index := 0.
-	[ (byte := anExternalAddress uint8AtOffset: index) = 0 ] whileFalse: [
-		bytes nextPut: byte.
-		index := index + 1 ].
-	^ bytes contents utf8Decoded
+	offset := 0.
+	[
+	| allZero |
+	allZero := true.
+	1 to: width do: [ :index |
+		(anExternalAddress uint8AtOffset: offset + index - 1) = 0 ifFalse: [
+			allZero := false ] ].
+	allZero ] whileFalse: [
+		1 to: width do: [ :index |
+			bytes nextPut:
+				(anExternalAddress uint8AtOffset: offset + index - 1) ].
+		offset := offset + width ].
+	^ PCRE2CalloutSite
+		  stringFromBytes: bytes contents
+		  codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'accessing' }
@@ -121,6 +156,12 @@ PCRE2CalloutEvent >> hasString [
 { #category : 'initialization' }
 PCRE2CalloutEvent >> initializeFromCalloutBlock: anExternalAddress [
 
+	^ self initializeFromCalloutBlock: anExternalAddress codeUnitWidth: 8
+]
+
+{ #category : 'initialization' }
+PCRE2CalloutEvent >> initializeFromCalloutBlock: anExternalAddress codeUnitWidth: codeUnitWidth [
+
 	| offsetVectorOffset pointerOffset sizeOffset wordSize |
 	wordSize := ExternalAddress wordSize.
 	offsetVectorOffset := 16.
@@ -134,9 +175,11 @@ PCRE2CalloutEvent >> initializeFromCalloutBlock: anExternalAddress [
 		           offsetsFrom:
 		           (anExternalAddress pointerAtOffset: offsetVectorOffset)
 		           count: captureTop * 2.
-	mark := self class zeroTerminatedStringFrom:
+	mark := self class
+		        zeroTerminatedStringFrom:
 		        (anExternalAddress pointerAtOffset:
-			         offsetVectorOffset + wordSize).
+			         offsetVectorOffset + wordSize)
+		        codeUnitWidth: codeUnitWidth.
 	subjectLength := self class
 		                 sizeTFrom: anExternalAddress
 		                 atOffset: sizeOffset.
@@ -162,7 +205,8 @@ PCRE2CalloutEvent >> initializeFromCalloutBlock: anExternalAddress [
 	string := self class
 		          stringFrom:
 		          (anExternalAddress pointerAtOffset: pointerOffset)
-		          length: stringLength.
+		          length: stringLength
+		          codeUnitWidth: codeUnitWidth.
 	flags := anExternalAddress uint32AtOffset: pointerOffset + wordSize.
 	^ self
 ]

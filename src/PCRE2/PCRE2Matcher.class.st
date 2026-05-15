@@ -1309,9 +1309,10 @@ PCRE2Matcher >> temporaryMatcherForCallout [
 PCRE2Matcher >> traceMatch: aStringOrInput [
 	"Run an instrumented non-JIT match and answer a trace without mutating the receiver."
 
-	| eventSnapshots input match resultCode traceMatcher |
+	| eventSnapshots input match patternInput resultCode traceMatcher |
 	traceMatcher := self traceMatcher.
 	input := self preparedInputFor: aStringOrInput.
+	patternInput := compiler preparedPatternFor: pattern.
 	eventSnapshots := OrderedCollection new.
 	traceMatcher context calloutBlock: [ :event |
 		eventSnapshots add: event.
@@ -1327,6 +1328,7 @@ PCRE2Matcher >> traceMatch: aStringOrInput [
 		ifFalse: [ input recordOn: match ].
 	^ PCRE2MatchTrace
 		  pattern: pattern
+		  patternInput: patternInput
 		  subject: aStringOrInput
 		  input: input
 		  calloutSites: traceMatcher calloutSites

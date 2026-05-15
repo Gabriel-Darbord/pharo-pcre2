@@ -3,15 +3,16 @@ I describe one instrumented PCRE2 match attempt.
 
 A trace is produced by compiling a temporary debug matcher with automatic callouts, running a non-JIT match, and collecting runtime PCRE2CalloutEvent snapshots. The original matcher is not mutated.
 
-I am intentionally a data object for now: UI/debugger tools can use my static callout sites, runtime events, match result, UTF-8 byte-to-character helpers, and event-to-site correlation methods.
+I am intentionally a data object: UI/debugger tools can use my static callout sites, runtime events, match result, code-unit-to-character helpers, and event-to-site correlation methods.
 
-My `steps` API builds `PCRE2TraceStep` objects that pretranslate pattern/subject positions and capture ranges, giving a future debugger a headless model to present or replay.
+My steps API builds PCRE2TraceStep objects that pretranslate pattern and subject positions, capture ranges, and marks for a debugger or trace viewer.
 "
 Class {
 	#name : 'PCRE2MatchTrace',
 	#superclass : 'Object',
 	#instVars : [
 		'pattern',
+		'patternInput',
 		'subject',
 		'input',
 		'calloutSites',
@@ -24,12 +25,27 @@ Class {
 }
 
 { #category : 'instance creation' }
-PCRE2MatchTrace class >> pattern: patternString subject: subjectObject input: aPCRE2UTF8Input calloutSites: calloutSiteArray events: eventArray match: aMatchOrNil resultCode: anInteger [
+PCRE2MatchTrace class >> pattern: patternString patternInput: patternInputObject subject: subjectObject input: aPCRE2Input calloutSites: calloutSiteArray events: eventArray match: aMatchOrNil resultCode: anInteger [
 
 	^ self new
 		  initializePattern: patternString
+		  patternInput: patternInputObject
 		  subject: subjectObject
-		  input: aPCRE2UTF8Input
+		  input: aPCRE2Input
+		  calloutSites: calloutSiteArray
+		  events: eventArray
+		  match: aMatchOrNil
+		  resultCode: anInteger
+]
+
+{ #category : 'instance creation' }
+PCRE2MatchTrace class >> pattern: patternString subject: subjectObject input: aPCRE2Input calloutSites: calloutSiteArray events: eventArray match: aMatchOrNil resultCode: anInteger [
+
+	^ self
+		  pattern: patternString
+		  patternInput: patternString asPCRE2UTF8Input
+		  subject: subjectObject
+		  input: aPCRE2Input
 		  calloutSites: calloutSiteArray
 		  events: eventArray
 		  match: aMatchOrNil
@@ -98,16 +114,31 @@ PCRE2MatchTrace >> eventsWithSitesDo: aBlock [
 ]
 
 { #category : 'initialization' }
-PCRE2MatchTrace >> initializePattern: patternString subject: subjectObject input: aPCRE2UTF8Input calloutSites: calloutSiteArray events: eventArray match: aMatchOrNil resultCode: anInteger [
+PCRE2MatchTrace >> initializePattern: patternString patternInput: patternInputObject subject: subjectObject input: aPCRE2Input calloutSites: calloutSiteArray events: eventArray match: aMatchOrNil resultCode: anInteger [
 
 	pattern := patternString.
+	patternInput := patternInputObject.
 	subject := subjectObject.
-	input := aPCRE2UTF8Input.
+	input := aPCRE2Input.
 	calloutSites := calloutSiteArray.
 	events := eventArray.
 	match := aMatchOrNil.
 	resultCode := anInteger.
 	^ self
+]
+
+{ #category : 'initialization' }
+PCRE2MatchTrace >> initializePattern: patternString subject: subjectObject input: aPCRE2Input calloutSites: calloutSiteArray events: eventArray match: aMatchOrNil resultCode: anInteger [
+
+	^ self
+		  initializePattern: patternString
+		  patternInput: patternString asPCRE2UTF8Input
+		  subject: subjectObject
+		  input: aPCRE2Input
+		  calloutSites: calloutSiteArray
+		  events: eventArray
+		  match: aMatchOrNil
+		  resultCode: anInteger
 ]
 
 { #category : 'accessing' }
@@ -181,11 +212,17 @@ PCRE2MatchTrace >> patternCharacterRangeForEvent: aPCRE2CalloutEvent [
 
 { #category : 'decoding' }
 PCRE2MatchTrace >> patternCharacterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset [
-	"Translate PCRE2's zero-based UTF-8 pattern offsets to a 1-based Pharo character range."
+	"Translate PCRE2's zero-based pattern offsets to a 1-based Pharo character range."
 
-	^ pattern asPCRE2UTF8Input
+	^ self patternInput
 		  characterRangeFromStartOffset: zeroBasedStartOffset
 		  endOffset: exclusiveEndOffset
+]
+
+{ #category : 'accessing' }
+PCRE2MatchTrace >> patternInput [
+
+	^ patternInput ifNil: [ pattern asPCRE2UTF8Input ]
 ]
 
 { #category : 'accessing' }
@@ -253,7 +290,8 @@ PCRE2MatchTrace >> subjectCharacterPositionAtEvent: aPCRE2CalloutEvent [
 
 { #category : 'decoding' }
 PCRE2MatchTrace >> subjectCharacterPositionForByteOffset: byteOffset [
-	"Translate a zero-based UTF-8 byte offset to the corresponding 1-based Pharo character position."
+	"Translate a zero-based subject offset to the corresponding 1-based Pharo character position.
+	For UTF-8 inputs this offset is a byte offset; for wide inputs it is a code-unit offset."
 
 	^ (input characterCountUpToByteOffset: byteOffset) + 1
 ]
@@ -270,7 +308,7 @@ PCRE2MatchTrace >> subjectCharacterRangeAtEvent: aPCRE2CalloutEvent [
 
 { #category : 'decoding' }
 PCRE2MatchTrace >> subjectCharacterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset [
-	"Translate PCRE2's zero-based UTF-8 byte offsets to a 1-based Pharo character range."
+	"Translate PCRE2's zero-based subject offsets to a 1-based Pharo character range."
 
 	^ input
 		  characterRangeFromStartOffset: zeroBasedStartOffset

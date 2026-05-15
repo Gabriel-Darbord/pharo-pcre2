@@ -31,7 +31,15 @@ PCRE2SubstitutionCalloutEvent class >> alignedOffsetAfterUInt32ForWordSize: word
 { #category : 'instance creation' }
 PCRE2SubstitutionCalloutEvent class >> fromCalloutBlock: anExternalAddress [
 
-	^ self new initializeFromCalloutBlock: anExternalAddress
+	^ self fromCalloutBlock: anExternalAddress codeUnitWidth: 8
+]
+
+{ #category : 'instance creation' }
+PCRE2SubstitutionCalloutEvent class >> fromCalloutBlock: anExternalAddress codeUnitWidth: codeUnitWidth [
+
+	^ self new
+		  initializeFromCalloutBlock: anExternalAddress
+		  codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'private' }
@@ -49,23 +57,45 @@ PCRE2SubstitutionCalloutEvent class >> sizeTFrom: anExternalAddress atOffset: by
 { #category : 'private' }
 PCRE2SubstitutionCalloutEvent class >> stringFrom: anExternalAddress startOffset: startOffset endOffset: endOffset [
 
-	| bytes length |
+	^ self
+		  stringFrom: anExternalAddress
+		  startOffset: startOffset
+		  endOffset: endOffset
+		  codeUnitWidth: 8
+]
+
+{ #category : 'private' }
+PCRE2SubstitutionCalloutEvent class >> stringFrom: anExternalAddress startOffset: startOffset endOffset: endOffset codeUnitWidth: codeUnitWidth [
+	"Decode a substring addressed by PCRE2_SIZE code-unit offsets."
+
+	| bytes byteStart byteSize length unitSize |
 	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [
 		^ nil ].
 	(startOffset = PCRE2 unsetOffset or: [ endOffset = PCRE2 unsetOffset ])
 		ifTrue: [ ^ nil ].
 	length := endOffset - startOffset.
 	length <= 0 ifTrue: [ ^ '' ].
-	bytes := ByteArray new: length.
-	1 to: length do: [ :index |
+	unitSize := codeUnitWidth // 8.
+	byteStart := startOffset * unitSize.
+	byteSize := length * unitSize.
+	bytes := ByteArray new: byteSize.
+	1 to: byteSize do: [ :index |
 		bytes
 			at: index
-			put: (anExternalAddress uint8AtOffset: startOffset + index - 1) ].
-	^ bytes utf8Decoded
+			put: (anExternalAddress uint8AtOffset: byteStart + index - 1) ].
+	^ PCRE2CalloutSite
+		  stringFromBytes: bytes
+		  codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'initialization' }
 PCRE2SubstitutionCalloutEvent >> initializeFromCalloutBlock: anExternalAddress [
+
+	^ self initializeFromCalloutBlock: anExternalAddress codeUnitWidth: 8
+]
+
+{ #category : 'initialization' }
+PCRE2SubstitutionCalloutEvent >> initializeFromCalloutBlock: anExternalAddress codeUnitWidth: codeUnitWidth [
 
 	| inputPointer outputPointer ovectorPointer outputOffsetsOffset ovectorPointerOffset pointerOffset wordSize |
 	wordSize := ExternalAddress wordSize.
@@ -100,11 +130,13 @@ PCRE2SubstitutionCalloutEvent >> initializeFromCalloutBlock: anExternalAddress [
 			               self class
 				               stringFrom: inputPointer
 				               startOffset: offsets first
-				               endOffset: offsets second ].
+				               endOffset: offsets second
+				               codeUnitWidth: codeUnitWidth ].
 	replacementText := self class
 		                   stringFrom: outputPointer
 		                   startOffset: outputOffsets first
-		                   endOffset: outputOffsets second.
+		                   endOffset: outputOffsets second
+		                   codeUnitWidth: codeUnitWidth.
 	^ self
 ]
 

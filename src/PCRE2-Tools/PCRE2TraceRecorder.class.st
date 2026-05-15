@@ -10,6 +10,7 @@ Class {
 	#superclass : 'Object',
 	#instVars : [
 		'pattern',
+		'patternInput',
 		'subject',
 		'input',
 		'calloutSites',
@@ -26,12 +27,24 @@ Class {
 }
 
 { #category : 'instance creation' }
-PCRE2TraceRecorder class >> pattern: patternString subject: subjectObject input: aPCRE2UTF8Input calloutSites: calloutSiteArray [
+PCRE2TraceRecorder class >> pattern: patternString patternInput: patternInputObject subject: subjectObject input: aPCRE2Input calloutSites: calloutSiteArray [
 
 	^ self new
 		  initializePattern: patternString
+		  patternInput: patternInputObject
 		  subject: subjectObject
-		  input: aPCRE2UTF8Input
+		  input: aPCRE2Input
+		  calloutSites: calloutSiteArray
+]
+
+{ #category : 'instance creation' }
+PCRE2TraceRecorder class >> pattern: patternString subject: subjectObject input: aPCRE2Input calloutSites: calloutSiteArray [
+
+	^ self
+		  pattern: patternString
+		  patternInput: patternString asPCRE2UTF8Input
+		  subject: subjectObject
+		  input: aPCRE2Input
 		  calloutSites: calloutSiteArray
 ]
 
@@ -54,6 +67,7 @@ PCRE2TraceRecorder >> asTrace [
 
 	^ PCRE2MatchTrace
 		  pattern: pattern
+		  patternInput: self patternInput
 		  subject: subject
 		  input: input
 		  calloutSites: calloutSites
@@ -133,16 +147,28 @@ PCRE2TraceRecorder >> initialize [
 ]
 
 { #category : 'initialization' }
-PCRE2TraceRecorder >> initializePattern: patternString subject: subjectObject input: aPCRE2UTF8Input calloutSites: calloutSiteArray [
+PCRE2TraceRecorder >> initializePattern: patternString patternInput: patternInputObject subject: subjectObject input: aPCRE2Input calloutSites: calloutSiteArray [
 
 	pattern := patternString.
+	patternInput := patternInputObject.
 	subject := subjectObject.
-	input := aPCRE2UTF8Input.
+	input := aPCRE2Input.
 	calloutSites := calloutSiteArray ifNil: [ #(  ) ].
 	events := OrderedCollection new.
 	finished := false.
 	aborted := false.
 	^ self
+]
+
+{ #category : 'initialization' }
+PCRE2TraceRecorder >> initializePattern: patternString subject: subjectObject input: aPCRE2Input calloutSites: calloutSiteArray [
+
+	^ self
+		  initializePattern: patternString
+		  patternInput: patternString asPCRE2UTF8Input
+		  subject: subjectObject
+		  input: aPCRE2Input
+		  calloutSites: calloutSiteArray
 ]
 
 { #category : 'accessing' }
@@ -206,6 +232,12 @@ PCRE2TraceRecorder >> pattern [
 PCRE2TraceRecorder >> patternCharacterRangeForEvent: aPCRE2CalloutEvent [
 
 	^ self asTrace patternCharacterRangeForEvent: aPCRE2CalloutEvent
+]
+
+{ #category : 'accessing' }
+PCRE2TraceRecorder >> patternInput [
+
+	^ patternInput ifNil: [ pattern asPCRE2UTF8Input ]
 ]
 
 { #category : 'accessing' }
