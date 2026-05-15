@@ -91,6 +91,15 @@ PCRE2UTF16MatchContext >> setSubstituteCalloutCallback: callback [
 ]
 
 { #category : 'private' }
+PCRE2UTF16MatchContext >> setSubstituteCaseCalloutCallback: callback [
+	"Set the runtime substitution case callout function for this context.
+	int pcre2_set_substitute_case_callout_16(pcre2_match_context *mcontext, PCRE2_SIZE (*callout_function)(PCRE2_SPTR16, PCRE2_SIZE, PCRE2_UCHAR16 *, PCRE2_SIZE, int, void *), void *callout_data)"
+
+	self ffiCall: #( int pcre2_set_substitute_case_callout_16
+		   #( self #, FFICallback callback #, nil ) )
+]
+
+{ #category : 'private' }
 PCRE2UTF16MatchContext >> unsetCalloutCallback [
 	"Clear the runtime match callout function for this context.
 	int pcre2_set_callout_16(pcre2_match_context *mcontext, NULL, NULL)"
@@ -105,4 +114,13 @@ PCRE2UTF16MatchContext >> unsetSubstituteCalloutCallback [
 
 	self ffiCall:
 		#( int pcre2_set_substitute_callout_16 #( self #, nil #, nil ) )
+]
+
+{ #category : 'private' }
+PCRE2UTF16MatchContext >> unsetSubstituteCaseCalloutCallback [
+	"Clear the runtime substitution case callout function for this context.
+	int pcre2_set_substitute_case_callout_16(pcre2_match_context *mcontext, NULL, NULL)"
+
+	self ffiCall: #( int pcre2_set_substitute_case_callout_16
+		   #( self #, nil #, nil ) )
 ]

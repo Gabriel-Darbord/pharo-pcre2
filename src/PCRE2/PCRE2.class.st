@@ -495,6 +495,13 @@ PCRE2 class >> errorPartial [
 ]
 
 { #category : 'errors' }
+PCRE2 class >> errorReplaceCase [
+	"A substitution case callout reported that it could not transform replacement text."
+
+	^ -69
+]
+
+{ #category : 'errors' }
 PCRE2 class >> errorUnset [
 	"The requested field is not set"
 
@@ -1351,6 +1358,27 @@ PCRE2 class >> substituteCalloutRejectAndStop [
 	^ -1
 ]
 
+{ #category : 'constants' }
+PCRE2 class >> substituteCaseLower [
+	"Substitution case callout request: lowercase the entire input."
+
+	^ 1
+]
+
+{ #category : 'constants' }
+PCRE2 class >> substituteCaseTitleFirst [
+	"Substitution case callout request: titlecase the first character and lowercase the rest."
+
+	^ 3
+]
+
+{ #category : 'constants' }
+PCRE2 class >> substituteCaseUpper [
+	"Substitution case callout request: uppercase the entire input."
+
+	^ 2
+]
+
 { #category : 'options' }
 PCRE2 class >> substituteExtended [
 	"Do extended replacement processing"
@@ -1418,6 +1446,8 @@ PCRE2 class >> substituteUnsetEmpty [
 { #category : 'error handling' }
 PCRE2 class >> translateErrorCode: errorCode [
 
+	errorCode = self errorReplaceCase ifTrue: [
+		^ 'case transformation failed in replacement string' ].
 	^ errorCodeTable
 		  at: errorCode
 		  ifAbsent: [ 'unknown error code: ' , errorCode asString ]

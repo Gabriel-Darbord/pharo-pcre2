@@ -325,6 +325,30 @@ PCRE2UTF16MatcherTest >> testSubstituteCalloutDecodesWideText [
 ]
 
 { #category : 'tests' }
+PCRE2UTF16MatcherTest >> testSubstituteCaseCalloutDecodesWideText [
+
+	| events regex result |
+	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
+	LibPCRE2 supportsSubstitutionCaseCallouts ifFalse: [ ^ self ].
+
+	regex := PCRE2UTF16Compiler new compile: '(\p{L}+)'.
+	events := OrderedCollection new.
+	result := regex
+		          substituteAll: 'café thé'
+		          with: '\U$0'
+		          options: PCRE2 substituteExtended
+		          caseCallout: [ :event |
+			          events add: event.
+			          event inputText , '!' ].
+
+	self assert: result equals: 'café! thé!'.
+	self assert: events size equals: 2.
+	self assert: events first inputText equals: 'café'.
+	self assert: events first caseName equals: #uppercase.
+	self assert: events first codeUnitWidth equals: 16
+]
+
+{ #category : 'tests' }
 PCRE2UTF16MatcherTest >> testSubstitutionAndCopyReuseHighLevelFlow [
 
 	| input match regex replacement |

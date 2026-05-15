@@ -148,6 +148,13 @@ LibPCRE2 class >> supportsSubstitutionCallouts [
 ]
 
 { #category : 'version management' }
+LibPCRE2 class >> supportsSubstitutionCaseCallouts [
+	"PCRE2 10.45 added pcre2_set_substitute_case_callout()."
+
+	^ self uniqueInstance supportsSubstitutionCaseCallouts
+]
+
+{ #category : 'version management' }
 LibPCRE2 class >> supportsUnicode [
 
 	^ self uniqueInstance supportsUnicode
@@ -544,6 +551,12 @@ LibPCRE2 >> supportsPatternConversion [
 LibPCRE2 >> supportsSubstitutionCallouts [
 
 	^ self versionAtLeastMajor: 10 minor: 33
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> supportsSubstitutionCaseCallouts [
+
+	^ self versionAtLeastMajor: 10 minor: 45
 ]
 
 { #category : 'version management' }

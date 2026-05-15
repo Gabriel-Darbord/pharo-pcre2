@@ -17,6 +17,13 @@ PCRE2SubstitutionTest >> skipUnlessSubstitutionCalloutsSupported [
 	^ false
 ]
 
+{ #category : 'private' }
+PCRE2SubstitutionTest >> skipUnlessSubstitutionCaseCalloutsSupported [
+
+	LibPCRE2 supportsSubstitutionCaseCallouts ifFalse: [ ^ true ].
+	^ false
+]
+
 { #category : 'tests' }
 PCRE2SubstitutionTest >> testLiteralReplacementDoesNotExpandCaptures [
 
@@ -238,6 +245,89 @@ PCRE2SubstitutionTest >> testSubstituteCalloutReceivesProcessedReplacement [
 ]
 
 { #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteCaseCalloutCanGrowOutputAndRetry [
+
+	| calls regex replacement result |
+	self skipUnlessSubstitutionCaseCalloutsSupported ifTrue: [ ^ self ].
+	regex := 'a' asPerlCompatibleRegex.
+	replacement := String new: 5000 withAll: $x.
+	calls := 0.
+
+	result := regex
+		          substitute: 'a'
+		          with: '\U$0'
+		          options: PCRE2 substituteExtended
+		          caseCallout: [ :event |
+			          calls := calls + 1.
+			          replacement ].
+
+	self assert: result equals: replacement.
+	self assert: calls > 0
+]
+
+{ #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteCaseCalloutCanUseDefaultTransform [
+
+	| events regex result |
+	self skipUnlessSubstitutionCaseCalloutsSupported ifTrue: [ ^ self ].
+	regex := '(\w+)' asPerlCompatibleRegex.
+	events := OrderedCollection new.
+
+	result := regex
+		          substitute: 'one'
+		          with: '\U$0'
+		          options: PCRE2 substituteExtended
+		          caseCallout: [ :event | events add: event ].
+
+	self assert: result equals: 'ONE'.
+	self assert: events size equals: 1.
+	self assert: events first defaultTransformedText equals: 'ONE'
+]
+
+{ #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteCaseCalloutControlsExtendedCaseConversion [
+
+	| events regex result |
+	self skipUnlessSubstitutionCaseCalloutsSupported ifTrue: [ ^ self ].
+	regex := '(\w+)' asPerlCompatibleRegex.
+	events := OrderedCollection new.
+
+	result := regex
+		          substituteAll: 'one two'
+		          with: '\U$0'
+		          options: PCRE2 substituteExtended
+		          caseCallout: [ :event |
+			          events add: event.
+			          event inputText reversed ].
+
+	self assert: result equals: 'eno owt'.
+	self assert: events size equals: 2.
+	self assert: events first inputText equals: 'one'.
+	self assert: events first caseName equals: #uppercase.
+	self assert: events first codeUnitWidth equals: 8
+]
+
+{ #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteCaseCalloutNilSignalsReplaceCaseError [
+
+	| regex |
+	self skipUnlessSubstitutionCaseCalloutsSupported ifTrue: [ ^ self ].
+	regex := 'a' asPerlCompatibleRegex.
+
+	self
+		should: [
+			regex
+				substitute: 'a'
+				with: '\U$0'
+				options: PCRE2 substituteExtended
+				caseCallout: [ :event | nil ] ]
+		raise: PCRE2MatchError
+		withExceptionDo: [ :error |
+			self assert:
+				(error messageText includesSubstring: 'case transformation') ]
+]
+
+{ #category : 'tests' }
 PCRE2SubstitutionTest >> testSubstituteUsingExistingMatch [
 
 	| input match regex |
@@ -325,6 +415,24 @@ PCRE2SubstitutionTest >> testSubstituteUsingMatchSupportsCallouts [
 	self assert: events size equals: 1.
 	self assert: events first matchedText equals: 'one'.
 	self assert: events first replacementText equals: '[one]'
+]
+
+{ #category : 'tests' }
+PCRE2SubstitutionTest >> testSubstituteUsingMatchSupportsCaseCallout [
+
+	| input match regex result |
+	self skipUnlessSubstitutionCaseCalloutsSupported ifTrue: [ ^ self ].
+	regex := '(\w+)' asPerlCompatibleRegex.
+	input := 'one two' asPCRE2UTF8Input.
+	match := regex findMatch: input.
+
+	result := regex
+		          substituteUsingMatch: match
+		          with: '\U$0'
+		          options: PCRE2 substituteExtended
+		          caseCallout: [ :event | event inputText reversed ].
+
+	self assert: result equals: 'eno two'
 ]
 
 { #category : 'tests' }

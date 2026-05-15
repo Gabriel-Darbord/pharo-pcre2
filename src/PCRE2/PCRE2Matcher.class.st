@@ -1053,6 +1053,17 @@ PCRE2Matcher >> substitute: subject with: replacement calloutsDo: calloutBlock [
 		  calloutsDo: calloutBlock
 ]
 
+{ #category : 'callouts' }
+PCRE2Matcher >> substitute: subject with: replacement caseCallout: caseBlock [
+	"Answer subject with the first match substituted while caseBlock handles replacement case escapes."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  options: self substitutionOptions
+		  caseCallout: caseBlock
+]
+
 { #category : 'matching' }
 PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions [
 	"Answer subject with substitutions applied using the supplied PCRE2 substitution options instead of the matcher options. PCRE2 treats replacement as a substitution expression unless PCRE2 substituteLiteral is set. The implementation may add PCRE2 substituteOverflowLength internally to size the output buffer."
@@ -1069,6 +1080,17 @@ PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions
 	"Answer subject with substitutions applied using substituteOptions while invoking calloutBlock after each processed replacement."
 
 	^ self withSubstituteCallout: calloutBlock do: [ :callbackMatcher |
+		  callbackMatcher
+			  substitute: subject
+			  with: replacement
+			  options: substituteOptions ]
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions caseCallout: caseBlock [
+	"Answer subject with substitutions applied using substituteOptions while caseBlock handles replacement case escapes. Case escapes require PCRE2 substituteExtended."
+
+	^ self withSubstituteCaseCallout: caseBlock do: [ :callbackMatcher |
 		  callbackMatcher
 			  substitute: subject
 			  with: replacement
@@ -1140,6 +1162,28 @@ PCRE2Matcher >> substituteAll: subject with: replacement calloutsDo: calloutBloc
 		  calloutsDo: calloutBlock
 ]
 
+{ #category : 'callouts' }
+PCRE2Matcher >> substituteAll: subject with: replacement caseCallout: caseBlock [
+	"Answer subject with every non-overlapping match substituted while caseBlock handles replacement case escapes."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  options: self substitutionOptions | PCRE2 substituteGlobal
+		  caseCallout: caseBlock
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> substituteAll: subject with: replacement options: substituteOptions caseCallout: caseBlock [
+	"Answer subject with every non-overlapping match substituted using substituteOptions while caseBlock handles replacement case escapes."
+
+	^ self
+		  substitute: subject
+		  with: replacement
+		  options: substituteOptions | PCRE2 substituteGlobal
+		  caseCallout: caseBlock
+]
+
 { #category : 'matching' }
 PCRE2Matcher >> substituteAll: subject withLiteral: replacement [
 	"Answer subject with every non-overlapping match substituted by replacement, treating replacement as literal text."
@@ -1186,18 +1230,19 @@ PCRE2Matcher >> substituteAllReplacementsOnly: subject with: replacement [
 { #category : 'private' }
 PCRE2Matcher >> substituteBytes: subjectBytes replacement: replacement options: substituteOptions matchData: aPCRE2Match [
 	"Apply pcre2_substitute() to prepared subject bytes.
-	The SizeTHolder values are PCRE2 code-unit counts, while ByteArray storage is sized in bytes."
+	The SizeTHolder values are PCRE2 code-unit counts, while ByteArray storage is sized in bytes. Case callouts can make PCRE2 underestimate output size, so retry until the native call succeeds or fails for a reason other than output capacity."
 
-	| buffer bufferCodeUnitSize bytesPerCodeUnit effectiveOptions rc replacementInput subjectCodeUnitSize |
+	| buffer bufferCodeUnitSize bytesPerCodeUnit effectiveOptions holder rc replacementInput subjectCodeUnitSize |
 	bytesPerCodeUnit := self codeUnitByteSize.
 	subjectCodeUnitSize := subjectBytes size // bytesPerCodeUnit.
 	replacementInput := self preparedInputFor: replacement.
 	effectiveOptions := substituteOptions bitOr:
 		                    PCRE2 substituteOverflowLength.
 	bufferCodeUnitSize := 4096.
-	buffer := ByteArray new: bufferCodeUnitSize * bytesPerCodeUnit.
-	bufferCodeUnitSize := SizeTHolder new value: bufferCodeUnitSize.
 
+	[
+	holder := SizeTHolder new value: bufferCodeUnitSize.
+	buffer := ByteArray new: bufferCodeUnitSize * bytesPerCodeUnit.
 	rc := self
 		      substitute: subjectBytes
 		      from: 0
@@ -1207,27 +1252,12 @@ PCRE2Matcher >> substituteBytes: subjectBytes replacement: replacement options: 
 		      replacement: replacementInput bytes
 		      upTo: replacementInput size
 		      output: buffer
-		      size: bufferCodeUnitSize.
+		      size: holder.
+	rc = PCRE2 errorNoMemory ] whileTrue: [
+		bufferCodeUnitSize := holder value max: bufferCodeUnitSize * 2 ].
 
-	rc < 0 ifTrue: [
-		rc == PCRE2 errorNoMemory ifFalse: [ self errorCode: rc ].
-		rc := self
-			      substitute: subjectBytes
-			      from: 0
-			      to: subjectCodeUnitSize
-			      options: effectiveOptions
-			      matchData: aPCRE2Match
-			      replacement: replacementInput bytes
-			      upTo: replacementInput size
-			      output:
-			      (buffer := ByteArray new:
-				                 bufferCodeUnitSize value * bytesPerCodeUnit)
-			      size: bufferCodeUnitSize.
-		rc < 0 ifTrue: [ self errorCode: rc ] ].
-
-	^ self
-		  decodeSubstitutionOutput: buffer
-		  codeUnits: bufferCodeUnitSize value
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	^ self decodeSubstitutionOutput: buffer codeUnits: holder value
 ]
 
 { #category : 'matching' }
@@ -1261,6 +1291,17 @@ PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement calloutsDo: 
 		  calloutsDo: calloutBlock
 ]
 
+{ #category : 'callouts' }
+PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement caseCallout: caseBlock [
+	"Answer the subject remembered by aPCRE2Match after substituting replacement for that match, while caseBlock handles replacement case escapes."
+
+	^ self
+		  substituteUsingMatch: aPCRE2Match
+		  with: replacement
+		  options: self substitutionOptions
+		  caseCallout: caseBlock
+]
+
 { #category : 'matching' }
 PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement options: substituteOptions [
 	"Answer the subject remembered by aPCRE2Match after substituting replacement for that already-computed match. PCRE2 requires the match data to come from this pattern, subject, and compatible match options."
@@ -1284,6 +1325,19 @@ PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement options: sub
 		  with: replacement
 		  options: substituteOptions ] ensure: [
 		  self context clearSubstituteCallout ]
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement options: substituteOptions caseCallout: caseBlock [
+	"Answer the subject remembered by aPCRE2Match after substituting replacement for that match, while caseBlock handles replacement case escapes. This uses the receiver directly because PCRE2_SUBSTITUTE_MATCHED requires the same native compiled-pattern handle that produced the match data."
+
+	self context substituteCaseCalloutBlock: caseBlock.
+	^ [
+	  self
+		  substituteUsingMatch: aPCRE2Match
+		  with: replacement
+		  options: substituteOptions ] ensure: [
+		  self context clearSubstituteCaseCallout ]
 ]
 
 { #category : 'private' }
@@ -1438,4 +1492,15 @@ PCRE2Matcher >> withSubstituteCallout: calloutBlock do: aBlock [
 	callbackMatcher context substituteCalloutBlock: calloutBlock.
 	^ [ aBlock cull: callbackMatcher ] ensure: [
 		  callbackMatcher context clearSubstituteCallout ]
+]
+
+{ #category : 'callouts' }
+PCRE2Matcher >> withSubstituteCaseCallout: caseBlock do: aBlock [
+	"Evaluate aBlock with a temporary matcher whose match context lets caseBlock transform replacement case escapes such as \U, \L, \u, and \l. The case block receives a PCRE2SubstitutionCaseCalloutEvent and should answer transformed text."
+
+	| callbackMatcher |
+	callbackMatcher := self temporaryMatcherForCallout.
+	callbackMatcher context substituteCaseCalloutBlock: caseBlock.
+	^ [ aBlock cull: callbackMatcher ] ensure: [
+		  callbackMatcher context clearSubstituteCaseCallout ]
 ]

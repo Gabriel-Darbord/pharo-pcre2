@@ -12,7 +12,8 @@ Class {
 		'matchLimit',
 		'offsetLimit',
 		'calloutCallback',
-		'substituteCalloutCallback'
+		'substituteCalloutCallback',
+		'substituteCaseCalloutCallback'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -65,6 +66,17 @@ PCRE2MatchContext >> clearSubstituteCallout [
 	rc := self unsetSubstituteCalloutCallback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
 	substituteCalloutCallback := nil.
+	^ self
+]
+
+{ #category : 'callouts' }
+PCRE2MatchContext >> clearSubstituteCaseCallout [
+	"Remove the runtime substitution case callout from this match context."
+
+	| rc |
+	rc := self unsetSubstituteCaseCalloutCallback.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	substituteCaseCalloutCallback := nil.
 	^ self
 ]
 
@@ -175,6 +187,12 @@ PCRE2MatchContext >> setSubstituteCalloutCallback: callback [
 	^ self subclassResponsibility
 ]
 
+{ #category : 'private' }
+PCRE2MatchContext >> setSubstituteCaseCalloutCallback: callback [
+
+	^ self subclassResponsibility
+]
+
 { #category : 'callouts' }
 PCRE2MatchContext >> substituteCalloutBlock: aBlock [
 	"Install a runtime substitution callout. aBlock receives a PCRE2SubstitutionCalloutEvent and may answer a PCRE2 substitution-callout return code; non-integer answers accept the replacement."
@@ -201,6 +219,63 @@ PCRE2MatchContext >> substituteCalloutBlock: aBlock [
 	^ self
 ]
 
+{ #category : 'callouts' }
+PCRE2MatchContext >> substituteCaseCalloutBlock: aBlock [
+	"Install a runtime substitution case callout. aBlock receives a PCRE2SubstitutionCaseCalloutEvent and should answer transformed text. Answer nil to make PCRE2 fail with a replace-case error; non-string answers use PCRE2's requested default transform in Pharo."
+
+	| callback rc |
+	LibPCRE2 supportsSubstitutionCaseCallouts ifFalse: [
+		PCRE2Error signal:
+			'Substitution case callouts require PCRE2 10.45 or newer; loaded '
+			, LibPCRE2 versionString ].
+	callback := FFICallback
+		            signature:
+			            #( size_t #( void #* input #, size_t inputLength
+			                  #, void #* output #, size_t outputCapacity
+			                  #, int caseType #, void #* userData ) )
+		            block: [
+			            :input
+			            :inputLength
+			            :output
+			            :outputCapacity
+			            :caseType
+			            :userData |
+			            | event |
+			            event := PCRE2SubstitutionCaseCalloutEvent
+				                     fromInput: input
+				                     length: inputLength
+				                     outputCapacity: outputCapacity
+				                     caseType: caseType
+				                     codeUnitWidth: self codeUnitWidth.
+			            self
+				            substituteCaseCalloutResultFor: event
+				            output: output
+				            block: aBlock ].
+	rc := self setSubstituteCaseCalloutCallback: callback.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	substituteCaseCalloutCallback := callback.
+	^ self
+]
+
+{ #category : 'private' }
+PCRE2MatchContext >> substituteCaseCalloutResultFor: event output: outputPointer block: aBlock [
+	"Run the user block and copy its encoded answer into PCRE2's output buffer when it fits."
+
+	| answer bytes codeUnitCount text |
+	answer := aBlock value: event.
+	answer ifNil: [ ^ PCRE2 zeroTerminated ].
+	text := answer isString
+		        ifTrue: [ answer ]
+		        ifFalse: [ event defaultTransformedText ].
+	bytes := PCRE2SubstitutionCaseCalloutEvent
+		         bytesForString: text
+		         codeUnitWidth: event codeUnitWidth.
+	codeUnitCount := bytes size // (event codeUnitWidth // 8).
+	codeUnitCount <= event outputCapacity ifTrue: [
+		PCRE2SubstitutionCaseCalloutEvent copyBytes: bytes to: outputPointer ].
+	^ codeUnitCount
+]
+
 { #category : 'private' }
 PCRE2MatchContext >> unsetCalloutCallback [
 	^ self subclassResponsibility
@@ -208,5 +283,11 @@ PCRE2MatchContext >> unsetCalloutCallback [
 
 { #category : 'private' }
 PCRE2MatchContext >> unsetSubstituteCalloutCallback [
+	^ self subclassResponsibility
+]
+
+{ #category : 'private' }
+PCRE2MatchContext >> unsetSubstituteCaseCalloutCallback [
+
 	^ self subclassResponsibility
 ]
