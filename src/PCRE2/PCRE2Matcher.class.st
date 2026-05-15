@@ -565,18 +565,6 @@ PCRE2Matcher >> isJIT: aBoolean [
 ]
 
 { #category : 'private' }
-PCRE2Matcher >> jitMatch: subject from: start to: end matchData: aMatchData [
-	"Run pcre2_jit_match_8 with the matcher's current match options."
-
-	^ self
-		  jitMatch: subject
-		  from: start
-		  to: end
-		  options: options
-		  matchData: aMatchData
-]
-
-{ #category : 'private' }
 PCRE2Matcher >> jitMatch: subject from: start to: end options: matchOptions matchData: aMatchData [
 	"Run pcre2_jit_match_8 on a prepared UTF-8 subject buffer and write offsets into the provided match data. Use void* for the subject because encoding and lifetime are managed explicitly before the FFI call.
 	int pcre2_jit_match_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
@@ -593,18 +581,6 @@ PCRE2Matcher >> mark [
 
 	self error:
 		'PCRE2Matcher no longer keeps the last match; query mark on the returned PCRE2Match'
-]
-
-{ #category : 'private' }
-PCRE2Matcher >> match: subject from: start to: end matchData: aMatchData [
-	"Run pcre2_match_8 with the matcher's current match options."
-
-	^ self
-		  match: subject
-		  from: start
-		  to: end
-		  options: options
-		  matchData: aMatchData
 ]
 
 { #category : 'private' }
@@ -1110,21 +1086,6 @@ PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptio
 		      end #, size_t start #, uint32 substituteOptions
 		      #, nil #, void #* context #, void #* replacement #, size_t
 		      rLength #, void #* buffer #, SizeTHolder outSize ) )
-]
-
-{ #category : 'private' }
-PCRE2Matcher >> substitute: subject from: start to: end replacement: replacement upTo: rLength output: buffer size: outSize [
-	"Backward-compatible private entry using the matcher substitution options sanitized for pcre2_substitute_8. Subject, replacement, and output are prepared byte buffers, so use void* for them and let PCRE2 handle the bytes exactly as supplied."
-
-	^ self
-		  substitute: subject
-		  from: start
-		  to: end
-		  options: self substitutionOptions
-		  replacement: replacement
-		  upTo: rLength
-		  output: buffer
-		  size: outSize
 ]
 
 { #category : 'matching' }

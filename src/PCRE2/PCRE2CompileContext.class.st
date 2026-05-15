@@ -321,13 +321,6 @@ PCRE2CompileContext >> setOptimize: directive [
 ]
 
 { #category : 'private' }
-PCRE2CompileContext >> setOptions [
-	"Backward-compatible private wrapper used by older callers in this package."
-
-	^ self setOptions: self options
-]
-
-{ #category : 'private' }
 PCRE2CompileContext >> setOptions: value [
 	"Set extra compile options on the native context.
 	int pcre2_set_compile_extra_options_8(pcre2_compile_context *ccontext, uint32_t extra_options)"
