@@ -1,7 +1,9 @@
 "
 Restores compiled PCRE2 matchers after an image restart.
 
-The default strategy serializes matchers at shutdown and deserializes them at startup when the native library signature still matches. If the serialized cache is stale or unavailable, the manager falls back to recompiling from the saved pattern and options. This keeps external PCRE2 handles out of normal matcher state while preserving portability across PCRE2 versions and platforms.
+The default strategy serializes matchers at shutdown and deserializes them at startup when the native library signature still matches. The cache is grouped by PCRE2 code-unit width because the 8-bit, 16-bit, and 32-bit libraries deserialize their own compiled patterns.
+
+If the serialized cache is stale or unavailable, the manager falls back to recompiling from the saved pattern and options. This keeps external PCRE2 handles out of normal matcher state while preserving portability across PCRE2 versions and platforms.
 "
 Class {
 	#name : 'PCRE2SessionManager',
@@ -43,12 +45,21 @@ PCRE2SessionManager class >> initialize [
 ]
 
 { #category : 'persistence' }
+PCRE2SessionManager class >> serializationLibraryForCodeUnitWidth: codeUnitWidth [
+	"Answer the PCRE2 FFI library class for a serialized matcher width."
+
+	codeUnitWidth = 8 ifTrue: [ ^ LibPCRE2 ].
+	codeUnitWidth = 16 ifTrue: [ ^ LibPCRE2UTF16 ].
+	codeUnitWidth = 32 ifTrue: [ ^ LibPCRE2UTF32 ].
+	PCRE2Error signal: 'Unsupported PCRE2 serialized code-unit width'
+]
+
+{ #category : 'persistence' }
 PCRE2SessionManager class >> serializationSignature [
 	"Answer the runtime identity that serialized PCRE2 bytecode depends on."
 
 	^ Dictionary newFrom: {
 			  (#pcre2Version -> LibPCRE2 versionString).
-			  (#codeUnitWidth -> 8).
 			  (#endianness -> EndianDetector endianness).
 			  (#wordSize -> ExternalAddress wordSize).
 			  (#sizeTSize
@@ -105,18 +116,35 @@ PCRE2SessionManager >> canDeserializeSerializedMatchers [
 	"Serialized PCRE2 bytecode is only a cache. Use it only when the saved runtime signature still matches."
 
 	^ serializedMatchers notNil and: [
-		  serializedSignature = self class serializationSignature ]
+		  serializedMatchers isDictionary and: [
+			  serializedSignature = self class serializationSignature ] ]
 ]
 
 { #category : 'enumerating' }
 PCRE2SessionManager >> findMatchersToRestore [
-	"Register all UTF-8 matchers and make them persistent.
-	This is a hook used by tests to avoid registering unrelated objects. Wide matcher serialization is not implemented yet."
+	"Register all loaded matchers and make them persistent before shutdown serialization."
 
 	matchersToRestore := OrderedCollection new.
-	PCRE2UTF8Matcher allInstancesDo: [ :matcher |
-		matcher isNull ifFalse: [
-			matchersToRestore add: matcher bePersistent ] ]
+	{
+		PCRE2UTF8Matcher.
+		PCRE2UTF16Matcher.
+		PCRE2UTF32Matcher } do: [ :matcherClass |
+		matcherClass allInstancesDo: [ :matcher |
+			matcher isNull ifFalse: [
+				matchersToRestore add: matcher bePersistent ] ] ]
+]
+
+{ #category : 'persistence' }
+PCRE2SessionManager >> matchersGroupedByCodeUnitWidth [
+	"Group matchers into PCRE2 serialization batches; native serialization is width-specific."
+
+	| groups |
+	groups := Dictionary new.
+	matchersToRestore do: [ :matcher |
+		(groups
+			 at: matcher codeUnitWidth
+			 ifAbsentPut: [ OrderedCollection new ]) add: matcher ].
+	^ groups
 ]
 
 { #category : 'persistence' }
@@ -128,13 +156,34 @@ PCRE2SessionManager >> recompileMatchers [
 
 { #category : 'persistence' }
 PCRE2SessionManager >> restoreSerializedMatchers [
-	"Try to restore the serialized bytecode cache. Answer true on success, false when startup should recompile instead."
+	"Try to restore serialized bytecode caches. Answer true on success, false when startup should recompile instead."
 
 	self canDeserializeSerializedMatchers ifFalse: [ ^ false ].
-	[ LibPCRE2 restore: matchersToRestore from: serializedMatchers ]
+	[
+	self matchersGroupedByCodeUnitWidth keysAndValuesDo: [ :width :matchers |
+		| bytes |
+		bytes := serializedMatchers at: width ifAbsent: [ ^ false ].
+		(self class serializationLibraryForCodeUnitWidth: width)
+			restore: matchers
+			from: bytes ] ]
 		on: PCRE2Error
 		do: [ :ex | ^ false ].
 	^ true
+]
+
+{ #category : 'persistence' }
+PCRE2SessionManager >> serializeMatchersByCodeUnitWidth [
+	"Answer a dictionary of code-unit width to serialized compiled-pattern bytes."
+
+	| serialized |
+	serialized := Dictionary new.
+	self matchersGroupedByCodeUnitWidth keysAndValuesDo: [ :width :matchers |
+		serialized
+			at: width
+			put:
+				((self class serializationLibraryForCodeUnitWidth: width)
+					 serialize: matchers) ].
+	^ serialized
 ]
 
 { #category : 'accessing' }
@@ -157,7 +206,7 @@ PCRE2SessionManager >> shutDown [
 	(self class shouldUseSerialization and: [
 		 matchersToRestore isNotEmpty ]) ifTrue: [
 		serializedSignature := self class serializationSignature.
-		serializedMatchers := LibPCRE2 serialize: matchersToRestore ]
+		serializedMatchers := self serializeMatchersByCodeUnitWidth ]
 ]
 
 { #category : 'system startup' }

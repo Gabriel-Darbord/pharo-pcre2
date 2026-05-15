@@ -43,7 +43,7 @@ PCRE2MockSessionManager >> serializedMatchers [
 ]
 
 { #category : 'accessing' }
-PCRE2MockSessionManager >> serializedMatchers: aByteArray [
+PCRE2MockSessionManager >> serializedMatchers: anObject [
 
-	serializedMatchers := aByteArray
+	serializedMatchers := anObject
 ]

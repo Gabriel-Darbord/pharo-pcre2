@@ -260,7 +260,7 @@ PCRE2Matcher >> dfaMatch: subject workspaceSize: workspaceSize ovectorSize: ovec
 
 { #category : 'byte matching' }
 PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: workspaceSize ovectorSize: ovectorSize [
-	"Run a DFA match over a UTF-8 encoded subject and answer standalone match data, or nil."
+	"Run a DFA match over a prepared subject buffer and answer standalone match data, or nil."
 
 	| match rc |
 	match := self newMatchDataWithOvectorSize: ovectorSize.
@@ -278,7 +278,7 @@ PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: worksp
 
 { #category : 'byte matching' }
 PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: workspaceSize ovectorSize: ovectorSize into: aPCRE2Match [
-	"Run a DFA match over a UTF-8 encoded subject and populate caller-provided match data."
+	"Run a DFA match over a prepared subject buffer and populate caller-provided match data."
 
 	| rc workspace |
 	self validateDFAWorkspaceSize: workspaceSize ovectorSize: ovectorSize.
@@ -901,9 +901,9 @@ PCRE2Matcher >> recordMatchResult: rc in: aPCRE2Match [
 
 { #category : 'persistence' }
 PCRE2Matcher >> restoreFrom: bytes [
-	"This method is for convenience, it is much more effective to serialize matchers in bulk"
+	"Restore this matcher from serialized compiled-pattern bytes produced for the same code-unit width."
 
-	LibPCRE2 restore: { self } from: bytes
+	self ffiLibraryName restore: { self } from: bytes
 ]
 
 { #category : 'persistence' }
@@ -935,11 +935,10 @@ PCRE2Matcher >> search: subject calloutsDo: calloutBlock [
 
 { #category : 'persistence' }
 PCRE2Matcher >> serialize [
-	"Serialize the external memory of the matcher structure, excluding JIT code.
-	This method is for convenience, it is much more effective to serialize matchers in bulk,
-	both in terms of speed and memory, since the character table (1088 bytes) is encoded in the result."
+	"Serialize this matcher's compiled pattern, excluding JIT code.
+	This convenience method is less efficient than serializing same-width matchers in bulk, because PCRE2 repeats shared tables in each serialized blob."
 
-	^ LibPCRE2 serialize: { self }
+	^ self ffiLibraryName serialize: { self }
 ]
 
 { #category : 'splitjoin' }
