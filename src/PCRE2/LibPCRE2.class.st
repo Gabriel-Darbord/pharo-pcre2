@@ -27,6 +27,24 @@ LibPCRE2 class >> config: option [
 	^ self uniqueInstance config: option
 ]
 
+{ #category : 'conversion' }
+LibPCRE2 class >> convertPattern: pattern options: convertOptions [
+
+	^ self uniqueInstance
+		  convertPattern: pattern
+		  options: convertOptions
+		  context: nil
+]
+
+{ #category : 'conversion' }
+LibPCRE2 class >> convertPattern: pattern options: convertOptions context: convertContext [
+
+	^ self uniqueInstance
+		  convertPattern: pattern
+		  options: convertOptions
+		  context: convertContext
+]
+
 { #category : 'persistence' }
 LibPCRE2 class >> deserialize: bytes [
 
@@ -37,6 +55,12 @@ LibPCRE2 class >> deserialize: bytes [
 LibPCRE2 class >> libraryBasename [
 
 	^ 'libpcre2-8'
+]
+
+{ #category : 'instance creation' }
+LibPCRE2 class >> newConvertContext [
+
+	^ self uniqueInstance newConvertContext
 ]
 
 { #category : 'instance creation' }
@@ -95,6 +119,13 @@ LibPCRE2 class >> supportsOptimizationDirectives [
 	"PCRE2 10.45 added pcre2_set_optimize()."
 
 	^ self uniqueInstance supportsOptimizationDirectives
+]
+
+{ #category : 'version management' }
+LibPCRE2 class >> supportsPatternConversion [
+	"PCRE2 10.30 added the experimental pattern conversion API."
+
+	^ self uniqueInstance supportsPatternConversion
 ]
 
 { #category : 'version management' }
@@ -200,6 +231,72 @@ LibPCRE2 >> config: what output: where [
 ]
 
 { #category : 'private' }
+LibPCRE2 >> conversionErrorCode: errorCode in: patternBytes at: offset [
+	"Signal a conversion error at the input byte offset reported by PCRE2."
+
+	PCRE2CompileError
+		signal: (PCRE2 translateErrorCode: errorCode)
+		in: patternBytes asByteArray
+		at: offset
+]
+
+{ #category : 'conversion' }
+LibPCRE2 >> convertPattern: pattern options: convertOptions [
+
+	^ self convertPattern: pattern options: convertOptions context: nil
+]
+
+{ #category : 'conversion' }
+LibPCRE2 >> convertPattern: pattern options: convertOptions context: convertContext [
+	"Convert a foreign pattern string into a PCRE2 pattern string and free the PCRE2-owned output buffer."
+
+	| buffer convertedBytes input outputAddress outputLength rc |
+	self requirePatternConversionSupport.
+	input := PCRE2UTF8Input fromString: pattern.
+	buffer := ByteArray new: ExternalAddress wordSize.
+	outputLength := SizeTHolder new.
+	rc := self
+		      patternConvert: input bytes
+		      upTo: input size
+		      options: convertOptions
+		      output: buffer
+		      size: outputLength
+		      context: convertContext.
+	outputAddress := buffer pointerAtOffset: 0.
+	rc = 0 ifFalse: [
+		outputAddress isNull ifFalse: [
+			self convertedPatternFree: outputAddress ].
+		self conversionErrorCode: rc in: input bytes at: outputLength value ].
+	convertedBytes := ByteArray new: outputLength value.
+	[
+	1 to: outputLength value do: [ :index |
+		convertedBytes
+			at: index
+			put: (outputAddress uint8AtOffset: index - 1) ].
+	^ ZnUTF8Encoder default decodeBytes: convertedBytes ] ensure: [
+		self convertedPatternFree: outputAddress ]
+]
+
+{ #category : 'private' }
+LibPCRE2 >> convertedPatternFree: convertedPattern [
+	"Free a converted pattern allocated by PCRE2."
+
+	self ffiCall:
+		#( void pcre2_converted_pattern_free_8
+		   #( void #* convertedPattern ) )
+]
+
+{ #category : 'private' }
+LibPCRE2 >> createConvertContext [
+	"Create a native conversion context.
+	pcre2_convert_context *pcre2_convert_context_create_8(pcre2_general_context *gcontext)"
+
+	self ffiCall:
+		#( PCRE2ConvertContext #* pcre2_convert_context_create_8
+		   #( nil ) )
+]
+
+{ #category : 'private' }
 LibPCRE2 >> createMatchContext [
 	"This function creates and initializes a new match context.
 	If its argument is NULL, malloc() is used to get the necessary memory; otherwise the memory allocation function within the general context is used.
@@ -248,6 +345,18 @@ LibPCRE2 >> macLibraryName [
 ]
 
 { #category : 'instance creation' }
+LibPCRE2 >> newConvertContext [
+
+	| context |
+	self requirePatternConversionSupport.
+	context := self createConvertContext.
+	context isNull ifTrue: [
+		PCRE2Error signal:
+			'Failed to obtain memory to create convert context' ].
+	^ context autoRelease
+]
+
+{ #category : 'instance creation' }
 LibPCRE2 >> newMatchContext [
 
 	| context |
@@ -255,6 +364,27 @@ LibPCRE2 >> newMatchContext [
 	context isNull ifTrue: [
 		PCRE2Error signal: 'Failed to obtain memory to create match context' ].
 	^ context autoRelease
+]
+
+{ #category : 'private' }
+LibPCRE2 >> patternConvert: pattern upTo: length options: convertOptions output: outputBuffer size: outputLength context: convertContext [
+	"Convert a foreign UTF-8 pattern buffer. The input and output pointer slot are raw buffers, so keep UFFI string conversion out with void*.
+	int pcre2_pattern_convert_8(PCRE2_SPTR pattern, PCRE2_SIZE length, uint32_t options, PCRE2_UCHAR **buffer, PCRE2_SIZE *blength, pcre2_convert_context *cvcontext)"
+
+	self ffiCall:
+		#( int pcre2_pattern_convert_8 #( void #* pattern #, size_t length
+		      #, uint32 convertOptions #, void #* outputBuffer #, SizeTHolder
+		      #* outputLength #, void #* convertContext ) )
+]
+
+{ #category : 'private' }
+LibPCRE2 >> requirePatternConversionSupport [
+	"Fail before calling pattern-conversion entry points that do not exist in older runtimes."
+
+	self supportsPatternConversion ifTrue: [ ^ self ].
+	PCRE2Error signal:
+		'Pattern conversion requires PCRE2 10.30 or newer; loaded '
+		, self versionString
 ]
 
 { #category : 'serializing' }
@@ -371,6 +501,12 @@ LibPCRE2 >> supportsMaxVarLookbehind [
 LibPCRE2 >> supportsOptimizationDirectives [
 
 	^ self versionAtLeastMajor: 10 minor: 45
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> supportsPatternConversion [
+
+	^ self versionAtLeastMajor: 10 minor: 30
 ]
 
 { #category : 'version management' }

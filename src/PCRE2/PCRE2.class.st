@@ -261,6 +261,40 @@ PCRE2 class >> convertGlob [
 	^ 16r00000010
 ]
 
+{ #category : 'conversion' }
+PCRE2 class >> convertGlob: globPattern [
+	"Convert a glob pattern into a PCRE2 pattern string."
+
+	^ self convertGlob: globPattern options: self convertGlob
+]
+
+{ #category : 'conversion' }
+PCRE2 class >> convertGlob: globPattern context: convertContext [
+	"Convert a glob pattern into a PCRE2 pattern string using a convert context."
+
+	^ self
+		  convertGlob: globPattern
+		  options: self convertGlob
+		  context: convertContext
+]
+
+{ #category : 'conversion' }
+PCRE2 class >> convertGlob: globPattern options: convertOptions [
+	"Convert a glob pattern into a PCRE2 pattern string with explicit glob conversion options."
+
+	^ self convertGlob: globPattern options: convertOptions context: nil
+]
+
+{ #category : 'conversion' }
+PCRE2 class >> convertGlob: globPattern options: convertOptions context: convertContext [
+	"Convert a glob pattern into a PCRE2 pattern string. The input is UTF-8, matching the rest of this binding."
+
+	^ self
+		  convertPattern: globPattern
+		  options: (convertOptions bitOr: self convertUTF)
+		  context: convertContext
+]
+
 { #category : 'options' }
 PCRE2 class >> convertGlobNoStarStar [
 	"Convert various types of glob"
@@ -293,12 +327,67 @@ PCRE2 class >> convertPOSIXBasic [
 	^ 16r00000004
 ]
 
+{ #category : 'conversion' }
+PCRE2 class >> convertPOSIXBasic: posixPattern [
+	"Convert a POSIX basic regular expression into a PCRE2 pattern string."
+
+	^ self
+		  convertPattern: posixPattern
+		  options: self convertPOSIXBasic | self convertUTF
+]
+
+{ #category : 'conversion' }
+PCRE2 class >> convertPOSIXBasic: posixPattern context: convertContext [
+	"Convert a POSIX basic regular expression into a PCRE2 pattern string using a convert context."
+
+	^ self
+		  convertPattern: posixPattern
+		  options: self convertPOSIXBasic | self convertUTF
+		  context: convertContext
+]
+
 { #category : 'options' }
 PCRE2 class >> convertPOSIXExtended [
 	"Convert POSIX extended pattern"
 
 	<pcre2Option: #( convert )>
 	^ 16r00000008
+]
+
+{ #category : 'conversion' }
+PCRE2 class >> convertPOSIXExtended: posixPattern [
+	"Convert a POSIX extended regular expression into a PCRE2 pattern string."
+
+	^ self
+		  convertPattern: posixPattern
+		  options: self convertPOSIXExtended | self convertUTF
+]
+
+{ #category : 'conversion' }
+PCRE2 class >> convertPOSIXExtended: posixPattern context: convertContext [
+	"Convert a POSIX extended regular expression into a PCRE2 pattern string using a convert context."
+
+	^ self
+		  convertPattern: posixPattern
+		  options: self convertPOSIXExtended | self convertUTF
+		  context: convertContext
+]
+
+{ #category : 'conversion' }
+PCRE2 class >> convertPattern: pattern options: convertOptions [
+	"Convert a foreign pattern into a PCRE2 pattern string using explicit PCRE2_CONVERT_* option bits."
+
+	^ LibPCRE2 convertPattern: pattern options: convertOptions
+]
+
+{ #category : 'conversion' }
+PCRE2 class >> convertPattern: pattern options: convertOptions context: convertContext [
+	"Convert a foreign pattern into a PCRE2 pattern string using an optional convert context."
+
+	^ LibPCRE2
+		  convertPattern: pattern
+		  options: convertOptions
+		  context: convertContext
 ]
 
 { #category : 'options' }
