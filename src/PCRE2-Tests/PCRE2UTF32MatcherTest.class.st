@@ -200,6 +200,26 @@ PCRE2UTF32MatcherTest >> testCompileReturnsUTF32Matcher [
 ]
 
 { #category : 'tests' }
+PCRE2UTF32MatcherTest >> testDFAMatchReturnsAllAlternatives [
+
+	| match regex subject |
+	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+
+	subject := 'the caterpillar catchment'.
+	regex := PCRE2UTF32Compiler new compile: 'cat(er(pillar)?)?'.
+	match := regex dfaMatch: subject workspaceSize: 40 ovectorSize: 3.
+
+	self assert: match class equals: PCRE2UTF32Match.
+	self assert: match count equals: 3.
+	self
+		assert: match readMatches
+		equals: #( 'caterpillar' 'cater' 'cat' ).
+	self
+		assert: (regex dfaMatches: subject workspaceSize: 40 ovectorSize: 3)
+		equals: #( 'caterpillar' 'cater' 'cat' )
+]
+
+{ #category : 'tests' }
 PCRE2UTF32MatcherTest >> testFindAllAndSplitReuseHighLevelFlow [
 
 	| regex |

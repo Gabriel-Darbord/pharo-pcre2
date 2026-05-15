@@ -71,9 +71,15 @@ PCRE2UTF32Matcher >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
 
 { #category : 'private' }
 PCRE2UTF32Matcher >> dfaMatch: subject from: start to: end matchData: aMatchData workspace: workspace size: workspaceSize [
-	"UTF-32 DFA matching needs width-specific tests before it is exposed."
+	"Run a UTF-32 DFA match with caller-managed match data and workspace storage.
+	Subject and workspace are prepared raw buffers, so both use void* to avoid UFFI element/string conversion.
+	int pcre2_dfa_match_32(const pcre2_code_32 *code, PCRE2_SPTR32 subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data_32 *match_data, pcre2_match_context_32 *mcontext, int *workspace, PCRE2_SIZE wscount)"
 
-	PCRE2Error signal: 'UTF-32 DFA matching is not implemented yet'
+	self ffiCall:
+		#( int pcre2_dfa_match_32 #( self #, void #* subject #, size_t
+		      end #, size_t start #, uint32 options #, #PCRE2UTF32Match
+		      #* aMatchData #, void #* context #, void #* workspace
+		      #, size_t workspaceSize ) )
 ]
 
 { #category : 'private' }
