@@ -20,6 +20,12 @@ Class {
 	#package : 'PCRE2'
 }
 
+{ #category : 'testing' }
+PCRE2CompileContext class >> isAbstract [
+
+	^ self == PCRE2CompileContext
+]
+
 { #category : 'accessing' }
 PCRE2CompileContext >> addOptions: anInteger [
 

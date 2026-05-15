@@ -24,6 +24,12 @@ Class {
 	#package : 'PCRE2'
 }
 
+{ #category : 'testing' }
+PCRE2Match class >> isAbstract [
+
+	^ self == PCRE2Match
+]
+
 { #category : 'persistence' }
 PCRE2Match >> bePersistent [
 	"Copy native offset data into Pharo memory and release my external match-data handle. Named-group metadata is already Pharo-side state."

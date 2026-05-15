@@ -22,6 +22,12 @@ Class {
 	#package : 'PCRE2'
 }
 
+{ #category : 'testing' }
+PCRE2Matcher class >> isAbstract [
+
+	^ self == PCRE2Matcher
+]
+
 { #category : 'documentation' }
 PCRE2Matcher >> allInfo [
 	"Use `PCRE2 allInfoOnRegex:` for a human-readable format"

@@ -18,6 +18,12 @@ Class {
 	#package : 'PCRE2'
 }
 
+{ #category : 'testing' }
+PCRE2MatchContext class >> isAbstract [
+
+	^ self == PCRE2MatchContext
+]
+
 { #category : 'callouts' }
 PCRE2MatchContext >> calloutBlock: aBlock [
 	"Install a runtime callout. aBlock receives a PCRE2CalloutEvent and may answer an integer PCRE2 return code; non-integer answers continue matching."

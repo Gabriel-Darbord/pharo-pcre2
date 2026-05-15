@@ -58,6 +58,12 @@ PCRE2Compiler class >> initialize [
 	SessionManager default registerToolClassNamed: self name
 ]
 
+{ #category : 'testing' }
+PCRE2Compiler class >> isAbstract [
+
+	^ self == PCRE2Compiler
+]
+
 { #category : 'instance creation' }
 PCRE2Compiler class >> new [
 	self == PCRE2Compiler ifTrue: [ ^ PCRE2UTF8Compiler basicNew initialize ].
