@@ -3,7 +3,7 @@ Abstract superclass for the native PCRE2 library bindings.
 
 Concrete subclasses bind one PCRE2 code-unit library: LibPCRE2UTF8 for libpcre2-8, LibPCRE2UTF16 for libpcre2-16, and LibPCRE2UTF32 for libpcre2-32. This class keeps shared library discovery, version/configuration queries, serialization flow, error handling, and capability checks.
 
-For compatibility, class-side convenience sends to LibPCRE2 use the UTF-8 library as the default concrete binding.
+Use a concrete subclass for runtime calls. LibPCRE2 itself should not be instantiated.
 "
 Class {
 	#name : 'LibPCRE2',
@@ -24,14 +24,12 @@ LibPCRE2 class >> assertCompatibleLibrary [
 { #category : 'code-unit width' }
 LibPCRE2 class >> codeUnitWidth [
 
-	self isAbstract ifTrue: [ ^ self defaultLibrary codeUnitWidth ].
 	^ self subclassResponsibility
 ]
 
 { #category : 'code-unit width' }
 LibPCRE2 class >> codeUnitWidthMask [
 
-	self isAbstract ifTrue: [ ^ self defaultLibrary codeUnitWidthMask ].
 	^ self subclassResponsibility
 ]
 
@@ -59,13 +57,6 @@ LibPCRE2 class >> convertPattern: pattern options: convertOptions context: conve
 		  context: convertContext
 ]
 
-{ #category : 'library path' }
-LibPCRE2 class >> defaultLibrary [
-	"Answer the default concrete PCRE2 binding used by class-side compatibility helpers."
-
-	^ LibPCRE2UTF8
-]
-
 { #category : 'persistence' }
 LibPCRE2 class >> deserialize: bytes [
 
@@ -86,9 +77,7 @@ LibPCRE2 class >> jitFreeUnusedMemory [
 
 { #category : 'library path' }
 LibPCRE2 class >> libraryBasename [
-	"Answer the native library basename. Compatibility sends to the abstract class use the default UTF-8 binding."
 
-	self isAbstract ifTrue: [ ^ self defaultLibrary libraryBasename ].
 	^ self subclassResponsibility
 ]
 
@@ -203,9 +192,11 @@ LibPCRE2 class >> supportsUnicode [
 
 { #category : 'instance creation' }
 LibPCRE2 class >> uniqueInstance [
-	"Use the UTF-8 binding for compatibility sends to the abstract library class."
+	"LibPCRE2 is abstract. Use LibPCRE2UTF8, LibPCRE2UTF16, or LibPCRE2UTF32 for runtime calls."
 
-	self isAbstract ifTrue: [ ^ self defaultLibrary uniqueInstance ].
+	self isAbstract ifTrue: [
+		PCRE2Error signal:
+			'LibPCRE2 is abstract; use a concrete PCRE2 library binding' ].
 	^ super uniqueInstance
 ]
 

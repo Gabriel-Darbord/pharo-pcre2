@@ -105,8 +105,8 @@ PCRE2SessionManagerTest >> testStartUpWithInvalidSerializationFallsBackToRecompi
 PCRE2SessionManagerTest >> testStartUpWithMixedWidthSerialization [
 
 	| manager utf8 utf16 utf32 |
-	(LibPCRE2 supports16BitCodeUnitWidth and: [
-		 LibPCRE2 supports32BitCodeUnitWidth ]) ifFalse: [ ^ self ].
+	(LibPCRE2UTF8 supports16BitCodeUnitWidth and: [
+		 LibPCRE2UTF8 supports32BitCodeUnitWidth ]) ifFalse: [ ^ self ].
 
 	PCRE2MockSessionManager useSerialization: true.
 	manager := PCRE2MockSessionManager new.
@@ -220,7 +220,7 @@ PCRE2SessionManagerTest >> testStartUpWithStaleSerializationFallsBackToRecompila
 PCRE2SessionManagerTest >> testUTF16MatcherSerializationConvenienceRoundTrip [
 
 	| bytes regex |
-	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
+	LibPCRE2UTF8 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
 
 	regex := PCRE2UTF16Compiler new compile: 'é+'.
 	bytes := regex serialize.
@@ -237,7 +237,7 @@ PCRE2SessionManagerTest >> testUTF16MatcherSerializationConvenienceRoundTrip [
 PCRE2SessionManagerTest >> testUTF32MatcherSerializationConvenienceRoundTrip [
 
 	| bytes regex |
-	LibPCRE2 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
+	LibPCRE2UTF8 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
 
 	regex := PCRE2UTF32Compiler new compile: 'é+'.
 	bytes := regex serialize.

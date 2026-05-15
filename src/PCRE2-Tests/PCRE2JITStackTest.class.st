@@ -11,7 +11,7 @@ Class {
 { #category : 'private' }
 PCRE2JITStackTest >> skipUnlessJITSupported [
 
-	LibPCRE2 supportsJIT ifFalse: [ ^ true ].
+	LibPCRE2UTF8 supportsJIT ifFalse: [ ^ true ].
 	^ false
 ]
 
@@ -51,7 +51,7 @@ PCRE2JITStackTest >> testRejectsMismatchedCodeUnitWidth [
 
 	| stack regex |
 	self skipUnlessJITSupported ifTrue: [ ^ self ].
-	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
+	LibPCRE2UTF8 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
 
 	regex := 'a' asPerlCompatibleRegex.
 	stack := PCRE2UTF16JITStack default.
@@ -84,8 +84,8 @@ PCRE2JITStackTest >> testWideJITStacksCanBeAssigned [
 
 	| regex16 regex32 stack16 stack32 |
 	self skipUnlessJITSupported ifTrue: [ ^ self ].
-	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
-	LibPCRE2 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
+	LibPCRE2UTF8 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
+	LibPCRE2UTF8 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
 
 	stack16 := PCRE2UTF16JITStack default.
 	regex16 := PCRE2UTF16Compiler new compile: 'a+'.

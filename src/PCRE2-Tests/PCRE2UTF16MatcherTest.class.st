@@ -17,7 +17,7 @@ PCRE2UTF16MatcherTest >> emojiString [
 { #category : 'private' }
 PCRE2UTF16MatcherTest >> skipUnlessUTF16Supported [
 
-	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ true ].
+	LibPCRE2UTF8 supports16BitCodeUnitWidth ifFalse: [ ^ true ].
 	^ false
 ]
 
@@ -320,7 +320,7 @@ PCRE2UTF16MatcherTest >> testSubstituteCalloutDecodesWideText [
 
 	| events regex result |
 	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
-	LibPCRE2 supportsSubstitutionCallouts ifFalse: [ ^ self ].
+	LibPCRE2UTF8 supportsSubstitutionCallouts ifFalse: [ ^ self ].
 
 	regex := PCRE2UTF16Compiler new compile: 'é'.
 	events := OrderedCollection new.
@@ -344,7 +344,7 @@ PCRE2UTF16MatcherTest >> testSubstituteCaseCalloutDecodesWideText [
 
 	| events regex result |
 	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
-	LibPCRE2 supportsSubstitutionCaseCallouts ifFalse: [ ^ self ].
+	LibPCRE2UTF8 supportsSubstitutionCaseCallouts ifFalse: [ ^ self ].
 
 	regex := PCRE2UTF16Compiler new compile: '(\p{L}+)'.
 	events := OrderedCollection new.

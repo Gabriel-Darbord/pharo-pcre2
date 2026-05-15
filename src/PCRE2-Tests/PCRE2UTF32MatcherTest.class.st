@@ -11,7 +11,7 @@ Class {
 { #category : 'private' }
 PCRE2UTF32MatcherTest >> skipUnlessUTF32Supported [
 
-	LibPCRE2 supports32BitCodeUnitWidth ifFalse: [ ^ true ].
+	LibPCRE2UTF8 supports32BitCodeUnitWidth ifFalse: [ ^ true ].
 	^ false
 ]
 
@@ -313,7 +313,7 @@ PCRE2UTF32MatcherTest >> testSubstituteCalloutDecodesWideText [
 
 	| events regex result |
 	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
-	LibPCRE2 supportsSubstitutionCallouts ifFalse: [ ^ self ].
+	LibPCRE2UTF8 supportsSubstitutionCallouts ifFalse: [ ^ self ].
 
 	regex := PCRE2UTF32Compiler new compile: 'é'.
 	events := OrderedCollection new.
@@ -337,7 +337,7 @@ PCRE2UTF32MatcherTest >> testSubstituteCaseCalloutDecodesWideText [
 
 	| events regex result |
 	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
-	LibPCRE2 supportsSubstitutionCaseCallouts ifFalse: [ ^ self ].
+	LibPCRE2UTF8 supportsSubstitutionCaseCallouts ifFalse: [ ^ self ].
 
 	regex := PCRE2UTF32Compiler new compile: '(\p{L}+)'.
 	events := OrderedCollection new.

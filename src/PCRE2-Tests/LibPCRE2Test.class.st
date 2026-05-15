@@ -29,10 +29,6 @@ LibPCRE2Test >> testConfig [
 	| configs supportsJIT version |
 	self assert: LibPCRE2 isAbstract.
 	self deny: LibPCRE2UTF8 isAbstract.
-	self assert: LibPCRE2 uniqueInstance class equals: LibPCRE2UTF8.
-	self
-		assert: LibPCRE2 libraryBasename
-		equals: LibPCRE2UTF8 libraryBasename.
 
 	version := LibPCRE2UTF8 version.
 	configs := LibPCRE2UTF8 uniqueInstance allConfigs.

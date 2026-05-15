@@ -31,7 +31,7 @@ PCRE2DebugSessionTest >> assertContextText: aText highlights: expectedSubstring 
 PCRE2DebugSessionTest >> testDebugSessionCanTraceWithUTF16Compiler [
 
 	| session |
-	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
+	LibPCRE2UTF8 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
 
 	session := PCRE2DebugSession
 		           pattern: 'é'
@@ -49,7 +49,7 @@ PCRE2DebugSessionTest >> testDebugSessionCanTraceWithUTF16Compiler [
 PCRE2DebugSessionTest >> testDebugSessionCanTraceWithUTF32Compiler [
 
 	| session |
-	LibPCRE2 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
+	LibPCRE2UTF8 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
 
 	session := PCRE2DebugSession
 		           pattern: 'é'
@@ -243,7 +243,7 @@ PCRE2DebugSessionTest >> testDebuggerPresenterUsesSession [
 PCRE2DebugSessionTest >> testLiveDebugRunCanUseUTF16Compiler [
 
 	| run |
-	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
+	LibPCRE2UTF8 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
 
 	run := PCRE2LiveDebugRun
 		       pattern: 'é'
@@ -263,7 +263,7 @@ PCRE2DebugSessionTest >> testLiveDebugRunCanUseUTF16Compiler [
 PCRE2DebugSessionTest >> testLiveDebugRunCanUseUTF32Compiler [
 
 	| run |
-	LibPCRE2 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
+	LibPCRE2UTF8 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
 
 	run := PCRE2LiveDebugRun
 		       pattern: 'é'
