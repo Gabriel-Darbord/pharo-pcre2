@@ -1,17 +1,9 @@
 "
-Represents a compiled PCRE2 pattern and provides the public matching API.
+Abstract superclass for compiled PCRE2 matchers.
 
-Typical use:
+Concrete subclasses bind the width-specific native API: PCRE2UTF8Matcher, PCRE2UTF16Matcher, and PCRE2UTF32Matcher. This class keeps the shared matching, enumeration, group, split, persistence, and diagnostic behavior that can be expressed independently of the code-unit width.
 
-    matcher := '(?<name>\\w+)' asPerlCompatibleRegex.
-    match := matcher findMatch: 'alice'.
-    match groupNamed: 'name'.
-
-High-level methods accept normal Pharo strings and prepared PCRE2UTF8Input instances. Strings are prepared as UTF-8 bytes before calling PCRE2; ASCII ByteStrings can be reused directly, while other strings are encoded and decoded through Zinc.
-
-Match operations create standalone PCRE2Match objects. The matcher does not own a reusable match result, so callers can keep a returned match and ask it for text, groups, offsets, marks, and partial/complete status later.
-
-The API includes full/prefix/search matching, match enumeration, splitting, substitution, callouts, tracing, byte-level matching, and DFA matching. Instances may be JIT-compiled when the native library supports it. Lifecycle restoration is handled by PCRE2SessionManager.
+Match operations create standalone PCRE2Match subclasses. A matcher does not own a reusable match result, so callers can keep a returned match and inspect text, groups, offsets, marks, and partial/complete status later.
 "
 Class {
 	#name : 'PCRE2Matcher',
@@ -95,9 +87,7 @@ PCRE2Matcher >> canUseJITForOptions: matchOptions [
 
 { #category : 'documentation' }
 PCRE2Matcher >> codeUnitWidth [
-	"Answer the PCRE2 code-unit width used by this matcher."
-
-	^ 8
+	^ self subclassResponsibility
 ]
 
 { #category : 'compiling' }
@@ -110,17 +100,7 @@ PCRE2Matcher >> compileJIT [
 
 { #category : 'compiling' }
 PCRE2Matcher >> compileJIT: anInteger [
-	"Request JIT (re-)compilation for this compiled pattern.
-	If supported and unless reconfigured, patterns are JIT-compiled by default.
-	The available options are jitComplete, jitPartialSoft and jitPartialHard."
-
-	| newCompiler |
-	(newCompiler := PCRE2Compiler new)
-		options: compiler options;
-		context: compiler context;
-		optionsJIT: anInteger;
-		compileJIT: self.
-	compiler := newCompiler
+	^ self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -157,33 +137,7 @@ PCRE2Matcher >> context: aMatchContext [
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> copy: subject matchesDo: aBlock [
-	"Copy the subject and execute a block for each match."
-
-	| input lastIndex rs ws |
-	input := self preparedInputFor: subject.
-	lastIndex := 0.
-	rs := ReadStream on: input bytes.
-	ws := WriteStream on: (String new: 100).
-	self
-		matchAll: input bytes
-		from: 1
-		to: input size
-		do: [ :match |
-			| start |
-			rs position: lastIndex.
-			start := match startOffsetAt: 1.
-			lastIndex := match endOffsetAt: 1.
-			[ rs position < start ] whileTrue: [
-				ws nextPut: (input nextFromStream: rs) ].
-			aBlock
-				value: ws
-				value: input bytes
-				value: start + 1
-				value: lastIndex ].
-
-	rs position: lastIndex.
-	[ rs atEnd ] whileFalse: [ ws nextPut: (input nextFromStream: rs) ].
-	^ ws contents
+	^ self subclassResponsibility
 ]
 
 { #category : 'match enumeration' }
@@ -208,38 +162,22 @@ PCRE2Matcher >> copy: subject translatingMatchesUsing: aBlock [
 
 { #category : 'private' }
 PCRE2Matcher >> createMatchContext [
-	"This function creates and initializes a new match context.
-	If its argument is NULL, malloc() is used to get the necessary memory; otherwise the memory allocation function within the general context is used.
-	The result is NULL if the memory could not be obtained."
-
-	self ffiCall: #(PCRE2MatchContext *pcre2_match_context_create_8(nil))
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> createMatchDataFromPattern [
-	"Create a new match data structure with enough space to store the offsets of the match and all capture groups
-	pcre2_match_data *pcre2_match_data_create_from_pattern(const pcre2_code *code, pcre2_general_context *gcontext)"
-
-	self ffiCall: #(void *pcre2_match_data_create_from_pattern_8(self, nil))
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> createMatchDataWithOvectorSize: ovectorSize [
-	"Create a new match data structure with room for an explicit number of offset pairs.
-	pcre2_match_data *pcre2_match_data_create(uint32_t ovecsize, pcre2_general_context *gcontext)"
-
-	self ffiCall:
-		#( void #* pcre2_match_data_create_8 #( uint32 ovectorSize
-		      #, nil ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> decodeUTF8Output: buffer upTo: byteSize [
-	"Decode a PCRE2 UTF-8 output buffer back to a Pharo string."
-
-	byteSize = 0 ifTrue: [ ^ String new ].
-	^ ZnUTF8Encoder default decodeBytes:
-		  (buffer copyFrom: 1 to: byteSize)
+	^ self subclassResponsibility
 ]
 
 { #category : 'matching' }
@@ -251,13 +189,7 @@ PCRE2Matcher >> dfaMatch: subject [
 
 { #category : 'private' }
 PCRE2Matcher >> dfaMatch: subject from: start to: end matchData: aMatchData workspace: workspace size: workspaceSize [
-	"Run a DFA match with caller-managed match data and workspace storage. Subject and workspace are prepared raw buffers, so both use void* to avoid UFFI element/string conversion.
-	int pcre2_dfa_match_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, int *workspace, PCRE2_SIZE wscount)"
-
-	self ffiCall:
-		#( int pcre2_dfa_match_8 #( self #, void #* subject #, size_t end
-		      #, size_t start #, uint32 options #, PCRE2Match #* aMatchData
-		      #, void #* context #, void #* workspace #, size_t workspaceSize ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'matching' }
@@ -351,12 +283,7 @@ PCRE2Matcher >> dfaMatches: subject workspaceSize: workspaceSize ovectorSize: ov
 
 { #category : 'private' }
 PCRE2Matcher >> enumerateCalloutsWith: callback [
-	"Enumerate static callout sites in the compiled pattern. This does not run a match or change the matcher.
-	int pcre2_callout_enumerate_8(const pcre2_code *code, int (*callback)(pcre2_callout_enumerate_block *, void *), void *user_data)"
-
-	self ffiCall:
-		#( int pcre2_callout_enumerate_8 #( self #, FFICallback callback
-		      #, nil ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'error handling' }
@@ -511,8 +438,7 @@ PCRE2Matcher >> findWithGroups: subject [
 
 { #category : 'external resource management' }
 PCRE2Matcher >> free [
-
-	self ffiCall: #(void pcre2_code_free_8(self))
+	^ self subclassResponsibility
 ]
 
 { #category : 'documentation' }
@@ -550,10 +476,7 @@ PCRE2Matcher >> info: option [
 
 { #category : 'private' }
 PCRE2Matcher >> info: what output: where [
-
-	"int pcre2_pattern_info(const pcre2_code *code, uint32_t what, void *where)"
-
-	self ffiCall: #(int pcre2_pattern_info_8(self, uint32 what, void *where))
+	^ self subclassResponsibility
 ]
 
 { #category : 'initialization' }
@@ -582,13 +505,7 @@ PCRE2Matcher >> isJIT: aBoolean [
 
 { #category : 'private' }
 PCRE2Matcher >> jitMatch: subject from: start to: end options: matchOptions matchData: aMatchData [
-	"Run pcre2_jit_match_8 on a prepared UTF-8 subject buffer and write offsets into the provided match data. Use void* for the subject because encoding and lifetime are managed explicitly before the FFI call.
-	int pcre2_jit_match_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
-
-	self ffiCall:
-		#( int pcre2_jit_match_8 #( self #, void #* subject #, size_t end
-		      #, size_t start #, uint32 matchOptions #, PCRE2Match
-		      #* aMatchData #, void #* context ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'querying' }
@@ -601,13 +518,7 @@ PCRE2Matcher >> mark [
 
 { #category : 'private' }
 PCRE2Matcher >> match: subject from: start to: end options: matchOptions matchData: aMatchData [
-	"Run pcre2_match_8 on a prepared UTF-8 subject buffer and write offsets into the provided match data. Use void* for the subject because encoding and lifetime are managed explicitly before the FFI call.
-	int pcre2_match_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
-
-	self ffiCall:
-		#( int pcre2_match_8 #( self #, void #* subject #, size_t end #, size_t
-		      start #, uint32 matchOptions #, PCRE2Match #* aMatchData
-		      #, void #* context ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'byte matching' }
@@ -701,8 +612,7 @@ PCRE2Matcher >> matchBytes: subject from: start to: end options: matchOptions in
 
 { #category : 'private' }
 PCRE2Matcher >> matchClass [
-
-	^ PCRE2Match
+	^ self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -879,55 +789,17 @@ PCRE2Matcher >> postCopy [
 
 { #category : 'private' }
 PCRE2Matcher >> preparedInputFor: aStringOrInput [
-
-	^ aStringOrInput asPCRE2UTF8Input
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> privateCopy [
-	"This function makes a copy of the memory used for a compiled pattern, excluding any memory used by the JIT compiler.
-	Without a subsequent call to jit_compile(), the copy can be used only for non-JIT matching.
-	The pointer to the character tables is copied, not the tables themselves (see pcre2_code_copy_with_tables()).
-	The yield of the function is NULL if code is NULL or if sufficient memory cannot be obtained."
-
-	self ffiCall: #(void *pcre2_code_copy_8(self))
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> readNamedGroups [
-	"Read PCRE2's name table into a sparse Array keyed by capture group number."
-
-	| buffer captureCount entrySize nameCount rc table |
-	buffer := ByteArray new: 4.
-
-	rc := self info: PCRE2 infoNameCount output: buffer.
-	rc < 0 ifTrue: [ self errorCode: rc ].
-	(nameCount := buffer uint32AtOffset: 0) = 0 ifTrue: [ ^ #(  ) ].
-
-	captureCount := self info: PCRE2 infoCaptureCount.
-	table := Array new: captureCount.
-
-	rc := self info: PCRE2 infoNameEntrySize output: buffer.
-	rc < 0 ifTrue: [ self errorCode: rc ].
-	entrySize := buffer uint32AtOffset: 0.
-
-	buffer := ByteArray new: ExternalAddress wordSize.
-	rc := self info: PCRE2 infoNameTable output: buffer.
-	rc < 0 ifTrue: [ self errorCode: rc ].
-	buffer := buffer pointerAtOffset: 0.
-
-	1 to: nameCount do: [ :i |
-		| captureIndex name offset |
-		offset := entrySize * (i - 1).
-		captureIndex := ((buffer uint8AtOffset: offset) bitShift: 8) bitOr:
-			                (buffer uint8AtOffset: (offset := offset + 1)).
-		name := ByteArray new: entrySize - 3 streamContents: [ :stream |
-			        | char |
-			        [
-			        (char := buffer uint8AtOffset: (offset := offset + 1)) = 0 ]
-				        whileFalse: [ stream nextPut: char ] ].
-		table at: captureIndex put: name utf8Decoded ].
-	^ table
+	^ self subclassResponsibility
 ]
 
 { #category : 'persistence' }
@@ -1068,52 +940,17 @@ PCRE2Matcher >> startIndex [
 
 { #category : 'private' }
 PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions matchData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
-	"Dispatch pcre2_substitute_8 with or without caller-supplied match data. A nil match data lets PCRE2 perform the match; a non-nil match data is used with PCRE2 substituteMatched."
-
-	aPCRE2Match ifNil: [
-		^ self
-			  substitute: subject
-			  from: start
-			  to: end
-			  options: substituteOptions
-			  replacement: replacement
-			  upTo: rLength
-			  output: buffer
-			  size: outSize ].
-	^ self
-		  substitute: subject
-		  from: start
-		  to: end
-		  options: substituteOptions
-		  matchedData: aPCRE2Match
-		  replacement: replacement
-		  upTo: rLength
-		  output: buffer
-		  size: outSize
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions matchedData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
-	"Apply substitutions into caller-provided output storage using precomputed match data for the first match. Subject, replacement, and output are prepared byte buffers, so use void* for them and let PCRE2 handle the bytes exactly as supplied.
-	int pcre2_substitute_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, PCRE2_SPTR replacement, PCRE2_SIZE rlength, PCRE2_UCHAR *outputbuffer, PCRE2_SIZE *outlengthptr)"
-
-	self ffiCall:
-		#( int pcre2_substitute_8 #( self #, void #* subject #, size_t
-		      end #, size_t start #, uint32 substituteOptions
-		      #, PCRE2Match #* aPCRE2Match #, void #* context #, void #* replacement
-		      #, size_t rLength #, void #* buffer #, SizeTHolder outSize ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions replacement: replacement upTo: rLength output: buffer size: outSize [
-	"Apply substitutions into caller-provided output storage without precomputed match data. Subject, replacement, and output are prepared byte buffers, so use void* for them and let PCRE2 handle the bytes exactly as supplied.
-	int pcre2_substitute_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, PCRE2_SPTR replacement, PCRE2_SIZE rlength, PCRE2_UCHAR *outputbuffer, PCRE2_SIZE *outlengthptr)"
-
-	self ffiCall:
-		#( int pcre2_substitute_8 #( self #, void #* subject #, size_t
-		      end #, size_t start #, uint32 substituteOptions
-		      #, nil #, void #* context #, void #* replacement #, size_t
-		      rLength #, void #* buffer #, SizeTHolder outSize ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'matching' }
@@ -1171,15 +1008,7 @@ PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions
 
 { #category : 'private' }
 PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions matchData: aPCRE2Match [
-	"Private helper for pcre2_substitute_8. Encode a normal subject or reuse a prepared UTF-8 input, then pass optional PCRE2 match data to the byte-level helper."
-
-	| input |
-	input := self preparedInputFor: subject.
-	^ self
-		  substituteBytes: input bytes
-		  replacement: replacement
-		  options: substituteOptions
-		  matchData: aPCRE2Match
+	^ self subclassResponsibility
 ]
 
 { #category : 'matching' }
@@ -1279,41 +1108,7 @@ PCRE2Matcher >> substituteAllReplacementsOnly: subject with: replacement [
 
 { #category : 'private' }
 PCRE2Matcher >> substituteBytes: subjectBytes replacement: replacement options: substituteOptions matchData: aPCRE2Match [
-	"Apply pcre2_substitute_8 to prepared subject bytes. Automatically enable PCRE2 substituteOverflowLength so large outputs can be retried with the exact required buffer size."
-
-	| buffer bufferSize effectiveOptions rc replacementInput |
-	replacementInput := self preparedInputFor: replacement.
-	effectiveOptions := substituteOptions bitOr:
-		                    PCRE2 substituteOverflowLength.
-	buffer := ByteArray new: (bufferSize := 4096).
-	bufferSize := SizeTHolder new value: bufferSize.
-
-	rc := self
-		      substitute: subjectBytes
-		      from: 0
-		      to: subjectBytes size
-		      options: effectiveOptions
-		      matchData: aPCRE2Match
-		      replacement: replacementInput bytes
-		      upTo: replacementInput size
-		      output: buffer
-		      size: bufferSize.
-
-	rc < 0 ifTrue: [
-		rc == PCRE2 errorNoMemory ifFalse: [ self errorCode: rc ].
-		rc := self
-			      substitute: subjectBytes
-			      from: 0
-			      to: subjectBytes size
-			      options: effectiveOptions
-			      matchData: aPCRE2Match
-			      replacement: replacementInput bytes
-			      upTo: replacementInput size
-			      output: (buffer := ByteArray new: bufferSize value)
-			      size: bufferSize.
-		rc < 0 ifTrue: [ self errorCode: rc ] ].
-
-	^ self decodeUTF8Output: buffer upTo: bufferSize value
+	^ self subclassResponsibility
 ]
 
 { #category : 'matching' }
@@ -1381,21 +1176,7 @@ PCRE2Matcher >> substitutionOptions [
 
 { #category : 'private' }
 PCRE2Matcher >> temporaryMatcherAddingCompileOptions: compileOptions matchOptions: matchOptions [
-	"Answer a temporary matcher compiled from the receiver's source with additional options."
-
-	| sourceCompiler temporaryCompiler temporaryMatcher |
-	sourceCompiler := compiler ifNil: [ PCRE2Compiler new ].
-	temporaryCompiler := PCRE2Compiler new.
-	sourceCompiler copyContextIfPresent ifNotNil: [ :contextCopy |
-		temporaryCompiler context: contextCopy ].
-	temporaryCompiler
-		options: (sourceCompiler options bitOr: compileOptions);
-		optionsJIT: sourceCompiler optionsJIT.
-	temporaryMatcher := temporaryCompiler compile: pattern.
-	temporaryMatcher options: (options bitOr: matchOptions).
-	context ifNotNil: [
-		temporaryMatcher context: context copy autoRelease ].
-	^ temporaryMatcher
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
@@ -1452,9 +1233,7 @@ PCRE2Matcher >> traceMatcher [
 
 { #category : 'private' }
 PCRE2Matcher >> utf8InputFor: aStringOrInput [
-	"Compatibility helper for callers using the old internal name."
-
-	^ self preparedInputFor: aStringOrInput
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }

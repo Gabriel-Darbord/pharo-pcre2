@@ -251,6 +251,20 @@ PCRE2CompilerTest >> testCompilerClassConveniencesAndEagerJITToggle [
 ]
 
 { #category : 'tests' }
+PCRE2CompilerTest >> testDefaultCompilerAnswersUTF8Family [
+
+	| compiler match regex |
+	compiler := PCRE2Compiler new.
+	self assert: compiler class equals: PCRE2UTF8Compiler.
+
+	regex := compiler compile: '(a)'.
+	self assert: regex class equals: PCRE2UTF8Matcher.
+
+	match := regex findMatch: 'a'.
+	self assert: match class equals: PCRE2UTF8Match
+]
+
+{ #category : 'tests' }
 PCRE2CompilerTest >> testErrorCode [
 	"PCRE2 minor versions may report slightly different diagnostic offsets, so keep this test focused on binding-level error handling."
 

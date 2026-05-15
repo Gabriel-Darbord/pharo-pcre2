@@ -60,5 +60,6 @@ LibPCRE2Test >> testSerializeDeserializeConvenienceDecodesAllCodes [
 	[
 	self assert: pointers size equals: regexes size * wordSize.
 	handles do: [ :handle | self deny: handle isNull ] ] ensure: [
-		handles do: [ :handle | (PCRE2Matcher fromHandle: handle) finalize ] ]
+		handles do: [ :handle |
+			(PCRE2UTF8Matcher fromHandle: handle) finalize ] ]
 ]

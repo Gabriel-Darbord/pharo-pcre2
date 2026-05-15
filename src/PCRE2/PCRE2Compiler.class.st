@@ -1,17 +1,9 @@
 "
-Compiles Pharo string patterns into PCRE2Matcher instances.
+Abstract superclass for PCRE2 compilers.
 
-Most users can start with `String>>asPerlCompatibleRegex`:
+Concrete subclasses bind the width-specific PCRE2 compile and JIT entry points: PCRE2UTF8Compiler, PCRE2UTF16Compiler, and PCRE2UTF32Compiler. This class keeps the shared compile flow, options, compile context handling, error reporting, and default JIT policy.
 
-    matcher := '\\d+' asPerlCompatibleRegex.
-
-Use PCRE2Compiler directly when you need compile options, a compile context, or explicit JIT policy:
-
-    compiler := PCRE2Compiler new.
-    compiler addOptions: PCRE2 caseless.
-    matcher := compiler compile: 'name'.
-
-Patterns are prepared as UTF-8 bytes before crossing the FFI boundary. The compiler enables PCRE2 UTF mode by default and attempts JIT compilation when the loaded native library supports it. The compiled matcher records enough pattern and option state for lifecycle restoration.
+For compatibility and normal user code, PCRE2Compiler new answers a PCRE2UTF8Compiler. Most users should keep using String>>asPerlCompatibleRegex or PCRE2Compiler directly unless they need a specific code-unit width.
 "
 Class {
 	#name : 'PCRE2Compiler',
@@ -38,8 +30,11 @@ Class {
 
 { #category : 'accessing' }
 PCRE2Compiler class >> default [
-
-	^ default ifNil: [ default := self new ]
+	self == PCRE2Compiler ifTrue: [
+		(default isNil or: [ default class ~~ PCRE2UTF8Compiler ]) ifTrue: [
+			default := PCRE2UTF8Compiler new ].
+		^ default ].
+	^ self new
 ]
 
 { #category : 'accessing' }
@@ -61,6 +56,12 @@ PCRE2Compiler class >> initialize [
 	EagerJIT := true.
 	self startUp: true.
 	SessionManager default registerToolClassNamed: self name
+]
+
+{ #category : 'instance creation' }
+PCRE2Compiler class >> new [
+	self == PCRE2Compiler ifTrue: [ ^ PCRE2UTF8Compiler basicNew initialize ].
+	^ super new
 ]
 
 { #category : 'API' }
@@ -115,13 +116,7 @@ PCRE2Compiler >> compile: pattern [
 
 { #category : 'private' }
 PCRE2Compiler >> compile: pattern upTo: length errorCode: errorCode errorOffset: errorOffset [
-	"Compile a UTF-8 encoded pattern buffer. The pattern argument is already prepared as bytes, so use void* to avoid UFFI string encoding policy.
-	pcre2_code *pcre2_compile_8(PCRE2_SPTR pattern, PCRE2_SIZE length, uint32_t options, int *errorcode, PCRE2_SIZE *erroroffset, pcre2_compile_context *ccontext)"
-
-	self ffiCall:
-		#( void #* pcre2_compile_8 #( void #* pattern #, size_t length
-		      #, uint32 options #, IntHolder errorCode #, SizeTHolder
-		      errorOffset #, void #* context ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'compiling' }
@@ -195,11 +190,7 @@ PCRE2Compiler >> copyContextIfPresent [
 
 { #category : 'private' }
 PCRE2Compiler >> createCompileContext [
-	"This function creates and initializes a new compile context.
-	The result is NULL if the memory could not be obtained.
-	pcre2_compile_context *pcre2_compile_context_create(pcre2_general_context *gcontext)"
-
-	self ffiCall: #(PCRE2CompileContext *pcre2_compile_context_create_8(nil))
+	^ self subclassResponsibility
 ]
 
 { #category : 'error handling' }
@@ -231,8 +222,7 @@ PCRE2Compiler >> errorCode: errorCode inInput: input at: offset [
 
 { #category : 'library path' }
 PCRE2Compiler >> ffiLibraryName [
-
-	^ LibPCRE2
+	^ self subclassResponsibility
 ]
 
 { #category : 'initialization' }
@@ -247,14 +237,12 @@ PCRE2Compiler >> initialize [
 
 { #category : 'private' }
 PCRE2Compiler >> inputClass [
-
-	^ PCRE2UTF8Input
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Compiler >> matcherClass [
-
-	^ PCRE2Matcher
+	^ self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -285,7 +273,5 @@ PCRE2Compiler >> preparedPatternFor: pattern [
 
 { #category : 'private' }
 PCRE2Compiler >> privateJITCompile: matcher [
-	"int pcre2_jit_compile(pcre2_code *code, uint32_t options)"
-
-	self ffiCall: #(int pcre2_jit_compile_8(PCRE2Matcher *matcher, uint32 optionsJIT))
+	^ self subclassResponsibility
 ]

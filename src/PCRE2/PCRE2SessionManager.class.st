@@ -110,11 +110,11 @@ PCRE2SessionManager >> canDeserializeSerializedMatchers [
 
 { #category : 'enumerating' }
 PCRE2SessionManager >> findMatchersToRestore [
-	"Register all matchers and make them persistent.
-	This is a hook used by tests to avoid registering all instances."
+	"Register all UTF-8 matchers and make them persistent.
+	This is a hook used by tests to avoid registering unrelated objects. Wide matcher serialization is not implemented yet."
 
 	matchersToRestore := OrderedCollection new.
-	PCRE2Matcher allInstancesDo: [ :matcher |
+	PCRE2UTF8Matcher allInstancesDo: [ :matcher |
 		matcher isNull ifFalse: [
 			matchersToRestore add: matcher bePersistent ] ]
 ]

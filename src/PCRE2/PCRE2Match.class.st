@@ -1,13 +1,9 @@
 "
-Stores the result of one PCRE2 match attempt.
+Abstract superclass for PCRE2 match data.
 
-Use a match object when you want to inspect captures after matching:
+Concrete subclasses bind the native match-data accessors for PCRE2's 8-bit, 16-bit, and 32-bit APIs. This class stores shared result state: result code, offsets, remembered subject/input, decoder, named-capture metadata, and persistence state.
 
-    match := '(?<key>\\w+)=(?<value>\\d+)' asPerlCompatibleRegex findMatch: 'size=42'.
-    match groupAt: 0.
-    match groupNamed: 'value'.
-
-A matcher creates a fresh PCRE2Match for each high-level match operation. The match keeps PCRE2's result code, offsets, optional prepared input or raw subject storage, decoder, and named-capture metadata. Persistent matches copy native offset data into Pharo memory and release the native match-data handle.
+Use match objects to inspect captures after matching. Persistent matches copy native offset data into Pharo memory and release the native match-data handle.
 "
 Class {
 	#name : 'PCRE2Match',
@@ -96,36 +92,27 @@ PCRE2Match >> ensureSubjectAvailable [
 
 { #category : 'external resource management' }
 PCRE2Match >> free [
-
-	self ffiCall: #(void pcre2_match_data_free_8(self))
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getCount [
-	"This function returns the number of pairs of offsets in the ovector that forms part of the given match data block"
-
-	self ffiCall: #(int pcre2_get_ovector_count_8(self))
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getMark [
-	"After a call of match() that was passed the match block that is this function's argument,
-	this function returns a pointer to the last (*MARK), (*PRUNE), or (*THEN) name that was
-	encountered during the matching process. If no name is available, NULL is returned."
-
-	self ffiCall: #(char *pcre2_get_mark_8(self))
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getOffsets [
-
-	self ffiCall: #(size_t *pcre2_get_ovector_pointer_8(self))
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getStartIndex [
-
-	self ffiCall: #(size_t pcre2_get_startchar_8(self))
+	^ self subclassResponsibility
 ]
 
 { #category : 'group access' }
