@@ -134,11 +134,11 @@ PCRE2MatchContext >> postCopy [
 
 { #category : 'private' }
 PCRE2MatchContext >> privateCopy [
-	"This function makes a new copy of a match context, using the memory allocation function that was used for the original context."
+	"This function makes a new copy of a match context, using the memory allocation function that was used for the original context.
 
-	"The result is NULL if the memory cannot be obtained."
+The result is NULL if the memory cannot be obtained.
 
-	"pcre2_match_context *pcre2_match_context_copy_8(pcre2_match_context *mcontext)"
+pcre2_match_context *pcre2_match_context_copy_8(pcre2_match_context *mcontext)"
 
 	self ffiCall: #( void #* pcre2_match_context_copy_8
 	   #( self ) )
@@ -146,9 +146,9 @@ PCRE2MatchContext >> privateCopy [
 
 { #category : 'private' }
 PCRE2MatchContext >> setCalloutCallback: callback [
-	"Set the runtime match callout function for this context."
+	"Set the runtime match callout function for this context.
 
-	"int pcre2_set_callout_8(pcre2_match_context *mcontext, int (*callout_function)(pcre2_callout_block *, void *), void *callout_data)"
+int pcre2_set_callout_8(pcre2_match_context *mcontext, int (*callout_function)(pcre2_callout_block *, void *), void *callout_data)"
 
 	self ffiCall:
 		#( int pcre2_set_callout_8 #( self #, FFICallback callback #, nil ) )
@@ -156,45 +156,45 @@ PCRE2MatchContext >> setCalloutCallback: callback [
 
 { #category : 'private' }
 PCRE2MatchContext >> setDepthLimit: value [
-	"This function sets the backtracking depth limit field in a match context. The result is always zero."
+	"This function sets the backtracking depth limit field in a match context. The result is always zero.
 
-	"int pcre2_set_depth_limit(pcre2_match_context *mcontext, uint32_t value)"
+int pcre2_set_depth_limit(pcre2_match_context *mcontext, uint32_t value)"
 
 	self ffiCall: #(int pcre2_set_depth_limit_8(self, uint32 value))
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setHeapLimit: value [
-	"This function sets the heap limit field in a match context. The result is always zero."
+	"This function sets the heap limit field in a match context. The result is always zero.
 
-	"int pcre2_set_heap_limit(pcre2_match_context *mcontext, uint32_t value)"
+int pcre2_set_heap_limit(pcre2_match_context *mcontext, uint32_t value)"
 
 	self ffiCall: #(int pcre2_set_heap_limit_8(self, uint32 value))
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setMatchLimit: value [
-	"This function sets the match limit field in a match context. The result is always zero."
+	"This function sets the match limit field in a match context. The result is always zero.
 
-	"int pcre2_set_match_limit(pcre2_match_context *mcontext, uint32_t value)"
+int pcre2_set_match_limit(pcre2_match_context *mcontext, uint32_t value)"
 
 	self ffiCall: #(int pcre2_set_match_limit_8(self, uint32 value))
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setOffsetLimit: value [
-	"This function sets the offset limit field in a match context. The result is always zero."
+	"This function sets the offset limit field in a match context. The result is always zero.
 
-	"int pcre2_set_offset_limit(pcre2_match_context *mcontext, PCRE2_SIZE value)"
+int pcre2_set_offset_limit(pcre2_match_context *mcontext, PCRE2_SIZE value)"
 
 	self ffiCall: #(int pcre2_set_offset_limit_8(self, size_t value))
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setSubstituteCalloutCallback: callback [
-	"Set the runtime substitution callout function for this context."
+	"Set the runtime substitution callout function for this context.
 
-	"int pcre2_set_substitute_callout_8(pcre2_match_context *mcontext, int (*callout_function)(pcre2_substitute_callout_block *, void *), void *callout_data)"
+int pcre2_set_substitute_callout_8(pcre2_match_context *mcontext, int (*callout_function)(pcre2_substitute_callout_block *, void *), void *callout_data)"
 
 	self ffiCall:
 		#( int pcre2_set_substitute_callout_8 #( self #, FFICallback
@@ -229,18 +229,18 @@ PCRE2MatchContext >> substituteCalloutBlock: aBlock [
 
 { #category : 'private' }
 PCRE2MatchContext >> unsetCalloutCallback [
-	"Clear the runtime match callout function for this context."
+	"Clear the runtime match callout function for this context.
 
-	"int pcre2_set_callout_8(pcre2_match_context *mcontext, NULL, NULL)"
+int pcre2_set_callout_8(pcre2_match_context *mcontext, NULL, NULL)"
 
 	self ffiCall: #( int pcre2_set_callout_8 #( self #, nil #, nil ) )
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> unsetSubstituteCalloutCallback [
-	"Clear the runtime substitution callout function for this context."
+	"Clear the runtime substitution callout function for this context.
 
-	"int pcre2_set_substitute_callout_8(pcre2_match_context *mcontext, NULL, NULL)"
+int pcre2_set_substitute_callout_8(pcre2_match_context *mcontext, NULL, NULL)"
 
 	self ffiCall:
 		#( int pcre2_set_substitute_callout_8 #( self #, nil #, nil ) )

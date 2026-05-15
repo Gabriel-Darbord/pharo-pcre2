@@ -193,9 +193,9 @@ LibPCRE2 >> config: option [
 
 { #category : 'private' }
 LibPCRE2 >> config: what output: where [
-	"This function makes it possible for a client program to find out which optional features are available in the version of the PCRE2 library it is using."
+	"This function makes it possible for a client program to find out which optional features are available in the version of the PCRE2 library it is using.
 
-	"int pcre2_config(uint32_t what, void *where)"
+int pcre2_config(uint32_t what, void *where)"
 
 	self ffiCall: #(int pcre2_config_8(uint32 what, void *where))
 ]
@@ -225,9 +225,9 @@ LibPCRE2 >> deserialize: bytes [
 
 { #category : 'private' }
 LibPCRE2 >> deserialize: bytes count: count output: buffer [
-	"Decode a serialized byte stream into compiled-pattern pointers. Both arguments are raw byte/pointer buffers prepared by the caller, so keep UFFI out of their contents with void*."
+	"Decode a serialized byte stream into compiled-pattern pointers. Both arguments are raw byte/pointer buffers prepared by the caller, so keep UFFI out of their contents with void*.
 
-	"int32_t pcre2_serialize_decode_8(pcre2_code **codes, int32_t number_of_codes, const uint8_t *bytes, pcre2_general_context *gcontext)"
+int32_t pcre2_serialize_decode_8(pcre2_code **codes, int32_t number_of_codes, const uint8_t *bytes, pcre2_general_context *gcontext)"
 
 	self ffiCall:
 		#( int32 pcre2_serialize_decode_8 #( void #* buffer #, int32 count
@@ -320,9 +320,9 @@ LibPCRE2 >> serialize: matchers [
 
 { #category : 'private' }
 LibPCRE2 >> serialize: matchers count: count output: bytes size: bufferSize [
-	"Encode compiled-pattern pointers into a PCRE2-owned serialized byte stream. The pointers table and output pointer slot are raw memory buffers, so pass them as void*."
+	"Encode compiled-pattern pointers into a PCRE2-owned serialized byte stream. The pointers table and output pointer slot are raw memory buffers, so pass them as void*.
 
-	"int32_t pcre2_serialize_encode_8(const pcre2_code **codes, int32_t number_of_codes, uint8_t **serialized_bytes, PCRE2_SIZE *serialized_size, pcre2_general_context *gcontext)"
+int32_t pcre2_serialize_encode_8(const pcre2_code **codes, int32_t number_of_codes, uint8_t **serialized_bytes, PCRE2_SIZE *serialized_size, pcre2_general_context *gcontext)"
 
 	self ffiCall:
 		#( int32 pcre2_serialize_encode_8 #( void #* matchers #, int32 count
@@ -338,9 +338,9 @@ LibPCRE2 >> serializeFree: bytes [
 
 { #category : 'private' }
 LibPCRE2 >> serializedNumberOfCodes: bytes [
-	"Return the number of compiled patterns in a serialized byte stream. The byte stream is already materialized, so pass it as an opaque buffer."
+	"Return the number of compiled patterns in a serialized byte stream. The byte stream is already materialized, so pass it as an opaque buffer.
 
-	"int32_t pcre2_serialize_get_number_of_codes_8(const uint8_t *bytes)"
+int32_t pcre2_serialize_get_number_of_codes_8(const uint8_t *bytes)"
 
 	self ffiCall: #( int32 pcre2_serialize_get_number_of_codes_8
 		   #( void #* bytes ) )

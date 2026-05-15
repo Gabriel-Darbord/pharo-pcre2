@@ -114,9 +114,9 @@ PCRE2Compiler >> compile: pattern [
 
 { #category : 'private' }
 PCRE2Compiler >> compile: pattern upTo: length errorCode: errorCode errorOffset: errorOffset [
-	"Compile a UTF-8 encoded pattern buffer. The pattern argument is already prepared as bytes, so use void* to avoid UFFI string encoding policy."
+	"Compile a UTF-8 encoded pattern buffer. The pattern argument is already prepared as bytes, so use void* to avoid UFFI string encoding policy.
 
-	"pcre2_code *pcre2_compile_8(PCRE2_SPTR pattern, PCRE2_SIZE length, uint32_t options, int *errorcode, PCRE2_SIZE *erroroffset, pcre2_compile_context *ccontext)"
+pcre2_code *pcre2_compile_8(PCRE2_SPTR pattern, PCRE2_SIZE length, uint32_t options, int *errorcode, PCRE2_SIZE *erroroffset, pcre2_compile_context *ccontext)"
 
 	self ffiCall:
 		#( void #* pcre2_compile_8 #( void #* pattern #, size_t length
@@ -193,9 +193,9 @@ PCRE2Compiler >> copyContextIfPresent [
 { #category : 'private' }
 PCRE2Compiler >> createCompileContext [
 	"This function creates and initializes a new compile context.
-	The result is NULL if the memory could not be obtained."
+	The result is NULL if the memory could not be obtained.
 
-	"pcre2_compile_context *pcre2_compile_context_create(pcre2_general_context *gcontext)"
+pcre2_compile_context *pcre2_compile_context_create(pcre2_general_context *gcontext)"
 
 	self ffiCall: #(PCRE2CompileContext *pcre2_compile_context_create_8(nil))
 ]
