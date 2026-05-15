@@ -88,7 +88,7 @@ matcher matches: 'Package.st'. "true"
 
 Compiled PCRE2 patterns are native objects, so the project includes `PCRE2SessionManager` to restore them across image restarts. Serialization is used by default when the native library signature is compatible; otherwise matchers are recompiled from their saved pattern and options. Serialized caches are grouped by PCRE2 code-unit width.
 
-The binding targets PCRE2 10.x. The usual API uses the 8-bit library; `PCRE2UTF16Compiler` and `PCRE2UTF32Compiler` use PCRE2's wider code-unit libraries when available. Minor PCRE2 versions may differ in reported configuration details, so tests and applications should prefer capability checks over exact minor-version strings.
+The binding targets PCRE2 10.x. The usual API uses `LibPCRE2UTF8` and the 8-bit library; `PCRE2UTF16Compiler` and `PCRE2UTF32Compiler` use PCRE2's wider code-unit libraries when available. Minor PCRE2 versions may differ in reported configuration details, so tests and applications should prefer capability checks over exact minor-version strings.
 
 ## Documentation
 

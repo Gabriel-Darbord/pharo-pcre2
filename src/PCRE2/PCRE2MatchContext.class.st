@@ -237,10 +237,10 @@ PCRE2MatchContext >> substituteCalloutBlock: aBlock [
 	"Install a runtime substitution callout. aBlock receives a PCRE2SubstitutionCalloutEvent and may answer a PCRE2 substitution-callout return code; non-integer answers accept the replacement."
 
 	| callback rc |
-	LibPCRE2 supportsSubstitutionCallouts ifFalse: [
+	self ffiLibraryName supportsSubstitutionCallouts ifFalse: [
 		PCRE2Error signal:
 			'Substitution callouts require PCRE2 10.33 or newer; loaded '
-			, LibPCRE2 versionString ].
+			, self ffiLibraryName versionString ].
 	callback := FFICallback
 		            signature:
 		            #( int #( void #* calloutBlock #, void #* userData ) )
@@ -263,10 +263,10 @@ PCRE2MatchContext >> substituteCaseCalloutBlock: aBlock [
 	"Install a runtime substitution case callout. aBlock receives a PCRE2SubstitutionCaseCalloutEvent and should answer transformed text. Answer nil to make PCRE2 fail with a replace-case error; non-string answers use PCRE2's requested default transform in Pharo."
 
 	| callback rc |
-	LibPCRE2 supportsSubstitutionCaseCallouts ifFalse: [
+	self ffiLibraryName supportsSubstitutionCaseCallouts ifFalse: [
 		PCRE2Error signal:
 			'Substitution case callouts require PCRE2 10.45 or newer; loaded '
-			, LibPCRE2 versionString ].
+			, self ffiLibraryName versionString ].
 	callback := FFICallback
 		            signature:
 			            #( size_t #( void #* input #, size_t inputLength

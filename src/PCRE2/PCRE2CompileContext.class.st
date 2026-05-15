@@ -116,7 +116,7 @@ PCRE2CompileContext >> maxPatternCompiledLength: anInteger [
 	self
 		requireSupportedFeature: 'Maximum compiled pattern length'
 		since: '10.44'
-		when: LibPCRE2 supportsMaxPatternCompiledLength.
+		when: self ffiLibraryName supportsMaxPatternCompiledLength.
 	self checkSettingResult:
 		(self setMaxPatternCompiledLength: anInteger).
 	maxPatternCompiledLength := anInteger.
@@ -153,7 +153,7 @@ PCRE2CompileContext >> maxVarLookbehind: anInteger [
 	self
 		requireSupportedFeature: 'Variable lookbehind limit'
 		since: '10.43'
-		when: LibPCRE2 supportsMaxVarLookbehind.
+		when: self ffiLibraryName supportsMaxVarLookbehind.
 	self checkSettingResult: (self setMaxVarLookbehind: anInteger).
 	maxVarLookbehind := anInteger.
 	^ self
@@ -189,7 +189,7 @@ PCRE2CompileContext >> optimize: directive [
 	self
 		requireSupportedFeature: 'Optimization directives'
 		since: '10.45'
-		when: LibPCRE2 supportsOptimizationDirectives.
+		when: self ffiLibraryName supportsOptimizationDirectives.
 	self checkSettingResult: (self setOptimize: directive).
 	optimizationDirectives := self optimizationDirectives copyWith:
 		                          directive.
@@ -256,7 +256,7 @@ PCRE2CompileContext >> requireSupportedFeature: featureName since: versionString
 
 	aBoolean ifTrue: [ ^ self ].
 	PCRE2Error signal: featureName , ' requires PCRE2 ' , versionString
-		, ' or newer; loaded ' , LibPCRE2 versionString
+		, ' or newer; loaded ' , self ffiLibraryName versionString
 ]
 
 { #category : 'private' }

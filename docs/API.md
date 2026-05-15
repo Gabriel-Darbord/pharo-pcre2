@@ -136,10 +136,10 @@ matcher := (PCRE2 convertGlob: '*.st') asPerlCompatibleRegex.
 matcher matches: 'Package.st'.
 ```
 
-Use `LibPCRE2 newConvertContext` when glob conversion needs a different escape character or separator:
+Use `LibPCRE2UTF8 newConvertContext` when glob conversion needs a different escape character or separator:
 
 ```smalltalk
-context := LibPCRE2 newConvertContext.
+context := LibPCRE2UTF8 newConvertContext.
 context globEscape: $!.
 matcher := (PCRE2 convertGlob: 'file!*.st' context: context) asPerlCompatibleRegex.
 ```

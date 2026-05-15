@@ -3,7 +3,7 @@ Holds settings used when PCRE2 converts foreign patterns into PCRE2 regular expr
 
 Most conversions can use the library defaults. Create a convert context when glob conversion needs a different escape character or path separator.
 
-    context := LibPCRE2 newConvertContext.
+    context := LibPCRE2UTF8 newConvertContext.
     context globEscape: $!.
     PCRE2 convertGlob: 'file!*.st' context: context.
 "

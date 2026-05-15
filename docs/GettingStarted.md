@@ -7,7 +7,7 @@ Load the baseline from the `src` directory and make sure the host has the native
 You can ask the library for its version from Pharo:
 
 ```smalltalk
-LibPCRE2 config: PCRE2 configVersion
+LibPCRE2UTF8 config: PCRE2 configVersion
 ```
 
 ## Compile a Pattern

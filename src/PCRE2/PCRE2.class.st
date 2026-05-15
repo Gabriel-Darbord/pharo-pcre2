@@ -1,13 +1,9 @@
 "
-I contain all of the options available to the PCRE2 library functions in my class methods.
+I contain the constants and option helpers used by the PCRE2 library functions.
 
-The `documentation` protocol contains methods to get information about specific options.
-Options defined as bitwise flags have dedicated helpers to ease human interaction.
-For example, `PCRE2 readOptions: 40 for: #compile` shows that `PCRE2 class>>#caseless` and `PCRE2 class>>#dotAll` are set.
-Options for `LibPCRE2>>#config:` and `PCRE2Matcher>>#info:` do not rely on flags and are not supported by these helpers.
+The `documentation` protocol contains methods to get information about specific options. Options defined as bitwise flags have dedicated helpers to ease human interaction. For example, `PCRE2 readOptions: 40 for: #compile` shows that `PCRE2 class>>#caseless` and `PCRE2 class>>#dotAll` are set. Options for `LibPCRE2UTF8>>#config:` and `PCRE2Matcher>>#info:` do not rely on flags and are not supported by these helpers.
 
-Many error codes are defined by the PCRE2 library.
-Only those that can be expected without having to throw an error are referenced here.
+Many error codes are defined by the PCRE2 library. Only those that can be expected without having to throw an error are referenced here.
 "
 Class {
 	#name : 'PCRE2',
@@ -377,14 +373,14 @@ PCRE2 class >> convertPOSIXExtended: posixPattern context: convertContext [
 PCRE2 class >> convertPattern: pattern options: convertOptions [
 	"Convert a foreign pattern into a PCRE2 pattern string using explicit PCRE2_CONVERT_* option bits."
 
-	^ LibPCRE2 convertPattern: pattern options: convertOptions
+	^ LibPCRE2UTF8 convertPattern: pattern options: convertOptions
 ]
 
 { #category : 'conversion' }
 PCRE2 class >> convertPattern: pattern options: convertOptions context: convertContext [
 	"Convert a foreign pattern into a PCRE2 pattern string using an optional convert context."
 
-	^ LibPCRE2
+	^ LibPCRE2UTF8
 		  convertPattern: pattern
 		  options: convertOptions
 		  context: convertContext

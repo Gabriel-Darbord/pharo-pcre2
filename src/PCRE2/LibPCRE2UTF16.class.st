@@ -1,7 +1,7 @@
 "
-Locates the native PCRE2 16-bit code-unit library.
+Concrete binding for the native PCRE2 16-bit code-unit library.
 
-This class exists so UTF-16-specific FFI methods can bind to libpcre2-16 while the existing LibPCRE2 class remains the UTF-8/libpcre2-8 binding.
+This class locates libpcre2-16 and owns library-level FFI primitives that call *_16 symbols, such as configuration, serialization, match-context creation, and JIT memory cleanup. UTF-16 compiler, matcher, match, context, JIT, and serialization code use this library class.
 "
 Class {
 	#name : 'LibPCRE2UTF16',
@@ -10,10 +10,39 @@ Class {
 	#package : 'PCRE2'
 }
 
+{ #category : 'code-unit width' }
+LibPCRE2UTF16 class >> codeUnitWidth [
+
+	^ 16
+]
+
+{ #category : 'code-unit width' }
+LibPCRE2UTF16 class >> codeUnitWidthMask [
+
+	^ 2
+]
+
 { #category : 'accessing' }
 LibPCRE2UTF16 class >> libraryBasename [
 
 	^ 'libpcre2-16'
+]
+
+{ #category : 'private' }
+LibPCRE2UTF16 >> config: what output: where [
+	"Return configuration information from libpcre2-16."
+
+	self ffiCall:
+		#( int pcre2_config_16 #( uint32 what #, void #* where ) )
+]
+
+{ #category : 'private' }
+LibPCRE2UTF16 >> createMatchContext [
+	"Create and initialize a new UTF-16 match context."
+
+	self ffiCall:
+		#( #PCRE2UTF16MatchContext #* pcre2_match_context_create_16
+		   #( nil ) )
 ]
 
 { #category : 'private' }

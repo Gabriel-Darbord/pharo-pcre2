@@ -88,12 +88,12 @@ PCRE2Compiler class >> pattern: aString options: anInteger [
 
 { #category : 'system startup' }
 PCRE2Compiler class >> startUp: resuming [
-	"Verify that the loaded native library matches the assumptions of this binding."
+	"Verify that the loaded native UTF-8 library matches the assumptions of this binding."
 
 	resuming ifFalse: [ ^ self ].
 	PCRE2Types initialize. "Ensure shared UFFI holders exist before startup FFI calls."
-	LibPCRE2 assertCompatibleLibrary.
-	SupportsJIT := LibPCRE2 supportsJIT
+	LibPCRE2UTF8 assertCompatibleLibrary.
+	SupportsJIT := LibPCRE2UTF8 supportsJIT
 ]
 
 { #category : 'accessing' }

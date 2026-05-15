@@ -35,7 +35,7 @@ PCRE2UTF8Compiler >> createCompileContext [
 { #category : 'library path' }
 PCRE2UTF8Compiler >> ffiLibraryName [
 
-	^ LibPCRE2
+	^ LibPCRE2UTF8
 ]
 
 { #category : 'private' }

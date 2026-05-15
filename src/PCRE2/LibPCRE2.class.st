@@ -1,9 +1,9 @@
 "
-I locate and expose the native PCRE2 8-bit library used by this binding.
+Abstract superclass for the native PCRE2 library bindings.
 
-All exported calls target the libpcre2-8 API. String-like arguments are passed as prepared UTF-8 byte storage, typically through void* FFI declarations, so Pharo does not silently apply its own string conversion policy.
+Concrete subclasses bind one PCRE2 code-unit library: LibPCRE2UTF8 for libpcre2-8, LibPCRE2UTF16 for libpcre2-16, and LibPCRE2UTF32 for libpcre2-32. This class keeps shared library discovery, version/configuration queries, serialization flow, error handling, and capability checks.
 
-At startup I verify that the loaded native library is compatible with the binding's supported PCRE2 major version.
+For compatibility, class-side convenience sends to LibPCRE2 use the UTF-8 library as the default concrete binding.
 "
 Class {
 	#name : 'LibPCRE2',
@@ -19,6 +19,20 @@ Class {
 LibPCRE2 class >> assertCompatibleLibrary [
 
 	^ self uniqueInstance assertCompatibleLibrary
+]
+
+{ #category : 'code-unit width' }
+LibPCRE2 class >> codeUnitWidth [
+
+	self isAbstract ifTrue: [ ^ self defaultLibrary codeUnitWidth ].
+	^ self subclassResponsibility
+]
+
+{ #category : 'code-unit width' }
+LibPCRE2 class >> codeUnitWidthMask [
+
+	self isAbstract ifTrue: [ ^ self defaultLibrary codeUnitWidthMask ].
+	^ self subclassResponsibility
 ]
 
 { #category : 'documentation' }
@@ -45,10 +59,23 @@ LibPCRE2 class >> convertPattern: pattern options: convertOptions context: conve
 		  context: convertContext
 ]
 
+{ #category : 'library path' }
+LibPCRE2 class >> defaultLibrary [
+	"Answer the default concrete PCRE2 binding used by class-side compatibility helpers."
+
+	^ LibPCRE2UTF8
+]
+
 { #category : 'persistence' }
 LibPCRE2 class >> deserialize: bytes [
 
 	^ self uniqueInstance deserialize: bytes
+]
+
+{ #category : 'testing' }
+LibPCRE2 class >> isAbstract [
+
+	^ self == LibPCRE2
 ]
 
 { #category : 'JIT' }
@@ -59,8 +86,10 @@ LibPCRE2 class >> jitFreeUnusedMemory [
 
 { #category : 'library path' }
 LibPCRE2 class >> libraryBasename [
+	"Answer the native library basename. Compatibility sends to the abstract class use the default UTF-8 binding."
 
-	^ 'libpcre2-8'
+	self isAbstract ifTrue: [ ^ self defaultLibrary libraryBasename ].
+	^ self subclassResponsibility
 ]
 
 { #category : 'instance creation' }
@@ -110,6 +139,12 @@ LibPCRE2 class >> supports32BitCodeUnitWidth [
 LibPCRE2 class >> supports8BitCodeUnitWidth [
 
 	^ self uniqueInstance supports8BitCodeUnitWidth
+]
+
+{ #category : 'version management' }
+LibPCRE2 class >> supportsCodeUnitWidth [
+
+	^ self uniqueInstance supportsCodeUnitWidth
 ]
 
 { #category : 'version management' }
@@ -166,6 +201,14 @@ LibPCRE2 class >> supportsUnicode [
 	^ self uniqueInstance supportsUnicode
 ]
 
+{ #category : 'instance creation' }
+LibPCRE2 class >> uniqueInstance [
+	"Use the UTF-8 binding for compatibility sends to the abstract library class."
+
+	self isAbstract ifTrue: [ ^ self defaultLibrary uniqueInstance ].
+	^ super uniqueInstance
+]
+
 { #category : 'version management' }
 LibPCRE2 class >> version [
 
@@ -213,13 +256,32 @@ LibPCRE2 >> assertCompatibleLibrary [
 			'Unsupported PCRE2 major version ' , self versionMajor asString
 			, ' from ' , self versionString , '. This binding targets PCRE2 '
 			, self class requiredMajorVersion asString , '.x' ].
-	self supports8BitCodeUnitWidth ifFalse: [
-		PCRE2Error signal:
-			'The loaded PCRE2 library was not compiled with 8-bit code unit support' ].
+	self supportsCodeUnitWidth ifFalse: [
+		PCRE2Error signal: 'The loaded ' , self class libraryBasename
+			, ' library was not compiled with ' , self codeUnitWidth asString
+			, '-bit code unit support' ].
 	self supportsUnicode ifFalse: [
 		PCRE2Error signal:
 			'The loaded PCRE2 library was not compiled with Unicode support' ].
 	^ self
+]
+
+{ #category : 'code-unit width' }
+LibPCRE2 >> codeUnitByteSize [
+
+	^ self codeUnitWidth // 8
+]
+
+{ #category : 'code-unit width' }
+LibPCRE2 >> codeUnitWidth [
+
+	^ self class codeUnitWidth
+]
+
+{ #category : 'code-unit width' }
+LibPCRE2 >> codeUnitWidthMask [
+
+	^ self class codeUnitWidthMask
 ]
 
 { #category : 'documentation' }
@@ -237,22 +299,17 @@ LibPCRE2 >> config: option [
 		^ buffer value ].
 
 	"requesting a string"
-	buffer := ByteArray new: 64. "should be big enough"
+	buffer := ByteArray new: 64 * self codeUnitByteSize. "should be big enough"
 	rc := self config: option output: buffer. "if success, rc is the number of code units used, including the terminating zero"
 	rc < 0 ifTrue: [ self errorCode: rc ].
-	^ (String new: rc - 1)
-		  replaceFrom: 1
-		  to: rc - 1
-		  with: buffer
-		  startingAt: 1
+	^ self stringFromConfigBytes: buffer codeUnits: rc - 1
 ]
 
 { #category : 'private' }
 LibPCRE2 >> config: what output: where [
-	"This function makes it possible for a client program to find out which optional features are available in the version of the PCRE2 library it is using.
-	int pcre2_config(uint32_t what, void *where)"
+	"Width-specific primitive for pcre2_config_*()."
 
-	self ffiCall: #(int pcre2_config_8(uint32 what, void *where))
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
@@ -302,11 +359,9 @@ LibPCRE2 >> convertPattern: pattern options: convertOptions context: convertCont
 
 { #category : 'private' }
 LibPCRE2 >> convertedPatternFree: convertedPattern [
-	"Free a converted pattern allocated by PCRE2."
+	"Width-specific primitive for pcre2_converted_pattern_free_*()."
 
-	self ffiCall:
-		#( void pcre2_converted_pattern_free_8
-		   #( void #* convertedPattern ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
@@ -322,21 +377,16 @@ LibPCRE2 >> copyExternalBytes: externalBytes size: byteSize [
 
 { #category : 'private' }
 LibPCRE2 >> createConvertContext [
-	"Create a native conversion context.
-	pcre2_convert_context *pcre2_convert_context_create_8(pcre2_general_context *gcontext)"
+	"Width-specific primitive for pcre2_convert_context_create_*()."
 
-	self ffiCall:
-		#( PCRE2ConvertContext #* pcre2_convert_context_create_8
-		   #( nil ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> createMatchContext [
-	"Create and initialize a new UTF-8 match context."
+	"Width-specific primitive for pcre2_match_context_create_*()."
 
-	self ffiCall:
-		#( #PCRE2UTF8MatchContext #* pcre2_match_context_create_8
-		   #( nil ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'serializing' }
@@ -355,12 +405,9 @@ LibPCRE2 >> deserialize: bytes [
 
 { #category : 'private' }
 LibPCRE2 >> deserialize: bytes count: count output: buffer [
-	"Decode a serialized byte stream into compiled-pattern pointers. Both arguments are raw byte/pointer buffers prepared by the caller, so keep UFFI out of their contents with void*.
-	int32_t pcre2_serialize_decode_8(pcre2_code **codes, int32_t number_of_codes, const uint8_t *bytes, pcre2_general_context *gcontext)"
+	"Width-specific primitive for pcre2_serialize_decode_*()."
 
-	self ffiCall:
-		#( int32 pcre2_serialize_decode_8 #( void #* buffer #, int32 count
-		      #, void #* bytes #, nil ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'error handling' }
@@ -372,10 +419,9 @@ LibPCRE2 >> errorCode: errorCode [
 
 { #category : 'JIT' }
 LibPCRE2 >> jitFreeUnusedMemory [
-	"Release unused executable memory retained by PCRE2's JIT allocator for libpcre2-8."
+	"Width-specific primitive for pcre2_jit_free_unused_memory_*()."
 
-	self ffiCall: #( void pcre2_jit_free_unused_memory_8
-	   #( nil ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'accessing - platform' }
@@ -410,13 +456,9 @@ LibPCRE2 >> newMatchContext [
 
 { #category : 'private' }
 LibPCRE2 >> patternConvert: pattern upTo: length options: convertOptions output: outputBuffer size: outputLength context: convertContext [
-	"Convert a foreign UTF-8 pattern buffer. The input and output pointer slot are raw buffers, so keep UFFI string conversion out with void*.
-	int pcre2_pattern_convert_8(PCRE2_SPTR pattern, PCRE2_SIZE length, uint32_t options, PCRE2_UCHAR **buffer, PCRE2_SIZE *blength, pcre2_convert_context *cvcontext)"
+	"Width-specific primitive for pcre2_pattern_convert_*()."
 
-	self ffiCall:
-		#( int pcre2_pattern_convert_8 #( void #* pattern #, size_t length
-		      #, uint32 convertOptions #, void #* outputBuffer #, SizeTHolder
-		      #* outputLength #, void #* convertContext ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
@@ -486,28 +528,39 @@ LibPCRE2 >> serialize: matchers [
 
 { #category : 'private' }
 LibPCRE2 >> serialize: matchers count: count output: bytes size: bufferSize [
-	"Encode compiled-pattern pointers into a PCRE2-owned serialized byte stream. The pointers table and output pointer slot are raw memory buffers, so pass them as void*.
-	int32_t pcre2_serialize_encode_8(const pcre2_code **codes, int32_t number_of_codes, uint8_t **serialized_bytes, PCRE2_SIZE *serialized_size, pcre2_general_context *gcontext)"
+	"Width-specific primitive for pcre2_serialize_encode_*()."
 
-	self ffiCall:
-		#( int32 pcre2_serialize_encode_8 #( void #* matchers #, int32 count
-		      #, void #* bytes #, SizeTHolder #* bufferSize #, nil ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> serializeFree: bytes [
-	"Free a serialized byte stream allocated by PCRE2."
+	"Width-specific primitive for pcre2_serialize_free_*()."
 
-	self ffiCall: #( void pcre2_serialize_free_8 #( void #* bytes ) )
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> serializedNumberOfCodes: bytes [
-	"Return the number of compiled patterns in a serialized byte stream. The byte stream is already materialized, so pass it as an opaque buffer.
-	int32_t pcre2_serialize_get_number_of_codes_8(const uint8_t *bytes)"
+	"Width-specific primitive for pcre2_serialize_get_number_of_codes_*()."
 
-	self ffiCall: #( int32 pcre2_serialize_get_number_of_codes_8
-		   #( void #* bytes ) )
+	^ self subclassResponsibility
+]
+
+{ #category : 'private' }
+LibPCRE2 >> stringFromConfigBytes: buffer codeUnits: codeUnitCount [
+	"Decode a native PCRE2 configuration string for this library width."
+
+	| bytes |
+	codeUnitCount = 0 ifTrue: [ ^ String new ].
+	bytes := buffer copyFrom: 1 to: codeUnitCount * self codeUnitByteSize.
+	self codeUnitWidth = 8 ifTrue: [
+		^ ZnUTF8Encoder default decodeBytes: bytes ].
+	self codeUnitWidth = 16 ifTrue: [
+		^ (PCRE2UTF16Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
+	self codeUnitWidth = 32 ifTrue: [
+		^ (PCRE2UTF32Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
+	PCRE2Error signal: 'Unsupported PCRE2 config string code-unit width'
 ]
 
 { #category : 'version management' }
@@ -529,6 +582,14 @@ LibPCRE2 >> supports8BitCodeUnitWidth [
 	"PCRE2_CONFIG_COMPILED_WIDTHS is a bitmask; bit 0 means 8-bit support."
 
 	^ ((self config: PCRE2 configCompiledWidths) bitAnd: 1) = 1
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> supportsCodeUnitWidth [
+	"Answer whether the loaded PCRE2 runtime reports support for this binding's code-unit width."
+
+	^ ((self config: PCRE2 configCompiledWidths) bitAnd:
+		   self codeUnitWidthMask) = self codeUnitWidthMask
 ]
 
 { #category : 'version management' }

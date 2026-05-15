@@ -13,7 +13,7 @@ Class {
 { #category : 'memory management' }
 PCRE2UTF8JITStack class >> freeUnusedMemory [
 
-	^ LibPCRE2 jitFreeUnusedMemory
+	^ LibPCRE2UTF8 jitFreeUnusedMemory
 ]
 
 { #category : 'private' }
@@ -34,7 +34,7 @@ PCRE2UTF8JITStack >> createWithStartSize: anInitialSize maxSize: aMaximumSize [
 { #category : 'library path' }
 PCRE2UTF8JITStack >> ffiLibraryName [
 
-	^ LibPCRE2
+	^ LibPCRE2UTF8
 ]
 
 { #category : 'external resource management' }

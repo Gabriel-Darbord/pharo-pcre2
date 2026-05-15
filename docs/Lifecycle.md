@@ -2,11 +2,11 @@
 
 ## Native Library
 
-Pharo-PCRE2 binds to the PCRE2 8-bit API. The host must provide a compatible PCRE2 10.x library. The project checks the loaded library's major version at startup and uses PCRE2 configuration queries for feature checks such as JIT and Unicode support.
+Pharo-PCRE2 uses `LibPCRE2UTF8` for the default PCRE2 8-bit API. The host must provide a compatible PCRE2 10.x library. The project checks the loaded library's major version at startup and uses PCRE2 configuration queries for feature checks such as JIT and Unicode support.
 
 Minor PCRE2 versions may report different configuration strings or Unicode versions. Prefer checking capabilities over comparing exact minor-version text.
 
-The optional UTF-16 and UTF-32 matchers bind to PCRE2's separate `libpcre2-16` and `libpcre2-32` libraries. Check `LibPCRE2 supports16BitCodeUnitWidth` or `LibPCRE2 supports32BitCodeUnitWidth` before depending on them in portable code.
+The optional UTF-16 and UTF-32 matchers bind through `LibPCRE2UTF16` and `LibPCRE2UTF32` to PCRE2's separate `libpcre2-16` and `libpcre2-32` libraries. `LibPCRE2` is an abstract compatibility facade; check `LibPCRE2 supports16BitCodeUnitWidth` or `LibPCRE2 supports32BitCodeUnitWidth` before depending on wider libraries in portable code.
 
 ## Compiled Patterns and Image Restarts
 

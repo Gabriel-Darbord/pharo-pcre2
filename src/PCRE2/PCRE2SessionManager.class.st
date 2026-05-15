@@ -48,7 +48,7 @@ PCRE2SessionManager class >> initialize [
 PCRE2SessionManager class >> serializationLibraryForCodeUnitWidth: codeUnitWidth [
 	"Answer the PCRE2 FFI library class for a serialized matcher width."
 
-	codeUnitWidth = 8 ifTrue: [ ^ LibPCRE2 ].
+	codeUnitWidth = 8 ifTrue: [ ^ LibPCRE2UTF8 ].
 	codeUnitWidth = 16 ifTrue: [ ^ LibPCRE2UTF16 ].
 	codeUnitWidth = 32 ifTrue: [ ^ LibPCRE2UTF32 ].
 	PCRE2Error signal: 'Unsupported PCRE2 serialized code-unit width'
@@ -59,13 +59,14 @@ PCRE2SessionManager class >> serializationSignature [
 	"Answer the runtime identity that serialized PCRE2 bytecode depends on."
 
 	^ Dictionary newFrom: {
-			  (#pcre2Version -> LibPCRE2 versionString).
+			  (#pcre2Version -> LibPCRE2UTF8 versionString).
 			  (#endianness -> EndianDetector endianness).
 			  (#wordSize -> ExternalAddress wordSize).
 			  (#sizeTSize
 			   -> FFIArchitecture forCurrentArchitecture sizeTTypeSize).
-			  (#compiledWidths -> (LibPCRE2 config: PCRE2 configCompiledWidths)).
-			  (#unicode -> LibPCRE2 supportsUnicode) }
+			  (#compiledWidths
+			   -> (LibPCRE2UTF8 config: PCRE2 configCompiledWidths)).
+			  (#unicode -> LibPCRE2UTF8 supportsUnicode) }
 ]
 
 { #category : 'asserting' }

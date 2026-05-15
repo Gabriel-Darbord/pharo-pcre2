@@ -1,7 +1,7 @@
 "
-Locates the native PCRE2 32-bit code-unit library.
+Concrete binding for the native PCRE2 32-bit code-unit library.
 
-This class exists so UTF-32-specific FFI methods can bind to libpcre2-32 while the existing LibPCRE2 class remains the UTF-8/libpcre2-8 binding.
+This class locates libpcre2-32 and owns library-level FFI primitives that call *_32 symbols, such as configuration, serialization, match-context creation, and JIT memory cleanup. UTF-32 compiler, matcher, match, context, JIT, and serialization code use this library class.
 "
 Class {
 	#name : 'LibPCRE2UTF32',
@@ -10,10 +10,39 @@ Class {
 	#package : 'PCRE2'
 }
 
+{ #category : 'code-unit width' }
+LibPCRE2UTF32 class >> codeUnitWidth [
+
+	^ 32
+]
+
+{ #category : 'code-unit width' }
+LibPCRE2UTF32 class >> codeUnitWidthMask [
+
+	^ 4
+]
+
 { #category : 'library path' }
 LibPCRE2UTF32 class >> libraryBasename [
 
 	^ 'libpcre2-32'
+]
+
+{ #category : 'private' }
+LibPCRE2UTF32 >> config: what output: where [
+	"Return configuration information from libpcre2-32."
+
+	self ffiCall:
+		#( int pcre2_config_32 #( uint32 what #, void #* where ) )
+]
+
+{ #category : 'private' }
+LibPCRE2UTF32 >> createMatchContext [
+	"Create and initialize a new UTF-32 match context."
+
+	self ffiCall:
+		#( #PCRE2UTF32MatchContext #* pcre2_match_context_create_32
+		   #( nil ) )
 ]
 
 { #category : 'private' }

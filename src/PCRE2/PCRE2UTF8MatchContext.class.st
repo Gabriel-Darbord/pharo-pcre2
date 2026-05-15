@@ -18,7 +18,8 @@ PCRE2UTF8MatchContext >> codeUnitWidth [
 
 { #category : 'library path' }
 PCRE2UTF8MatchContext >> ffiLibraryName [
-	^ LibPCRE2
+
+	^ LibPCRE2UTF8
 ]
 
 { #category : 'external resource management' }

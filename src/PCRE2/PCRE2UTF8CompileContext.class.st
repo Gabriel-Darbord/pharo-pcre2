@@ -12,7 +12,8 @@ Class {
 
 { #category : 'library path' }
 PCRE2UTF8CompileContext >> ffiLibraryName [
-	^ LibPCRE2
+
+	^ LibPCRE2UTF8
 ]
 
 { #category : 'external resource management' }

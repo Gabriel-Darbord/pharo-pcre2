@@ -11,7 +11,7 @@ Class {
 { #category : 'private' }
 PCRE2PatternConversionTest >> skipUnlessPatternConversionSupported [
 
-	LibPCRE2 supportsPatternConversion ifFalse: [ ^ true ].
+	LibPCRE2UTF8 supportsPatternConversion ifFalse: [ ^ true ].
 	^ false
 ]
 
@@ -33,7 +33,7 @@ PCRE2PatternConversionTest >> testConvertGlobCanUseCustomEscape [
 
 	| context regex |
 	self skipUnlessPatternConversionSupported ifTrue: [ ^ self ].
-	context := LibPCRE2 newConvertContext.
+	context := LibPCRE2UTF8 newConvertContext.
 	context globEscape: $!.
 
 	regex := (PCRE2 convertGlob: 'file!*.st' context: context)

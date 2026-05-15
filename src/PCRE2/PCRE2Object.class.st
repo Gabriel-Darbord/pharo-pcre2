@@ -55,7 +55,7 @@ PCRE2Object >> errorCode: errorCode [
 { #category : 'library path' }
 PCRE2Object >> ffiLibraryName [
 
-	^ LibPCRE2
+	^ LibPCRE2UTF8
 ]
 
 { #category : 'finalization' }
