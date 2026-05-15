@@ -17,10 +17,10 @@ compiler context newline: PCRE2 newlineAnyCRLF.
 matcher := compiler compile: '^value'.
 ```
 
-Use `PCRE2Compiler32` when you want to compile and match through PCRE2's 32-bit code-unit API.
+Use `PCRE2UTF32Compiler` when you want to compile and match through PCRE2's 32-bit code-unit API.
 
 ```smalltalk
-matcher := PCRE2Compiler32 new compile: '\p{L}+'.
+matcher := PCRE2UTF32Compiler new compile: '\p{L}+'.
 matcher find: 'café'.
 ```
 

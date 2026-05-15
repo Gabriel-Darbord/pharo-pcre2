@@ -89,10 +89,10 @@ ASCII strings can be reused directly as byte storage. Non-ASCII strings are enco
 
 ## Use UTF-32 Matching
 
-The default API uses PCRE2's 8-bit library and prepares strings as UTF-8. If the host PCRE2 build includes 32-bit code-unit support, `PCRE2Compiler32` can compile and match through `libpcre2-32`:
+The default API uses PCRE2's 8-bit library and prepares strings as UTF-8. If the host PCRE2 build includes 32-bit code-unit support, `PCRE2UTF32Compiler` can compile and match through `libpcre2-32`:
 
 ```smalltalk
-matcher := PCRE2Compiler32 new compile: '\p{L}+'.
+matcher := PCRE2UTF32Compiler new compile: '\p{L}+'.
 matcher findAll: 'café déjà'.
 ```
 

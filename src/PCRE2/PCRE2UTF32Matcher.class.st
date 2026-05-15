@@ -4,24 +4,24 @@ Represents a compiled PCRE2 pattern using 32-bit code units.
 The public matching protocol is shared with PCRE2Matcher where possible. Width-specific FFI entry points live here so calls are bound to libpcre2-32 and offsets are interpreted as UTF-32 code-unit indexes.
 "
 Class {
-	#name : 'PCRE2Matcher32',
+	#name : 'PCRE2UTF32Matcher',
 	#superclass : 'PCRE2Matcher',
 	#category : 'PCRE2',
 	#package : 'PCRE2'
 }
 
 { #category : 'documentation' }
-PCRE2Matcher32 >> codeUnitWidth [
+PCRE2UTF32Matcher >> codeUnitWidth [
 
 	^ 32
 ]
 
 { #category : 'compiling' }
-PCRE2Matcher32 >> compileJIT: anInteger [
+PCRE2UTF32Matcher >> compileJIT: anInteger [
 	"Request JIT (re-)compilation for this 32-bit compiled pattern."
 
 	| newCompiler |
-	newCompiler := PCRE2Compiler32 new.
+	newCompiler := PCRE2UTF32Compiler new.
 	compiler copyContextIfPresent ifNotNil: [ :contextCopy |
 		newCompiler context: contextCopy ].
 	newCompiler
@@ -32,21 +32,21 @@ PCRE2Matcher32 >> compileJIT: anInteger [
 ]
 
 { #category : 'match enumeration' }
-PCRE2Matcher32 >> copy: subject matchesDo: aBlock [
+PCRE2UTF32Matcher >> copy: subject matchesDo: aBlock [
 	"UTF-32 copy/replacement helpers need width-specific streaming before they are exposed."
 
 	PCRE2Error signal: 'UTF-32 copy helpers are not implemented yet'
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> createMatchContext [
+PCRE2UTF32Matcher >> createMatchContext [
 	"UTF-32 match contexts need width-specific wrappers before callouts/tracing can be safely exposed."
 
 	PCRE2Error signal: 'UTF-32 match contexts are not implemented yet'
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> createMatchDataFromPattern [
+PCRE2UTF32Matcher >> createMatchDataFromPattern [
 	"Create match data sized for this 32-bit compiled pattern."
 
 	self ffiCall: #( void #* pcre2_match_data_create_from_pattern_32
@@ -54,7 +54,7 @@ PCRE2Matcher32 >> createMatchDataFromPattern [
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> createMatchDataWithOvectorSize: ovectorSize [
+PCRE2UTF32Matcher >> createMatchDataWithOvectorSize: ovectorSize [
 	"Create 32-bit match data with room for an explicit number of offset pairs."
 
 	self ffiCall:
@@ -63,26 +63,26 @@ PCRE2Matcher32 >> createMatchDataWithOvectorSize: ovectorSize [
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> dfaMatch: subject from: start to: end matchData: aMatchData workspace: workspace size: workspaceSize [
+PCRE2UTF32Matcher >> dfaMatch: subject from: start to: end matchData: aMatchData workspace: workspace size: workspaceSize [
 	"UTF-32 DFA matching needs width-specific tests before it is exposed."
 
 	PCRE2Error signal: 'UTF-32 DFA matching is not implemented yet'
 ]
 
 { #category : 'library path' }
-PCRE2Matcher32 >> ffiLibraryName [
+PCRE2UTF32Matcher >> ffiLibraryName [
 
-	^ LibPCRE232
+	^ LibPCRE2UTF32
 ]
 
 { #category : 'external resource management' }
-PCRE2Matcher32 >> free [
+PCRE2UTF32Matcher >> free [
 
 	self ffiCall: #( void pcre2_code_free_32 #( self ) )
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> info: what output: where [
+PCRE2UTF32Matcher >> info: what output: where [
 	"int pcre2_pattern_info_32(const pcre2_code *code, uint32_t what, void *where)"
 
 	self ffiCall:
@@ -90,47 +90,47 @@ PCRE2Matcher32 >> info: what output: where [
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> jitMatch: subject from: start to: end options: matchOptions matchData: aMatchData [
+PCRE2UTF32Matcher >> jitMatch: subject from: start to: end options: matchOptions matchData: aMatchData [
 	"Run pcre2_jit_match_32 on a prepared UTF-32 subject buffer and write offsets into the provided match data."
 
 	self ffiCall:
 		#( int pcre2_jit_match_32 #( self #, void #* subject #, size_t
-		      end #, size_t start #, uint32 matchOptions #, PCRE2Match32
+		      end #, size_t start #, uint32 matchOptions #, #PCRE2UTF32Match
 		      #* aMatchData #, void #* context ) )
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> match: subject from: start to: end options: matchOptions matchData: aMatchData [
+PCRE2UTF32Matcher >> match: subject from: start to: end options: matchOptions matchData: aMatchData [
 	"Run pcre2_match_32 on a prepared UTF-32 subject buffer and write offsets into the provided match data.
 	int pcre2_match_32(const pcre2_code *code, PCRE2_SPTR32 subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
 
 	self ffiCall:
 		#( int pcre2_match_32 #( self #, void #* subject #, size_t end #, size_t
-		      start #, uint32 matchOptions #, PCRE2Match32 #* aMatchData
+		      start #, uint32 matchOptions #, #PCRE2UTF32Match #* aMatchData
 		      #, void #* context ) )
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> matchClass [
+PCRE2UTF32Matcher >> matchClass [
 
-	^ PCRE2Match32
+	^ PCRE2UTF32Match
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> preparedInputFor: aStringOrInput [
+PCRE2UTF32Matcher >> preparedInputFor: aStringOrInput [
 
 	^ aStringOrInput asPCRE2UTF32Input
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> privateCopy [
+PCRE2UTF32Matcher >> privateCopy [
 	"Copy a compiled 32-bit pattern. The copy does not include JIT data."
 
 	self ffiCall: #( void #* pcre2_code_copy_32 #( self ) )
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> readNamedGroups [
+PCRE2UTF32Matcher >> readNamedGroups [
 	"Read PCRE2-32's name table into a sparse Array keyed by capture group number."
 
 	| buffer captureCount entrySize nameCount rc table |
@@ -168,26 +168,26 @@ PCRE2Matcher32 >> readNamedGroups [
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> substitute: subject with: replacement options: substituteOptions matchData: aPCRE2Match [
+PCRE2UTF32Matcher >> substitute: subject with: replacement options: substituteOptions matchData: aPCRE2Match [
 	"UTF-32 substitution needs width-specific output decoding before it is exposed."
 
 	PCRE2Error signal: 'UTF-32 substitution is not implemented yet'
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> substituteBytes: subjectBytes replacement: replacement options: substituteOptions matchData: aPCRE2Match [
+PCRE2UTF32Matcher >> substituteBytes: subjectBytes replacement: replacement options: substituteOptions matchData: aPCRE2Match [
 	"UTF-32 substitution needs width-specific output decoding before it is exposed."
 
 	PCRE2Error signal: 'UTF-32 substitution is not implemented yet'
 ]
 
 { #category : 'private' }
-PCRE2Matcher32 >> temporaryMatcherAddingCompileOptions: compileOptions matchOptions: matchOptions [
+PCRE2UTF32Matcher >> temporaryMatcherAddingCompileOptions: compileOptions matchOptions: matchOptions [
 	"Answer a temporary UTF-32 matcher compiled from the receiver's source with additional options."
 
 	| sourceCompiler temporaryCompiler temporaryMatcher |
-	sourceCompiler := compiler ifNil: [ PCRE2Compiler32 new ].
-	temporaryCompiler := PCRE2Compiler32 new.
+	sourceCompiler := compiler ifNil: [ PCRE2UTF32Compiler new ].
+	temporaryCompiler := PCRE2UTF32Compiler new.
 	sourceCompiler copyContextIfPresent ifNotNil: [ :contextCopy |
 		temporaryCompiler context: contextCopy ].
 	temporaryCompiler
