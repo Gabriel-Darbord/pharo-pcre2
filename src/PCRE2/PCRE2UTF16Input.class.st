@@ -25,23 +25,14 @@ PCRE2UTF16Input class >> bytes: bytesObject string: aString codeUnitStartOffsets
 		  yourself
 ]
 
-{ #category : 'private' }
-PCRE2UTF16Input class >> bytesAfterBOM: aByteCollection byteCount: bomByteCount [
-	"Answer bytes after a BOM, allowing a byte collection that contains only the BOM."
-
-	| byteSize |
-	byteSize := aByteCollection size.
-	byteSize <= bomByteCount ifTrue: [ ^ ByteArray new ].
-	^ aByteCollection copyFrom: bomByteCount + 1 to: byteSize
-]
-
 { #category : 'instance creation' }
 PCRE2UTF16Input class >> fromBigEndianBytes: aByteCollection [
 	"Answer input from UTF-16 big-endian bytes, normalizing to native endianness when needed."
 
-	^ self fromNativeEndianBytes: (self nativeEndianIsLittle
-			   ifTrue: [ self swapBytes: aByteCollection width: 2 ]
-			   ifFalse: [ aByteCollection ])
+	^ self fromNativeEndianBytes:
+		  (PCRE2WideInputBytes
+			   normalizeBigEndianBytes: aByteCollection
+			   width: 2)
 ]
 
 { #category : 'instance creation' }
@@ -55,12 +46,14 @@ PCRE2UTF16Input class >> fromBytes: aByteCollection [
 PCRE2UTF16Input class >> fromBytesDetectingBOM: aByteCollection [
 	"Answer input from UTF-16 bytes, using and stripping a byte-order mark when present. Bytes without a BOM are treated as native-endian."
 
-	(self hasBigEndianBOM: aByteCollection) ifTrue: [
-		^ self fromBigEndianBytes:
-			  (self bytesAfterBOM: aByteCollection byteCount: 2) ].
-	(self hasLittleEndianBOM: aByteCollection) ifTrue: [
-		^ self fromLittleEndianBytes:
-			  (self bytesAfterBOM: aByteCollection byteCount: 2) ].
+	(PCRE2WideInputBytes hasBigEndianBOM: aByteCollection width: 2)
+		ifTrue: [
+			^ self fromBigEndianBytes:
+				  (PCRE2WideInputBytes bytesAfterBOM: aByteCollection byteCount: 2) ].
+	(PCRE2WideInputBytes hasLittleEndianBOM: aByteCollection width: 2)
+		ifTrue: [
+			^ self fromLittleEndianBytes:
+				  (PCRE2WideInputBytes bytesAfterBOM: aByteCollection byteCount: 2) ].
 	^ self fromNativeEndianBytes: aByteCollection
 ]
 
@@ -68,8 +61,9 @@ PCRE2UTF16Input class >> fromBytesDetectingBOM: aByteCollection [
 PCRE2UTF16Input class >> fromBytesWithBOM: aByteCollection [
 	"Answer input from UTF-16 bytes that must start with a byte-order mark. The BOM is stripped before matching."
 
-	((self hasBigEndianBOM: aByteCollection) or: [
-		 self hasLittleEndianBOM: aByteCollection ]) ifFalse: [
+	((PCRE2WideInputBytes hasBigEndianBOM: aByteCollection width: 2) or: [
+		 PCRE2WideInputBytes hasLittleEndianBOM: aByteCollection width: 2 ])
+		ifFalse: [
 		PCRE2Error signal: 'UTF-16 input bytes do not start with a BOM' ].
 	^ self fromBytesDetectingBOM: aByteCollection
 ]
@@ -78,16 +72,19 @@ PCRE2UTF16Input class >> fromBytesWithBOM: aByteCollection [
 PCRE2UTF16Input class >> fromLittleEndianBytes: aByteCollection [
 	"Answer input from UTF-16 little-endian bytes, normalizing to native endianness when needed."
 
-	^ self fromNativeEndianBytes: (self nativeEndianIsLittle
-			   ifTrue: [ aByteCollection ]
-			   ifFalse: [ self swapBytes: aByteCollection width: 2 ])
+	^ self fromNativeEndianBytes: (PCRE2WideInputBytes
+			   normalizeLittleEndianBytes: aByteCollection
+			   width: 2)
 ]
 
 { #category : 'instance creation' }
 PCRE2UTF16Input class >> fromNativeEndianBytes: aByteCollection [
 	"Answer input from native-endian UTF-16 bytes. The byte size must be a multiple of two."
 
-	self validateByteSize: aByteCollection multipleOf: 2.
+	PCRE2WideInputBytes
+		validateByteSize: aByteCollection
+		multipleOf: 2
+		message: 'UTF-16 input bytes must have an even byte size'.
 	^ self
 		  bytes: aByteCollection copy
 		  string: nil
@@ -128,52 +125,6 @@ PCRE2UTF16Input class >> fromString: aString [
 				codeUnitOffset := codeUnitOffset + 2 ] ].
 	offsets at: copy size + 1 put: codeUnitOffset.
 	^ self bytes: bytes string: copy codeUnitStartOffsets: offsets
-]
-
-{ #category : 'testing' }
-PCRE2UTF16Input class >> hasBigEndianBOM: aByteCollection [
-
-	^ aByteCollection size >= 2 and: [
-		  (aByteCollection at: 1) = 254 and: [
-			  (aByteCollection at: 2) = 255 ] ]
-]
-
-{ #category : 'testing' }
-PCRE2UTF16Input class >> hasLittleEndianBOM: aByteCollection [
-
-	^ aByteCollection size >= 2 and: [
-		  (aByteCollection at: 1) = 255 and: [
-			  (aByteCollection at: 2) = 254 ] ]
-]
-
-{ #category : 'testing' }
-PCRE2UTF16Input class >> nativeEndianIsLittle [
-
-	| bytes |
-	bytes := ByteArray new: 2.
-	bytes uint16AtOffset: 0 put: 16r0102.
-	^ (bytes at: 1) = 16r02
-]
-
-{ #category : 'converting' }
-PCRE2UTF16Input class >> swapBytes: aByteCollection width: width [
-
-	| swapped |
-	self validateByteSize: aByteCollection multipleOf: width.
-	swapped := ByteArray new: aByteCollection size.
-	1 to: aByteCollection size by: width do: [ :start |
-		1 to: width do: [ :offset |
-			swapped
-				at: start + offset - 1
-				put: (aByteCollection at: start + width - offset) ] ].
-	^ swapped
-]
-
-{ #category : 'validating' }
-PCRE2UTF16Input class >> validateByteSize: aByteCollection multipleOf: width [
-
-	(aByteCollection size rem: width) = 0 ifFalse: [
-		PCRE2Error signal: 'UTF-16 input bytes must have an even byte size' ]
 ]
 
 { #category : 'converting' }
