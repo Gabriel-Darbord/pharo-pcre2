@@ -249,6 +249,18 @@ PCRE2UTF16Input >> nextFromStream: aStream [
 	^ self nextSurrogatePairFromStream: aStream highSurrogate: first
 ]
 
+{ #category : 'matching' }
+PCRE2UTF16Input >> nextMatchStartOffsetAfter: zeroBasedOffset [
+	"Answer the next zero-based UTF-16 code-unit offset after one character, or one past the end."
+
+	| stream |
+	zeroBasedOffset >= self size ifTrue: [ ^ self size + 1 ].
+	stream := ReadStream on: bytes.
+	stream position: zeroBasedOffset * 2.
+	self nextFromStream: stream.
+	^ stream position // 2
+]
+
 { #category : 'decoding' }
 PCRE2UTF16Input >> nextSurrogatePairFromStream: aStream highSurrogate: highSurrogate [
 

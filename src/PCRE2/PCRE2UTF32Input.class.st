@@ -162,6 +162,14 @@ PCRE2UTF32Input >> nextFromStream: aStream [
 	^ Character value: (codeUnit uint32AtOffset: 0)
 ]
 
+{ #category : 'matching' }
+PCRE2UTF32Input >> nextMatchStartOffsetAfter: zeroBasedOffset [
+	"Answer the next zero-based UTF-32 code-unit offset after one character, or one past the end."
+
+	zeroBasedOffset >= self size ifTrue: [ ^ self size + 1 ].
+	^ zeroBasedOffset + 1
+]
+
 { #category : 'decoding' }
 PCRE2UTF32Input >> readFrom: start to: end [
 	"Answer the substring stored between the given 1-based UTF-32 code-unit indexes."

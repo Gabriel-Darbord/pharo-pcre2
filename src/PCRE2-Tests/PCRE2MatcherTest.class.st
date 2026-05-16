@@ -393,6 +393,34 @@ PCRE2MatcherTest >> testFindAllAcceptsReusableUTF8Input [
 ]
 
 { #category : 'tests' }
+PCRE2MatcherTest >> testFindAllHandlesEmptyGlobalMatches [
+
+	self
+		assert: ('a*' asPerlCompatibleRegex findAll: 'aaa') asArray
+		equals: #( 'aaa' '' ).
+	self
+		assert: ('a*?' asPerlCompatibleRegex findAll: 'aaa') asArray
+		equals: #( '' 'a' '' 'a' '' 'a' '' ).
+	self
+		assert: ('(?=a)|a' asPerlCompatibleRegex findAll: 'a') asArray
+		equals: #( '' 'a' ).
+	self
+		assert: ('\b' asPerlCompatibleRegex findAll: 'abc') asArray
+		equals: #( '' '' )
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testFindAllHandlesEmptyMatchBeforeUTF8Character [
+
+	self
+		assert: ('^' asPerlCompatibleRegex findAll: 'éa') asArray
+		equals: #( '' ).
+	self
+		assert: ('.*?' asPerlCompatibleRegex findAll: 'éa') asArray
+		equals: #( '' 'é' '' 'a' '' )
+]
+
+{ #category : 'tests' }
 PCRE2MatcherTest >> testFindAllWithGroups [
 
 	self
@@ -734,6 +762,20 @@ PCRE2MatcherTest >> testNonASCIIByteStringSubjectIsEncoded [
 		equals: (ZnUTF8Encoder default encodeString: subject).
 	self assert: match decoder class equals: ZnUTF8Encoder.
 	self assert: match readMatch equals: 'é'
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testRawMatchAllHandlesEmptyGlobalMatches [
+
+	| matches |
+	matches := OrderedCollection new.
+	'a*?' asPerlCompatibleRegex
+		matchAll: 'aaa'
+		from: 1
+		to: 3
+		do: [ :match | matches add: match readMatch ].
+
+	self assert: matches asArray equals: #( '' 'a' '' 'a' '' 'a' '' )
 ]
 
 { #category : 'tests' }

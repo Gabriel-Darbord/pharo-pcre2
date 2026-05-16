@@ -235,6 +235,18 @@ PCRE2UTF32MatcherTest >> testFindAllAndSplitReuseHighLevelFlow [
 ]
 
 { #category : 'tests' }
+PCRE2UTF32MatcherTest >> testFindAllHandlesEmptyGlobalMatches [
+
+	| regex |
+	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+
+	regex := PCRE2UTF32Compiler new compile: 'a*?'.
+	self
+		assert: (regex findAll: 'aaa') asArray
+		equals: #( '' 'a' '' 'a' '' 'a' '' )
+]
+
+{ #category : 'tests' }
 PCRE2UTF32MatcherTest >> testFindMatchReadsUnicodeText [
 
 	| match regex |

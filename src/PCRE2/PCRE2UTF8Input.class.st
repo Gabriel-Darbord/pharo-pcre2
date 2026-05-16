@@ -104,6 +104,19 @@ PCRE2UTF8Input >> nextFromStream: aStream [
 		  ifNotNil: [ decoder nextFromStream: aStream ]
 ]
 
+{ #category : 'matching' }
+PCRE2UTF8Input >> nextMatchStartOffsetAfter: zeroBasedOffset [
+	"Answer the next zero-based code-unit offset after one character, or one past the end."
+
+	| stream |
+	zeroBasedOffset >= self size ifTrue: [ ^ self size + 1 ].
+	decoder ifNil: [ ^ zeroBasedOffset + 1 ].
+	stream := ReadStream on: bytes.
+	stream position: zeroBasedOffset.
+	decoder nextFromStream: stream.
+	^ stream position
+]
+
 { #category : 'decoding' }
 PCRE2UTF8Input >> readFrom: start to: end [
 	"Answer the decoded substring stored between the given 1-based PCRE2 code-unit indexes."
