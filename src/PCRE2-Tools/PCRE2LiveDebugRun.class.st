@@ -363,7 +363,9 @@ PCRE2LiveDebugRun >> subject: aString [
 PCRE2LiveDebugRun >> waitForCompletionMilliseconds: timeoutMilliseconds [
 
 	^ self
-		  waitUntil: [ self isFinished ]
+		  waitUntil: [
+			  self isFinished and: [
+				  process isNil or: [ process isTerminated ] ] ]
 		  timeoutMilliseconds: timeoutMilliseconds
 ]
 
@@ -371,7 +373,9 @@ PCRE2LiveDebugRun >> waitForCompletionMilliseconds: timeoutMilliseconds [
 PCRE2LiveDebugRun >> waitForPauseOrFinishMilliseconds: timeoutMilliseconds [
 
 	^ self
-		  waitUntil: [ self isPaused or: [ self isFinished ] ]
+		  waitUntil: [
+			  (self isPaused or: [ self isFinished ]) and: [
+				  process isNil or: [ process isTerminated ] ] ]
 		  timeoutMilliseconds: timeoutMilliseconds
 ]
 

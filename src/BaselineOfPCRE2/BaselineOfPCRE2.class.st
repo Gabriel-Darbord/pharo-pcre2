@@ -20,7 +20,7 @@ BaselineOfPCRE2 >> baseline: spec [
 			with: [
 				spec
 					repository:
-						'github://Evref-BL/PharoCompatibility:develop/src';
+						'github://Evref-BL/PharoCompatibility:main/src';
 					loads: #( 'Pharo13Surface' ) ].
 
 		spec package: #PCRE2 with: [
