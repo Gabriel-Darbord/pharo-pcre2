@@ -15,7 +15,16 @@ BaselineOfPCRE2 >> baseline: spec [
 
 	<baseline>
 	spec for: #common do: [
-		spec package: #PCRE2.
+		spec
+			baseline: 'PharoCompatibility'
+			with: [
+				spec
+					repository:
+						'github://Evref-BL/PharoCompatibility:develop/src';
+					loads: #( 'Pharo13Surface' ) ].
+
+		spec package: #PCRE2 with: [
+			spec requires: #( 'PharoCompatibility' ) ].
 		spec package: #'PCRE2-Tools' with: [ spec requires: #( 'PCRE2' ) ].
 		spec package: #'PCRE2-Tests' with: [ spec requires: #( 'PCRE2' ) ].
 		spec

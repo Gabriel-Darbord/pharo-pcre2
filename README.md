@@ -1,4 +1,4 @@
-[![Pharo version](https://img.shields.io/badge/Pharo-12-%23aac9ff.svg)](https://github.com/pharo-project/Pharo)
+[![Pharo version](https://img.shields.io/badge/Pharo-12%20%7C%2013-%23aac9ff.svg)](https://github.com/pharo-project/Pharo)
 ![Build Info](https://github.com/Gabriel-Darbord/pharo-pcre2/workflows/CI/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/Gabriel-Darbord/pharo-pcre2/badge.svg?branch=main)](https://coveralls.io/github/Gabriel-Darbord/pharo-pcre2?branch=main)
 
@@ -16,6 +16,8 @@ Metacello new
   baseline: 'PCRE2';
   load
 ```
+
+The baseline loads the `Pharo13Surface` compatibility group from PharoCompatibility so the project can use the Pharo 13-facing surface while remaining loadable on Pharo 12.
 
 The native PCRE2 8-bit library must be available on the host. The UTF-16 and UTF-32 APIs also use `libpcre2-16` and `libpcre2-32` when present.
 
