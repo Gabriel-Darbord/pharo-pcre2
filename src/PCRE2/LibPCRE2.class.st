@@ -352,7 +352,7 @@ LibPCRE2 >> codeUnitWidthMask [
 
 { #category : 'documentation' }
 LibPCRE2 >> config: option [
-	"Returns some configuration information about the PCRE2 library.
+	"Answer configuration information about the PCRE2 library.
 	See class-side methods of PCRE2 starting with 'config' to find valid arguments."
 
 	| buffer rc |
@@ -365,7 +365,7 @@ LibPCRE2 >> config: option [
 		^ buffer value ].
 
 	"requesting a string"
-	buffer := ByteArray new: 64 * self codeUnitByteSize. "should be big enough"
+	buffer := ByteArray new: 64 * self codeUnitByteSize. "PCRE2 currently reports short configuration strings; 64 code units leaves room for the terminating zero."
 	rc := self config: option output: buffer. "if success, rc is the number of code units used, including the terminating zero"
 	rc < 0 ifTrue: [ self errorCode: rc ].
 	^ self stringFromConfigBytes: buffer codeUnits: rc - 1
