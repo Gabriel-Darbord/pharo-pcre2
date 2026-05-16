@@ -155,6 +155,15 @@ PCRE2UTF8Matcher >> privateCopy [
 ]
 
 { #category : 'private' }
+PCRE2UTF8Matcher >> privateCopyWithCharacterTables [
+	"Copy a compiled 8-bit pattern and any referenced low-character tables. The copy does not include JIT data.
+	pcre2_code *pcre2_code_copy_with_tables_8(const pcre2_code *code)"
+
+	self ffiCall: #( void #* pcre2_code_copy_with_tables_8
+	   #( self ) )
+]
+
+{ #category : 'private' }
 PCRE2UTF8Matcher >> readNamedGroups [
 	"Read PCRE2's name table into a sparse Array keyed by capture group number."
 

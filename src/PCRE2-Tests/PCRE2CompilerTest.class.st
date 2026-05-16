@@ -37,6 +37,27 @@ PCRE2CompilerTest >> assertInvalidPattern: aString [
 ]
 
 { #category : 'tests' }
+PCRE2CompilerTest >> testCompileContextCharacterTables [
+
+	| compiler context contextCopy regex tables |
+	tables := LibPCRE2UTF8 newCharacterTables.
+	compiler := PCRE2Compiler new.
+	context := compiler context.
+	context characterTables: tables.
+
+	self assert: context characterTables identicalTo: tables.
+	regex := compiler compile: '\w+'.
+	self assert: (regex matches: 'abc').
+
+	contextCopy := context copy.
+	self deny: contextCopy identicalTo: context.
+	self assert: contextCopy characterTables identicalTo: tables.
+
+	context clearCharacterTables.
+	self assert: context characterTables isNil
+]
+
+{ #category : 'tests' }
 PCRE2CompilerTest >> testCompileContextEnableOptimizationDirectives [
 
 	| context |
@@ -213,6 +234,23 @@ PCRE2CompilerTest >> testCompileContextParensNestLimit [
 ]
 
 { #category : 'tests' }
+PCRE2CompilerTest >> testCompileContextRejectsCharacterTablesFromDifferentWidth [
+
+	| context tables |
+	LibPCRE2UTF8 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
+	context := PCRE2Compiler new context.
+	tables := LibPCRE2UTF16 newCharacterTables.
+
+	self
+		should: [ context characterTables: tables ]
+		raise: PCRE2Error
+		withExceptionDo: [ :ex |
+			self assert:
+				(ex messageText includesSubstring: 'same PCRE2 library width') ].
+	self assert: context characterTables isNil
+]
+
+{ #category : 'tests' }
 PCRE2CompilerTest >> testCompileContextVariableLookbehindLimit [
 
 	| compiler matcher |
@@ -248,6 +286,22 @@ PCRE2CompilerTest >> testCompilerClassConveniencesAndEagerJITToggle [
 	self assert: (regex matches: 'AAA').
 	supportsJIT := PCRE2Compiler supportsJIT.
 	self assert: (supportsJIT == true or: [ supportsJIT == false ])
+]
+
+{ #category : 'tests' }
+PCRE2CompilerTest >> testCopyWithCharacterTables [
+
+	| compiler copy regex |
+	compiler := PCRE2Compiler new.
+	compiler context useCharacterTablesFromCurrentLocale.
+	regex := compiler compile: '\w+'.
+	regex options: PCRE2 notEmpty.
+	copy := regex copyWithCharacterTables.
+
+	self deny: copy identicalTo: regex.
+	self assert: copy class equals: regex class.
+	self assert: copy options equals: regex options.
+	self assert: (copy matches: 'abc')
 ]
 
 { #category : 'tests' }
@@ -287,4 +341,34 @@ PCRE2CompilerTest >> testErrorCode [
 PCRE2CompilerTest >> testSharedDefaultCompiler [
 
 	self assert: '' asPerlCompatibleRegex compiler identicalTo: '' asPerlCompatibleRegex compiler
+]
+
+{ #category : 'tests' }
+PCRE2CompilerTest >> testUTF16CharacterTablesAndCopyWithTables [
+
+	| compiler copy regex |
+	LibPCRE2UTF8 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
+	compiler := PCRE2UTF16Compiler new.
+	compiler context useCharacterTablesFromCurrentLocale.
+	regex := compiler compile: '\w+'.
+	copy := regex copyWithCharacterTables.
+
+	self assert: (regex matches: 'abc').
+	self assert: copy class equals: PCRE2UTF16Matcher.
+	self assert: (copy matches: 'abc')
+]
+
+{ #category : 'tests' }
+PCRE2CompilerTest >> testUTF32CharacterTablesAndCopyWithTables [
+
+	| compiler copy regex |
+	LibPCRE2UTF8 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
+	compiler := PCRE2UTF32Compiler new.
+	compiler context useCharacterTablesFromCurrentLocale.
+	regex := compiler compile: '\w+'.
+	copy := regex copyWithCharacterTables.
+
+	self assert: (regex matches: 'abc').
+	self assert: copy class equals: PCRE2UTF32Matcher.
+	self assert: (copy matches: 'abc')
 ]

@@ -44,6 +44,15 @@ PCRE2UTF8CompileContext >> setBSR: value [
 ]
 
 { #category : 'private' }
+PCRE2UTF8CompileContext >> setCharacterTables: characterTablesOrNil [
+	"Set low-character tables in the native UTF-8 compile context.
+	int pcre2_set_character_tables_8(pcre2_compile_context *ccontext, const uint8_t *tables)"
+
+	self ffiCall:
+		#( int pcre2_set_character_tables_8 #( self #, void #* characterTablesOrNil ) )
+]
+
+{ #category : 'private' }
 PCRE2UTF8CompileContext >> setMaxPatternCompiledLength: value [
 	"Set the native compiled-pattern size limit.
 	int pcre2_set_max_pattern_compiled_length_8(pcre2_compile_context *ccontext, PCRE2_SIZE value)"

@@ -23,6 +23,7 @@ PCRE2Test >> testAbstractClassDeclarations [
 	| abstractClasses concreteClasses |
 	abstractClasses := {
 		                   PCRE2Object.
+		                   PCRE2CharacterTables.
 		                   PCRE2CompileContext.
 		                   PCRE2Compiler.
 		                   PCRE2ConvertContext.
@@ -31,6 +32,9 @@ PCRE2Test >> testAbstractClassDeclarations [
 		                   PCRE2MatchContext.
 		                   PCRE2Matcher }.
 	concreteClasses := {
+		                   PCRE2UTF8CharacterTables.
+		                   PCRE2UTF16CharacterTables.
+		                   PCRE2UTF32CharacterTables.
 		                   PCRE2UTF8CompileContext.
 		                   PCRE2UTF16CompileContext.
 		                   PCRE2UTF32CompileContext.

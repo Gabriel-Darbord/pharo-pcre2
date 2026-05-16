@@ -53,6 +53,27 @@ LibPCRE2Test >> testConfig [
 ]
 
 { #category : 'tests' }
+LibPCRE2Test >> testNewCharacterTables [
+
+	| tables |
+	tables := LibPCRE2UTF8 newCharacterTables.
+	self deny: tables isNull.
+	self assert: tables class equals: PCRE2UTF8CharacterTables.
+	self assert: tables codeUnitWidth equals: 8.
+
+	LibPCRE2UTF8 supports16BitCodeUnitWidth ifTrue: [
+		tables := LibPCRE2UTF16 newCharacterTables.
+		self deny: tables isNull.
+		self assert: tables class equals: PCRE2UTF16CharacterTables.
+		self assert: tables codeUnitWidth equals: 16 ].
+	LibPCRE2UTF8 supports32BitCodeUnitWidth ifTrue: [
+		tables := LibPCRE2UTF32 newCharacterTables.
+		self deny: tables isNull.
+		self assert: tables class equals: PCRE2UTF32CharacterTables.
+		self assert: tables codeUnitWidth equals: 32 ]
+]
+
+{ #category : 'tests' }
 LibPCRE2Test >> testNewMatchContext [
 
 	| context |

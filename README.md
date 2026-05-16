@@ -78,6 +78,7 @@ matcher matches: 'Package.st'. "true"
 - Prepared UTF-8, UTF-16, and UTF-32 inputs for repeated matching against the same subject.
 - UTF-16 and UTF-32 support through `PCRE2UTF16Compiler` and `PCRE2UTF32Compiler`, including byte-backed prepared subjects and patterns with explicit-endian or BOM-aware helpers.
 - Compile and match contexts for PCRE2 options and limits.
+- Locale-derived low-character tables for compile contexts.
 - JIT compilation and optional explicit JIT stack control for advanced cases.
 - Partial matching and DFA matching.
 - Match, substitution, and substitution case callouts.

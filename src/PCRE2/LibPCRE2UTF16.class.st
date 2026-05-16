@@ -80,12 +80,29 @@ LibPCRE2UTF16 >> deserialize: bytes count: count output: buffer [
 		      #, void #* bytes #, nil ) )
 ]
 
+{ #category : 'private' }
+LibPCRE2UTF16 >> freeCharacterTables: characterTables [
+	"Free low-character tables allocated by libpcre2-16."
+
+	self ffiCall:
+		#( void pcre2_maketables_free_16 #( nil #, void #* characterTables ) )
+]
+
 { #category : 'JIT' }
 LibPCRE2UTF16 >> jitFreeUnusedMemory [
 	"Release unused executable memory retained by PCRE2's JIT allocator for libpcre2-16."
 
 	self ffiCall: #( void pcre2_jit_free_unused_memory_16
 		   #( nil ) )
+]
+
+{ #category : 'private' }
+LibPCRE2UTF16 >> makeCharacterTables [
+	"Build low-character tables from the current process locale.
+	const uint8_t *pcre2_maketables_16(pcre2_general_context *gcontext)"
+
+	self ffiCall: #( #PCRE2UTF16CharacterTables
+		   #* pcre2_maketables_16 #( nil ) )
 ]
 
 { #category : 'private' }

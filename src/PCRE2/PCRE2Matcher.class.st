@@ -203,6 +203,22 @@ PCRE2Matcher >> copy: subject translatingMatchesUsing: aBlock [
 				   (input decodeBytes: (utfSubject copyFrom: start to: end))) ]
 ]
 
+{ #category : 'copying' }
+PCRE2Matcher >> copyWithCharacterTables [
+	"Answer a copy whose native compiled pattern owns a copy of its low-character tables. JIT code is not copied and is rebuilt best-effort when needed."
+
+	| copy newHandle |
+	newHandle := self privateCopyWithCharacterTables.
+	newHandle isNull ifTrue: [
+		PCRE2Error signal:
+			'Failed to obtain memory to copy matcher with character tables' ].
+	copy := self shallowCopy.
+	copy setHandle: newHandle.
+	copy autoRelease initialize.
+	copy options: self options.
+	^ copy restoreJITIfNeeded
+]
+
 { #category : 'private' }
 PCRE2Matcher >> createMatchContext [
 	^ self subclassResponsibility
@@ -843,6 +859,12 @@ PCRE2Matcher >> preparedInputFor: aStringOrInput [
 
 { #category : 'private' }
 PCRE2Matcher >> privateCopy [
+	^ self subclassResponsibility
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> privateCopyWithCharacterTables [
+
 	^ self subclassResponsibility
 ]
 

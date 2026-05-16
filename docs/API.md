@@ -183,6 +183,24 @@ matcher context matchLimit: 10000.
 matcher context heapLimit: 1024.
 ```
 
+Compile contexts can also use low-character tables built from the current process locale. PCRE2 uses these tables for character codes below 256, including locale-sensitive class and caseless behavior.
+
+```smalltalk
+tables := LibPCRE2UTF8 newCharacterTables.
+
+compiler := PCRE2Compiler new.
+compiler context characterTables: tables.
+matcher := compiler compile: '\w+'.
+```
+
+The compile context keeps `tables` alive while it is attached. Use `copyWithCharacterTables` when a compiled matcher should own a private copy of the native tables.
+
+```smalltalk
+portableMatcher := matcher copyWithCharacterTables.
+```
+
+UTF-16 and UTF-32 use the same API through `LibPCRE2UTF16 newCharacterTables` and `LibPCRE2UTF32 newCharacterTables`.
+
 JIT is requested through the matcher or compiler. Explicit JIT stacks are an advanced PCRE2 feature for very large or complex JIT-compiled patterns. Keep one non-nil stack to sequential matches in one thread; concurrent or nested matches need separate stacks.
 
 ```smalltalk

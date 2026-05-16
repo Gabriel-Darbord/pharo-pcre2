@@ -1,7 +1,7 @@
 "
 Abstract superclass for PCRE2 compile contexts.
 
-Concrete subclasses bind PCRE2's width-specific native setters and lifetime functions: PCRE2UTF8CompileContext, PCRE2UTF16CompileContext, and PCRE2UTF32CompileContext. This class keeps the shared Pharo-side state and user-facing accessors for newline handling, \R semantics, pattern-size limits, variable-lookbehind limits, extra compile options, and compiler optimization directives.
+Concrete subclasses bind PCRE2's width-specific native setters and lifetime functions: PCRE2UTF8CompileContext, PCRE2UTF16CompileContext, and PCRE2UTF32CompileContext. This class keeps the shared Pharo-side state and user-facing accessors for newline handling, \R semantics, pattern-size limits, variable-lookbehind limits, locale character tables, extra compile options, and compiler optimization directives.
 "
 Class {
 	#name : 'PCRE2CompileContext',
@@ -14,7 +14,8 @@ Class {
 		'maxPatternCompiledLength',
 		'maxVarLookbehind',
 		'parensNestLimit',
-		'optimizationDirectives'
+		'optimizationDirectives',
+		'characterTables'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -47,12 +48,44 @@ PCRE2CompileContext >> bsr: anInteger [
 	^ self
 ]
 
+{ #category : 'accessing' }
+PCRE2CompileContext >> characterTables [
+	"Low-character tables used by this compile context, or nil when PCRE2 uses its built-in tables."
+
+	^ characterTables
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> characterTables: aPCRE2CharacterTables [
+	"Use low-character tables for subsequent compilations through this context. Keep the tables alive while compiled patterns may reference them."
+
+	aPCRE2CharacterTables ifNotNil: [
+		aPCRE2CharacterTables isNull ifTrue: [
+			PCRE2Error signal:
+				'Character tables must hold a native table pointer' ].
+		aPCRE2CharacterTables ffiLibraryName == self ffiLibraryName
+			ifFalse: [
+				PCRE2Error signal:
+					'Character tables must come from the same PCRE2 library width as the compile context' ] ].
+	self checkSettingResult:
+		(self setCharacterTables: aPCRE2CharacterTables).
+	characterTables := aPCRE2CharacterTables.
+	^ self
+]
+
 { #category : 'private' }
 PCRE2CompileContext >> checkSettingResult: resultCode [
 	"PCRE2 context setters answer zero or a negative error code. Keep native validation centralized so accessors can stay small."
 
 	resultCode < 0 ifTrue: [ self errorCode: resultCode ].
 	^ resultCode
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> clearCharacterTables [
+	"Return this context to PCRE2's built-in low-character tables."
+
+	^ self characterTables: nil
 ]
 
 { #category : 'accessing' }
@@ -265,6 +298,12 @@ PCRE2CompileContext >> setBSR: value [
 ]
 
 { #category : 'private' }
+PCRE2CompileContext >> setCharacterTables: characterTablesOrNil [
+
+	^ self subclassResponsibility
+]
+
+{ #category : 'private' }
 PCRE2CompileContext >> setMaxPatternCompiledLength: value [
 	^ self subclassResponsibility
 ]
@@ -311,6 +350,13 @@ PCRE2CompileContext >> useBSRUnicode [
 	"\R matches any Unicode line ending sequence."
 
 	^ self bsr: PCRE2 bsrUnicode
+]
+
+{ #category : 'accessing' }
+PCRE2CompileContext >> useCharacterTablesFromCurrentLocale [
+	"Build low-character tables from the current process locale and install them on this context."
+
+	^ self characterTables: self ffiLibraryName newCharacterTables
 ]
 
 { #category : 'accessing' }

@@ -156,6 +156,13 @@ LibPCRE2 class >> libraryBasename [
 ]
 
 { #category : 'instance creation' }
+LibPCRE2 class >> newCharacterTables [
+	"Build low-character tables from the current process locale for this code-unit width."
+
+	^ self uniqueInstance newCharacterTables
+]
+
+{ #category : 'instance creation' }
 LibPCRE2 class >> newConvertContext [
 
 	^ self uniqueInstance newConvertContext
@@ -493,6 +500,13 @@ LibPCRE2 >> errorCode: errorCode [
 	PCRE2Error signal: (PCRE2 translateErrorCode: errorCode)
 ]
 
+{ #category : 'private' }
+LibPCRE2 >> freeCharacterTables: characterTables [
+	"Width-specific primitive for pcre2_maketables_free_*()."
+
+	^ self subclassResponsibility
+]
+
 { #category : 'JIT' }
 LibPCRE2 >> jitFreeUnusedMemory [
 	"Width-specific primitive for pcre2_jit_free_unused_memory_*()."
@@ -506,6 +520,25 @@ LibPCRE2 >> macLibraryName [
 
 	^ FFIMacLibraryFinder findLibrary:
 		  self class libraryBasename , '.dylib'
+]
+
+{ #category : 'private' }
+LibPCRE2 >> makeCharacterTables [
+	"Width-specific primitive for pcre2_maketables_*()."
+
+	^ self subclassResponsibility
+]
+
+{ #category : 'instance creation' }
+LibPCRE2 >> newCharacterTables [
+	"Build low-character tables from the current process locale."
+
+	| tables |
+	tables := self makeCharacterTables.
+	tables isNull ifTrue: [
+		PCRE2Error signal:
+			'Failed to obtain memory to create character tables' ].
+	^ tables autoRelease
 ]
 
 { #category : 'instance creation' }
