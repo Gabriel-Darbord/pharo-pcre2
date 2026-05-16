@@ -195,9 +195,11 @@ PCRE2Match >> groupsNamed: groupName [
 
 { #category : 'diagnostics' }
 PCRE2Match >> heapframesSize [
-	"Answer the native heap-frame memory currently retained by this match-data block, in bytes. The value is cached so persistent matches can still report it after freeing the native handle."
+	"Answer the native heap-frame memory retained by this match-data block, in bytes, or nil when the loaded PCRE2 runtime does not expose this diagnostic. The value is cached so persistent matches can still report it after freeing the native handle."
 
-	^ heapframesSize ifNil: [ heapframesSize := self getHeapframesSize ]
+	heapframesSize ifNotNil: [ ^ heapframesSize ].
+	self ffiLibraryName supportsMatchDataHeapframesSize ifFalse: [ ^ nil ].
+	^ heapframesSize := self getHeapframesSize
 ]
 
 { #category : 'initialization' }

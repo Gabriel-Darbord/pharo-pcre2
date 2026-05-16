@@ -224,6 +224,13 @@ LibPCRE2 class >> supportsJIT [
 ]
 
 { #category : 'version management' }
+LibPCRE2 class >> supportsMatchDataHeapframesSize [
+	"PCRE2 10.43 added pcre2_get_match_data_heapframes_size()."
+
+	^ self uniqueInstance supportsMatchDataHeapframesSize
+]
+
+{ #category : 'version management' }
 LibPCRE2 class >> supportsMaxPatternCompiledLength [
 	"PCRE2 10.44 added pcre2_set_max_pattern_compiled_length()."
 
@@ -713,6 +720,12 @@ LibPCRE2 >> supportsCodeUnitWidth [
 LibPCRE2 >> supportsJIT [
 
 	^ (self config: PCRE2 configJIT) = 1
+]
+
+{ #category : 'version management' }
+LibPCRE2 >> supportsMatchDataHeapframesSize [
+
+	^ self versionAtLeastMajor: 10 minor: 43
 ]
 
 { #category : 'version management' }

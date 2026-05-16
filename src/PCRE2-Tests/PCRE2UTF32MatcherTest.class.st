@@ -278,16 +278,20 @@ PCRE2UTF32MatcherTest >> testMark [
 { #category : 'tests' }
 PCRE2UTF32MatcherTest >> testMatchDataDiagnosticsUseUTF32NativeAPI [
 
-	| match |
+	| heapframesSize match |
 	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
 
 	match := (PCRE2UTF32Compiler new compile: '(a)(b)') findMatch: 'zab'.
+	heapframesSize := match heapframesSize.
 
 	self assert: match class equals: PCRE2UTF32Match.
 	self assert: match matchDataSize isInteger.
 	self assert: match matchDataSize > 0.
-	self assert: match heapframesSize isInteger.
-	self assert: match heapframesSize >= 0
+	LibPCRE2UTF32 supportsMatchDataHeapframesSize
+		ifTrue: [
+			self assert: heapframesSize isInteger.
+			self assert: heapframesSize >= 0 ]
+		ifFalse: [ self assert: heapframesSize isNil ]
 ]
 
 { #category : 'tests' }
