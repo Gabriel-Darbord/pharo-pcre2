@@ -37,12 +37,38 @@ LibPCRE2UTF16 >> config: what output: where [
 ]
 
 { #category : 'private' }
+LibPCRE2UTF16 >> convertedPatternFree: convertedPattern [
+	"Free a converted pattern allocated by libpcre2-16."
+
+	self ffiCall: #( void pcre2_converted_pattern_free_16
+		   #( void #* convertedPattern ) )
+]
+
+{ #category : 'private' }
+LibPCRE2UTF16 >> createConvertContext [
+	"Create a native UTF-16 conversion context.
+	pcre2_convert_context *pcre2_convert_context_create_16(pcre2_general_context *gcontext)"
+
+	self ffiCall:
+		#( #PCRE2UTF16ConvertContext #* pcre2_convert_context_create_16
+		   #( nil ) )
+]
+
+{ #category : 'private' }
 LibPCRE2UTF16 >> createMatchContext [
 	"Create and initialize a new UTF-16 match context."
 
 	self ffiCall:
 		#( #PCRE2UTF16MatchContext #* pcre2_match_context_create_16
 		   #( nil ) )
+]
+
+{ #category : 'private' }
+LibPCRE2UTF16 >> decodeConvertedPatternBytes: convertedBytes codeUnitCount: codeUnitCount [
+
+	^ (PCRE2UTF16Input fromNativeEndianBytes: convertedBytes)
+		  readFrom: 1
+		  to: codeUnitCount
 ]
 
 { #category : 'private' }
@@ -60,6 +86,23 @@ LibPCRE2UTF16 >> jitFreeUnusedMemory [
 
 	self ffiCall: #( void pcre2_jit_free_unused_memory_16
 		   #( nil ) )
+]
+
+{ #category : 'private' }
+LibPCRE2UTF16 >> patternConvert: pattern upTo: length options: convertOptions output: outputBuffer size: outputLength context: convertContext [
+	"Convert a foreign UTF-16 pattern buffer. The input and output pointer slot are raw buffers, so keep UFFI string conversion out with void*.
+	int pcre2_pattern_convert_16(PCRE2_SPTR16 pattern, PCRE2_SIZE length, uint32_t options, PCRE2_UCHAR16 **buffer, PCRE2_SIZE *blength, pcre2_convert_context *cvcontext)"
+
+	self ffiCall:
+		#( int pcre2_pattern_convert_16 #( void #* pattern #, size_t length
+		      #, uint32 convertOptions #, void #* outputBuffer #, SizeTHolder
+		      #* outputLength #, void #* convertContext ) )
+]
+
+{ #category : 'private' }
+LibPCRE2UTF16 >> preparedConversionInputFor: pattern [
+
+	^ pattern asPCRE2UTF16Input
 ]
 
 { #category : 'private' }

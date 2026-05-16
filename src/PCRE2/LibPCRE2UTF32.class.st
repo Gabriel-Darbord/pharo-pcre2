@@ -37,12 +37,38 @@ LibPCRE2UTF32 >> config: what output: where [
 ]
 
 { #category : 'private' }
+LibPCRE2UTF32 >> convertedPatternFree: convertedPattern [
+	"Free a converted pattern allocated by libpcre2-32."
+
+	self ffiCall: #( void pcre2_converted_pattern_free_32
+		   #( void #* convertedPattern ) )
+]
+
+{ #category : 'private' }
+LibPCRE2UTF32 >> createConvertContext [
+	"Create a native UTF-32 conversion context.
+	pcre2_convert_context *pcre2_convert_context_create_32(pcre2_general_context *gcontext)"
+
+	self ffiCall:
+		#( #PCRE2UTF32ConvertContext #* pcre2_convert_context_create_32
+		   #( nil ) )
+]
+
+{ #category : 'private' }
 LibPCRE2UTF32 >> createMatchContext [
 	"Create and initialize a new UTF-32 match context."
 
 	self ffiCall:
 		#( #PCRE2UTF32MatchContext #* pcre2_match_context_create_32
 		   #( nil ) )
+]
+
+{ #category : 'private' }
+LibPCRE2UTF32 >> decodeConvertedPatternBytes: convertedBytes codeUnitCount: codeUnitCount [
+
+	^ (PCRE2UTF32Input fromNativeEndianBytes: convertedBytes)
+		  readFrom: 1
+		  to: codeUnitCount
 ]
 
 { #category : 'private' }
@@ -60,6 +86,23 @@ LibPCRE2UTF32 >> jitFreeUnusedMemory [
 
 	self ffiCall: #( void pcre2_jit_free_unused_memory_32
 		   #( nil ) )
+]
+
+{ #category : 'private' }
+LibPCRE2UTF32 >> patternConvert: pattern upTo: length options: convertOptions output: outputBuffer size: outputLength context: convertContext [
+	"Convert a foreign UTF-32 pattern buffer. The input and output pointer slot are raw buffers, so keep UFFI string conversion out with void*.
+	int pcre2_pattern_convert_32(PCRE2_SPTR32 pattern, PCRE2_SIZE length, uint32_t options, PCRE2_UCHAR32 **buffer, PCRE2_SIZE *blength, pcre2_convert_context *cvcontext)"
+
+	self ffiCall:
+		#( int pcre2_pattern_convert_32 #( void #* pattern #, size_t length
+		      #, uint32 convertOptions #, void #* outputBuffer #, SizeTHolder
+		      #* outputLength #, void #* convertContext ) )
+]
+
+{ #category : 'private' }
+LibPCRE2UTF32 >> preparedConversionInputFor: pattern [
+
+	^ pattern asPCRE2UTF32Input
 ]
 
 { #category : 'private' }

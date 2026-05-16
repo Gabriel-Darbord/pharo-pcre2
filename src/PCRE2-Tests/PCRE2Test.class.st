@@ -25,6 +25,7 @@ PCRE2Test >> testAbstractClassDeclarations [
 		                   PCRE2Object.
 		                   PCRE2CompileContext.
 		                   PCRE2Compiler.
+		                   PCRE2ConvertContext.
 		                   PCRE2JITStack.
 		                   PCRE2Match.
 		                   PCRE2MatchContext.
@@ -36,6 +37,9 @@ PCRE2Test >> testAbstractClassDeclarations [
 		                   PCRE2UTF8Compiler.
 		                   PCRE2UTF16Compiler.
 		                   PCRE2UTF32Compiler.
+		                   PCRE2UTF8ConvertContext.
+		                   PCRE2UTF16ConvertContext.
+		                   PCRE2UTF32ConvertContext.
 		                   PCRE2UTF8JITStack.
 		                   PCRE2UTF16JITStack.
 		                   PCRE2UTF32JITStack.
@@ -152,6 +156,12 @@ PCRE2Test >> testAllOptions [
 	self
 		assert: (self optionSelectorsFrom: PCRE2 allOptions)
 		equals: expected
+]
+
+{ #category : 'tests' }
+PCRE2Test >> testDefaultLibraryClass [
+
+	self assert: PCRE2 defaultLibraryClass equals: LibPCRE2UTF8
 ]
 
 { #category : 'tests' }

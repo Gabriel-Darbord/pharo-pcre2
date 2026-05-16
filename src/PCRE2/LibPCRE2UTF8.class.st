@@ -48,11 +48,11 @@ LibPCRE2UTF8 >> convertedPatternFree: convertedPattern [
 
 { #category : 'private' }
 LibPCRE2UTF8 >> createConvertContext [
-	"Create a native conversion context.
+	"Create a native UTF-8 conversion context.
 	pcre2_convert_context *pcre2_convert_context_create_8(pcre2_general_context *gcontext)"
 
 	self ffiCall:
-		#( PCRE2ConvertContext #* pcre2_convert_context_create_8
+		#( #PCRE2UTF8ConvertContext #* pcre2_convert_context_create_8
 		   #( nil ) )
 ]
 
@@ -63,6 +63,12 @@ LibPCRE2UTF8 >> createMatchContext [
 	self ffiCall:
 		#( #PCRE2UTF8MatchContext #* pcre2_match_context_create_8
 		   #( nil ) )
+]
+
+{ #category : 'private' }
+LibPCRE2UTF8 >> decodeConvertedPatternBytes: convertedBytes codeUnitCount: codeUnitCount [
+
+	^ ZnUTF8Encoder default decodeBytes: convertedBytes
 ]
 
 { #category : 'private' }
@@ -92,6 +98,12 @@ LibPCRE2UTF8 >> patternConvert: pattern upTo: length options: convertOptions out
 		#( int pcre2_pattern_convert_8 #( void #* pattern #, size_t length
 		      #, uint32 convertOptions #, void #* outputBuffer #, SizeTHolder
 		      #* outputLength #, void #* convertContext ) )
+]
+
+{ #category : 'private' }
+LibPCRE2UTF8 >> preparedConversionInputFor: pattern [
+
+	^ pattern asPCRE2UTF8Input
 ]
 
 { #category : 'private' }

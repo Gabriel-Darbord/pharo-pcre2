@@ -39,8 +39,81 @@ LibPCRE2 class >> config: option [
 	^ self uniqueInstance config: option
 ]
 
-{ #category : 'conversion' }
+{ #category : 'converting' }
+LibPCRE2 class >> convertGlob: globPattern [
+	"Convert a glob pattern into a PCRE2 pattern string using this concrete library binding."
+
+	^ self convertGlob: globPattern options: PCRE2 convertGlob
+]
+
+{ #category : 'converting' }
+LibPCRE2 class >> convertGlob: globPattern context: convertContext [
+	"Convert a glob pattern into a PCRE2 pattern string using this concrete library binding and a convert context."
+
+	^ self
+		  convertGlob: globPattern
+		  options: PCRE2 convertGlob
+		  context: convertContext
+]
+
+{ #category : 'converting' }
+LibPCRE2 class >> convertGlob: globPattern options: convertOptions [
+	"Convert a glob pattern into a PCRE2 pattern string using explicit glob conversion options."
+
+	^ self convertGlob: globPattern options: convertOptions context: nil
+]
+
+{ #category : 'converting' }
+LibPCRE2 class >> convertGlob: globPattern options: convertOptions context: convertContext [
+	"Convert a glob pattern into a PCRE2 pattern string using this concrete library binding."
+
+	^ self
+		  convertPattern: globPattern
+		  options: (convertOptions bitOr: PCRE2 convertUTF)
+		  context: convertContext
+]
+
+{ #category : 'converting' }
+LibPCRE2 class >> convertPOSIXBasic: posixPattern [
+	"Convert a POSIX basic regular expression into a PCRE2 pattern string using this concrete library binding."
+
+	^ self
+		  convertPattern: posixPattern
+		  options: PCRE2 convertPOSIXBasic | PCRE2 convertUTF
+]
+
+{ #category : 'converting' }
+LibPCRE2 class >> convertPOSIXBasic: posixPattern context: convertContext [
+	"Convert a POSIX basic regular expression into a PCRE2 pattern string using this concrete library binding and a convert context."
+
+	^ self
+		  convertPattern: posixPattern
+		  options: PCRE2 convertPOSIXBasic | PCRE2 convertUTF
+		  context: convertContext
+]
+
+{ #category : 'converting' }
+LibPCRE2 class >> convertPOSIXExtended: posixPattern [
+	"Convert a POSIX extended regular expression into a PCRE2 pattern string using this concrete library binding."
+
+	^ self
+		  convertPattern: posixPattern
+		  options: PCRE2 convertPOSIXExtended | PCRE2 convertUTF
+]
+
+{ #category : 'converting' }
+LibPCRE2 class >> convertPOSIXExtended: posixPattern context: convertContext [
+	"Convert a POSIX extended regular expression into a PCRE2 pattern string using this concrete library binding and a convert context."
+
+	^ self
+		  convertPattern: posixPattern
+		  options: PCRE2 convertPOSIXExtended | PCRE2 convertUTF
+		  context: convertContext
+]
+
+{ #category : 'converting' }
 LibPCRE2 class >> convertPattern: pattern options: convertOptions [
+	"Convert a foreign pattern into a PCRE2 pattern string using explicit PCRE2_CONVERT_* option bits."
 
 	^ self uniqueInstance
 		  convertPattern: pattern
@@ -48,8 +121,9 @@ LibPCRE2 class >> convertPattern: pattern options: convertOptions [
 		  context: nil
 ]
 
-{ #category : 'conversion' }
+{ #category : 'converting' }
 LibPCRE2 class >> convertPattern: pattern options: convertOptions context: convertContext [
+	"Convert a foreign pattern into a PCRE2 pattern string using this concrete library binding and an optional convert context."
 
 	^ self uniqueInstance
 		  convertPattern: pattern
@@ -257,10 +331,11 @@ LibPCRE2 >> assertCompatibleLibrary [
 	^ self
 ]
 
-{ #category : 'code-unit width' }
+{ #category : 'private' }
 LibPCRE2 >> codeUnitByteSize [
+	"Answer the native byte size of one PCRE2 code unit for this concrete binding."
 
-	^ self codeUnitWidth // 8
+	^ self class codeUnitWidth // 8
 ]
 
 { #category : 'code-unit width' }
@@ -305,7 +380,7 @@ LibPCRE2 >> config: what output: where [
 
 { #category : 'private' }
 LibPCRE2 >> conversionErrorCode: errorCode in: patternBytes at: offset [
-	"Signal a conversion error at the input byte offset reported by PCRE2."
+	"Signal a conversion error at the input offset reported by PCRE2."
 
 	PCRE2CompileError
 		signal: (PCRE2 translateErrorCode: errorCode)
@@ -313,19 +388,20 @@ LibPCRE2 >> conversionErrorCode: errorCode in: patternBytes at: offset [
 		at: offset
 ]
 
-{ #category : 'conversion' }
+{ #category : 'converting' }
 LibPCRE2 >> convertPattern: pattern options: convertOptions [
+	"Convert a foreign pattern into a PCRE2 pattern string using explicit PCRE2_CONVERT_* option bits."
 
 	^ self convertPattern: pattern options: convertOptions context: nil
 ]
 
-{ #category : 'conversion' }
+{ #category : 'converting' }
 LibPCRE2 >> convertPattern: pattern options: convertOptions context: convertContext [
 	"Convert a foreign pattern string into a PCRE2 pattern string and free the PCRE2-owned output buffer."
 
 	| buffer convertedBytes input outputAddress outputLength rc |
 	self requirePatternConversionSupport.
-	input := PCRE2UTF8Input fromString: pattern.
+	input := self preparedConversionInputFor: pattern.
 	buffer := ByteArray new: ExternalAddress wordSize.
 	outputLength := SizeTHolder new.
 	rc := self
@@ -343,8 +419,10 @@ LibPCRE2 >> convertPattern: pattern options: convertOptions context: convertCont
 	[
 	convertedBytes := self
 		                  copyExternalBytes: outputAddress
-		                  size: outputLength value.
-	^ ZnUTF8Encoder default decodeBytes: convertedBytes ] ensure: [
+		                  size: outputLength value * self codeUnitByteSize.
+	^ self
+		  decodeConvertedPatternBytes: convertedBytes
+		  codeUnitCount: outputLength value ] ensure: [
 		self convertedPatternFree: outputAddress ]
 ]
 
@@ -376,6 +454,13 @@ LibPCRE2 >> createConvertContext [
 { #category : 'private' }
 LibPCRE2 >> createMatchContext [
 	"Width-specific primitive for pcre2_match_context_create_*()."
+
+	^ self subclassResponsibility
+]
+
+{ #category : 'private' }
+LibPCRE2 >> decodeConvertedPatternBytes: convertedBytes codeUnitCount: codeUnitCount [
+	"Decode bytes returned by pcre2_pattern_convert_*() for this binding's code-unit width."
 
 	^ self subclassResponsibility
 ]
@@ -425,6 +510,7 @@ LibPCRE2 >> macLibraryName [
 
 { #category : 'instance creation' }
 LibPCRE2 >> newConvertContext [
+	"Create a width-specific convert context for pattern conversion."
 
 	| context |
 	self requirePatternConversionSupport.
@@ -448,6 +534,13 @@ LibPCRE2 >> newMatchContext [
 { #category : 'private' }
 LibPCRE2 >> patternConvert: pattern upTo: length options: convertOptions output: outputBuffer size: outputLength context: convertContext [
 	"Width-specific primitive for pcre2_pattern_convert_*()."
+
+	^ self subclassResponsibility
+]
+
+{ #category : 'private' }
+LibPCRE2 >> preparedConversionInputFor: pattern [
+	"Prepare a String or width-specific input object for pcre2_pattern_convert_*()."
 
 	^ self subclassResponsibility
 ]
