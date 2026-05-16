@@ -6,6 +6,17 @@
 
 Perl-compatible regular expressions for Pharo, backed by the native [PCRE2](https://github.com/PCRE2Project/pcre2) library through FFI.
 
+## Pharo Version Policy
+
+This project is developed on Pharo 13.
+
+Supported versions:
+
+- Pharo 13 is the primary development and reference runtime.
+- Pharo 12 is supported through PharoCompatibility using the `Pharo13Surface` group.
+
+New code should target the Pharo 13 API surface. When a Pharo 13 API is not available on Pharo 12, add or use a compatibility shim rather than writing Pharo 12-shaped production code.
+
 ## Installation
 
 Load the project into a Pharo image with Metacello:
