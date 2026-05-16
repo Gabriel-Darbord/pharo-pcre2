@@ -3,7 +3,7 @@ I describe one instrumented PCRE2 match attempt.
 
 A trace is produced by compiling a temporary debug matcher with automatic callouts, running a non-JIT match, and collecting runtime PCRE2CalloutEvent snapshots. The original matcher is not mutated.
 
-I am intentionally a data object: UI/debugger tools can use my static callout sites, runtime events, match result, code-unit-to-character helpers, and event-to-site correlation methods.
+I keep the data used by UI and debugger tools: static callout sites, runtime events, match result, code-unit-to-character helpers, and event-to-site correlation methods.
 
 My steps API builds PCRE2TraceStep objects that pretranslate pattern and subject positions, capture ranges, and marks for a debugger or trace viewer.
 "

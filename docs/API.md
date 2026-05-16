@@ -121,7 +121,7 @@ Substitution callouts can inspect or reject processed replacements. Substitution
 
 ## Pattern Conversion
 
-PCRE2 can convert glob, POSIX basic, and POSIX extended patterns into PCRE2 pattern strings. Use the concrete library class for the code-unit width you want:
+PCRE2 can convert glob, POSIX basic, and POSIX extended patterns into PCRE2 pattern strings. Call the helper for the code-unit width you want:
 
 ```smalltalk
 LibPCRE2UTF8 convertGlob: '*.st'.
@@ -144,7 +144,7 @@ context globEscape: $!.
 matcher := (LibPCRE2UTF8 convertGlob: 'file!*.st' context: context) asPerlCompatibleRegex.
 ```
 
-The concrete library bindings expose the same conversion helpers for their code-unit width:
+UTF-16 and UTF-32 expose the same conversion helpers:
 
 ```smalltalk
 pattern := LibPCRE2UTF16 convertGlob: '*é'.

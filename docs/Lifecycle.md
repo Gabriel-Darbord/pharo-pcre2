@@ -6,7 +6,7 @@ Pharo-PCRE2 uses `LibPCRE2UTF8` for the default PCRE2 8-bit API. The host must p
 
 Minor PCRE2 versions may report different configuration strings or Unicode versions. Prefer checking capabilities over comparing exact minor-version text.
 
-The optional UTF-16 and UTF-32 matchers bind through `LibPCRE2UTF16` and `LibPCRE2UTF32` to PCRE2's separate `libpcre2-16` and `libpcre2-32` libraries. `LibPCRE2` is abstract; use a concrete library class for runtime calls. Check `LibPCRE2UTF8 supports16BitCodeUnitWidth` or `LibPCRE2UTF8 supports32BitCodeUnitWidth` before depending on wider libraries in portable code.
+The optional UTF-16 and UTF-32 matchers bind through `LibPCRE2UTF16` and `LibPCRE2UTF32` to PCRE2's separate `libpcre2-16` and `libpcre2-32` libraries. Runtime calls go through `LibPCRE2UTF8`, `LibPCRE2UTF16`, or `LibPCRE2UTF32`. Check `LibPCRE2UTF8 supports16BitCodeUnitWidth` or `LibPCRE2UTF8 supports32BitCodeUnitWidth` before depending on wider libraries in portable code.
 
 ## Compiled Patterns and Image Restarts
 

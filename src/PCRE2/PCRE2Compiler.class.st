@@ -3,7 +3,7 @@ Abstract superclass for PCRE2 compilers.
 
 Concrete subclasses bind the width-specific PCRE2 compile and JIT entry points: PCRE2UTF8Compiler, PCRE2UTF16Compiler, and PCRE2UTF32Compiler. This class keeps the shared compile flow, options, compile context handling, error reporting, and default JIT policy.
 
-For compatibility and normal user code, PCRE2Compiler new answers a PCRE2UTF8Compiler. Most users should keep using String>>asPerlCompatibleRegex or PCRE2Compiler directly unless they need a specific code-unit width.
+For normal UTF-8 use, PCRE2Compiler new answers a PCRE2UTF8Compiler. Most users should keep using String>>asPerlCompatibleRegex or PCRE2Compiler directly unless they need a specific code-unit width.
 "
 Class {
 	#name : 'PCRE2Compiler',

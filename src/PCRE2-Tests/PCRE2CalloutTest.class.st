@@ -1,7 +1,7 @@
 "
-I cover PCRE2 callout metadata APIs.
+I cover PCRE2 callout metadata and runtime callback APIs.
 
-These tests intentionally start with passive callout enumeration, which inspects compiled patterns without installing runtime match callbacks. That gives debugger/explainer tools a safe first layer before we expose live match callouts.
+Passive enumeration tests inspect compiled patterns without installing match callbacks. Runtime tests verify the explicit callback behavior used by tracing and debugging tools.
 "
 Class {
 	#name : 'PCRE2CalloutTest',

@@ -1,9 +1,9 @@
 "
-Abstract superclass for the native PCRE2 library bindings.
+I am the abstract superclass for the native PCRE2 library bindings.
 
-Concrete subclasses bind one PCRE2 code-unit library: LibPCRE2UTF8 for libpcre2-8, LibPCRE2UTF16 for libpcre2-16, and LibPCRE2UTF32 for libpcre2-32. This class keeps shared library discovery, version/configuration queries, serialization flow, error handling, and capability checks.
+LibPCRE2UTF8 binds libpcre2-8, LibPCRE2UTF16 binds libpcre2-16, and LibPCRE2UTF32 binds libpcre2-32. This class keeps shared library discovery, version/configuration queries, serialization flow, error handling, and capability checks.
 
-Use a concrete subclass for runtime calls. LibPCRE2 itself should not be instantiated.
+Runtime calls are made through LibPCRE2UTF8, LibPCRE2UTF16, or LibPCRE2UTF32.
 "
 Class {
 	#name : 'LibPCRE2',
@@ -41,14 +41,14 @@ LibPCRE2 class >> config: option [
 
 { #category : 'converting' }
 LibPCRE2 class >> convertGlob: globPattern [
-	"Convert a glob pattern into a PCRE2 pattern string using this concrete library binding."
+	"Convert a glob pattern into a PCRE2 pattern string for the receiver's code-unit width."
 
 	^ self convertGlob: globPattern options: PCRE2 convertGlob
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertGlob: globPattern context: convertContext [
-	"Convert a glob pattern into a PCRE2 pattern string using this concrete library binding and a convert context."
+	"Convert a glob pattern into a PCRE2 pattern string with the supplied convert context."
 
 	^ self
 		  convertGlob: globPattern
@@ -58,14 +58,14 @@ LibPCRE2 class >> convertGlob: globPattern context: convertContext [
 
 { #category : 'converting' }
 LibPCRE2 class >> convertGlob: globPattern options: convertOptions [
-	"Convert a glob pattern into a PCRE2 pattern string using explicit glob conversion options."
+	"Convert a glob pattern into a PCRE2 pattern string with explicit glob conversion options."
 
 	^ self convertGlob: globPattern options: convertOptions context: nil
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertGlob: globPattern options: convertOptions context: convertContext [
-	"Convert a glob pattern into a PCRE2 pattern string using this concrete library binding."
+	"Convert a glob pattern into a PCRE2 pattern string for the receiver's code-unit width."
 
 	^ self
 		  convertPattern: globPattern
@@ -75,7 +75,7 @@ LibPCRE2 class >> convertGlob: globPattern options: convertOptions context: conv
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPOSIXBasic: posixPattern [
-	"Convert a POSIX basic regular expression into a PCRE2 pattern string using this concrete library binding."
+	"Convert a POSIX basic regular expression into a PCRE2 pattern string for the receiver's code-unit width."
 
 	^ self
 		  convertPattern: posixPattern
@@ -84,7 +84,7 @@ LibPCRE2 class >> convertPOSIXBasic: posixPattern [
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPOSIXBasic: posixPattern context: convertContext [
-	"Convert a POSIX basic regular expression into a PCRE2 pattern string using this concrete library binding and a convert context."
+	"Convert a POSIX basic regular expression into a PCRE2 pattern string with the supplied convert context."
 
 	^ self
 		  convertPattern: posixPattern
@@ -94,7 +94,7 @@ LibPCRE2 class >> convertPOSIXBasic: posixPattern context: convertContext [
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPOSIXExtended: posixPattern [
-	"Convert a POSIX extended regular expression into a PCRE2 pattern string using this concrete library binding."
+	"Convert a POSIX extended regular expression into a PCRE2 pattern string for the receiver's code-unit width."
 
 	^ self
 		  convertPattern: posixPattern
@@ -103,7 +103,7 @@ LibPCRE2 class >> convertPOSIXExtended: posixPattern [
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPOSIXExtended: posixPattern context: convertContext [
-	"Convert a POSIX extended regular expression into a PCRE2 pattern string using this concrete library binding and a convert context."
+	"Convert a POSIX extended regular expression into a PCRE2 pattern string with the supplied convert context."
 
 	^ self
 		  convertPattern: posixPattern
@@ -113,7 +113,7 @@ LibPCRE2 class >> convertPOSIXExtended: posixPattern context: convertContext [
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPattern: pattern options: convertOptions [
-	"Convert a foreign pattern into a PCRE2 pattern string using explicit PCRE2_CONVERT_* option bits."
+	"Convert a foreign pattern into a PCRE2 pattern string with explicit PCRE2_CONVERT_* option bits."
 
 	^ self uniqueInstance
 		  convertPattern: pattern
@@ -123,7 +123,7 @@ LibPCRE2 class >> convertPattern: pattern options: convertOptions [
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPattern: pattern options: convertOptions context: convertContext [
-	"Convert a foreign pattern into a PCRE2 pattern string using this concrete library binding and an optional convert context."
+	"Convert a foreign pattern into a PCRE2 pattern string with an optional convert context."
 
 	^ self uniqueInstance
 		  convertPattern: pattern
@@ -333,7 +333,7 @@ LibPCRE2 >> assertCompatibleLibrary [
 
 { #category : 'private' }
 LibPCRE2 >> codeUnitByteSize [
-	"Answer the native byte size of one PCRE2 code unit for this concrete binding."
+	"Answer the native byte size of one PCRE2 code unit for this library binding."
 
 	^ self class codeUnitWidth // 8
 ]
