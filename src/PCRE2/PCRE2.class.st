@@ -1,8 +1,6 @@
 "
 I contain the constants and option helpers used by the PCRE2 binding.
 
-Width-specific native-library behavior belongs on LibPCRE2UTF8, LibPCRE2UTF16, and LibPCRE2UTF32. For example, pattern conversion helpers live on those concrete library classes, not on this constants facade.
-
 The `documentation` protocol contains methods to get information about specific options. Options defined as bitwise flags have dedicated helpers to ease human interaction. For example, `PCRE2 readOptions: 40 for: #compile` shows that `PCRE2 class>>#caseless` and `PCRE2 class>>#dotAll` are set. Options for `LibPCRE2UTF8>>#config:` and `PCRE2Matcher>>#info:` do not rely on flags and are not supported by these helpers.
 
 Many error codes are defined by the PCRE2 library. Only those that can be expected without having to throw an error are referenced here.
