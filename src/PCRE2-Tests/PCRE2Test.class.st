@@ -159,12 +159,6 @@ PCRE2Test >> testAllOptions [
 ]
 
 { #category : 'tests' }
-PCRE2Test >> testDefaultLibraryClass [
-
-	self assert: PCRE2 defaultLibraryClass equals: LibPCRE2UTF8
-]
-
-{ #category : 'tests' }
 PCRE2Test >> testOptionsFor [
 
 	self assert: (PCRE2 optionsFor: #compile) size equals: 30.

@@ -69,11 +69,11 @@ Replacement strings use PCRE2 substitution syntax unless you call one of the `wi
 Use PCRE2's conversion helpers when the input pattern is a glob or POSIX regular expression:
 
 ```smalltalk
-matcher := (PCRE2 convertGlob: '*.st') asPerlCompatibleRegex.
+matcher := (LibPCRE2UTF8 convertGlob: '*.st') asPerlCompatibleRegex.
 matcher matches: 'Package.st'. "true"
 
-(PCRE2 convertPOSIXBasic: 'a\{2\}') asPerlCompatibleRegex.
-(PCRE2 convertPOSIXExtended: 'a(b|c)+') asPerlCompatibleRegex.
+(LibPCRE2UTF8 convertPOSIXBasic: 'a\{2\}') asPerlCompatibleRegex.
+(LibPCRE2UTF8 convertPOSIXExtended: 'a(b|c)+') asPerlCompatibleRegex.
 ```
 
 ## Reuse Prepared Input

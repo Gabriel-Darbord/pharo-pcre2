@@ -1,7 +1,7 @@
 "
-I contain the constants, option helpers, and default facade conveniences used by the PCRE2 binding.
+I contain the constants and option helpers used by the PCRE2 binding.
 
-`PCRE2 defaultLibraryClass` answers LibPCRE2UTF8. Width-specific native-library behavior belongs on LibPCRE2UTF8, LibPCRE2UTF16, and LibPCRE2UTF32; this facade delegates to the default library only where a user-facing UTF-8 default is intentional.
+Width-specific native-library behavior belongs on LibPCRE2UTF8, LibPCRE2UTF16, and LibPCRE2UTF32. For example, pattern conversion helpers live on those concrete library classes, not on this constants facade.
 
 The `documentation` protocol contains methods to get information about specific options. Options defined as bitwise flags have dedicated helpers to ease human interaction. For example, `PCRE2 readOptions: 40 for: #compile` shows that `PCRE2 class>>#caseless` and `PCRE2 class>>#dotAll` are set. Options for `LibPCRE2UTF8>>#config:` and `PCRE2Matcher>>#info:` do not rely on flags and are not supported by these helpers.
 
@@ -259,41 +259,6 @@ PCRE2 class >> convertGlob [
 	^ 16r00000010
 ]
 
-{ #category : 'converting' }
-PCRE2 class >> convertGlob: globPattern [
-	"Convert a glob pattern into a PCRE2 pattern string using the default UTF-8 library."
-
-	^ self defaultLibraryClass convertGlob: globPattern
-]
-
-{ #category : 'converting' }
-PCRE2 class >> convertGlob: globPattern context: convertContext [
-	"Convert a glob pattern into a PCRE2 pattern string using the default UTF-8 library and a convert context."
-
-	^ self defaultLibraryClass
-		  convertGlob: globPattern
-		  context: convertContext
-]
-
-{ #category : 'converting' }
-PCRE2 class >> convertGlob: globPattern options: convertOptions [
-	"Convert a glob pattern into a PCRE2 pattern string with explicit glob conversion options."
-
-	^ self defaultLibraryClass
-		  convertGlob: globPattern
-		  options: convertOptions
-]
-
-{ #category : 'converting' }
-PCRE2 class >> convertGlob: globPattern options: convertOptions context: convertContext [
-	"Convert a glob pattern into a PCRE2 pattern string using the default UTF-8 library."
-
-	^ self defaultLibraryClass
-		  convertGlob: globPattern
-		  options: convertOptions
-		  context: convertContext
-]
-
 { #category : 'options' }
 PCRE2 class >> convertGlobNoStarStar [
 	"Convert a glob pattern without recognizing a doubled star as a recursive wildcard."
@@ -326,63 +291,12 @@ PCRE2 class >> convertPOSIXBasic [
 	^ 16r00000004
 ]
 
-{ #category : 'converting' }
-PCRE2 class >> convertPOSIXBasic: posixPattern [
-	"Convert a POSIX basic regular expression into a PCRE2 pattern string using the default UTF-8 library."
-
-	^ self defaultLibraryClass convertPOSIXBasic: posixPattern
-]
-
-{ #category : 'converting' }
-PCRE2 class >> convertPOSIXBasic: posixPattern context: convertContext [
-	"Convert a POSIX basic regular expression into a PCRE2 pattern string using the default UTF-8 library and a convert context."
-
-	^ self defaultLibraryClass
-		  convertPOSIXBasic: posixPattern
-		  context: convertContext
-]
-
 { #category : 'options' }
 PCRE2 class >> convertPOSIXExtended [
 	"Convert a POSIX extended regular expression."
 
 	<pcre2Option: #( convert )>
 	^ 16r00000008
-]
-
-{ #category : 'converting' }
-PCRE2 class >> convertPOSIXExtended: posixPattern [
-	"Convert a POSIX extended regular expression into a PCRE2 pattern string using the default UTF-8 library."
-
-	^ self defaultLibraryClass convertPOSIXExtended: posixPattern
-]
-
-{ #category : 'converting' }
-PCRE2 class >> convertPOSIXExtended: posixPattern context: convertContext [
-	"Convert a POSIX extended regular expression into a PCRE2 pattern string using the default UTF-8 library and a convert context."
-
-	^ self defaultLibraryClass
-		  convertPOSIXExtended: posixPattern
-		  context: convertContext
-]
-
-{ #category : 'converting' }
-PCRE2 class >> convertPattern: pattern options: convertOptions [
-	"Convert a foreign pattern into a PCRE2 pattern string using the default UTF-8 library and explicit PCRE2_CONVERT_* option bits."
-
-	^ self defaultLibraryClass
-		  convertPattern: pattern
-		  options: convertOptions
-]
-
-{ #category : 'converting' }
-PCRE2 class >> convertPattern: pattern options: convertOptions context: convertContext [
-	"Convert a foreign pattern into a PCRE2 pattern string using the default UTF-8 library and an optional convert context."
-
-	^ self defaultLibraryClass
-		  convertPattern: pattern
-		  options: convertOptions
-		  context: convertContext
 ]
 
 { #category : 'options' }
@@ -399,13 +313,6 @@ PCRE2 class >> copyMatchedSubject [
 
 	<pcre2Option: #( match dfa_match jit_match substitute )>
 	^ 16r00004000
-]
-
-{ #category : 'defaults' }
-PCRE2 class >> defaultLibraryClass [
-	"Answer the concrete library binding used by UTF-8 facade conveniences."
-
-	^ LibPCRE2UTF8
 ]
 
 { #category : 'options' }
