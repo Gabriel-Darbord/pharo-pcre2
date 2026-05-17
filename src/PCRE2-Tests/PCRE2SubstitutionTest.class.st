@@ -13,14 +13,14 @@ Class {
 { #category : 'private' }
 PCRE2SubstitutionTest >> skipUnlessSubstitutionCalloutsSupported [
 
-	LibPCRE2UTF8 supportsSubstitutionCallouts ifFalse: [ ^ true ].
+	LibPCRE2 supportsSubstitutionCallouts ifFalse: [ ^ true ].
 	^ false
 ]
 
 { #category : 'private' }
 PCRE2SubstitutionTest >> skipUnlessSubstitutionCaseCalloutsSupported [
 
-	LibPCRE2UTF8 supportsSubstitutionCaseCallouts ifFalse: [ ^ true ].
+	LibPCRE2 supportsSubstitutionCaseCallouts ifFalse: [ ^ true ].
 	^ false
 ]
 

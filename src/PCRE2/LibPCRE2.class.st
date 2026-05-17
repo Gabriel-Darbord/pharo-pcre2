@@ -36,7 +36,7 @@ LibPCRE2 class >> codeUnitWidthMask [
 { #category : 'documentation' }
 LibPCRE2 class >> config: option [
 
-	^ self uniqueInstance config: option
+	^ self runtimeConfigurationLibrary uniqueInstance config: option
 ]
 
 { #category : 'converting' }
@@ -187,6 +187,13 @@ LibPCRE2 class >> restore: matchers from: bytes [
 	self uniqueInstance restore: matchers from: bytes
 ]
 
+{ #category : 'private' }
+LibPCRE2 class >> runtimeConfigurationLibrary [
+	"Use the required 8-bit binding for library-wide PCRE2_CONFIG and version queries. These answers describe the loaded PCRE2 runtime, not one concrete code-unit API."
+
+	^ LibPCRE2UTF8
+]
+
 { #category : 'persistence' }
 LibPCRE2 class >> serialize: matchers [
 
@@ -196,19 +203,22 @@ LibPCRE2 class >> serialize: matchers [
 { #category : 'version management' }
 LibPCRE2 class >> supports16BitCodeUnitWidth [
 
-	^ self uniqueInstance supports16BitCodeUnitWidth
+	^ self runtimeConfigurationLibrary uniqueInstance
+		  supports16BitCodeUnitWidth
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supports32BitCodeUnitWidth [
 
-	^ self uniqueInstance supports32BitCodeUnitWidth
+	^ self runtimeConfigurationLibrary uniqueInstance
+		  supports32BitCodeUnitWidth
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supports8BitCodeUnitWidth [
 
-	^ self uniqueInstance supports8BitCodeUnitWidth
+	^ self runtimeConfigurationLibrary uniqueInstance
+		  supports8BitCodeUnitWidth
 ]
 
 { #category : 'version management' }
@@ -220,62 +230,69 @@ LibPCRE2 class >> supportsCodeUnitWidth [
 { #category : 'version management' }
 LibPCRE2 class >> supportsJIT [
 
-	^ self uniqueInstance supportsJIT
+	^ self runtimeConfigurationLibrary uniqueInstance supportsJIT
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsMatchDataHeapframesSize [
 	"PCRE2 10.43 added pcre2_get_match_data_heapframes_size()."
 
-	^ self uniqueInstance supportsMatchDataHeapframesSize
+	^ self runtimeConfigurationLibrary uniqueInstance
+		  supportsMatchDataHeapframesSize
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsMaxPatternCompiledLength [
 	"PCRE2 10.44 added pcre2_set_max_pattern_compiled_length()."
 
-	^ self uniqueInstance supportsMaxPatternCompiledLength
+	^ self runtimeConfigurationLibrary uniqueInstance
+		  supportsMaxPatternCompiledLength
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsMaxVarLookbehind [
 	"PCRE2 10.43 added bounded variable-length lookbehind support and its compile-context limit."
 
-	^ self uniqueInstance supportsMaxVarLookbehind
+	^ self runtimeConfigurationLibrary uniqueInstance
+		  supportsMaxVarLookbehind
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsOptimizationDirectives [
 	"PCRE2 10.45 added pcre2_set_optimize()."
 
-	^ self uniqueInstance supportsOptimizationDirectives
+	^ self runtimeConfigurationLibrary uniqueInstance
+		  supportsOptimizationDirectives
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsPatternConversion [
 	"PCRE2 10.30 added the experimental pattern conversion API."
 
-	^ self uniqueInstance supportsPatternConversion
+	^ self runtimeConfigurationLibrary uniqueInstance
+		  supportsPatternConversion
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsSubstitutionCallouts [
 	"PCRE2 10.33 added pcre2_set_substitute_callout()."
 
-	^ self uniqueInstance supportsSubstitutionCallouts
+	^ self runtimeConfigurationLibrary uniqueInstance
+		  supportsSubstitutionCallouts
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsSubstitutionCaseCallouts [
 	"PCRE2 10.45 added pcre2_set_substitute_case_callout()."
 
-	^ self uniqueInstance supportsSubstitutionCaseCallouts
+	^ self runtimeConfigurationLibrary uniqueInstance
+		  supportsSubstitutionCaseCallouts
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsUnicode [
 
-	^ self uniqueInstance supportsUnicode
+	^ self runtimeConfigurationLibrary uniqueInstance supportsUnicode
 ]
 
 { #category : 'instance creation' }
@@ -291,31 +308,31 @@ LibPCRE2 class >> uniqueInstance [
 { #category : 'version management' }
 LibPCRE2 class >> version [
 
-	^ self uniqueInstance version
+	^ self runtimeConfigurationLibrary uniqueInstance version
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> versionDate [
 
-	^ self uniqueInstance versionDate
+	^ self runtimeConfigurationLibrary uniqueInstance versionDate
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> versionMajor [
 
-	^ self uniqueInstance versionMajor
+	^ self runtimeConfigurationLibrary uniqueInstance versionMajor
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> versionMinor [
 
-	^ self uniqueInstance versionMinor
+	^ self runtimeConfigurationLibrary uniqueInstance versionMinor
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> versionString [
 
-	^ self uniqueInstance versionString
+	^ self runtimeConfigurationLibrary uniqueInstance versionString
 ]
 
 { #category : 'documentation' }

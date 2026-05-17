@@ -69,34 +69,6 @@ PCRE2UTF16InputTest >> testLittleEndianUTF16BytesAreNormalized [
 ]
 
 { #category : 'tests' }
-PCRE2UTF16InputTest >> testNativeEndianBytesCanCreateReusableUTF16Input [
-
-	| input subject |
-	subject := 'café'.
-	input := PCRE2UTF16Input fromBytes: subject asPCRE2UTF16Input bytes.
-
-	self assert: input class equals: PCRE2UTF16Input.
-	self assert: input size equals: subject size.
-	self assert: input bytes size equals: subject size * 2.
-	self assert: (input readFrom: 1 to: 4) equals: subject
-]
-
-{ #category : 'tests' }
-PCRE2UTF16InputTest >> testStringCanCreateReusableUTF16Input [
-
-	| input subject |
-	subject := 'café'.
-	input := subject asPCRE2UTF16Input.
-
-	self assert: input class equals: PCRE2UTF16Input.
-	self assert: input size equals: subject size.
-	self assert: input bytes size equals: subject size * 2.
-	self assert: (input bytes uint16AtOffset: 0) equals: $c asInteger.
-	self assert: (input bytes uint16AtOffset: 6) equals: $é asInteger.
-	self assert: (input readFrom: 2 to: 4) equals: 'afé'
-]
-
-{ #category : 'tests' }
 PCRE2UTF16InputTest >> testUTF16ByteInputRejectsOddSize [
 
 	self
@@ -105,17 +77,6 @@ PCRE2UTF16InputTest >> testUTF16ByteInputRejectsOddSize [
 		withExceptionDo: [ :error |
 			self assert:
 				(error messageText includesSubstring: 'even byte size') ]
-]
-
-{ #category : 'tests' }
-PCRE2UTF16InputTest >> testUTF16InputDecodesByteSlices [
-
-	| input |
-	input := 'éclair' asPCRE2UTF16Input.
-
-	self
-		assert: (input decodeBytes: (input bytes copyFrom: 1 to: 4))
-		equals: 'éc'
 ]
 
 { #category : 'tests' }

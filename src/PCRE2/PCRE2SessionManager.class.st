@@ -59,14 +59,13 @@ PCRE2SessionManager class >> serializationSignature [
 	"Answer the runtime identity that serialized PCRE2 bytecode depends on."
 
 	^ Dictionary newFrom: {
-			  (#pcre2Version -> LibPCRE2UTF8 versionString).
+			  (#pcre2Version -> LibPCRE2 versionString).
 			  (#endianness -> EndianDetector endianness).
 			  (#wordSize -> ExternalAddress wordSize).
 			  (#sizeTSize
 			   -> FFIArchitecture forCurrentArchitecture sizeTTypeSize).
-			  (#compiledWidths
-			   -> (LibPCRE2UTF8 config: PCRE2 configCompiledWidths)).
-			  (#unicode -> LibPCRE2UTF8 supportsUnicode) }
+			  (#compiledWidths -> (LibPCRE2 config: PCRE2 configCompiledWidths)).
+			  (#unicode -> LibPCRE2 supportsUnicode) }
 ]
 
 { #category : 'asserting' }

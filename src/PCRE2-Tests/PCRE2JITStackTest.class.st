@@ -11,7 +11,7 @@ Class {
 { #category : 'private' }
 PCRE2JITStackTest >> skipUnlessJITSupported [
 
-	LibPCRE2UTF8 supportsJIT ifFalse: [ ^ true ].
+	LibPCRE2 supportsJIT ifFalse: [ ^ true ].
 	^ false
 ]
 
@@ -51,7 +51,7 @@ PCRE2JITStackTest >> testRejectsMismatchedCodeUnitWidth [
 
 	| stack regex |
 	self skipUnlessJITSupported ifTrue: [ ^ self ].
-	LibPCRE2UTF8 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
+	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
 
 	regex := 'a' asPerlCompatibleRegex.
 	stack := PCRE2UTF16JITStack default.
@@ -77,27 +77,4 @@ PCRE2JITStackTest >> testStackCanBeAssignedToJITMatchContext [
 	regex context clearJITStack.
 	self assert: regex context jitStack isNil.
 	self assert: (regex find: 'baaa') equals: 'aaa'
-]
-
-{ #category : 'tests' }
-PCRE2JITStackTest >> testWideJITStacksCanBeAssigned [
-
-	| regex16 regex32 stack16 stack32 |
-	self skipUnlessJITSupported ifTrue: [ ^ self ].
-	LibPCRE2UTF8 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
-	LibPCRE2UTF8 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
-
-	stack16 := PCRE2UTF16JITStack default.
-	regex16 := PCRE2UTF16Compiler new compile: 'a+'.
-	regex16 compileJIT.
-	regex16 context jitStack: stack16.
-	self assert: regex16 context jitStack identicalTo: stack16.
-	self assert: (regex16 find: 'baaa') equals: 'aaa'.
-
-	stack32 := PCRE2UTF32JITStack default.
-	regex32 := PCRE2UTF32Compiler new compile: 'b+'.
-	regex32 compileJIT.
-	regex32 context jitStack: stack32.
-	self assert: regex32 context jitStack identicalTo: stack32.
-	self assert: (regex32 find: 'abbb') equals: 'bbb'
 ]

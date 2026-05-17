@@ -61,7 +61,7 @@ PCRE2CompilerTest >> testCompileContextCharacterTables [
 PCRE2CompilerTest >> testCompileContextEnableOptimizationDirectives [
 
 	| context |
-	LibPCRE2UTF8 supportsOptimizationDirectives ifFalse: [ ^ self ].
+	LibPCRE2 supportsOptimizationDirectives ifFalse: [ ^ self ].
 	context := PCRE2Compiler new context.
 
 	context
@@ -81,7 +81,7 @@ PCRE2CompilerTest >> testCompileContextEnableOptimizationDirectives [
 PCRE2CompilerTest >> testCompileContextLimitsCompiledPatternLength [
 
 	| compiler |
-	LibPCRE2UTF8 supportsMaxPatternCompiledLength ifFalse: [ ^ self ].
+	LibPCRE2 supportsMaxPatternCompiledLength ifFalse: [ ^ self ].
 	compiler := PCRE2Compiler new.
 	compiler context maxPatternCompiledLength: 1.
 
@@ -145,7 +145,7 @@ PCRE2CompilerTest >> testCompileContextNewlineAffectsMultilineMatching [
 PCRE2CompilerTest >> testCompileContextOptimizationDirectivesAndValidation [
 
 	| context matcher |
-	LibPCRE2UTF8 supportsOptimizationDirectives ifFalse: [ ^ self ].
+	LibPCRE2 supportsOptimizationDirectives ifFalse: [ ^ self ].
 	context := PCRE2Compiler new context.
 	context
 		useNoOptimization;
@@ -195,11 +195,11 @@ PCRE2CompilerTest >> testCompileContextOptionsBSRAndCopy [
 		useNewlineCRLF;
 		maxPatternLength: 64;
 		parensNestLimit: 12.
-	LibPCRE2UTF8 supportsMaxPatternCompiledLength ifTrue: [
+	LibPCRE2 supportsMaxPatternCompiledLength ifTrue: [
 		context maxPatternCompiledLength: 4096 ].
-	LibPCRE2UTF8 supportsMaxVarLookbehind ifTrue: [
+	LibPCRE2 supportsMaxVarLookbehind ifTrue: [
 		context maxVarLookbehind: 300 ].
-	LibPCRE2UTF8 supportsOptimizationDirectives ifTrue: [
+	LibPCRE2 supportsOptimizationDirectives ifTrue: [
 		context disableStartOptimization ].
 
 	copy := context copy.
@@ -209,13 +209,13 @@ PCRE2CompilerTest >> testCompileContextOptionsBSRAndCopy [
 	self assert: copy newline equals: context newline.
 	self assert: copy maxPatternLength equals: context maxPatternLength.
 	self assert: copy parensNestLimit equals: context parensNestLimit.
-	LibPCRE2UTF8 supportsMaxPatternCompiledLength ifTrue: [
+	LibPCRE2 supportsMaxPatternCompiledLength ifTrue: [
 		self
 			assert: copy maxPatternCompiledLength
 			equals: context maxPatternCompiledLength ].
-	LibPCRE2UTF8 supportsMaxVarLookbehind ifTrue: [
+	LibPCRE2 supportsMaxVarLookbehind ifTrue: [
 		self assert: copy maxVarLookbehind equals: context maxVarLookbehind ].
-	LibPCRE2UTF8 supportsOptimizationDirectives ifTrue: [
+	LibPCRE2 supportsOptimizationDirectives ifTrue: [
 		self
 			assert: copy optimizationDirectives
 			equals: context optimizationDirectives ]
@@ -237,7 +237,7 @@ PCRE2CompilerTest >> testCompileContextParensNestLimit [
 PCRE2CompilerTest >> testCompileContextRejectsCharacterTablesFromDifferentWidth [
 
 	| context tables |
-	LibPCRE2UTF8 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
+	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
 	context := PCRE2Compiler new context.
 	tables := LibPCRE2UTF16 newCharacterTables.
 
@@ -254,7 +254,7 @@ PCRE2CompilerTest >> testCompileContextRejectsCharacterTablesFromDifferentWidth 
 PCRE2CompilerTest >> testCompileContextVariableLookbehindLimit [
 
 	| compiler matcher |
-	LibPCRE2UTF8 supportsMaxVarLookbehind ifFalse: [ ^ self ].
+	LibPCRE2 supportsMaxVarLookbehind ifFalse: [ ^ self ].
 	self
 		assertCompileErrorFrom: [
 		PCRE2Compiler new compile: '(?<=a{0,300})b' ]
@@ -341,34 +341,4 @@ PCRE2CompilerTest >> testErrorCode [
 PCRE2CompilerTest >> testSharedDefaultCompiler [
 
 	self assert: '' asPerlCompatibleRegex compiler identicalTo: '' asPerlCompatibleRegex compiler
-]
-
-{ #category : 'tests' }
-PCRE2CompilerTest >> testUTF16CharacterTablesAndCopyWithTables [
-
-	| compiler copy regex |
-	LibPCRE2UTF8 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
-	compiler := PCRE2UTF16Compiler new.
-	compiler context useCharacterTablesFromCurrentLocale.
-	regex := compiler compile: '\w+'.
-	copy := regex copyWithCharacterTables.
-
-	self assert: (regex matches: 'abc').
-	self assert: copy class equals: PCRE2UTF16Matcher.
-	self assert: (copy matches: 'abc')
-]
-
-{ #category : 'tests' }
-PCRE2CompilerTest >> testUTF32CharacterTablesAndCopyWithTables [
-
-	| compiler copy regex |
-	LibPCRE2UTF8 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
-	compiler := PCRE2UTF32Compiler new.
-	compiler context useCharacterTablesFromCurrentLocale.
-	regex := compiler compile: '\w+'.
-	copy := regex copyWithCharacterTables.
-
-	self assert: (regex matches: 'abc').
-	self assert: copy class equals: PCRE2UTF32Matcher.
-	self assert: (copy matches: 'abc')
 ]

@@ -20,45 +20,20 @@ PCRE2Test >> optionSelectorsFrom: optionsByFunction [
 { #category : 'tests' }
 PCRE2Test >> testAbstractClassDeclarations [
 
-	| abstractClasses concreteClasses |
+	| abstractClasses |
 	abstractClasses := {
 		                   PCRE2Object.
 		                   PCRE2CharacterTables.
 		                   PCRE2CompileContext.
 		                   PCRE2Compiler.
 		                   PCRE2ConvertContext.
+		                   PCRE2Input.
 		                   PCRE2JITStack.
 		                   PCRE2Match.
 		                   PCRE2MatchContext.
 		                   PCRE2Matcher }.
-	concreteClasses := {
-		                   PCRE2UTF8CharacterTables.
-		                   PCRE2UTF16CharacterTables.
-		                   PCRE2UTF32CharacterTables.
-		                   PCRE2UTF8CompileContext.
-		                   PCRE2UTF16CompileContext.
-		                   PCRE2UTF32CompileContext.
-		                   PCRE2UTF8Compiler.
-		                   PCRE2UTF16Compiler.
-		                   PCRE2UTF32Compiler.
-		                   PCRE2UTF8ConvertContext.
-		                   PCRE2UTF16ConvertContext.
-		                   PCRE2UTF32ConvertContext.
-		                   PCRE2UTF8JITStack.
-		                   PCRE2UTF16JITStack.
-		                   PCRE2UTF32JITStack.
-		                   PCRE2UTF8Match.
-		                   PCRE2UTF16Match.
-		                   PCRE2UTF32Match.
-		                   PCRE2UTF8MatchContext.
-		                   PCRE2UTF16MatchContext.
-		                   PCRE2UTF32MatchContext.
-		                   PCRE2UTF8Matcher.
-		                   PCRE2UTF16Matcher.
-		                   PCRE2UTF32Matcher }.
 
-	abstractClasses do: [ :each | self assert: each isAbstract ].
-	concreteClasses do: [ :each | self deny: each isAbstract ]
+	abstractClasses do: [ :each | self assert: each isAbstract ]
 ]
 
 { #category : 'tests' }

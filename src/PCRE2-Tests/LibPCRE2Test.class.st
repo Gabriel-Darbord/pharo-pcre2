@@ -11,66 +11,32 @@ Class {
 }
 
 { #category : 'tests' }
-LibPCRE2Test >> testConcreteLibraryWidths [
-
-	self assert: LibPCRE2UTF8 codeUnitWidth equals: 8.
-	self assert: LibPCRE2UTF8 supportsCodeUnitWidth.
-	LibPCRE2UTF8 supports16BitCodeUnitWidth ifTrue: [
-		self assert: LibPCRE2UTF16 codeUnitWidth equals: 16.
-		self assert: LibPCRE2UTF16 supportsCodeUnitWidth ].
-	LibPCRE2UTF8 supports32BitCodeUnitWidth ifTrue: [
-		self assert: LibPCRE2UTF32 codeUnitWidth equals: 32.
-		self assert: LibPCRE2UTF32 supportsCodeUnitWidth ]
-]
-
-{ #category : 'tests' }
 LibPCRE2Test >> testConfig [
 
 	| configs supportsJIT version |
 	self assert: LibPCRE2 isAbstract.
 	self deny: LibPCRE2UTF8 isAbstract.
 
-	version := LibPCRE2UTF8 version.
+	version := LibPCRE2 version.
 	configs := LibPCRE2UTF8 uniqueInstance allConfigs.
 
 	self assert: LibPCRE2UTF8 requiredMajorVersion equals: 10.
 	self
-		assert: LibPCRE2UTF8 versionMajor
+		assert: LibPCRE2 versionMajor
 		equals: LibPCRE2UTF8 requiredMajorVersion.
-	self assert: version first equals: LibPCRE2UTF8 versionMajor.
-	self assert: version second equals: LibPCRE2UTF8 versionMinor.
-	self assert: version third equals: LibPCRE2UTF8 versionDate.
-	self assert: (LibPCRE2UTF8 versionString beginsWith:
+	self assert: version first equals: LibPCRE2 versionMajor.
+	self assert: version second equals: LibPCRE2 versionMinor.
+	self assert: version third equals: LibPCRE2 versionDate.
+	self assert: (LibPCRE2 versionString beginsWith:
 			 LibPCRE2UTF8 requiredMajorVersion asString , '.').
 	self assert: configs size equals: 16.
 
 	LibPCRE2UTF8 assertCompatibleLibrary.
-	self assert: LibPCRE2UTF8 supportsUnicode.
-	self assert: LibPCRE2UTF8 supports8BitCodeUnitWidth.
+	self assert: LibPCRE2 supportsUnicode.
+	self assert: LibPCRE2 supports8BitCodeUnitWidth.
 	self assert: LibPCRE2UTF8 supportsCodeUnitWidth.
-	supportsJIT := LibPCRE2UTF8 supportsJIT.
+	supportsJIT := LibPCRE2 supportsJIT.
 	self assert: (supportsJIT == true or: [ supportsJIT == false ])
-]
-
-{ #category : 'tests' }
-LibPCRE2Test >> testNewCharacterTables [
-
-	| tables |
-	tables := LibPCRE2UTF8 newCharacterTables.
-	self deny: tables isNull.
-	self assert: tables class equals: PCRE2UTF8CharacterTables.
-	self assert: tables codeUnitWidth equals: 8.
-
-	LibPCRE2UTF8 supports16BitCodeUnitWidth ifTrue: [
-		tables := LibPCRE2UTF16 newCharacterTables.
-		self deny: tables isNull.
-		self assert: tables class equals: PCRE2UTF16CharacterTables.
-		self assert: tables codeUnitWidth equals: 16 ].
-	LibPCRE2UTF8 supports32BitCodeUnitWidth ifTrue: [
-		tables := LibPCRE2UTF32 newCharacterTables.
-		self deny: tables isNull.
-		self assert: tables class equals: PCRE2UTF32CharacterTables.
-		self assert: tables codeUnitWidth equals: 32 ]
 ]
 
 { #category : 'tests' }

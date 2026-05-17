@@ -93,7 +93,7 @@ PCRE2Compiler class >> startUp: resuming [
 	resuming ifFalse: [ ^ self ].
 	PCRE2Types initialize. "Ensure shared UFFI holders exist before startup FFI calls."
 	LibPCRE2UTF8 assertCompatibleLibrary.
-	SupportsJIT := LibPCRE2UTF8 supportsJIT
+	SupportsJIT := LibPCRE2 supportsJIT
 ]
 
 { #category : 'accessing' }

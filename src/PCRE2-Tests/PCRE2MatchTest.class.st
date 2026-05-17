@@ -83,7 +83,7 @@ PCRE2MatchTest >> testMatchDataDiagnosticsSurvivePersistence [
 
 	self assert: matchDataSize isInteger.
 	self assert: matchDataSize > 0.
-	LibPCRE2UTF8 supportsMatchDataHeapframesSize
+	LibPCRE2 supportsMatchDataHeapframesSize
 		ifTrue: [
 			self assert: heapframesSize isInteger.
 			self assert: heapframesSize >= 0 ]
