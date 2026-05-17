@@ -1,9 +1,9 @@
 "
-Represents a Pharo string prepared as UTF-8 input for PCRE2.
+Represents UTF-8 code-unit input for PCRE2-8.
 
-ASCII ByteStrings are already valid UTF-8, so they can be kept as byte storage without a decoder. Other strings are encoded through Zinc and keep the encoder needed to translate PCRE2 byte offsets back to Pharo character ranges.
+Instances can be created from a Pharo string, an already prepared PCRE2UTF8Input, or already-encoded UTF-8 bytes. ASCII ByteStrings are already valid UTF-8, so they can be kept as encoded storage without a decoder. Non-ASCII strings are encoded through Zinc and keep the decoder needed to translate PCRE2-8 code-unit offsets back to Pharo character ranges. Byte-backed inputs always keep a decoder because raw ByteArrays decode to text rather than returning byte storage.
 
-Matcher APIs accept this object directly when a caller wants to reuse prepared subject bytes across repeated matches.
+For PCRE2-8, each code unit is one byte of UTF-8 storage. A Pharo character may therefore occupy one or more PCRE2 code units. Matcher and compiler APIs accept this object directly when a caller wants to reuse prepared pattern or subject bytes across repeated calls.
 "
 Class {
 	#name : 'PCRE2UTF8Input',
@@ -33,6 +33,13 @@ PCRE2UTF8Input class >> canUseDirectly: aString [
 ]
 
 { #category : 'instance creation' }
+PCRE2UTF8Input class >> fromBytes: aByteCollection [
+	"Answer input from already-encoded UTF-8 bytes. The byte collection is copied so callers can safely reuse or mutate their original storage."
+
+	^ self bytes: aByteCollection copy decoder: ZnUTF8Encoder default
+]
+
+{ #category : 'instance creation' }
 PCRE2UTF8Input class >> fromString: aString [
 
 	| encoder |
@@ -57,14 +64,31 @@ PCRE2UTF8Input >> bytes: bytesObject decoder: aDecoder [
 ]
 
 { #category : 'decoding' }
-PCRE2UTF8Input >> characterCountUpToByteOffset: byteOffset [
-	"Answer the number of Pharo characters represented before byteOffset UTF-8 bytes."
+PCRE2UTF8Input >> characterCountUpToCodeUnitOffset: codeUnitOffset [
+	"For PCRE2-8, each code unit is one byte of UTF-8 storage. Count encoded characters before that code-unit position."
+
+	^ self
+		  characterCountUpToCodeUnitOffset: codeUnitOffset
+		  fromCodeUnitOffset: 0
+		  characterCount: 0
+]
+
+{ #category : 'decoding' }
+PCRE2UTF8Input >> characterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitOffset: knownCodeUnitOffset characterCount: knownCharacterCount [
+	"Continue counting UTF-8 characters from a known PCRE2-8 code-unit offset."
 
 	| count |
-	byteOffset = 0 ifTrue: [ ^ 0 ].
-	decoder ifNil: [ ^ byteOffset ].
-	count := 0.
-	1 to: byteOffset do: [ :index | "UTF-8 continuation bytes are 10xxxxxx, so every byte that is not a continuation byte starts one encoded character."
+	codeUnitOffset <= 0 ifTrue: [ ^ 0 ].
+	codeUnitOffset = knownCodeUnitOffset ifTrue: [ ^ knownCharacterCount ].
+	codeUnitOffset < knownCodeUnitOffset ifTrue: [
+		^ self
+			  characterCountUpToCodeUnitOffset: codeUnitOffset
+			  fromCodeUnitOffset: 0
+			  characterCount: 0 ].
+	decoder ifNil: [ ^ codeUnitOffset ].
+	count := knownCharacterCount.
+	"UTF-8 continuation bytes are 10xxxxxx; only non-continuation bytes start encoded characters."
+	knownCodeUnitOffset + 1 to: codeUnitOffset do: [ :index |
 		((bytes at: index) bitAnd: 16rC0) = 16r80 ifFalse: [
 			count := count + 1 ] ].
 	^ count
@@ -81,7 +105,7 @@ PCRE2UTF8Input >> decodeBytes: aByteCollection [
 
 { #category : 'decoding' }
 PCRE2UTF8Input >> decodeBytesFrom: start to: end [
-	"Decode a UTF-8 byte range from my byte storage without copying the bytes first."
+	"Decode a 1-based inclusive byte range from my UTF-8 storage without copying that range first."
 
 	| byteStream |
 	byteStream := bytes readStream.
@@ -117,7 +141,7 @@ PCRE2UTF8Input >> nextFromStream: aStream [
 
 { #category : 'matching' }
 PCRE2UTF8Input >> nextMatchStartOffsetAfter: zeroBasedOffset [
-	"Answer the next zero-based code-unit offset after one character, or one past the end."
+	"Answer the next zero-based PCRE2-8 code-unit offset after one Pharo character, or one past the end."
 
 	| stream |
 	zeroBasedOffset >= self size ifTrue: [ ^ self size + 1 ].
@@ -130,7 +154,7 @@ PCRE2UTF8Input >> nextMatchStartOffsetAfter: zeroBasedOffset [
 
 { #category : 'decoding' }
 PCRE2UTF8Input >> readFrom: start to: end [
-	"Answer the decoded substring stored between the given 1-based PCRE2 code-unit indexes."
+	"Answer decoded text between the inclusive 1-based PCRE2-8 code-unit indexes."
 
 	start > end ifTrue: [ ^ String new ].
 	decoder ifNil: [ ^ bytes copyFrom: start to: end ].

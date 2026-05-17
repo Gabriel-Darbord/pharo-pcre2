@@ -55,7 +55,7 @@ PCRE2Object >> errorCode: errorCode [
 { #category : 'library path' }
 PCRE2Object >> ffiLibraryName [
 
-	^ LibPCRE2UTF8
+	^ self subclassResponsibility
 ]
 
 { #category : 'finalization' }

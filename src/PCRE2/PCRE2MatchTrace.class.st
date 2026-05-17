@@ -38,20 +38,6 @@ PCRE2MatchTrace class >> pattern: patternString patternInput: patternInputObject
 		  resultCode: anInteger
 ]
 
-{ #category : 'instance creation' }
-PCRE2MatchTrace class >> pattern: patternString subject: subjectObject input: aPCRE2Input calloutSites: calloutSiteArray events: eventArray match: aMatchOrNil resultCode: anInteger [
-
-	^ self
-		  pattern: patternString
-		  patternInput: patternString asPCRE2UTF8Input
-		  subject: subjectObject
-		  input: aPCRE2Input
-		  calloutSites: calloutSiteArray
-		  events: eventArray
-		  match: aMatchOrNil
-		  resultCode: anInteger
-]
-
 { #category : 'accessing' }
 PCRE2MatchTrace >> calloutSiteForEvent: aPCRE2CalloutEvent [
 	"Answer the static callout site corresponding to a runtime event, or nil if none is known."
@@ -127,20 +113,6 @@ PCRE2MatchTrace >> initializePattern: patternString patternInput: patternInputOb
 	^ self
 ]
 
-{ #category : 'initialization' }
-PCRE2MatchTrace >> initializePattern: patternString subject: subjectObject input: aPCRE2Input calloutSites: calloutSiteArray events: eventArray match: aMatchOrNil resultCode: anInteger [
-
-	^ self
-		  initializePattern: patternString
-		  patternInput: patternString asPCRE2UTF8Input
-		  subject: subjectObject
-		  input: aPCRE2Input
-		  calloutSites: calloutSiteArray
-		  events: eventArray
-		  match: aMatchOrNil
-		  resultCode: anInteger
-]
-
 { #category : 'accessing' }
 PCRE2MatchTrace >> input [
 
@@ -149,7 +121,7 @@ PCRE2MatchTrace >> input [
 
 { #category : 'testing' }
 PCRE2MatchTrace >> isFullMatch [
-	"Answer whether the complete match spans the full UTF-8 subject bytes."
+	"Answer whether the complete match spans the prepared subject input."
 
 	self isMatch ifFalse: [ ^ false ].
 	match offsetsDo: [ :start :end |
@@ -212,7 +184,7 @@ PCRE2MatchTrace >> patternCharacterRangeForEvent: aPCRE2CalloutEvent [
 
 { #category : 'decoding' }
 PCRE2MatchTrace >> patternCharacterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset [
-	"Translate PCRE2's zero-based pattern offsets to a 1-based Pharo character range."
+	"Translate PCRE2's zero-based pattern code-unit interval to a 1-based Pharo character range."
 
 	^ self patternInput
 		  characterRangeFromStartOffset: zeroBasedStartOffset
@@ -221,8 +193,9 @@ PCRE2MatchTrace >> patternCharacterRangeFromStartOffset: zeroBasedStartOffset en
 
 { #category : 'accessing' }
 PCRE2MatchTrace >> patternInput [
+	"Answer the prepared pattern input whose code-unit offsets match the traced matcher width."
 
-	^ patternInput ifNil: [ pattern asPCRE2UTF8Input ]
+	^ patternInput
 ]
 
 { #category : 'accessing' }
@@ -282,18 +255,17 @@ PCRE2MatchTrace >> subject [
 
 { #category : 'decoding' }
 PCRE2MatchTrace >> subjectCharacterPositionAtEvent: aPCRE2CalloutEvent [
-	"Answer the 1-based Pharo character position where this callout event occurred."
+	"Answer the 1-based Pharo character position for the event's current subject code-unit offset."
 
-	^ self subjectCharacterPositionForByteOffset:
+	^ self subjectCharacterPositionForCodeUnitOffset:
 		  aPCRE2CalloutEvent currentPosition
 ]
 
 { #category : 'decoding' }
-PCRE2MatchTrace >> subjectCharacterPositionForByteOffset: byteOffset [
-	"Translate a zero-based subject offset to the corresponding 1-based Pharo character position.
-	For UTF-8 inputs this offset is a byte offset; for wide inputs it is a code-unit offset."
+PCRE2MatchTrace >> subjectCharacterPositionForCodeUnitOffset: codeUnitOffset [
+	"Translate a zero-based subject code-unit offset to the corresponding 1-based Pharo character position."
 
-	^ (input characterCountUpToByteOffset: byteOffset) + 1
+	^ (input characterCountUpToCodeUnitOffset: codeUnitOffset) + 1
 ]
 
 { #category : 'decoding' }
@@ -308,7 +280,7 @@ PCRE2MatchTrace >> subjectCharacterRangeAtEvent: aPCRE2CalloutEvent [
 
 { #category : 'decoding' }
 PCRE2MatchTrace >> subjectCharacterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset [
-	"Translate PCRE2's zero-based subject offsets to a 1-based Pharo character range."
+	"Translate PCRE2's zero-based subject code-unit interval to a 1-based Pharo character range."
 
 	^ input
 		  characterRangeFromStartOffset: zeroBasedStartOffset

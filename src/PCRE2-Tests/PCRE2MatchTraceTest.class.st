@@ -196,8 +196,8 @@ PCRE2MatchTraceTest >> testTraceTranslatesUTF8EventPositions [
 
 	self assert: event currentPosition equals: 2.
 	self
-		assert:
-		(trace subjectCharacterPositionForByteOffset: event currentPosition)
+		assert: (trace subjectCharacterPositionForCodeUnitOffset:
+				 event currentPosition)
 		equals: 2.
 	self assert: (trace subjectCharacterPositionAtEvent: event) equals: 2.
 	self

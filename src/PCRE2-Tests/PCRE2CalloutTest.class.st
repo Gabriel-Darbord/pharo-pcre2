@@ -229,6 +229,22 @@ PCRE2CalloutTest >> testRuntimeCalloutCanBeCleared [
 ]
 
 { #category : 'tests' }
+PCRE2CalloutTest >> testRuntimeCalloutDecodesUTF8PayloadsAndMarks [
+
+	| event events regex |
+	regex := '(*MARK:café)(?C"cœur")x' asPerlCompatibleRegex.
+	regex addOptions: PCRE2 noJIT.
+	events := OrderedCollection new.
+
+	self assert: (regex matches: 'x' calloutsDo: [ :each |
+			 events add: each.
+			 0 ]).
+	event := events first.
+	self assert: event string equals: 'cœur'.
+	self assert: event mark equals: 'café'
+]
+
+{ #category : 'tests' }
 PCRE2CalloutTest >> testRuntimeCalloutReceivesMatchState [
 
 	| events first regex second sites |

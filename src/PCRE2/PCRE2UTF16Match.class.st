@@ -25,7 +25,7 @@ PCRE2UTF16Match >> free [
 
 { #category : 'private' }
 PCRE2UTF16Match >> getCount [
-	"Return the number of offset pairs in this 16-bit match data block."
+	"Return the number of PCRE2 code-unit offset pairs in this 16-bit match data block."
 
 	self ffiCall: #( int pcre2_get_ovector_count_16
 	   #( self ) )
@@ -37,16 +37,6 @@ PCRE2UTF16Match >> getHeapframesSize [
 
 	self ffiCall: #( size_t pcre2_get_match_data_heapframes_size_16
 		   #( self ) )
-]
-
-{ #category : 'private' }
-PCRE2UTF16Match >> getMark [
-	"Answer the last MARK/PRUNE/THEN name as a Pharo string, or an empty string when PCRE2 reports no mark."
-
-	| pointer |
-	pointer := self getMarkPointer.
-	(pointer isNil or: [ pointer isNull ]) ifTrue: [ ^ '' ].
-	^ self stringFromZeroTerminatedMark: pointer
 ]
 
 { #category : 'private' }
@@ -75,25 +65,4 @@ PCRE2UTF16Match >> getOffsets [
 PCRE2UTF16Match >> getStartIndex [
 
 	self ffiCall: #( size_t pcre2_get_startchar_16 #( self ) )
-]
-
-{ #category : 'accessing' }
-PCRE2UTF16Match >> mark [
-
-	^ mark ifNil: [ mark := self getMark ifEmpty: [ nil ] ]
-]
-
-{ #category : 'private' }
-PCRE2UTF16Match >> stringFromZeroTerminatedMark: anExternalAddress [
-	"Decode a zero-terminated native-endian UTF-16 mark name."
-
-	| byteStream bytes offset |
-	byteStream := ByteArray new writeStream.
-	offset := 0.
-	[ (anExternalAddress uint16AtOffset: offset) = 0 ] whileFalse: [
-		byteStream nextPut: (anExternalAddress uint8AtOffset: offset).
-		byteStream nextPut: (anExternalAddress uint8AtOffset: offset + 1).
-		offset := offset + 2 ].
-	bytes := byteStream contents.
-	^ (PCRE2UTF16Input fromNativeEndianBytes: bytes) decodeBytes: bytes
 ]

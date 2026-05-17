@@ -88,7 +88,7 @@ PCRE2Compiler class >> pattern: aString options: anInteger [
 
 { #category : 'system startup' }
 PCRE2Compiler class >> startUp: resuming [
-	"Verify that the loaded native UTF-8 library matches the assumptions of this binding."
+	"Validate the default 8-bit binding and cache library-wide JIT support."
 
 	resuming ifFalse: [ ^ self ].
 	PCRE2Types initialize. "Ensure shared UFFI holders exist before startup FFI calls."
@@ -161,7 +161,7 @@ PCRE2Compiler >> compilePreparedInput: input [
 		          errorCode: errorCode
 		          errorOffset: errorOffset.
 	handle isNull ifTrue: [
-		self errorCode: errorCode value inInput: input at: errorOffset value ].
+		self errorCode: errorCode value in: input at: errorOffset value ].
 	^ handle
 ]
 
@@ -207,23 +207,14 @@ PCRE2Compiler >> errorCode: errorCode [
 ]
 
 { #category : 'error handling' }
-PCRE2Compiler >> errorCode: errorCode in: pattern at: offset [
+PCRE2Compiler >> errorCode: errorCode in: input at: codeUnitOffset [
+	"Signal a compile error reported for prepared PCRE2 input at a zero-based code-unit offset."
 
 	<debuggerCompleteToSender>
 	PCRE2CompileError
 		signal: (PCRE2 translateErrorCode: errorCode)
-		in: pattern
-		at: offset
-]
-
-{ #category : 'error handling' }
-PCRE2Compiler >> errorCode: errorCode inInput: input at: offset [
-
-	<debuggerCompleteToSender>
-	PCRE2CompileError
-		signal: (PCRE2 translateErrorCode: errorCode)
-		inInput: input
-		at: offset
+		in: input
+		at: codeUnitOffset
 ]
 
 { #category : 'library path' }
@@ -272,9 +263,10 @@ PCRE2Compiler >> patternStringFromInput: input [
 ]
 
 { #category : 'private' }
-PCRE2Compiler >> preparedPatternFor: pattern [
+PCRE2Compiler >> preparedPatternFor: aStringOrInput [
+	"Prepare a pattern object for this compiler's PCRE2 code-unit width. Concrete compilers accept Strings and may also accept width-specific prepared input objects or byte storage."
 
-	^ self inputClass fromString: pattern
+	^ self subclassResponsibility
 ]
 
 { #category : 'private' }

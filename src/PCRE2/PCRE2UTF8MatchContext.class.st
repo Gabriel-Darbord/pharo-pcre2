@@ -83,10 +83,10 @@ PCRE2UTF8MatchContext >> setMatchLimit: value [
 
 { #category : 'private' }
 PCRE2UTF8MatchContext >> setOffsetLimit: value [
-	"This function sets the offset limit field in a match context. The result is always zero.
-	int pcre2_set_offset_limit(pcre2_match_context *mcontext, PCRE2_SIZE value)"
+	"Set the match-context offset limit as a zero-based PCRE2-8 code-unit offset."
 
-	self ffiCall: #(int pcre2_set_offset_limit_8(self, size_t value))
+	self ffiCall:
+		#( int pcre2_set_offset_limit_8 #( self #, size_t value ) )
 ]
 
 { #category : 'private' }

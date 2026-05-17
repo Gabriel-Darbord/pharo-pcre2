@@ -171,7 +171,7 @@ PCRE2MatchContext >> offsetLimit [
 
 { #category : 'accessing' }
 PCRE2MatchContext >> offsetLimit: anInteger [
-	"Set a matching offset limit"
+	"Set PCRE2's subject offset limit as a zero-based code-unit offset."
 
 	self setOffsetLimit: (offsetLimit := anInteger)
 ]

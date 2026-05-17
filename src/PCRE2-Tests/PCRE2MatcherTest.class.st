@@ -481,8 +481,8 @@ PCRE2MatcherTest >> testMark [
 	regex := '' asPerlCompatibleRegex.
 	self assert: (regex findMatch: '') mark equals: nil.
 
-	regex := '(*MARK:bye)((*MARK:hello)A|D)C' asPerlCompatibleRegex.
-	self assert: (regex findMatch: 'AC') mark equals: 'hello'.
+	regex := '(*MARK:bye)((*MARK:café)A|D)C' asPerlCompatibleRegex.
+	self assert: (regex findMatch: 'AC') mark equals: 'café'.
 	self assert: (regex findMatch: 'DC') mark equals: 'bye'
 ]
 

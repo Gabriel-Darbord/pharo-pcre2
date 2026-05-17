@@ -24,13 +24,13 @@ PCRE2UTF8InputTest >> testASCIIByteStringUsesOriginalStorage [
 ]
 
 { #category : 'tests' }
-PCRE2UTF8InputTest >> testASCIIRangeTranslationUsesByteOffsets [
+PCRE2UTF8InputTest >> testASCIIRangeTranslationUsesCodeUnitOffsets [
 
 	| input |
 	input := PCRE2UTF8Input fromString: 'abc123'.
 
-	self assert: (input characterCountUpToByteOffset: 0) equals: 0.
-	self assert: (input characterCountUpToByteOffset: 3) equals: 3.
+	self assert: (input characterCountUpToCodeUnitOffset: 0) equals: 0.
+	self assert: (input characterCountUpToCodeUnitOffset: 3) equals: 3.
 	self
 		assert: (input characterRangeFromStartOffset: 1 endOffset: 4)
 		equals: (2 to: 4).
@@ -47,7 +47,26 @@ PCRE2UTF8InputTest >> testAsPCRE2UTF8InputReturnsSelf [
 ]
 
 { #category : 'tests' }
-PCRE2UTF8InputTest >> testCharacterRangeTranslationHandlesUTF8ByteOffsets [
+PCRE2UTF8InputTest >> testByteArrayCanCreateReusableUTF8Input [
+
+	| bytes input subject |
+	subject := 'café'.
+	bytes := ZnUTF8Encoder default encodeString: subject.
+	input := bytes asPCRE2UTF8Input.
+
+	self assert: input class equals: PCRE2UTF8Input.
+	self assert: input bytes equals: bytes.
+	self deny: input bytes identicalTo: bytes.
+	self assert: input decoder class equals: ZnUTF8Encoder.
+	self assert: input size equals: bytes size.
+	self assert: (input readFrom: 1 to: input size) equals: subject.
+	self
+		assert: (input characterCountUpToCodeUnitOffset: input size)
+		equals: subject size
+]
+
+{ #category : 'tests' }
+PCRE2UTF8InputTest >> testCharacterRangeTranslationHandlesUTF8CodeUnitOffsets [
 
 	| input subject |
 	subject := String streamContents: [ :stream |
@@ -61,11 +80,11 @@ PCRE2UTF8InputTest >> testCharacterRangeTranslationHandlesUTF8ByteOffsets [
 	self
 		assert: input bytes
 		equals: #[ 195 169 97 226 130 172 240 159 152 138 ].
-	self assert: (input characterCountUpToByteOffset: 0) equals: 0.
-	self assert: (input characterCountUpToByteOffset: 2) equals: 1.
-	self assert: (input characterCountUpToByteOffset: 3) equals: 2.
-	self assert: (input characterCountUpToByteOffset: 6) equals: 3.
-	self assert: (input characterCountUpToByteOffset: 10) equals: 4.
+	self assert: (input characterCountUpToCodeUnitOffset: 0) equals: 0.
+	self assert: (input characterCountUpToCodeUnitOffset: 2) equals: 1.
+	self assert: (input characterCountUpToCodeUnitOffset: 3) equals: 2.
+	self assert: (input characterCountUpToCodeUnitOffset: 6) equals: 3.
+	self assert: (input characterCountUpToCodeUnitOffset: 10) equals: 4.
 	self
 		assert: (input characterRangeFromStartOffset: 0 endOffset: 2)
 		equals: (1 to: 1).

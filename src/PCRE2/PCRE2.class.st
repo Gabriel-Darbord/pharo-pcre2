@@ -1388,8 +1388,7 @@ PCRE2 class >> unsetOffset [
 
 { #category : 'options' }
 PCRE2 class >> useOffsetLimit [
-	"Enable offset limit for unanchored matching
-	Affects: jit_compile, match, dfa_match"
+	"Enable PCRE2's code-unit offset limit for unanchored matching."
 
 	<pcre2Option: #( compile )>
 	^ 16r00800000

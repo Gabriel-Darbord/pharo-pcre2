@@ -16,15 +16,10 @@ Class {
 }
 
 { #category : 'signalling' }
-PCRE2CompileError class >> signal: errorMessage in: pattern at: offset [
+PCRE2CompileError class >> signal: errorMessage in: input at: codeUnitOffset [
+	"Signal a compile error for prepared PCRE2 input at a zero-based code-unit offset."
 
-	self new signal: errorMessage in: pattern at: offset
-]
-
-{ #category : 'signalling' }
-PCRE2CompileError class >> signal: errorMessage inInput: input at: offset [
-
-	self new signal: errorMessage inInput: input at: offset
+	self new signal: errorMessage in: input at: codeUnitOffset
 ]
 
 { #category : 'accessing' }
@@ -46,28 +41,8 @@ PCRE2CompileError >> pattern [
 ]
 
 { #category : 'signalling' }
-PCRE2CompileError >> signal: anErrorMessage in: patternBytes at: anOffset [
-	"Insert the string '(*ERROR)' into the pattern to show where PCRE2 reported the compile error. The offset is expressed in encoded code units, which are UTF-8 bytes in this binding."
-
-	| encoder rs |
-	errorMessage := anErrorMessage.
-	offset := anOffset.
-	encoder := ZnUTF8Encoder default.
-	pattern := encoder decodeBytes: patternBytes.
-	rs := ReadStream on: patternBytes.
-	self messageText: (String streamContents: [ :ws |
-			 ws << errorMessage << ': '.
-			 [ rs position < offset ] whileTrue: [
-				 ws nextPut: (encoder nextFromStream: rs) ].
-			 ws nextPutAll: '(*ERROR)'.
-			 [ rs atEnd ] whileFalse: [
-				 ws nextPut: (encoder nextFromStream: rs) ] ]).
-	self signal
-]
-
-{ #category : 'signalling' }
-PCRE2CompileError >> signal: anErrorMessage inInput: input at: codeUnitOffset [
-	"Insert the string '(*ERROR)' into the decoded pattern at PCRE2's reported code-unit offset."
+PCRE2CompileError >> signal: anErrorMessage in: input at: codeUnitOffset [
+	"Insert '(*ERROR)' into the decoded pattern at the character position corresponding to PCRE2's reported code-unit offset."
 
 	| characterOffset head tail |
 	errorMessage := anErrorMessage.
@@ -75,7 +50,8 @@ PCRE2CompileError >> signal: anErrorMessage inInput: input at: codeUnitOffset [
 	pattern := input size = 0
 		           ifTrue: [ '' ]
 		           ifFalse: [ input readFrom: 1 to: input size ].
-	characterOffset := input characterCountUpToByteOffset: codeUnitOffset.
+	characterOffset := input characterCountUpToCodeUnitOffset:
+		                   codeUnitOffset.
 	head := characterOffset = 0
 		        ifTrue: [ '' ]
 		        ifFalse: [ pattern copyFrom: 1 to: characterOffset ].

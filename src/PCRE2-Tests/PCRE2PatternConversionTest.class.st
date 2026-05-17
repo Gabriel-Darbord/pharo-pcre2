@@ -139,20 +139,6 @@ PCRE2PatternConversionTest >> testUTF16LibraryCanConvertGlobAndMatch [
 ]
 
 { #category : 'tests' }
-PCRE2PatternConversionTest >> testUTF16LibraryCanConvertPreparedGlobBytes [
-
-	| patternBytes regex |
-	self skipUnlessUTF16PatternConversionSupported ifTrue: [ ^ self ].
-	patternBytes := '*é' asPCRE2UTF16Input bytes.
-
-	regex := PCRE2UTF16Compiler new compile:
-		         (LibPCRE2UTF16 convertGlob: patternBytes).
-
-	self assert: (regex matches: 'café').
-	self deny: (regex matches: 'cafe')
-]
-
-{ #category : 'tests' }
 PCRE2PatternConversionTest >> testUTF16LibraryCanUseConvertContext [
 
 	| context regex |
@@ -175,20 +161,6 @@ PCRE2PatternConversionTest >> testUTF32LibraryCanConvertGlobAndMatch [
 
 	regex := PCRE2UTF32Compiler new compile:
 		         (LibPCRE2UTF32 convertGlob: '*é').
-
-	self assert: (regex matches: 'café').
-	self deny: (regex matches: 'cafe')
-]
-
-{ #category : 'tests' }
-PCRE2PatternConversionTest >> testUTF32LibraryCanConvertPreparedGlobBytes [
-
-	| patternBytes regex |
-	self skipUnlessUTF32PatternConversionSupported ifTrue: [ ^ self ].
-	patternBytes := '*é' asPCRE2UTF32Input bytes.
-
-	regex := PCRE2UTF32Compiler new compile:
-		         (LibPCRE2UTF32 convertGlob: patternBytes).
 
 	self assert: (regex matches: 'café').
 	self deny: (regex matches: 'cafe')

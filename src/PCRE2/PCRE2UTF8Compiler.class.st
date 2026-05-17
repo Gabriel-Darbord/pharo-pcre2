@@ -12,8 +12,7 @@ Class {
 
 { #category : 'private' }
 PCRE2UTF8Compiler >> compile: pattern upTo: length errorCode: errorCode errorOffset: errorOffset [
-	"Compile a UTF-8 encoded pattern buffer. The pattern argument is already prepared as bytes, so use void* to avoid UFFI string encoding policy.
-	pcre2_code *pcre2_compile_8(PCRE2_SPTR pattern, PCRE2_SIZE length, uint32_t options, int *errorcode, PCRE2_SIZE *erroroffset, pcre2_compile_context *ccontext)"
+	"Compile a prepared UTF-8 pattern buffer; length and errorOffset are PCRE2-8 code-unit counts/offsets, which are byte counts for this width."
 
 	self ffiCall:
 		#( void #* pcre2_compile_8 #( void #* pattern #, size_t length
@@ -48,6 +47,12 @@ PCRE2UTF8Compiler >> inputClass [
 PCRE2UTF8Compiler >> matcherClass [
 
 	^ PCRE2UTF8Matcher
+]
+
+{ #category : 'private' }
+PCRE2UTF8Compiler >> preparedPatternFor: aStringOrInput [
+
+	^ aStringOrInput asPCRE2UTF8Input
 ]
 
 { #category : 'private' }

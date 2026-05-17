@@ -34,7 +34,7 @@ PCRE2Match class >> isAbstract [
 
 { #category : 'persistence' }
 PCRE2Match >> bePersistent [
-	"Copy native offset data and diagnostics into Pharo memory, then release my external match-data handle. Named-group metadata is already Pharo-side state."
+	"Copy native code-unit offset data and diagnostics into Pharo memory, then release my external match-data handle. Named-group metadata is already Pharo-side state."
 
 	self count.
 	self matchDataSize.
@@ -79,7 +79,7 @@ PCRE2Match >> decoder [
 
 { #category : 'accessing' }
 PCRE2Match >> endOffsetAt: pairIndex [
-	"Return the zero-based exclusive end offset for the requested ovector pair. PCRE2 stores ovector entries as PCRE2_SIZE values; keep the 32/64-bit primitive fast paths because this accessor is used by match-result readers."
+	"Return the zero-based exclusive PCRE2 code-unit end offset for the requested ovector pair. PCRE2 stores ovector entries as PCRE2_SIZE values; keep the 32/64-bit primitive fast paths because this accessor is used by match-result readers."
 
 	| index wordSize |
 	index := 2 * (pairIndex - 1) + 1. "to 0-based"
@@ -118,6 +118,16 @@ PCRE2Match >> getHeapframesSize [
 
 { #category : 'private' }
 PCRE2Match >> getMark [
+	"Answer the last MARK/PRUNE/THEN name as a Pharo string, or an empty string when PCRE2 reports no mark."
+
+	^ (PCRE2CalloutSite
+		   zeroTerminatedStringFrom: self getMarkPointer
+		   codeUnitWidth: self ffiLibraryName codeUnitWidth) ifNil: [ '' ]
+]
+
+{ #category : 'private' }
+PCRE2Match >> getMarkPointer [
+
 	^ self subclassResponsibility
 ]
 
@@ -252,7 +262,7 @@ PCRE2Match >> isUnsetOffset: anInteger [
 
 { #category : 'enumerating' }
 PCRE2Match >> lastMatchIndex [
-	"Return the zero-based exclusive end offset of the full match. This is ovector[1], stored by PCRE2 as PCRE2_SIZE/size_t, so read it with the same fixed-width fast paths used by the other ovector accessors."
+	"Return the zero-based exclusive PCRE2 code-unit end offset of the full match. This is ovector[1], stored by PCRE2 as PCRE2_SIZE/size_t, so read it with the same fixed-width fast paths used by the other ovector accessors."
 
 	| wordSize |
 	^ isPersistent
@@ -295,13 +305,10 @@ PCRE2Match >> namedGroups: aNameTable [
 
 { #category : 'enumerating' }
 PCRE2Match >> offsets [
-	"Returns the raw PCRE2 offset pairs for the match and captured substrings. (DO NOT MODIFY IT!)
-	The start offsets are at odd indexes, and the corresponding exclusive end offsets are at the following even indexes.
-	The first pair identifies the part of the subject string that was matched by the entire pattern.
-	Subsequent pairs identify the captured substrings."
+	"Return raw PCRE2 code-unit offset pairs for the match and captures; starts are zero-based inclusive entries and ends are zero-based exclusive entries. Do not modify the returned array."
 
 	| copy pair |
-	"Use this opportunity to copy external data locally if not already done, preserving PCRE2's zero-based offset convention."
+	"Copy external data locally if needed, preserving PCRE2's zero-based code-unit offset convention."
 	offsets isArray ifTrue: [ ^ offsets ].
 	copy := Array new: 2 * self count.
 	1 to: self count do: [ :pairIndex |
@@ -339,7 +346,7 @@ PCRE2Match >> offsetsAt: pairIndex [
 
 { #category : 'enumerating' }
 PCRE2Match >> offsetsDo: aBlock [
-	"Iterate translated offset pairs: starts become 1-based inclusive indexes, while PCRE2's zero-based exclusive ends already have the same numeric value as Pharo inclusive ends. The fixed-width 32/64-bit loops are intentional: platformSizeTAt: is portable but much slower in this hot path."
+	"Iterate ovector pairs as 1-based inclusive code-unit indexes over the prepared input storage. Starts are PCRE2 zero-based offsets plus one; exclusive ends already have the same numeric value as inclusive 1-based ends."
 
 	| wordSize |
 	offsets isArray ifTrue: [ "offsets have already been copied to a local array"
@@ -351,7 +358,7 @@ PCRE2Match >> offsetsDo: aBlock [
 				value: (offsets at: index + 2) ].
 		^ self ].
 
-	offsets ifNil: [ offsets := self getOffsets ]. "table containing pairs of 0-based indexes"
+	offsets ifNil: [ offsets := self getOffsets ]. "PCRE2 ovector: pairs of zero-based code-unit offsets"
 	wordSize := ExternalAddress wordSize.
 
 	wordSize == 8 ifTrue: [
@@ -379,7 +386,7 @@ PCRE2Match >> offsetsDo: aBlock [
 
 { #category : 'accessing' }
 PCRE2Match >> ovectorCount [
-	"Return the number of offset pairs available in this match data block."
+	"Return the number of PCRE2 code-unit offset pairs available in this match data block."
 
 	^ self getCount
 ]
@@ -503,7 +510,7 @@ PCRE2Match >> startIndex [
 
 { #category : 'accessing' }
 PCRE2Match >> startOffsetAt: pairIndex [
-	"Return the zero-based inclusive start offset for the requested ovector pair. PCRE2 exposes the ovector as PCRE2_SIZE*, mapped here to size_t; the 32/64-bit branches deliberately use primitive fixed-width reads because platformSizeTAt: is too slow for this hot path."
+	"Return the zero-based inclusive PCRE2 code-unit start offset for the requested ovector pair. PCRE2 exposes the ovector as PCRE2_SIZE*, mapped here to size_t; the 32/64-bit branches deliberately use primitive fixed-width reads because platformSizeTAt: is too slow for this hot path."
 
 	| index wordSize |
 	index := 2 * (pairIndex - 1). "to 0-based"

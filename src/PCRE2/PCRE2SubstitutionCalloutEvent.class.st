@@ -1,9 +1,9 @@
 "
 I am a snapshot of a PCRE2 substitution callout.
 
-PCRE2 creates me after a replacement has been processed by `pcre2_substitute_8`, before the replacement is finally accepted. I copy the native offsets and the affected input/output text while the callback is running, so clients can safely keep events afterwards.
+PCRE2 creates me after a replacement has been processed by `pcre2_substitute_*`, before the replacement is finally accepted. I copy the native offsets and the affected input/output text while the callback is running, so clients can safely keep events afterwards.
 
-Offsets are PCRE2 byte/code-unit offsets. The full-match offsets come from the current match ovector in the original subject. The output offsets identify the processed replacement in the output buffer.
+Offsets are raw PCRE2 code-unit offsets for the matcher width that produced the event. The full-match offsets come from the current match ovector in the original subject. The output offsets identify the processed replacement in the output buffer.
 "
 Class {
 	#name : 'PCRE2SubstitutionCalloutEvent',
@@ -23,7 +23,7 @@ Class {
 
 { #category : 'private' }
 PCRE2SubstitutionCalloutEvent class >> alignedOffsetAfterUInt32ForWordSize: wordSize [
-	"Answer the offset of the first pointer field after a uint32_t in the native struct."
+	"Answer the first pointer-field offset after a uint32_t in the native struct, measured in bytes."
 
 	^ 4 + wordSize - 1 // wordSize * wordSize
 ]
@@ -49,9 +49,12 @@ PCRE2SubstitutionCalloutEvent class >> offsetsFrom: anExternalAddress count: cou
 ]
 
 { #category : 'private' }
-PCRE2SubstitutionCalloutEvent class >> sizeTFrom: anExternalAddress atOffset: byteOffset [
+PCRE2SubstitutionCalloutEvent class >> sizeTFrom: anExternalAddress atOffset: structOffsetInBytes [
+	"Read a PCRE2_SIZE field from a native substitution-callout struct. The ExternalAddress offset is measured in bytes."
 
-	^ PCRE2CalloutEvent sizeTFrom: anExternalAddress atOffset: byteOffset
+	^ PCRE2CalloutEvent
+		  sizeTFrom: anExternalAddress
+		  atOffset: structOffsetInBytes
 ]
 
 { #category : 'private' }
@@ -149,14 +152,14 @@ PCRE2SubstitutionCalloutEvent >> matchedText [
 
 { #category : 'accessing' }
 PCRE2SubstitutionCalloutEvent >> offsets [
-	"Answer raw zero-based ovector offsets for the current match."
+	"Answer raw zero-based PCRE2 code-unit ovector offsets for the current match."
 
 	^ offsets
 ]
 
 { #category : 'accessing' }
 PCRE2SubstitutionCalloutEvent >> offsetsAt: pairIndex [
-	"Answer the requested zero-based {start. exclusiveEnd} ovector pair."
+	"Answer the requested zero-based {start. exclusiveEnd} PCRE2 code-unit ovector pair."
 
 	| index |
 	index := 2 * (pairIndex - 1).
@@ -167,7 +170,7 @@ PCRE2SubstitutionCalloutEvent >> offsetsAt: pairIndex [
 
 { #category : 'accessing' }
 PCRE2SubstitutionCalloutEvent >> outputOffsets [
-	"Answer raw zero-based offsets of the processed replacement in the output buffer."
+	"Answer raw zero-based PCRE2 code-unit offsets of the processed replacement in the output buffer."
 
 	^ outputOffsets
 ]

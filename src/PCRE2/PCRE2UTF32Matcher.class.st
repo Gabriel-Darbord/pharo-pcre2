@@ -32,6 +32,12 @@ PCRE2UTF32Matcher >> compileJIT: anInteger [
 ]
 
 { #category : 'private' }
+PCRE2UTF32Matcher >> compilerClass [
+
+	^ PCRE2UTF32Compiler
+]
+
+{ #category : 'private' }
 PCRE2UTF32Matcher >> createMatchContext [
 	"Create and initialize a new UTF-32 match context.
 	The result is NULL if memory could not be obtained."
@@ -51,7 +57,7 @@ PCRE2UTF32Matcher >> createMatchDataFromPattern [
 
 { #category : 'private' }
 PCRE2UTF32Matcher >> createMatchDataWithOvectorSize: ovectorSize [
-	"Create 32-bit match data with room for an explicit number of offset pairs."
+	"Create 32-bit match data with room for an explicit number of code-unit offset pairs."
 
 	self ffiCall:
 		#( void #* pcre2_match_data_create_32 #( uint32 ovectorSize
@@ -71,9 +77,7 @@ PCRE2UTF32Matcher >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
 
 { #category : 'private' }
 PCRE2UTF32Matcher >> dfaMatch: subject from: start to: end matchData: aMatchData workspace: workspace size: workspaceSize [
-	"Run a UTF-32 DFA match with caller-managed match data and workspace storage.
-	Subject and workspace are prepared raw buffers, so both use void* to avoid UFFI element/string conversion.
-	int pcre2_dfa_match_32(const pcre2_code_32 *code, PCRE2_SPTR32 subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data_32 *match_data, pcre2_match_context_32 *mcontext, int *workspace, PCRE2_SIZE wscount)"
+	"Run pcre2_dfa_match_32 with caller-managed match data and workspace storage. start is a zero-based code-unit offset, end is the subject length in code units, and PCRE2 writes code-unit offsets into the match data."
 
 	self ffiCall:
 		#( int pcre2_dfa_match_32 #( self #, void #* subject #, size_t
@@ -114,7 +118,7 @@ PCRE2UTF32Matcher >> info: what output: where [
 
 { #category : 'private' }
 PCRE2UTF32Matcher >> jitMatch: subject from: start to: end options: matchOptions matchData: aMatchData [
-	"Run pcre2_jit_match_32 on a prepared UTF-32 subject buffer and write offsets into the provided match data."
+	"Run pcre2_jit_match_32 on a prepared PCRE2-32 subject buffer. start is a zero-based code-unit offset, end is the subject length in code units, and PCRE2 writes code-unit offsets into the match data."
 
 	self ffiCall:
 		#( int pcre2_jit_match_32 #( self #, void #* subject #, size_t
@@ -124,13 +128,12 @@ PCRE2UTF32Matcher >> jitMatch: subject from: start to: end options: matchOptions
 
 { #category : 'private' }
 PCRE2UTF32Matcher >> match: subject from: start to: end options: matchOptions matchData: aMatchData [
-	"Run pcre2_match_32 on a prepared UTF-32 subject buffer and write offsets into the provided match data.
-	int pcre2_match_32(const pcre2_code *code, PCRE2_SPTR32 subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext)"
+	"Run pcre2_match_32 on a prepared PCRE2-32 subject buffer. start is a zero-based code-unit offset, end is the subject length in code units, and PCRE2 writes code-unit offsets into the match data."
 
 	self ffiCall:
 		#( int pcre2_match_32 #( self #, void #* subject #, size_t end #, size_t
-		      start #, uint32 matchOptions #, #PCRE2UTF32Match #* aMatchData
-		      #, void #* context ) )
+		      start #, uint32 matchOptions #, #PCRE2UTF32Match
+		      #* aMatchData #, void #* context ) )
 ]
 
 { #category : 'private' }
@@ -162,44 +165,6 @@ PCRE2UTF32Matcher >> privateCopyWithCharacterTables [
 ]
 
 { #category : 'private' }
-PCRE2UTF32Matcher >> readNamedGroups [
-	"Read PCRE2-32's name table into a sparse Array keyed by capture group number."
-
-	| buffer captureCount entrySize nameCount rc table |
-	buffer := ByteArray new: 4.
-
-	rc := self info: PCRE2 infoNameCount output: buffer.
-	rc < 0 ifTrue: [ self errorCode: rc ].
-	(nameCount := buffer uint32AtOffset: 0) = 0 ifTrue: [ ^ #(  ) ].
-
-	captureCount := self info: PCRE2 infoCaptureCount.
-	table := Array new: captureCount.
-
-	rc := self info: PCRE2 infoNameEntrySize output: buffer.
-	rc < 0 ifTrue: [ self errorCode: rc ].
-	entrySize := buffer uint32AtOffset: 0.
-
-	buffer := ByteArray new: ExternalAddress wordSize.
-	rc := self info: PCRE2 infoNameTable output: buffer.
-	rc < 0 ifTrue: [ self errorCode: rc ].
-	buffer := buffer pointerAtOffset: 0.
-
-	1 to: nameCount do: [ :entryIndex |
-		| captureIndex name offset |
-		offset := entrySize * (entryIndex - 1).
-		captureIndex := buffer uint32AtOffset: offset * 4.
-		name := String streamContents: [ :stream |
-			        | codeUnit |
-			        [
-			        offset := offset + 1.
-			        codeUnit := buffer uint32AtOffset: offset * 4.
-			        codeUnit = 0 ] whileFalse: [
-				        stream nextPut: (Character value: codeUnit) ] ].
-		table at: captureIndex put: name ].
-	^ table
-]
-
-{ #category : 'private' }
 PCRE2UTF32Matcher >> substitute: subject from: start to: end options: substituteOptions matchedData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
 	"Apply substitutions into caller-provided UTF-32 output storage using precomputed match data for the first match."
 
@@ -222,23 +187,4 @@ PCRE2UTF32Matcher >> substitute: subject from: start to: end options: substitute
 		      end #, size_t start #, uint32 substituteOptions
 		      #, nil #, void #* context #, void #* replacement #, size_t
 		      rLength #, void #* buffer #, SizeTHolder outSize ) )
-]
-
-{ #category : 'private' }
-PCRE2UTF32Matcher >> temporaryMatcherAddingCompileOptions: compileOptions matchOptions: matchOptions [
-	"Answer a temporary UTF-32 matcher compiled from the receiver's source with additional options."
-
-	| sourceCompiler temporaryCompiler temporaryMatcher |
-	sourceCompiler := compiler ifNil: [ PCRE2UTF32Compiler new ].
-	temporaryCompiler := PCRE2UTF32Compiler new.
-	sourceCompiler copyContextIfPresent ifNotNil: [ :contextCopy |
-		temporaryCompiler context: contextCopy ].
-	temporaryCompiler
-		options: (sourceCompiler options bitOr: compileOptions);
-		optionsJIT: sourceCompiler optionsJIT.
-	temporaryMatcher := temporaryCompiler compile: pattern.
-	temporaryMatcher options: (options bitOr: matchOptions).
-	context ifNotNil: [
-		temporaryMatcher context: context copy autoRelease ].
-	^ temporaryMatcher
 ]

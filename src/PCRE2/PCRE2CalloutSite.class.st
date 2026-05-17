@@ -3,7 +3,7 @@ I represent a callout site discovered in a compiled PCRE2 pattern.
 
 PCRE2 can enumerate callout points without running a match. That is useful for tools such as regex explainers/debuggers because it reveals where numbered, string, or automatic callouts appear in the compiled pattern while leaving normal matching behavior untouched.
 
-My offsets are PCRE2 pattern offsets, expressed in UTF-8 code units because this binding targets the 8-bit PCRE2 API. `matchesEvent:` links me back to a runtime `PCRE2CalloutEvent` when a trace wants static pattern metadata for an event.
+My offsets are raw PCRE2 pattern code-unit offsets for the matcher width used to compile the pattern. `matchesEvent:` links me back to a runtime `PCRE2CalloutEvent` when a trace wants static pattern metadata for an event.
 "
 Class {
 	#name : 'PCRE2CalloutSite',
@@ -36,15 +36,16 @@ PCRE2CalloutSite class >> fromEnumerationBlock: anExternalAddress codeUnitWidth:
 ]
 
 { #category : 'private' }
-PCRE2CalloutSite class >> sizeTFrom: anExternalAddress atOffset: byteOffset [
+PCRE2CalloutSite class >> sizeTFrom: anExternalAddress atOffset: structOffsetInBytes [
+	"Read a PCRE2_SIZE field from a native PCRE2 struct. This ExternalAddress offset is measured in bytes, not in subject or pattern code units."
 
 	| wordSize |
 	wordSize := ExternalAddress wordSize.
 	wordSize == 8 ifTrue: [
-		^ anExternalAddress uint64AtOffset: byteOffset ].
+		^ anExternalAddress uint64AtOffset: structOffsetInBytes ].
 	wordSize == 4 ifTrue: [
-		^ anExternalAddress uint32AtOffset: byteOffset ].
-	^ anExternalAddress platformSizeTAt: byteOffset + 1
+		^ anExternalAddress uint32AtOffset: structOffsetInBytes ].
+	^ anExternalAddress platformSizeTAt: structOffsetInBytes + 1
 ]
 
 { #category : 'private' }
@@ -77,6 +78,30 @@ PCRE2CalloutSite class >> stringFromBytes: bytes codeUnitWidth: codeUnitWidth [
 	codeUnitWidth = 32 ifTrue: [
 		^ (PCRE2UTF32Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
 	PCRE2Error signal: 'Unsupported PCRE2 callout string code-unit width'
+]
+
+{ #category : 'private' }
+PCRE2CalloutSite class >> zeroTerminatedStringFrom: anExternalAddress codeUnitWidth: codeUnitWidth [
+	"Decode a zero-terminated native PCRE2 string for the given code-unit width."
+
+	| bytes offset width |
+	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [
+		^ nil ].
+	width := codeUnitWidth // 8.
+	bytes := ByteArray new writeStream.
+	offset := 0.
+	[
+	| allZero |
+	allZero := true.
+	1 to: width do: [ :index |
+		(anExternalAddress uint8AtOffset: offset + index - 1) = 0 ifFalse: [
+			allZero := false ] ].
+	allZero ] whileFalse: [
+		1 to: width do: [ :index |
+			bytes nextPut:
+				(anExternalAddress uint8AtOffset: offset + index - 1) ].
+		offset := offset + width ].
+	^ self stringFromBytes: bytes contents codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'testing' }
@@ -142,6 +167,7 @@ PCRE2CalloutSite >> matchesEvent: aPCRE2CalloutEvent [
 
 { #category : 'accessing' }
 PCRE2CalloutSite >> nextItemLength [
+	"Answer the length of the next pattern item in PCRE2 code units."
 
 	^ nextItemLength
 ]
@@ -154,6 +180,7 @@ PCRE2CalloutSite >> number [
 
 { #category : 'accessing' }
 PCRE2CalloutSite >> patternPosition [
+	"Answer the pattern position for this static callout site as a zero-based PCRE2 code-unit offset."
 
 	^ patternPosition
 ]
@@ -182,12 +209,14 @@ PCRE2CalloutSite >> string [
 
 { #category : 'accessing' }
 PCRE2CalloutSite >> stringLength [
+	"Answer the callout string length in PCRE2 code units."
 
 	^ stringLength
 ]
 
 { #category : 'accessing' }
 PCRE2CalloutSite >> stringOffset [
+	"Answer the callout string's pattern position as a zero-based PCRE2 code-unit offset."
 
 	^ stringOffset
 ]

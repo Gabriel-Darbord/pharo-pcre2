@@ -37,17 +37,6 @@ PCRE2TraceRecorder class >> pattern: patternString patternInput: patternInputObj
 		  calloutSites: calloutSiteArray
 ]
 
-{ #category : 'instance creation' }
-PCRE2TraceRecorder class >> pattern: patternString subject: subjectObject input: aPCRE2Input calloutSites: calloutSiteArray [
-
-	^ self
-		  pattern: patternString
-		  patternInput: patternString asPCRE2UTF8Input
-		  subject: subjectObject
-		  input: aPCRE2Input
-		  calloutSites: calloutSiteArray
-]
-
 { #category : 'recording' }
 PCRE2TraceRecorder >> abortWithResultCode: anInteger [
 
@@ -160,17 +149,6 @@ PCRE2TraceRecorder >> initializePattern: patternString patternInput: patternInpu
 	^ self
 ]
 
-{ #category : 'initialization' }
-PCRE2TraceRecorder >> initializePattern: patternString subject: subjectObject input: aPCRE2Input calloutSites: calloutSiteArray [
-
-	^ self
-		  initializePattern: patternString
-		  patternInput: patternString asPCRE2UTF8Input
-		  subject: subjectObject
-		  input: aPCRE2Input
-		  calloutSites: calloutSiteArray
-]
-
 { #category : 'accessing' }
 PCRE2TraceRecorder >> input [
 
@@ -236,8 +214,9 @@ PCRE2TraceRecorder >> patternCharacterRangeForEvent: aPCRE2CalloutEvent [
 
 { #category : 'accessing' }
 PCRE2TraceRecorder >> patternInput [
+	"Answer the prepared pattern input whose code-unit offsets match the traced matcher width."
 
-	^ patternInput ifNil: [ pattern asPCRE2UTF8Input ]
+	^ patternInput
 ]
 
 { #category : 'accessing' }

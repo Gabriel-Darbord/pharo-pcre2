@@ -1,9 +1,9 @@
 "
-Represents UTF-16 code-unit input for PCRE2.
+Represents UTF-16 code-unit input for PCRE2-16.
 
-Instances can be created from a Pharo string or from already-encoded bytes. String-backed inputs keep the original string for fast result reading. Byte-backed inputs keep native-endian UTF-16 storage for FFI calls and decode only the slices or character ranges requested by match-result APIs.
+Instances can be created from a Pharo string or from already-encoded bytes. String-backed inputs keep the original string and a character-to-code-unit offset map for fast result reading. Byte-backed inputs keep native-endian UTF-16 storage for FFI calls and decode only the requested slices or character ranges.
 
-PCRE2's 16-bit API counts offsets in UTF-16 code units. Supplementary Unicode characters therefore occupy two native code units even though they are one Pharo Character.
+For PCRE2-16, offsets count UTF-16 code units. Supplementary Unicode characters therefore occupy two PCRE2 code units even though they are one Pharo Character.
 "
 Class {
 	#name : 'PCRE2UTF16Input',
@@ -142,11 +142,31 @@ PCRE2UTF16Input >> bytes: bytesObject string: aString codeUnitStartOffsets: offs
 ]
 
 { #category : 'decoding' }
-PCRE2UTF16Input >> characterCountUpToByteOffset: codeUnitOffset [
-	"Compatibility with UTF-8 input protocol; for UTF-16 the offset is a code-unit count."
+PCRE2UTF16Input >> characterCountUpToCodeUnitOffset: codeUnitOffset [
+	"For PCRE2-16, code-unit offsets count UTF-16 units; surrogate pairs are two code units but one Pharo character."
 
+	^ self
+		  characterCountUpToCodeUnitOffset: codeUnitOffset
+		  fromCodeUnitOffset: 0
+		  characterCount: 0
+]
+
+{ #category : 'decoding' }
+PCRE2UTF16Input >> characterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitOffset: knownCodeUnitOffset characterCount: knownCharacterCount [
+	"Continue counting UTF-16 characters from a known code-unit offset. String-backed inputs use the offset map; byte-backed inputs fall back to scanning from the beginning."
+
+	codeUnitOffset <= 0 ifTrue: [ ^ 0 ].
+	codeUnitOffset = knownCodeUnitOffset ifTrue: [ ^ knownCharacterCount ].
+	codeUnitOffset < knownCodeUnitOffset ifTrue: [
+		^ self
+			  characterCountUpToCodeUnitOffset: codeUnitOffset
+			  fromCodeUnitOffset: 0
+			  characterCount: 0 ].
 	codeUnitStartOffsets ifNotNil: [
-		^ self mappedCharacterCountUpToCodeUnitOffset: codeUnitOffset ].
+		^ self
+			  mappedCharacterCountUpToCodeUnitOffset: codeUnitOffset
+			  fromCodeUnitOffset: knownCodeUnitOffset
+			  characterCount: knownCharacterCount ].
 	^ self scannedCharacterCountUpToCodeUnitOffset: codeUnitOffset
 ]
 
@@ -163,14 +183,20 @@ PCRE2UTF16Input >> codePointFromHighSurrogate: highSurrogate lowSurrogate: lowSu
 PCRE2UTF16Input >> decodeBytes: aByteCollection [
 	"Decode a native-endian UTF-16 byte collection."
 
+	^ self decodeBytes: aByteCollection from: 1 to: aByteCollection size
+]
+
+{ #category : 'decoding' }
+PCRE2UTF16Input >> decodeBytes: aByteCollection from: byteStart to: byteEnd [
+	"Decode a 1-based inclusive byte range from native-endian UTF-16 storage."
+
 	^ String streamContents: [ :stream |
 		  | byteIndex |
-		  byteIndex := 1.
-		  [ byteIndex <= aByteCollection size ] whileTrue: [
+		  byteIndex := byteStart.
+		  [ byteIndex <= byteEnd ] whileTrue: [
 			  | first |
 			  first := aByteCollection uint16AtOffset: byteIndex - 1.
-			  ((self isHighSurrogate: first) and: [
-				   byteIndex + 2 <= aByteCollection size ])
+			  ((self isHighSurrogate: first) and: [ byteIndex + 2 <= byteEnd ])
 				  ifTrue: [
 					  | second |
 					  second := aByteCollection uint16AtOffset: byteIndex + 1.
@@ -216,6 +242,22 @@ PCRE2UTF16Input >> mappedCharacterCountUpToCodeUnitOffset: codeUnitOffset [
 ]
 
 { #category : 'decoding' }
+PCRE2UTF16Input >> mappedCharacterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitOffset: knownCodeUnitOffset characterCount: knownCharacterCount [
+	"Use the string-backed offset map to continue from a known character count instead of scanning code units."
+
+	| count |
+	codeUnitOffset <= 0 ifTrue: [ ^ 0 ].
+	codeUnitOffset = knownCodeUnitOffset ifTrue: [ ^ knownCharacterCount ].
+	codeUnitOffset >= self size ifTrue: [ ^ string size ].
+	count := knownCharacterCount.
+	[
+	count < string size and: [
+		(codeUnitStartOffsets at: count + 2) <= codeUnitOffset ] ]
+		whileTrue: [ count := count + 1 ].
+	^ count
+]
+
+{ #category : 'decoding' }
 PCRE2UTF16Input >> nextFromStream: aStream [
 	"Answer the next character from a stream over my UTF-16 byte storage."
 
@@ -230,14 +272,15 @@ PCRE2UTF16Input >> nextFromStream: aStream [
 
 { #category : 'matching' }
 PCRE2UTF16Input >> nextMatchStartOffsetAfter: zeroBasedOffset [
-	"Answer the next zero-based UTF-16 code-unit offset after one character, or one past the end."
+	"Answer the next zero-based PCRE2-16 code-unit offset after one Pharo character, or one past the end."
 
-	| stream |
+	| first nextOffset |
 	zeroBasedOffset >= self size ifTrue: [ ^ self size + 1 ].
-	stream := ReadStream on: bytes.
-	stream position: zeroBasedOffset * 2.
-	self nextFromStream: stream.
-	^ stream position // 2
+	first := bytes uint16AtOffset: zeroBasedOffset * 2.
+	nextOffset := zeroBasedOffset + 1.
+	((self isHighSurrogate: first) and: [ nextOffset < self size ])
+		ifTrue: [ ^ zeroBasedOffset + 2 ].
+	^ nextOffset
 ]
 
 { #category : 'decoding' }
@@ -256,19 +299,19 @@ PCRE2UTF16Input >> nextSurrogatePairFromStream: aStream highSurrogate: highSurro
 
 { #category : 'decoding' }
 PCRE2UTF16Input >> readFrom: start to: end [
-	"Answer the substring stored between the given 1-based UTF-16 code-unit indexes."
+	"Answer decoded text between the inclusive 1-based PCRE2-16 code-unit indexes."
 
-	| byteStart characterEnd characterStart slice |
+	| byteStart characterRange |
 	start > end ifTrue: [ ^ String new ].
 	string ifNotNil: [
-		characterStart := (self characterCountUpToByteOffset: start - 1) + 1.
-		characterEnd := self characterCountUpToByteOffset: end.
-		characterStart > characterEnd ifTrue: [ ^ String new ].
-		^ string copyFrom: characterStart to: characterEnd ].
+		characterRange := self
+			                  characterRangeFromStartOffset: start - 1
+			                  endOffset: end.
+		characterRange first > characterRange last ifTrue: [ ^ String new ].
+		^ string copyFrom: characterRange first to: characterRange last ].
 	byteStart := start - 1.
 	byteStart := byteStart * 2 + 1.
-	slice := bytes copyFrom: byteStart to: end * 2.
-	^ self decodeBytes: slice
+	^ self decodeBytes: bytes from: byteStart to: end * 2
 ]
 
 { #category : 'decoding' }

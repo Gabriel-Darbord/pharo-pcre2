@@ -12,8 +12,7 @@ Class {
 
 { #category : 'private' }
 PCRE2UTF16Compiler >> compile: pattern upTo: length errorCode: errorCode errorOffset: errorOffset [
-	"Compile a native-endian UTF-16 pattern buffer.
-	pcre2_code *pcre2_compile_16(PCRE2_SPTR16 pattern, PCRE2_SIZE length, uint32_t options, int *errorcode, PCRE2_SIZE *erroroffset, pcre2_compile_context *ccontext)"
+	"Compile a native-endian UTF-16 pattern buffer; length and errorOffset are PCRE2-16 code-unit counts/offsets, not byte counts."
 
 	self ffiCall:
 		#( void #* pcre2_compile_16 #( void #* pattern #, size_t length

@@ -393,13 +393,13 @@ LibPCRE2 >> config: what output: where [
 ]
 
 { #category : 'private' }
-LibPCRE2 >> conversionErrorCode: errorCode in: patternBytes at: offset [
-	"Signal a conversion error at the input offset reported by PCRE2."
+LibPCRE2 >> conversionErrorCode: errorCode in: input at: codeUnitOffset [
+	"Signal a conversion error reported for prepared PCRE2 input at a zero-based code-unit offset."
 
 	PCRE2CompileError
 		signal: (PCRE2 translateErrorCode: errorCode)
-		in: patternBytes asByteArray
-		at: offset
+		in: input
+		at: codeUnitOffset
 ]
 
 { #category : 'converting' }
@@ -429,7 +429,7 @@ LibPCRE2 >> convertPattern: pattern options: convertOptions context: convertCont
 	rc = 0 ifFalse: [
 		outputAddress isNull ifFalse: [
 			self convertedPatternFree: outputAddress ].
-		self conversionErrorCode: rc in: input bytes at: outputLength value ].
+		self conversionErrorCode: rc in: input at: outputLength value ].
 	[
 	convertedBytes := self
 		                  copyExternalBytes: outputAddress

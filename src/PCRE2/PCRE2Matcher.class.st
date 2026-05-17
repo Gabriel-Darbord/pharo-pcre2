@@ -130,6 +130,12 @@ PCRE2Matcher >> compiler: aPCRE2Compiler [
 	compiler := aPCRE2Compiler
 ]
 
+{ #category : 'private' }
+PCRE2Matcher >> compilerClass [
+
+	^ self subclassResponsibility
+]
+
 { #category : 'accessing' }
 PCRE2Matcher >> context [
 
@@ -240,11 +246,6 @@ PCRE2Matcher >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
 	^ self subclassResponsibility
 ]
 
-{ #category : 'private' }
-PCRE2Matcher >> decodeUTF8Output: buffer upTo: byteSize [
-	^ self subclassResponsibility
-]
-
 { #category : 'matching' }
 PCRE2Matcher >> dfaMatch: subject [
 	"Run a DFA match and answer all same-start alternatives as standalone match data."
@@ -280,9 +281,9 @@ PCRE2Matcher >> dfaMatch: subject workspaceSize: workspaceSize ovectorSize: ovec
 	^ match
 ]
 
-{ #category : 'byte matching' }
+{ #category : 'prepared matching' }
 PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: workspaceSize ovectorSize: ovectorSize [
-	"Run a DFA match over a prepared subject buffer and answer standalone match data, or nil."
+	"Run a DFA match over prepared subject byte storage using an inclusive 1-based PCRE2 code-unit range; answer standalone match data, or nil."
 
 	| match rc |
 	match := self newMatchDataWithOvectorSize: ovectorSize.
@@ -298,9 +299,9 @@ PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: worksp
 	^ match
 ]
 
-{ #category : 'byte matching' }
+{ #category : 'prepared matching' }
 PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: workspaceSize ovectorSize: ovectorSize into: aPCRE2Match [
-	"Run a DFA match over a prepared subject buffer and populate caller-provided match data."
+	"Run a DFA match over prepared subject byte storage using an inclusive 1-based PCRE2 code-unit range, and populate caller-provided match data."
 
 	| rc workspace |
 	self validateDFAWorkspaceSize: workspaceSize ovectorSize: ovectorSize.
@@ -616,7 +617,7 @@ PCRE2Matcher >> matchAll: subject from: start to: end advancingEmptyMatchesWith:
 					                ifFalse: [ 0 ] ] ]
 ]
 
-{ #category : 'byte matching' }
+{ #category : 'prepared matching' }
 PCRE2Matcher >> matchAll: subject from: start to: end do: aBlock [
 	"Iteratively match over raw code-unit storage and execute aBlock with each standalone match. Empty matches retry with PCRE2_NOTEMPTY_ATSTART before advancing by one code unit."
 
@@ -630,9 +631,9 @@ PCRE2Matcher >> matchAll: subject from: start to: end do: aBlock [
 			aBlock cull: match ]
 ]
 
-{ #category : 'byte matching' }
+{ #category : 'prepared matching' }
 PCRE2Matcher >> matchAll: subject from: start to: end offsetsDo: aBlock [
-	"Iteratively match over a range of the subject and execute aBlock with each match's offsets."
+	"Iteratively match over an inclusive 1-based PCRE2 code-unit range of prepared subject storage and evaluate aBlock with each match's raw code-unit offsets."
 
 	self
 		matchAll: subject
@@ -656,9 +657,9 @@ PCRE2Matcher >> matchAllIn: input from: start to: end do: aBlock [
 			aBlock cull: match ]
 ]
 
-{ #category : 'byte matching' }
+{ #category : 'prepared matching' }
 PCRE2Matcher >> matchBytes: subject from: start to: end [
-	"Run a match over a UTF-encoded subject range and answer standalone match data, or nil."
+	"Run a match over prepared subject byte storage using an inclusive 1-based PCRE2 code-unit range; answer standalone match data, or nil."
 
 	| match rc |
 	match := self newMatchData.
@@ -680,9 +681,9 @@ PCRE2Matcher >> matchBytes: subject from: start to: end calloutsDo: calloutBlock
 		  callbackMatcher matchBytes: subject from: start to: end ]
 ]
 
-{ #category : 'byte matching' }
+{ #category : 'prepared matching' }
 PCRE2Matcher >> matchBytes: subject from: start to: end into: aPCRE2Match [
-	"Run a match over a UTF-encoded subject range and populate caller-provided match data."
+	"Run a match over prepared subject byte storage using an inclusive 1-based PCRE2 code-unit range, and populate caller-provided match data."
 
 	^ self
 		  matchBytes: subject
@@ -692,9 +693,9 @@ PCRE2Matcher >> matchBytes: subject from: start to: end into: aPCRE2Match [
 		  into: aPCRE2Match
 ]
 
-{ #category : 'byte matching' }
+{ #category : 'prepared matching' }
 PCRE2Matcher >> matchBytes: subject from: start to: end options: matchOptions into: aPCRE2Match [
-	"Run a match over a UTF-encoded subject range with explicit PCRE2 match options and populate caller-provided match data."
+	"Run a match over prepared subject byte storage using an inclusive 1-based PCRE2 code-unit range, explicit match options, and caller-provided match data."
 
 	| rc |
 	self validateUsableMatchData: aPCRE2Match.
@@ -832,6 +833,55 @@ PCRE2Matcher >> matchingRangesIn: subject [
 	^ ranges
 ]
 
+{ #category : 'private' }
+PCRE2Matcher >> nameTableCaptureIndexAt: entryOffset in: nameTableAddress [
+	"PCRE2-8 stores the capture index in the first two 8-bit code units; PCRE2-16/32 store it in the first native code unit."
+
+	self codeUnitWidth = 8 ifTrue: [
+		^ ((self nameTableCodeUnitAt: entryOffset in: nameTableAddress)
+			   bitShift: 8) bitOr:
+			  (self nameTableCodeUnitAt: entryOffset + 1 in: nameTableAddress) ].
+	^ self nameTableCodeUnitAt: entryOffset in: nameTableAddress
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> nameTableCodeUnitAt: codeUnitOffset in: nameTableAddress [
+	"Answer one native PCRE2 code unit from the name table. The offset is measured in code units, not bytes."
+
+	self codeUnitWidth = 8 ifTrue: [
+		^ nameTableAddress uint8AtOffset: codeUnitOffset ].
+	self codeUnitWidth = 16 ifTrue: [
+		^ nameTableAddress uint16AtOffset:
+			  codeUnitOffset * self codeUnitByteSize ].
+	^ nameTableAddress uint32AtOffset:
+		  codeUnitOffset * self codeUnitByteSize
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> nameTableNameAt: entryOffset in: nameTableAddress [
+	"Decode the zero-terminated group name stored after the capture index in a native name-table entry."
+
+	self codeUnitWidth = 8 ifTrue: [
+		^ (ByteArray streamContents: [ :stream |
+			   | codeUnit offset |
+			   offset := entryOffset + 1.
+			   [
+			   offset := offset + 1.
+			   codeUnit := self
+				               nameTableCodeUnitAt: offset
+				               in: nameTableAddress.
+			   codeUnit = 0 ] whileFalse: [ stream nextPut: codeUnit ] ])
+			  utf8Decoded ].
+	^ String streamContents: [ :stream |
+		  | codeUnit offset |
+		  offset := entryOffset.
+		  [
+		  offset := offset + 1.
+		  codeUnit := self nameTableCodeUnitAt: offset in: nameTableAddress.
+		  codeUnit = 0 ] whileFalse: [
+			  stream nextPut: (Character value: codeUnit) ] ]
+]
+
 { #category : 'documentation' }
 PCRE2Matcher >> namedGroups [
 	"Answer a sparse Array mapping PCRE2 capture group numbers to their names.
@@ -853,7 +903,7 @@ PCRE2Matcher >> newMatchData [
 
 { #category : 'external resource management' }
 PCRE2Matcher >> newMatchDataWithOvectorSize: ovectorSize [
-	"Create match data with an explicit number of offset pairs."
+	"Create match data with room for an explicit number of PCRE2 code-unit offset pairs."
 
 	| pointer |
 	pointer := self createMatchDataWithOvectorSize: ovectorSize.
@@ -915,7 +965,34 @@ PCRE2Matcher >> privateCopyWithCharacterTables [
 
 { #category : 'private' }
 PCRE2Matcher >> readNamedGroups [
-	^ self subclassResponsibility
+	"Read PCRE2's native name table into a sparse Array keyed by capture group number."
+
+	| buffer captureCount entrySize nameCount rc table |
+	buffer := ByteArray new: 4.
+
+	rc := self info: PCRE2 infoNameCount output: buffer.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	(nameCount := buffer uint32AtOffset: 0) = 0 ifTrue: [ ^ #(  ) ].
+
+	captureCount := self info: PCRE2 infoCaptureCount.
+	table := Array new: captureCount.
+
+	rc := self info: PCRE2 infoNameEntrySize output: buffer.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	entrySize := buffer uint32AtOffset: 0.
+
+	buffer := ByteArray new: ExternalAddress wordSize.
+	rc := self info: PCRE2 infoNameTable output: buffer.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	buffer := buffer pointerAtOffset: 0.
+
+	1 to: nameCount do: [ :entryIndex |
+		| entryOffset |
+		entryOffset := entrySize * (entryIndex - 1).
+		table
+			at: (self nameTableCaptureIndexAt: entryOffset in: buffer)
+			put: (self nameTableNameAt: entryOffset in: buffer) ].
+	^ table
 ]
 
 { #category : 'persistence' }
@@ -1016,33 +1093,40 @@ PCRE2Matcher >> serialize [
 
 { #category : 'splitjoin' }
 PCRE2Matcher >> split: subject indicesDo: aBlock [
-	"Split subject on my matches, evaluating aBlock with each kept 1-based Pharo character range. Regex delimiters must consume at least one code unit."
+	"Split subject on consuming matches, evaluating aBlock with each kept 1-based Pharo character range."
 
-	| input lastEndOffset match nextStart subjectEnd |
+	| input lastEndCharacterCount lastEndOffset match nextStart subjectEnd |
 	input := self preparedInputFor: subject.
 	lastEndOffset := 0.
+	lastEndCharacterCount := 0.
 	nextStart := 1.
-	subjectEnd := input characterCountUpToByteOffset: input size.
+	subjectEnd := input characterCountUpToCodeUnitOffset: input size.
 	[
 	nextStart <= (input size + 1) and: [
 		(match := self
 			          matchBytes: input bytes
 			          from: nextStart
 			          to: input size) notNil ] ] whileTrue: [
-		| offsets startOffset endOffset |
+		| endCharacterCount endOffset offsets startCharacterCount startOffset |
 		offsets := match offsetsAt: 1.
 		startOffset := offsets first.
 		endOffset := offsets second.
 		[ startOffset < endOffset ] assertWithDescription:
 			'Regex cannot match null string'.
-		aBlock
-			value: (input characterCountUpToByteOffset: lastEndOffset) + 1
-			value: (input characterCountUpToByteOffset: startOffset).
+		startCharacterCount := input
+			                       characterCountUpToCodeUnitOffset:
+			                       startOffset
+			                       fromCodeUnitOffset: lastEndOffset
+			                       characterCount: lastEndCharacterCount.
+		aBlock value: lastEndCharacterCount + 1 value: startCharacterCount.
+		endCharacterCount := input
+			                     characterCountUpToCodeUnitOffset: endOffset
+			                     fromCodeUnitOffset: startOffset
+			                     characterCount: startCharacterCount.
 		lastEndOffset := endOffset.
+		lastEndCharacterCount := endCharacterCount.
 		nextStart := endOffset + 1 ].
-	aBlock
-		value: (input characterCountUpToByteOffset: lastEndOffset) + 1
-		value: subjectEnd
+	aBlock value: lastEndCharacterCount + 1 value: subjectEnd
 ]
 
 { #category : 'querying' }
@@ -1409,14 +1493,28 @@ PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement options: sub
 
 { #category : 'private' }
 PCRE2Matcher >> substitutionOptions [
-	"Answer matcher options that are safe to pass to pcre2_substitute_8. Partial matching options are not valid for substitution."
+	"Answer matcher options that are safe to pass to pcre2_substitute_*(). Partial matching options are not valid for substitution."
 
 	^ options bitAnd: (PCRE2 partialSoft | PCRE2 partialHard) bitInvert
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> temporaryMatcherAddingCompileOptions: compileOptions matchOptions: matchOptions [
-	^ self subclassResponsibility
+	"Answer a temporary matcher compiled from the receiver's source with additional options. The receiver is left unchanged."
+
+	| sourceCompiler temporaryCompiler temporaryMatcher |
+	sourceCompiler := compiler ifNil: [ self compilerClass new ].
+	temporaryCompiler := self compilerClass new.
+	sourceCompiler copyContextIfPresent ifNotNil: [ :contextCopy |
+		temporaryCompiler context: contextCopy ].
+	temporaryCompiler
+		options: (sourceCompiler options bitOr: compileOptions);
+		optionsJIT: sourceCompiler optionsJIT.
+	temporaryMatcher := temporaryCompiler compile: pattern.
+	temporaryMatcher options: (options bitOr: matchOptions).
+	context ifNotNil: [
+		temporaryMatcher context: context copy autoRelease ].
+	^ temporaryMatcher
 ]
 
 { #category : 'private' }
@@ -1474,11 +1572,6 @@ PCRE2Matcher >> traceMatcher [
 ]
 
 { #category : 'private' }
-PCRE2Matcher >> utf8InputFor: aStringOrInput [
-	^ self subclassResponsibility
-]
-
-{ #category : 'private' }
 PCRE2Matcher >> validateDFAWorkspaceSize: workspaceSize ovectorSize: ovectorSize [
 
 	(workspaceSize isInteger and: [ workspaceSize >= 20 ]) ifFalse: [
@@ -1505,7 +1598,7 @@ PCRE2Matcher >> validateSubstitutionMatchData: aPCRE2Match [
 			'Substitution match data must hold an external PCRE2 match data block' ].
 	aPCRE2Match isPersistent ifTrue: [
 		PCRE2Error signal:
-			'Persistent match data cannot be passed back to pcre2_substitute_8' ].
+			'Persistent match data cannot be passed back to pcre2_substitute' ].
 	aPCRE2Match isNull ifTrue: [
 		PCRE2Error signal:
 			'Substitution match data must hold an external PCRE2 match data block' ].
@@ -1552,7 +1645,7 @@ PCRE2Matcher >> withCallout: calloutBlock do: aBlock [
 
 { #category : 'callouts' }
 PCRE2Matcher >> withSubstituteCallout: calloutBlock do: aBlock [
-	"Evaluate aBlock with a temporary matcher whose match context invokes calloutBlock after each processed pcre2_substitute_8 replacement. The callout block receives a PCRE2SubstitutionCalloutEvent and may answer a PCRE2 substitute-callout return code; non-integer answers accept the replacement."
+	"Evaluate aBlock with a temporary matcher whose match context invokes calloutBlock after each processed pcre2_substitute_* replacement. The callout block receives a PCRE2SubstitutionCalloutEvent and may answer a PCRE2 substitute-callout return code; non-integer answers accept the replacement."
 
 	| callbackMatcher |
 	callbackMatcher := self temporaryMatcherForCallout.
