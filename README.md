@@ -1,4 +1,4 @@
-[![Pharo version](https://img.shields.io/badge/Pharo-12%20%7C%2013-%23aac9ff.svg)](https://github.com/pharo-project/Pharo)
+[![Pharo version](https://img.shields.io/badge/Pharo-12%20%7C%2013%20%7C%2014-%23aac9ff.svg)](https://github.com/pharo-project/Pharo)
 ![Build Info](https://github.com/Gabriel-Darbord/pharo-pcre2/workflows/CI/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/Gabriel-Darbord/pharo-pcre2/badge.svg?branch=main)](https://coveralls.io/github/Gabriel-Darbord/pharo-pcre2?branch=main)
 
@@ -13,9 +13,9 @@ This project is developed on Pharo 13.
 Supported versions:
 
 - Pharo 13 is the primary development and reference runtime.
-- Pharo 12 is supported through PharoCompatibility using the `Pharo13Surface` group.
+- Pharo 12 and Pharo 14 are supported through PharoCompatibility using the `Pharo13Surface` group.
 
-New code should target the Pharo 13 API surface. When a Pharo 13 API is not available on Pharo 12, add or use a compatibility shim rather than writing Pharo 12-shaped production code.
+New code should target the Pharo 13 API surface. When a Pharo 13 API is not available on a supported runtime, add or use a compatibility shim rather than writing runtime-specific production code.
 
 ## Installation
 
@@ -28,7 +28,7 @@ Metacello new
   load
 ```
 
-The baseline loads the `Pharo13Surface` compatibility group from PharoCompatibility so the project can use the Pharo 13-facing surface while remaining loadable on Pharo 12.
+The baseline loads the `Pharo13Surface` compatibility group from PharoCompatibility so the project can use the Pharo 13-facing surface while remaining loadable on Pharo 12 and Pharo 14.
 
 The native PCRE2 8-bit library must be available on the host. The UTF-16 and UTF-32 APIs also use `libpcre2-16` and `libpcre2-32` when present.
 
