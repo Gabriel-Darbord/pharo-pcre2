@@ -7,9 +7,8 @@ Matcher APIs accept this object directly when a caller wants to reuse prepared s
 "
 Class {
 	#name : 'PCRE2UTF8Input',
-	#superclass : 'Object',
+	#superclass : 'PCRE2Input',
 	#instVars : [
-		'bytes',
 		'decoder'
 	],
 	#category : 'PCRE2',
@@ -50,16 +49,10 @@ PCRE2UTF8Input >> asPCRE2UTF8Input [
 	^ self
 ]
 
-{ #category : 'accessing' }
-PCRE2UTF8Input >> bytes [
-
-	^ bytes
-]
-
 { #category : 'initialization' }
 PCRE2UTF8Input >> bytes: bytesObject decoder: aDecoder [
 
-	bytes := bytesObject.
+	self bytes: bytesObject.
 	decoder := aDecoder
 ]
 
@@ -67,17 +60,14 @@ PCRE2UTF8Input >> bytes: bytesObject decoder: aDecoder [
 PCRE2UTF8Input >> characterCountUpToByteOffset: byteOffset [
 	"Answer the number of Pharo characters represented before byteOffset UTF-8 bytes."
 
+	| count |
 	byteOffset = 0 ifTrue: [ ^ 0 ].
 	decoder ifNil: [ ^ byteOffset ].
-	^ (decoder decodeBytes: (bytes copyFrom: 1 to: byteOffset)) size
-]
-
-{ #category : 'decoding' }
-PCRE2UTF8Input >> characterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset [
-	"Translate PCRE2's zero-based byte offsets to a 1-based Pharo character range."
-
-	^ (self characterCountUpToByteOffset: zeroBasedStartOffset) + 1 to:
-	  (self characterCountUpToByteOffset: exclusiveEndOffset)
+	count := 0.
+	1 to: byteOffset do: [ :index | "UTF-8 continuation bytes are 10xxxxxx, so every byte that is not a continuation byte starts one encoded character."
+		((bytes at: index) bitAnd: 16rC0) = 16r80 ifFalse: [
+			count := count + 1 ] ].
+	^ count
 ]
 
 { #category : 'decoding' }
@@ -87,6 +77,27 @@ PCRE2UTF8Input >> decodeBytes: aByteCollection [
 	^ decoder
 		  ifNil: [ aByteCollection ]
 		  ifNotNil: [ decoder decodeBytes: aByteCollection ]
+]
+
+{ #category : 'decoding' }
+PCRE2UTF8Input >> decodeBytesFrom: start to: end [
+	"Decode a UTF-8 byte range from my byte storage without copying the bytes first."
+
+	| byteStream |
+	byteStream := bytes readStream.
+	byteStream position: start - 1.
+	^ String streamContents: [ :stream |
+		  [ byteStream position < end ] whileTrue: [
+			  | codePoint |
+			  codePoint := decoder nextCodePointFromStream: byteStream.
+			  (codePoint > 255 and: [ stream originalContents isWideString not ])
+				  ifTrue: [
+					  | position wideString |
+					  position := stream position.
+					  wideString := WideString from: stream originalContents.
+					  stream on: wideString.
+					  stream setFrom: position + 1 to: position ].
+			  stream nextPut: (Character value: codePoint) ] ]
 ]
 
 { #category : 'accessing' }
@@ -121,15 +132,9 @@ PCRE2UTF8Input >> nextMatchStartOffsetAfter: zeroBasedOffset [
 PCRE2UTF8Input >> readFrom: start to: end [
 	"Answer the decoded substring stored between the given 1-based PCRE2 code-unit indexes."
 
-	| slice |
-	slice := bytes copyFrom: start to: end.
-	^ self decodeBytes: slice
-]
-
-{ #category : 'matching' }
-PCRE2UTF8Input >> recordOn: aPCRE2Match [
-
-	aPCRE2Match input: self
+	start > end ifTrue: [ ^ String new ].
+	decoder ifNil: [ ^ bytes copyFrom: start to: end ].
+	^ self decodeBytesFrom: start to: end
 ]
 
 { #category : 'accessing' }

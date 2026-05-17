@@ -7,9 +7,8 @@ PCRE2's 16-bit API counts offsets in UTF-16 code units. Supplementary Unicode ch
 "
 Class {
 	#name : 'PCRE2UTF16Input',
-	#superclass : 'Object',
+	#superclass : 'PCRE2Input',
 	#instVars : [
-		'bytes',
 		'string',
 		'codeUnitStartOffsets'
 	],
@@ -134,16 +133,10 @@ PCRE2UTF16Input >> asPCRE2UTF16Input [
 	^ self
 ]
 
-{ #category : 'accessing' }
-PCRE2UTF16Input >> bytes [
-
-	^ bytes
-]
-
 { #category : 'initialization' }
 PCRE2UTF16Input >> bytes: bytesObject string: aString codeUnitStartOffsets: offsets [
 
-	bytes := bytesObject.
+	self bytes: bytesObject.
 	string := aString.
 	codeUnitStartOffsets := offsets
 ]
@@ -155,14 +148,6 @@ PCRE2UTF16Input >> characterCountUpToByteOffset: codeUnitOffset [
 	codeUnitStartOffsets ifNotNil: [
 		^ self mappedCharacterCountUpToCodeUnitOffset: codeUnitOffset ].
 	^ self scannedCharacterCountUpToCodeUnitOffset: codeUnitOffset
-]
-
-{ #category : 'decoding' }
-PCRE2UTF16Input >> characterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset [
-	"Translate PCRE2's zero-based UTF-16 code-unit offsets to a 1-based Pharo character range."
-
-	^ (self characterCountUpToByteOffset: zeroBasedStartOffset) + 1 to:
-	  (self characterCountUpToByteOffset: exclusiveEndOffset)
 ]
 
 { #category : 'decoding' }
@@ -202,12 +187,6 @@ PCRE2UTF16Input >> decodeBytes: aByteCollection [
 				  ifFalse: [
 					  stream nextPut: (Character value: first).
 					  byteIndex := byteIndex + 2 ] ] ]
-]
-
-{ #category : 'accessing' }
-PCRE2UTF16Input >> decoder [
-
-	^ nil
 ]
 
 { #category : 'decoding' }
@@ -290,12 +269,6 @@ PCRE2UTF16Input >> readFrom: start to: end [
 	byteStart := byteStart * 2 + 1.
 	slice := bytes copyFrom: byteStart to: end * 2.
 	^ self decodeBytes: slice
-]
-
-{ #category : 'matching' }
-PCRE2UTF16Input >> recordOn: aPCRE2Match [
-
-	aPCRE2Match input: self
 ]
 
 { #category : 'decoding' }
