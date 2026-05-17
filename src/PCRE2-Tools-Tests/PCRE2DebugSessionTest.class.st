@@ -27,21 +27,6 @@ PCRE2DebugSessionTest >> assertContextText: aText highlights: expectedSubstring 
 			 each isKindOf: TextBackgroundColor ])
 ]
 
-{ #category : 'running' }
-PCRE2DebugSessionTest >> setUp [
-
-	super setUp.
-	SystemVersion current major < 13 ifTrue: [
-		self executionProcessMonitor disableProcessesTermination ]
-]
-
-{ #category : 'running' }
-PCRE2DebugSessionTest >> tearDown [
-
-	self executionProcessMonitor allowRunningProcessesToFinish.
-	super tearDown
-]
-
 { #category : 'tests' }
 PCRE2DebugSessionTest >> testDebugSessionCanTraceWithUTF16Compiler [
 
