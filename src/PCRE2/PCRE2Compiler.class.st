@@ -64,6 +64,12 @@ PCRE2Compiler class >> isAbstract [
 	^ self == PCRE2Compiler
 ]
 
+{ #category : 'testing' }
+PCRE2Compiler class >> nativeLibraryAvailable [
+
+	^ LibPCRE2UTF8 isNativeLibraryAvailable
+]
+
 { #category : 'instance creation' }
 PCRE2Compiler class >> new [
 	self == PCRE2Compiler ifTrue: [ ^ PCRE2UTF8Compiler basicNew initialize ].
@@ -93,7 +99,7 @@ PCRE2Compiler class >> startUp: resuming [
 	SupportsJIT := false.
 	resuming ifFalse: [ ^ self ].
 	PCRE2Types initialize. "Ensure shared UFFI holders exist before startup FFI calls."
-	LibPCRE2UTF8 isNativeLibraryAvailable ifFalse: [ ^ self ].
+	self nativeLibraryAvailable ifFalse: [ ^ self ].
 	LibPCRE2UTF8 assertCompatibleLibrary.
 	SupportsJIT := LibPCRE2 supportsJIT
 ]

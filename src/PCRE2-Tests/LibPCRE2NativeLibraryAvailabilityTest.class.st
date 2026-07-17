@@ -13,3 +13,18 @@ LibPCRE2NativeLibraryAvailabilityTest >> testAnswersFalseWhenNativeLibraryCannot
 
 	self deny: LibPCRE2UnavailableTestStub isNativeLibraryAvailable
 ]
+
+{ #category : 'tests' }
+LibPCRE2NativeLibraryAvailabilityTest >> testAnswersTrueWhenNativeLibraryCanBeResolved [
+
+	LibPCRE2UTF8 isNativeLibraryAvailable ifFalse: [ self skip ].
+	self assert: LibPCRE2UTF8 isNativeLibraryAvailable
+]
+
+{ #category : 'tests' }
+LibPCRE2NativeLibraryAvailabilityTest >> testCompilerStartupToleratesUnavailableNativeLibrary [
+
+	[
+		PCRE2CompilerWithoutNativeLibraryTestStub startUp: true.
+		self deny: PCRE2Compiler supportsJIT ] ensure: [ PCRE2Compiler startUp: true ]
+]
