@@ -88,10 +88,12 @@ PCRE2Compiler class >> pattern: aString options: anInteger [
 
 { #category : 'system startup' }
 PCRE2Compiler class >> startUp: resuming [
-	"Validate the default 8-bit binding and cache library-wide JIT support."
+	"Validate the default 8-bit binding and cache library-wide JIT support when the native library is available."
 
+	SupportsJIT := false.
 	resuming ifFalse: [ ^ self ].
 	PCRE2Types initialize. "Ensure shared UFFI holders exist before startup FFI calls."
+	LibPCRE2UTF8 isNativeLibraryAvailable ifFalse: [ ^ self ].
 	LibPCRE2UTF8 assertCompatibleLibrary.
 	SupportsJIT := LibPCRE2 supportsJIT
 ]

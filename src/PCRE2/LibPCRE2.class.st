@@ -143,6 +143,16 @@ LibPCRE2 class >> isAbstract [
 	^ self == LibPCRE2
 ]
 
+{ #category : 'testing' }
+LibPCRE2 class >> isNativeLibraryAvailable [
+
+	^ [
+		  self uniqueInstance ffiLibraryName.
+		  true ]
+		  on: Error
+		  do: [ false ]
+]
+
 { #category : 'JIT' }
 LibPCRE2 class >> jitFreeUnusedMemory [
 
