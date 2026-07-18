@@ -143,6 +143,12 @@ LibPCRE2 class >> isAbstract [
 	^ self == LibPCRE2
 ]
 
+{ #category : 'testing' }
+LibPCRE2 class >> isNativeLibraryAvailable [
+
+	^ self uniqueInstance nativeLibraryPath notNil
+]
+
 { #category : 'JIT' }
 LibPCRE2 class >> jitFreeUnusedMemory [
 
@@ -348,18 +354,14 @@ LibPCRE2 >> assertCompatibleLibrary [
 	"Fail early when the loaded native library does not match the assumptions of this binding."
 
 	self versionMajor = self class requiredMajorVersion ifFalse: [
-		PCRE2Error signal:
-			'Unsupported PCRE2 major version ' , self versionMajor asString
-			, ' from ' , self versionString , '. This binding targets PCRE2 '
-			, self class requiredMajorVersion asString , '.x' ].
+			PCRE2Error signal:
+				'Unsupported PCRE2 major version ' , self versionMajor asString , ' from ' , self versionString
+				, '. This binding targets PCRE2 ' , self class requiredMajorVersion asString , '.x' ].
 	self supportsCodeUnitWidth ifFalse: [
-		PCRE2Error signal: 'The loaded ' , self class libraryBasename
-			, ' library was not compiled with ' , self codeUnitWidth asString
-			, '-bit code unit support' ].
-	self supportsUnicode ifFalse: [
-		PCRE2Error signal:
-			'The loaded PCRE2 library was not compiled with Unicode support' ].
-	^ self
+			PCRE2Error signal:
+				'The loaded ' , self class libraryBasename , ' library was not compiled with ' , self codeUnitWidth asString
+				, '-bit code unit support' ].
+	self supportsUnicode ifFalse: [ PCRE2Error signal: 'The loaded PCRE2 library was not compiled with Unicode support' ]
 ]
 
 { #category : 'private' }
@@ -551,6 +553,34 @@ LibPCRE2 >> makeCharacterTables [
 	"Width-specific primitive for pcre2_maketables_*()."
 
 	^ self subclassResponsibility
+]
+
+{ #category : 'library path' }
+LibPCRE2 >> nativeLibraryFilename [
+
+	Smalltalk platform isMacOS ifTrue: [ ^ self class libraryBasename , '.dylib' ].
+	Smalltalk platform isUnix ifTrue: [ ^ self class libraryBasename , '.so' ].
+	Smalltalk platform isWindows ifTrue: [ ^ self class libraryBasename , '.dll' ]
+]
+
+{ #category : 'library path' }
+LibPCRE2 >> nativeLibraryFinder [
+
+	Smalltalk platform isMacOS ifTrue: [ ^ FFIMacLibraryFinder new ].
+	Smalltalk platform isUnix64 ifTrue: [ ^ FFIUnix64LibraryFinder new ].
+	Smalltalk platform isUnix32 ifTrue: [ ^ FFIUnix32LibraryFinder new ].
+	Smalltalk platform isWindows ifTrue: [ ^ FFIWindowsLibraryFinder new ]
+]
+
+{ #category : 'library path' }
+LibPCRE2 >> nativeLibraryPath [
+
+	| filename finder |
+	filename := self nativeLibraryFilename.
+	filename ifNil: [ ^ nil ].
+	finder := self nativeLibraryFinder.
+	finder ifNil: [ ^ nil ].
+	^ finder paths detect: [ :directory | (directory / filename) exists ] ifNone: [ nil ]
 ]
 
 { #category : 'instance creation' }
