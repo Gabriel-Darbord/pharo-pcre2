@@ -558,18 +558,22 @@ LibPCRE2 >> makeCharacterTables [
 { #category : 'library path' }
 LibPCRE2 >> nativeLibraryFilename [
 
-	Smalltalk platform isMacOS ifTrue: [ ^ self class libraryBasename , '.dylib' ].
-	Smalltalk platform isUnix ifTrue: [ ^ self class libraryBasename , '.so' ].
-	Smalltalk platform isWindows ifTrue: [ ^ self class libraryBasename , '.dll' ]
+	| platform |
+	platform := OSPlatform current.
+	platform isMacOS ifTrue: [ ^ self class libraryBasename , '.dylib' ].
+	platform isUnix ifTrue: [ ^ self class libraryBasename , '.so' ].
+	platform isWindows ifTrue: [ ^ self class libraryBasename , '.dll' ]
 ]
 
 { #category : 'library path' }
 LibPCRE2 >> nativeLibraryFinder [
 
-	Smalltalk platform isMacOS ifTrue: [ ^ FFIMacLibraryFinder new ].
-	Smalltalk platform isUnix64 ifTrue: [ ^ FFIUnix64LibraryFinder new ].
-	Smalltalk platform isUnix32 ifTrue: [ ^ FFIUnix32LibraryFinder new ].
-	Smalltalk platform isWindows ifTrue: [ ^ FFIWindowsLibraryFinder new ]
+	| platform |
+	platform := OSPlatform current.
+	platform isMacOS ifTrue: [ ^ FFIMacLibraryFinder new ].
+	platform isUnix64 ifTrue: [ ^ FFIUnix64LibraryFinder new ].
+	platform isUnix32 ifTrue: [ ^ FFIUnix32LibraryFinder new ].
+	platform isWindows ifTrue: [ ^ FFIWindowsLibraryFinder new ]
 ]
 
 { #category : 'library path' }
