@@ -12,11 +12,11 @@ Class {
 { #category : 'testing' }
 LibPCRE2UnavailableTestStub class >> isAbstract [
 
-	^ true
+	^ false
 ]
 
 { #category : 'library path' }
-LibPCRE2UnavailableTestStub >> ffiLibraryName [
+LibPCRE2UnavailableTestStub >> nativeLibraryPath [
 
-	self error: 'Native PCRE2 library unavailable'
+	^ nil
 ]
