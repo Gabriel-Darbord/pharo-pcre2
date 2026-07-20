@@ -14,17 +14,10 @@ Class {
 PCRE2DebugSessionTest >> assertContextText: aText highlights: expectedSubstring at: highlightInterval [
 
 	| attributes |
-	self
-		assert: (aText asString
-				 copyFrom: highlightInterval first
-				 to: highlightInterval last)
-		equals: expectedSubstring.
+	self assert: (aText asString copyFrom: highlightInterval first to: highlightInterval last) equals: expectedSubstring.
 	attributes := aText attributesAt: highlightInterval first.
-	self assert:
-		(attributes anySatisfy: [ :each | each isKindOf: TextColor ]).
-	self assert:
-		(attributes anySatisfy: [ :each |
-			 each isKindOf: TextBackgroundColor ])
+	self assert: (attributes anySatisfy: [ :each | each isKindOf: TextColor ]).
+	self assert: (attributes anySatisfy: [ :each | each isKindOf: TextBackgroundColor ])
 ]
 
 { #category : 'tests' }
@@ -33,10 +26,7 @@ PCRE2DebugSessionTest >> testDebugSessionCanTraceWithUTF16Compiler [
 	| session |
 	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
 
-	session := PCRE2DebugSession
-		           pattern: 'é'
-		           subject: 'é'
-		           compiler: PCRE2UTF16Compiler.
+	session := PCRE2DebugSession pattern: 'é' subject: 'é' compiler: PCRE2UTF16Compiler.
 	session runTrace.
 
 	self deny: session hasError.
@@ -51,10 +41,7 @@ PCRE2DebugSessionTest >> testDebugSessionCanTraceWithUTF32Compiler [
 	| session |
 	LibPCRE2 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
 
-	session := PCRE2DebugSession
-		           pattern: 'é'
-		           subject: 'é'
-		           compiler: PCRE2UTF32Compiler.
+	session := PCRE2DebugSession pattern: 'é' subject: 'é' compiler: PCRE2UTF32Compiler.
 	session runTrace.
 
 	self deny: session hasError.
@@ -67,9 +54,7 @@ PCRE2DebugSessionTest >> testDebugSessionCanTraceWithUTF32Compiler [
 PCRE2DebugSessionTest >> testDebugSessionSelectStepUsesStableStepIndex [
 
 	| externalStep session |
-	session := PCRE2DebugSession
-		           pattern: '(cat|cater|caterpillar)'
-		           subject: 'caterpillar'.
+	session := PCRE2DebugSession pattern: '(cat|cater|caterpillar)' subject: 'caterpillar'.
 	session runTrace.
 	externalStep := session trace steps second.
 
@@ -84,31 +69,26 @@ PCRE2DebugSessionTest >> testDebugSessionStepLiveRunSelectsNewestRecordedStep [
 	| session |
 	session := PCRE2DebugSession pattern: 'ab' subject: 'ab'.
 	[
-	session executionMode: #stepLive.
-	session stepLiveRun.
-	self assert: session liveRun isPaused.
-	self assert: session stepCount equals: 1.
-	session stepLiveRun.
-	self assert: session liveRun isPaused.
-	self assert: session stepCount > 1.
-	self assert: session selectedStepIndex equals: session stepCount ]
-		ensure: [ session abortLiveRun ]
+		session executionMode: #stepLive.
+		session stepLiveRun.
+		self assert: session liveRun isPaused.
+		self assert: session stepCount equals: 1.
+		session stepLiveRun.
+		self assert: session liveRun isPaused.
+		self assert: session stepCount > 1.
+		self assert: session selectedStepIndex equals: session stepCount ] ensure: [ session abortLiveRun ]
 ]
 
 { #category : 'tests' }
 PCRE2DebugSessionTest >> testDebuggerPatternInputWrapsAndScrollsAsMultilineText [
 
 	| presenter session |
-	session := PCRE2DebugSession
-		           pattern: 'first line second line'
-		           subject: 'subject'.
+	session := PCRE2DebugSession pattern: 'first line second line' subject: 'subject'.
 	presenter := PCRE2DebuggerPresenter on: session.
 
 	self assert: presenter patternInput isWrapWord.
 	self assert: presenter patternInput hasScrollBars.
-	self
-		assert: presenter patternInput text asString
-		equals: session pattern
+	self assert: presenter patternInput text asString equals: session pattern
 ]
 
 { #category : 'tests' }
@@ -118,33 +98,23 @@ PCRE2DebugSessionTest >> testDebuggerPresenterInputsHaveHelpText [
 	session := PCRE2DebugSession pattern: 'cat' subject: 'cat'.
 	presenter := PCRE2DebuggerPresenter on: session.
 
-	self
-		assert: presenter patternInput help
-		equals: presenter patternInputHelpString.
-	self
-		assert: presenter subjectText help
-		equals: presenter subjectInputHelpString
+	self assert: presenter patternInput help equals: presenter patternInputHelpString.
+	self assert: presenter subjectText help equals: presenter subjectInputHelpString
 ]
 
 { #category : 'tests' }
 PCRE2DebugSessionTest >> testDebuggerPresenterLastStepSelectsConcreteLastStepInsideGroupedRow [
 
 	| presenter session |
-	session := PCRE2DebugSession
-		           pattern: '(cat|cater|caterpillar)'
-		           subject: 'caterpillar'.
+	session := PCRE2DebugSession pattern: '(cat|cater|caterpillar)' subject: 'caterpillar'.
 	presenter := PCRE2DebuggerPresenter on: session.
 	presenter runTrace.
 
 	presenter goLastStep.
 	self assert: presenter tracePresenter selectedRow isGroup.
 	self assert: session selectedStepIndex equals: session stepCount.
-	self
-		assert: presenter tracePresenter selectedStep index
-		equals: session stepCount.
-	self
-		assert: presenter tracePresenter selectedRow lastStep index
-		equals: session stepCount
+	self assert: presenter tracePresenter selectedStep index equals: session stepCount.
+	self assert: presenter tracePresenter selectedRow lastStep index equals: session stepCount
 ]
 
 { #category : 'tests' }
@@ -154,59 +124,44 @@ PCRE2DebugSessionTest >> testDebuggerPresenterLiveControlsUseTracePresenter [
 	session := PCRE2DebugSession pattern: 'ab' subject: 'ab'.
 	presenter := PCRE2DebuggerPresenter on: session.
 	[
-	presenter stepLiveRun.
-	self assert: session executionMode equals: #stepLive.
-	self assert: session hasTrace.
-	self assert: presenter tracePresenter trace equals: session trace.
-	self
-		assert: presenter tracePresenter selectedStep index
-		equals: session selectedStep index.
-	self deny: presenter stepButton help isEmpty.
-	self deny: presenter continueButton help isEmpty.
-	self deny: presenter pauseButton help isEmpty.
-	self deny: presenter abortButton help isEmpty ] ensure: [
-		session abortLiveRun ]
+		presenter stepLiveRun.
+		self assert: session executionMode equals: #stepLive.
+		self assert: session hasTrace.
+		self assert: presenter tracePresenter trace equals: session trace.
+		self assert: presenter tracePresenter selectedStep index equals: session selectedStep index.
+		self deny: presenter stepButton help isEmpty.
+		self deny: presenter continueButton help isEmpty.
+		self deny: presenter pauseButton help isEmpty.
+		self deny: presenter abortButton help isEmpty ] ensure: [ session abortLiveRun ]
 ]
 
 { #category : 'tests' }
 PCRE2DebugSessionTest >> testDebuggerPresenterRefreshPreservesSelectedTraceRow [
 
 	| presenter row session |
-	session := PCRE2DebugSession
-		           pattern: '(cat|cater|caterpillar)'
-		           subject: 'caterpillar'.
+	session := PCRE2DebugSession pattern: '(cat|cater|caterpillar)' subject: 'caterpillar'.
 	presenter := PCRE2DebuggerPresenter on: session.
 	presenter runTrace.
 	row := presenter tracePresenter stepsTable items second.
 	presenter tracePresenter stepsTable selectItem: row.
-	self
-		assert: session selectedStepIndex
-		equals: row representativeStep index.
+	self assert: session selectedStepIndex equals: row representativeStep index.
 
 	presenter refreshFromSession.
-	self
-		assert: presenter tracePresenter selectedStep index
-		equals: row representativeStep index.
-	self
-		assert: session selectedStepIndex
-		equals: row representativeStep index
+	self assert: presenter tracePresenter selectedStep index equals: row representativeStep index.
+	self assert: session selectedStepIndex equals: row representativeStep index
 ]
 
 { #category : 'tests' }
 PCRE2DebugSessionTest >> testDebuggerPresenterRowSelectionUpdatesSessionStepIndex [
 
 	| presenter row session |
-	session := PCRE2DebugSession
-		           pattern: '(cat|cater|caterpillar)'
-		           subject: 'caterpillar'.
+	session := PCRE2DebugSession pattern: '(cat|cater|caterpillar)' subject: 'caterpillar'.
 	presenter := PCRE2DebuggerPresenter on: session.
 	presenter runTrace.
 	row := presenter tracePresenter stepsTable items second.
 
 	presenter tracePresenter stepsTable selectItem: row.
-	self
-		assert: session selectedStepIndex
-		equals: row representativeStep index.
+	self assert: session selectedStepIndex equals: row representativeStep index.
 	self assert: session stepStatusString equals: 'Step 2 / 6'
 ]
 
@@ -220,9 +175,7 @@ PCRE2DebugSessionTest >> testDebuggerPresenterShowsCompileErrorsInTraceStatus [
 	presenter runTrace.
 
 	self assert: session hasError.
-	self assert:
-		(presenter tracePresenter statusLabel label includesSubstring:
-			 'Error:')
+	self assert: (presenter tracePresenter statusLabel label includesSubstring: 'Error:')
 ]
 
 { #category : 'tests' }
@@ -245,18 +198,15 @@ PCRE2DebugSessionTest >> testLiveDebugRunCanUseUTF16Compiler [
 	| run |
 	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
 
-	run := PCRE2LiveDebugRun
-		       pattern: 'é'
-		       subject: 'é'
-		       compiler: PCRE2UTF16Compiler.
+	run := PCRE2LiveDebugRun pattern: 'é' subject: 'é' compiler: PCRE2UTF16Compiler.
 	[
-	run startContinuing.
-	self assert: (run waitForCompletionMilliseconds: 1000).
-	self assert: run matcher class equals: PCRE2UTF16Matcher.
-	self assert: run recorder isMatch.
-	self assert: run recorder matchedString equals: 'é' ] ensure: [
-		run abort.
-		run waitForCompletionMilliseconds: 1000 ]
+		run startContinuing.
+		self assert: (run waitForCompletionMilliseconds: 1000).
+		self assert: run matcher class equals: PCRE2UTF16Matcher.
+		self assert: run recorder isMatch.
+		self assert: run recorder matchedString equals: 'é' ] ensure: [
+			run abort.
+			run waitForCompletionMilliseconds: 1000 ]
 ]
 
 { #category : 'tests' }
@@ -265,18 +215,15 @@ PCRE2DebugSessionTest >> testLiveDebugRunCanUseUTF32Compiler [
 	| run |
 	LibPCRE2 supports32BitCodeUnitWidth ifFalse: [ ^ self ].
 
-	run := PCRE2LiveDebugRun
-		       pattern: 'é'
-		       subject: 'é'
-		       compiler: PCRE2UTF32Compiler.
+	run := PCRE2LiveDebugRun pattern: 'é' subject: 'é' compiler: PCRE2UTF32Compiler.
 	[
-	run startContinuing.
-	self assert: (run waitForCompletionMilliseconds: 1000).
-	self assert: run matcher class equals: PCRE2UTF32Matcher.
-	self assert: run recorder isMatch.
-	self assert: run recorder matchedString equals: 'é' ] ensure: [
-		run abort.
-		run waitForCompletionMilliseconds: 1000 ]
+		run startContinuing.
+		self assert: (run waitForCompletionMilliseconds: 1000).
+		self assert: run matcher class equals: PCRE2UTF32Matcher.
+		self assert: run recorder isMatch.
+		self assert: run recorder matchedString equals: 'é' ] ensure: [
+			run abort.
+			run waitForCompletionMilliseconds: 1000 ]
 ]
 
 { #category : 'tests' }
@@ -286,18 +233,18 @@ PCRE2DebugSessionTest >> testLiveDebugRunCompletionCallbackFiresWhenContinueFini
 	callbackSemaphore := Semaphore new.
 	run := PCRE2LiveDebugRun pattern: 'ab' subject: 'ab'.
 	[
-	run start.
-	self assert: (run waitForPauseOrFinishMilliseconds: 1000).
-	run whenCompletedDo: [ :completedRun |
-		callbackRun := completedRun.
-		callbackSemaphore signal ].
-	run continue.
-	self assert: (run waitForCompletionMilliseconds: 1000).
-	self assert: (callbackSemaphore waitTimeoutMilliseconds: 1000) not.
-	self assert: callbackRun equals: run.
-	self assert: run runState equals: #completed ] ensure: [
-		run abort.
-		run waitForCompletionMilliseconds: 1000 ]
+		run start.
+		self assert: (run waitForPauseOrFinishMilliseconds: 1000).
+		run whenCompletedDo: [ :completedRun |
+				callbackRun := completedRun.
+				callbackSemaphore signal ].
+		run continue.
+		self assert: (run waitForCompletionMilliseconds: 1000).
+		self assert: (callbackSemaphore waitTimeoutMilliseconds: 1000) not.
+		self assert: callbackRun equals: run.
+		self assert: run runState equals: #completed ] ensure: [
+			run abort.
+			run waitForCompletionMilliseconds: 1000 ]
 ]
 
 { #category : 'tests' }
@@ -306,12 +253,12 @@ PCRE2DebugSessionTest >> testLiveDebugRunCompletionCallbackRunsImmediatelyWhenAl
 	| callbackRun run |
 	run := PCRE2LiveDebugRun pattern: 'ab' subject: 'ab'.
 	[
-	run startContinuing.
-	self assert: (run waitForCompletionMilliseconds: 1000).
-	run whenCompletedDo: [ :completedRun | callbackRun := completedRun ].
-	self assert: callbackRun equals: run ] ensure: [
-		run abort.
-		run waitForCompletionMilliseconds: 1000 ]
+		run startContinuing.
+		self assert: (run waitForCompletionMilliseconds: 1000).
+		run whenCompletedDo: [ :completedRun | callbackRun := completedRun ].
+		self assert: callbackRun equals: run ] ensure: [
+			run abort.
+			run waitForCompletionMilliseconds: 1000 ]
 ]
 
 { #category : 'tests' }
@@ -320,16 +267,16 @@ PCRE2DebugSessionTest >> testLiveDebugRunContinueCompletes [
 	| run |
 	run := PCRE2LiveDebugRun pattern: 'ab' subject: 'ab'.
 	[
-	run start.
-	self assert: (run waitForPauseOrFinishMilliseconds: 1000).
-	run continue.
-	self assert: (run waitForCompletionMilliseconds: 1000).
-	self assert: run runState equals: #completed.
-	self assert: run recorder isFinished.
-	self assert: run recorder isMatch.
-	self assert: run recorder matchedString equals: 'ab' ] ensure: [
-		run abort.
-		run waitForCompletionMilliseconds: 1000 ]
+		run start.
+		self assert: (run waitForPauseOrFinishMilliseconds: 1000).
+		run continue.
+		self assert: (run waitForCompletionMilliseconds: 1000).
+		self assert: run runState equals: #completed.
+		self assert: run recorder isFinished.
+		self assert: run recorder isMatch.
+		self assert: run recorder matchedString equals: 'ab' ] ensure: [
+			run abort.
+			run waitForCompletionMilliseconds: 1000 ]
 ]
 
 { #category : 'tests' }
@@ -338,12 +285,12 @@ PCRE2DebugSessionTest >> testLiveDebugRunStartsPausedAtFirstCallout [
 	| run |
 	run := PCRE2LiveDebugRun pattern: 'ab' subject: 'ab'.
 	[
-	run start.
-	self assert: (run waitForPauseOrFinishMilliseconds: 1000).
-	self assert: run isPaused.
-	self assert: run recorder events size equals: 1 ] ensure: [
-		run abort.
-		run waitForCompletionMilliseconds: 1000 ]
+		run start.
+		self assert: (run waitForPauseOrFinishMilliseconds: 1000).
+		self assert: run isPaused.
+		self assert: run recorder events size equals: 1 ] ensure: [
+			run abort.
+			run waitForCompletionMilliseconds: 1000 ]
 ]
 
 { #category : 'tests' }
@@ -352,15 +299,15 @@ PCRE2DebugSessionTest >> testLiveDebugRunStepAdvancesOneCallout [
 	| firstEventCount run |
 	run := PCRE2LiveDebugRun pattern: 'ab' subject: 'ab'.
 	[
-	run start.
-	self assert: (run waitForPauseOrFinishMilliseconds: 1000).
-	firstEventCount := run recorder events size.
-	run step.
-	self assert: (run waitForPauseOrFinishMilliseconds: 1000).
-	self assert: run isPaused.
-	self assert: run recorder events size > firstEventCount ] ensure: [
-		run abort.
-		run waitForCompletionMilliseconds: 1000 ]
+		run start.
+		self assert: (run waitForPauseOrFinishMilliseconds: 1000).
+		firstEventCount := run recorder events size.
+		run step.
+		self assert: (run waitForPauseOrFinishMilliseconds: 1000).
+		self assert: run isPaused.
+		self assert: run recorder events size > firstEventCount ] ensure: [
+			run abort.
+			run waitForCompletionMilliseconds: 1000 ]
 ]
 
 { #category : 'tests' }
@@ -399,17 +346,14 @@ PCRE2DebugSessionTest >> testTracePresenterAcceptsTraceModel [
 	presenter := PCRE2TracePresenter on: session trace.
 	self assert: presenter trace equals: session trace.
 	self assert: presenter selectedStep notNil.
-	self
-		assert: presenter stepsTable items size
-		equals: session trace steps size
+	self assert: presenter stepsTable items size equals: session trace steps size
 ]
 
 { #category : 'tests' }
 PCRE2DebugSessionTest >> testTracePresenterCanSelectEquivalentStepInsideGroup [
 
 	| externalStep group presenter trace |
-	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch:
-		         'caterpillar'.
+	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch: 'caterpillar'.
 	presenter := PCRE2TracePresenter on: trace.
 	group := presenter stepsTable items detect: [ :row | row isGroup ].
 	externalStep := trace steps third.
@@ -437,17 +381,10 @@ PCRE2DebugSessionTest >> testTracePresenterContextEllipsesUseMetaColor [
 	excerptStart := titleLine size + 2.
 	trailingStart := context size - 2.
 
-	self
-		assert:
-		(context asString copyFrom: excerptStart to: excerptStart + 2)
-		equals: '...'.
-	self
-		assert: (context asString copyFrom: trailingStart to: context size)
-		equals: '...'.
-	self assert:
-		((context attributesAt: excerptStart) includes: TextColor gray).
-	self assert:
-		((context attributesAt: trailingStart) includes: TextColor gray)
+	self assert: (context asString copyFrom: excerptStart to: excerptStart + 2) equals: '...'.
+	self assert: (context asString copyFrom: trailingStart to: context size) equals: '...'.
+	self assert: ((context attributesAt: excerptStart) includes: TextColor gray).
+	self assert: ((context attributesAt: trailingStart) includes: TextColor gray)
 ]
 
 { #category : 'tests' }
@@ -456,36 +393,25 @@ PCRE2DebugSessionTest >> testTracePresenterFullSourcePanesHighlightSelectedRange
 	| presenter row trace |
 	trace := '(?C1)a(?C"step")b' asPerlCompatibleRegex traceMatch: 'ab'.
 	presenter := PCRE2TracePresenter on: trace.
-	row := presenter stepsTable items detect: [ :each |
-		       each firstStep event number = 1 ].
+	row := presenter stepsTable items detect: [ :each | each firstStep event number = 1 ].
 
 	presenter selectedRow: row.
-	self
-		assertContextText: presenter patternText text
-		highlights: 'a'
-		at: (6 to: 6).
-	self
-		assertContextText: presenter subjectText text
-		highlights: 'a'
-		at: (1 to: 1)
+	self assertContextText: presenter patternText text highlights: 'a' at: (6 to: 6).
+	self assertContextText: presenter subjectText text highlights: 'a' at: (1 to: 1)
 ]
 
 { #category : 'tests' }
 PCRE2DebugSessionTest >> testTracePresenterGroupedContextHighlightsWholeRun [
 
 	| context excerpt group highlightInterval presenter title trace |
-	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch:
-		         'caterpillar'.
+	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch: 'caterpillar'.
 	presenter := PCRE2TracePresenter on: trace.
 	group := presenter stepsTable items detect: [ :row | row isGroup ].
-	context := presenter
-		           patternContextTextForRow: group
-		           range: (presenter patternRangeForRow: group).
+	context := presenter patternContextTextForRow: group range: (presenter patternRangeForRow: group).
 	title := 'Pattern 2-5 "cat|" | automatic x5'.
 	excerpt := '(cat|cater|caterpillar)'.
 	highlightInterval := presenter
-		                     sourceContextHighlightIntervalFor:
-		                     (presenter patternRangeForRow: group)
+		                     sourceContextHighlightIntervalFor: (presenter patternRangeForRow: group)
 		                     contextStart: 1
 		                     titleLineSize: title size
 		                     excerpt: excerpt
@@ -494,18 +420,14 @@ PCRE2DebugSessionTest >> testTracePresenterGroupedContextHighlightsWholeRun [
 	self assert: (context asString includesSubstring: title).
 	self assert: (context asString includesSubstring: excerpt).
 	self deny: (context asString includesSubstring: '^^^^').
-	self
-		assertContextText: context
-		highlights: 'cat|'
-		at: highlightInterval
+	self assertContextText: context highlights: 'cat|' at: highlightInterval
 ]
 
 { #category : 'tests' }
 PCRE2DebugSessionTest >> testTracePresenterGroupsLongAutomaticProgressRuns [
 
 	| group presenter rows trace |
-	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch:
-		         'caterpillar'.
+	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch: 'caterpillar'.
 	presenter := PCRE2TracePresenter on: trace.
 	rows := presenter stepsTable items.
 	group := rows detect: [ :row | row isGroup ].
@@ -513,13 +435,9 @@ PCRE2DebugSessionTest >> testTracePresenterGroupsLongAutomaticProgressRuns [
 	self assert: rows size < trace steps size.
 	self assert: group indexLabel equals: '2-6'.
 	self assert: group kindLabel equals: 'advance x5'.
-	self
-		assert: (presenter patternLabelForRow: group)
-		equals: '2-5 "cat|"'.
+	self assert: (presenter patternLabelForRow: group) equals: '2-5 "cat|"'.
 	self assert: (presenter subjectLabelForRow: group) equals: '1-3'.
-	self
-		assert: (presenter calloutLabelForRow: group)
-		equals: 'automatic x5'
+	self assert: (presenter calloutLabelForRow: group) equals: 'automatic x5'
 ]
 
 { #category : 'tests' }
@@ -539,8 +457,7 @@ PCRE2DebugSessionTest >> testTracePresenterLabelsRowsWithPatternSnippetsAndSubje
 	| presenter row trace |
 	trace := '(?C1)a(?C"step")b' asPerlCompatibleRegex traceMatch: 'ab'.
 	presenter := PCRE2TracePresenter on: trace.
-	row := presenter stepsTable items detect: [ :each |
-		       each firstStep event number = 1 ].
+	row := presenter stepsTable items detect: [ :each | each firstStep event number = 1 ].
 
 	self assert: (presenter patternLabelForRow: row) equals: '6 "a"'.
 	self assert: (presenter subjectLabelForRow: row) equals: 'at 1'.
@@ -564,8 +481,8 @@ PCRE2DebugSessionTest >> testTracePresenterMainPresentersHaveHelpText [
 		           presenter detailsText }.
 
 	widgets do: [ :each |
-		self deny: each help isNil.
-		self deny: each help isEmpty ]
+			self deny: each help isNil.
+			self deny: each help isEmpty ]
 ]
 
 { #category : 'tests' }
@@ -574,16 +491,12 @@ PCRE2DebugSessionTest >> testTracePresenterPatternContextShowsCalloutNeighborhoo
 	| context excerpt highlightInterval presenter row title trace |
 	trace := '(?C1)a(?C"step")b' asPerlCompatibleRegex traceMatch: 'ab'.
 	presenter := PCRE2TracePresenter on: trace.
-	row := presenter stepsTable items detect: [ :each |
-		       each firstStep event number = 1 ].
-	context := presenter
-		           patternContextTextForRow: row
-		           range: row firstStep patternRange.
+	row := presenter stepsTable items detect: [ :each | each firstStep event number = 1 ].
+	context := presenter patternContextTextForRow: row range: row firstStep patternRange.
 	title := 'Pattern 6 "a" | #1'.
 	excerpt := '(?C1)a(?C"step")b'.
 	highlightInterval := presenter
-		                     sourceContextHighlightIntervalFor:
-		                     row firstStep patternRange
+		                     sourceContextHighlightIntervalFor: row firstStep patternRange
 		                     contextStart: 1
 		                     titleLineSize: title size
 		                     excerpt: excerpt
@@ -597,8 +510,7 @@ PCRE2DebugSessionTest >> testTracePresenterPatternContextShowsCalloutNeighborhoo
 PCRE2DebugSessionTest >> testTracePresenterRefreshPreservesSelectedStep [
 
 	| presenter selectedStep trace |
-	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch:
-		         'caterpillar'.
+	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch: 'caterpillar'.
 	presenter := PCRE2TracePresenter on: trace.
 	selectedStep := trace steps third.
 	presenter selectedStep: selectedStep.
@@ -611,8 +523,7 @@ PCRE2DebugSessionTest >> testTracePresenterRefreshPreservesSelectedStep [
 PCRE2DebugSessionTest >> testTracePresenterSelectingStepInsideGroupKeepsThatStep [
 
 	| group presenter step trace |
-	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch:
-		         'caterpillar'.
+	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch: 'caterpillar'.
 	presenter := PCRE2TracePresenter on: trace.
 	group := presenter stepsTable items detect: [ :row | row isGroup ].
 	step := group steps second.
@@ -626,8 +537,7 @@ PCRE2DebugSessionTest >> testTracePresenterSelectingStepInsideGroupKeepsThatStep
 PCRE2DebugSessionTest >> testTracePresenterSelectionCanUseGroupedRows [
 
 	| group presenter trace |
-	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch:
-		         'caterpillar'.
+	trace := '(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch: 'caterpillar'.
 	presenter := PCRE2TracePresenter on: trace.
 	group := presenter stepsTable items detect: [ :row | row isGroup ].
 
@@ -643,17 +553,10 @@ PCRE2DebugSessionTest >> testTracePresenterUpdatesRenderedContextPanes [
 	| presenter row trace |
 	trace := '(?C1)a(?C"step")b' asPerlCompatibleRegex traceMatch: 'ab'.
 	presenter := PCRE2TracePresenter on: trace.
-	row := presenter stepsTable items detect: [ :each |
-		       each firstStep event number = 1 ].
+	row := presenter stepsTable items detect: [ :each | each firstStep event number = 1 ].
 
 	presenter selectedRow: row.
-	self assert:
-		(presenter patternContextText text asString includesSubstring:
-			 '(?C1)a(?C"step")b').
-	self deny:
-		(presenter patternContextText text asString includesSubstring:
-			 '^^^^').
-	self assert:
-		(presenter subjectContextText text asString includesSubstring:
-			 'Subject at 1 | #1')
+	self assert: (presenter patternContextText text asString includesSubstring: '(?C1)a(?C"step")b').
+	self deny: (presenter patternContextText text asString includesSubstring: '^^^^').
+	self assert: (presenter subjectContextText text asString includesSubstring: 'Subject at 1 | #1')
 ]

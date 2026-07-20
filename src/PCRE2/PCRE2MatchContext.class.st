@@ -104,6 +104,7 @@ PCRE2MatchContext >> depthLimit: anInteger [
 
 { #category : 'external resource management' }
 PCRE2MatchContext >> free [
+
 	^ self subclassResponsibility
 ]
 
@@ -168,28 +169,31 @@ PCRE2MatchContext >> offsetLimit: anInteger [
 PCRE2MatchContext >> postCopy [
 
 	handle := self privateCopy.
-	handle isNull ifTrue: [
-		PCRE2Error signal: 'Failed to obtain memory to copy match context' ].
+	handle isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to copy match context' ].
 	jitStack ifNotNil: [ self setJITStack: jitStack ]
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> privateCopy [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setCalloutCallback: callback [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setDepthLimit: value [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setHeapLimit: value [
+
 	^ self subclassResponsibility
 ]
 
@@ -201,16 +205,19 @@ PCRE2MatchContext >> setJITStack: aJITStack [
 
 { #category : 'private' }
 PCRE2MatchContext >> setMatchLimit: value [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setOffsetLimit: value [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setSubstituteCalloutCallback: callback [
+
 	^ self subclassResponsibility
 ]
 
@@ -274,17 +281,15 @@ PCRE2MatchContext >> substituteCaseCalloutResultFor: event output: outputPointer
 	text := answer isString
 		        ifTrue: [ answer ]
 		        ifFalse: [ event defaultTransformedText ].
-	bytes := PCRE2SubstitutionCaseCalloutEvent
-		         bytesForString: text
-		         codeUnitWidth: event codeUnitWidth.
+	bytes := PCRE2SubstitutionCaseCalloutEvent bytesForString: text codeUnitWidth: event codeUnitWidth.
 	codeUnitCount := bytes size // (event codeUnitWidth // 8).
-	codeUnitCount <= event outputCapacity ifTrue: [
-		PCRE2SubstitutionCaseCalloutEvent copyBytes: bytes to: outputPointer ].
+	codeUnitCount <= event outputCapacity ifTrue: [ PCRE2SubstitutionCaseCalloutEvent copyBytes: bytes to: outputPointer ].
 	^ codeUnitCount
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> unsetCalloutCallback [
+
 	^ self subclassResponsibility
 ]
 
@@ -296,6 +301,7 @@ PCRE2MatchContext >> unsetJITStack [
 
 { #category : 'private' }
 PCRE2MatchContext >> unsetSubstituteCalloutCallback [
+
 	^ self subclassResponsibility
 ]
 

@@ -27,9 +27,7 @@ PCRE2UTF8Input class >> bytes: bytesObject decoder: aDecoder [
 PCRE2UTF8Input class >> canUseDirectly: aString [
 	"Answer whether aString can be passed to PCRE2-8 as already-valid UTF-8 bytes. Only ASCII ByteStrings qualify; non-ASCII ByteStrings contain byte-sized Unicode code points, not UTF-8."
 
-	^ aString isByteString and: [
-		  (ZnUTF8Encoder default findFirstNonASCIIIn: aString startingAt: 1)
-		  = 0 ]
+	^ aString isByteString and: [ (ZnUTF8Encoder default findFirstNonASCIIIn: aString startingAt: 1) = 0 ]
 ]
 
 { #category : 'instance creation' }
@@ -43,8 +41,7 @@ PCRE2UTF8Input class >> fromBytes: aByteCollection [
 PCRE2UTF8Input class >> fromString: aString [
 
 	| encoder |
-	(self canUseDirectly: aString) ifTrue: [
-		^ self bytes: aString decoder: nil ].
+	(self canUseDirectly: aString) ifTrue: [ ^ self bytes: aString decoder: nil ].
 	encoder := ZnUTF8Encoder default.
 	^ self bytes: (encoder encodeString: aString) decoder: encoder
 ]
@@ -67,10 +64,7 @@ PCRE2UTF8Input >> bytes: bytesObject decoder: aDecoder [
 PCRE2UTF8Input >> characterCountUpToCodeUnitOffset: codeUnitOffset [
 	"For PCRE2-8, each code unit is one byte of UTF-8 storage. Count encoded characters before that code-unit position."
 
-	^ self
-		  characterCountUpToCodeUnitOffset: codeUnitOffset
-		  fromCodeUnitOffset: 0
-		  characterCount: 0
+	^ self characterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitOffset: 0 characterCount: 0
 ]
 
 { #category : 'decoding' }
@@ -81,16 +75,12 @@ PCRE2UTF8Input >> characterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitO
 	codeUnitOffset <= 0 ifTrue: [ ^ 0 ].
 	codeUnitOffset = knownCodeUnitOffset ifTrue: [ ^ knownCharacterCount ].
 	codeUnitOffset < knownCodeUnitOffset ifTrue: [
-		^ self
-			  characterCountUpToCodeUnitOffset: codeUnitOffset
-			  fromCodeUnitOffset: 0
-			  characterCount: 0 ].
+		^ self characterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitOffset: 0 characterCount: 0 ].
 	decoder ifNil: [ ^ codeUnitOffset ].
 	count := knownCharacterCount.
 	"UTF-8 continuation bytes are 10xxxxxx; only non-continuation bytes start encoded characters."
 	knownCodeUnitOffset + 1 to: codeUnitOffset do: [ :index |
-		((bytes at: index) bitAnd: 16rC0) = 16r80 ifFalse: [
-			count := count + 1 ] ].
+	((bytes at: index) bitAnd: 16rC0) = 16r80 ifFalse: [ count := count + 1 ] ].
 	^ count
 ]
 
@@ -98,9 +88,7 @@ PCRE2UTF8Input >> characterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitO
 PCRE2UTF8Input >> decodeBytes: aByteCollection [
 	"Decode a UTF-8 byte slice that came from my byte storage."
 
-	^ decoder
-		  ifNil: [ aByteCollection ]
-		  ifNotNil: [ decoder decodeBytes: aByteCollection ]
+	^ decoder ifNil: [ aByteCollection ] ifNotNil: [ decoder decodeBytes: aByteCollection ]
 ]
 
 { #category : 'decoding' }
@@ -111,17 +99,16 @@ PCRE2UTF8Input >> decodeBytesFrom: start to: end [
 	byteStream := bytes readStream.
 	byteStream position: start - 1.
 	^ String streamContents: [ :stream |
-		  [ byteStream position < end ] whileTrue: [
-			  | codePoint |
-			  codePoint := decoder nextCodePointFromStream: byteStream.
-			  (codePoint > 255 and: [ stream originalContents isWideString not ])
-				  ifTrue: [
-					  | position wideString |
-					  position := stream position.
-					  wideString := WideString from: stream originalContents.
-					  stream on: wideString.
-					  stream setFrom: position + 1 to: position ].
-			  stream nextPut: (Character value: codePoint) ] ]
+			  [ byteStream position < end ] whileTrue: [
+					  | codePoint |
+					  codePoint := decoder nextCodePointFromStream: byteStream.
+					  (codePoint > 255 and: [ stream originalContents isWideString not ]) ifTrue: [
+							  | position wideString |
+							  position := stream position.
+							  wideString := WideString from: stream originalContents.
+							  stream on: wideString.
+							  stream setFrom: position + 1 to: position ].
+					  stream nextPut: (Character value: codePoint) ] ]
 ]
 
 { #category : 'accessing' }
@@ -134,9 +121,7 @@ PCRE2UTF8Input >> decoder [
 PCRE2UTF8Input >> nextFromStream: aStream [
 	"Answer the next character from a stream over my UTF-8 byte storage."
 
-	^ decoder
-		  ifNil: [ aStream next ]
-		  ifNotNil: [ decoder nextFromStream: aStream ]
+	^ decoder ifNil: [ aStream next ] ifNotNil: [ decoder nextFromStream: aStream ]
 ]
 
 { #category : 'matching' }

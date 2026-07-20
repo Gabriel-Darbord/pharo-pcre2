@@ -49,9 +49,7 @@ PCRE2MatchTrace >> calloutSiteForEvent: aPCRE2CalloutEvent [
 PCRE2MatchTrace >> calloutSiteForEvent: aPCRE2CalloutEvent ifAbsent: absentBlock [
 	"Answer the static callout site corresponding to a runtime event."
 
-	^ calloutSites
-		  detect: [ :site | site matchesEvent: aPCRE2CalloutEvent ]
-		  ifNone: absentBlock
+	^ calloutSites detect: [ :site | site matchesEvent: aPCRE2CalloutEvent ] ifNone: absentBlock
 ]
 
 { #category : 'accessing' }
@@ -67,14 +65,11 @@ PCRE2MatchTrace >> captureRangesAtEvent: aPCRE2CalloutEvent [
 	| ranges |
 	ranges := Array new: aPCRE2CalloutEvent captureTop.
 	1 to: aPCRE2CalloutEvent captureTop do: [ :pairIndex |
-		| offsetPair |
-		offsetPair := aPCRE2CalloutEvent offsetsAt: pairIndex.
-		ranges at: pairIndex put: ((self offsetPairIsUnset: offsetPair)
-				 ifTrue: [ nil ]
-				 ifFalse: [
-					 self
-						 subjectCharacterRangeFromStartOffset: offsetPair first
-						 endOffset: offsetPair second ]) ].
+			| offsetPair |
+			offsetPair := aPCRE2CalloutEvent offsetsAt: pairIndex.
+			ranges at: pairIndex put: ((self offsetPairIsUnset: offsetPair)
+					 ifTrue: [ nil ]
+					 ifFalse: [ self subjectCharacterRangeFromStartOffset: offsetPair first endOffset: offsetPair second ]) ].
 	^ ranges
 ]
 
@@ -95,8 +90,7 @@ PCRE2MatchTrace >> eventsDo: aBlock [
 PCRE2MatchTrace >> eventsWithSitesDo: aBlock [
 	"Evaluate aBlock with each runtime event and its matching static callout site, if any."
 
-	events do: [ :event |
-		aBlock value: event value: (self calloutSiteForEvent: event) ]
+	events do: [ :event | aBlock value: event value: (self calloutSiteForEvent: event) ]
 ]
 
 { #category : 'initialization' }
@@ -123,8 +117,7 @@ PCRE2MatchTrace >> isFullMatch [
 	"Answer whether the complete match spans the prepared subject input."
 
 	self isMatch ifFalse: [ ^ false ].
-	match offsetsDo: [ :start :end |
-		^ start = 1 and: [ end = input size ] ].
+	match offsetsDo: [ :start :end | ^ start = 1 and: [ end = input size ] ].
 	^ false
 ]
 
@@ -159,8 +152,7 @@ PCRE2MatchTrace >> matchedString [
 PCRE2MatchTrace >> offsetPairIsUnset: offsetPair [
 	"Answer whether a PCRE2 ovector pair contains PCRE2_UNSET."
 
-	^ offsetPair first = PCRE2 unsetOffset or: [
-		  offsetPair second = PCRE2 unsetOffset ]
+	^ offsetPair first = PCRE2 unsetOffset or: [ offsetPair second = PCRE2 unsetOffset ]
 ]
 
 { #category : 'accessing' }
@@ -174,20 +166,15 @@ PCRE2MatchTrace >> patternCharacterRangeForEvent: aPCRE2CalloutEvent [
 	"Answer the Pharo character range for the pattern item associated with this event."
 
 	^ self
-		  patternCharacterRangeFromStartOffset:
-		  aPCRE2CalloutEvent patternPosition
-		  endOffset:
-		  aPCRE2CalloutEvent patternPosition
-		  + aPCRE2CalloutEvent nextItemLength
+		  patternCharacterRangeFromStartOffset: aPCRE2CalloutEvent patternPosition
+		  endOffset: aPCRE2CalloutEvent patternPosition + aPCRE2CalloutEvent nextItemLength
 ]
 
 { #category : 'decoding' }
 PCRE2MatchTrace >> patternCharacterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset [
 	"Translate PCRE2's zero-based pattern code-unit interval to a 1-based Pharo character range."
 
-	^ self patternInput
-		  characterRangeFromStartOffset: zeroBasedStartOffset
-		  endOffset: exclusiveEndOffset
+	^ self patternInput characterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset
 ]
 
 { #category : 'accessing' }
@@ -214,12 +201,9 @@ PCRE2MatchTrace >> stepForEvent: aPCRE2CalloutEvent index: stepIndex [
 		  event: aPCRE2CalloutEvent
 		  site: site
 		  kind: aPCRE2CalloutEvent eventKind
-		  patternRange:
-		  (self patternCharacterRangeForEvent: aPCRE2CalloutEvent)
-		  subjectPosition:
-		  (self subjectCharacterPositionAtEvent: aPCRE2CalloutEvent)
-		  subjectRange:
-		  (self subjectCharacterRangeAtEvent: aPCRE2CalloutEvent)
+		  patternRange: (self patternCharacterRangeForEvent: aPCRE2CalloutEvent)
+		  subjectPosition: (self subjectCharacterPositionAtEvent: aPCRE2CalloutEvent)
+		  subjectRange: (self subjectCharacterRangeAtEvent: aPCRE2CalloutEvent)
 		  captureRanges: (self captureRangesAtEvent: aPCRE2CalloutEvent)
 		  mark: aPCRE2CalloutEvent mark
 ]
@@ -230,10 +214,7 @@ PCRE2MatchTrace >> steps [
 
 	| steps |
 	steps := Array new: events size.
-	1 to: events size do: [ :stepIndex |
-		steps
-			at: stepIndex
-			put: (self stepForEvent: (events at: stepIndex) index: stepIndex) ].
+	1 to: events size do: [ :stepIndex | steps at: stepIndex put: (self stepForEvent: (events at: stepIndex) index: stepIndex) ].
 	^ steps
 ]
 
@@ -241,9 +222,7 @@ PCRE2MatchTrace >> steps [
 PCRE2MatchTrace >> stepsDo: aBlock [
 	"Evaluate aBlock with each debugger-ready step in match order."
 
-	1 to: events size do: [ :stepIndex |
-		aBlock value:
-			(self stepForEvent: (events at: stepIndex) index: stepIndex) ]
+	1 to: events size do: [ :stepIndex | aBlock value: (self stepForEvent: (events at: stepIndex) index: stepIndex) ]
 ]
 
 { #category : 'accessing' }
@@ -256,8 +235,7 @@ PCRE2MatchTrace >> subject [
 PCRE2MatchTrace >> subjectCharacterPositionAtEvent: aPCRE2CalloutEvent [
 	"Answer the 1-based Pharo character position for the event's current subject code-unit offset."
 
-	^ self subjectCharacterPositionForCodeUnitOffset:
-		  aPCRE2CalloutEvent currentPosition
+	^ self subjectCharacterPositionForCodeUnitOffset: aPCRE2CalloutEvent currentPosition
 ]
 
 { #category : 'decoding' }
@@ -271,17 +249,12 @@ PCRE2MatchTrace >> subjectCharacterPositionForCodeUnitOffset: codeUnitOffset [
 PCRE2MatchTrace >> subjectCharacterRangeAtEvent: aPCRE2CalloutEvent [
 	"Answer the subject character range consumed by the current match attempt when this event fired."
 
-	^ self
-		  subjectCharacterRangeFromStartOffset:
-		  aPCRE2CalloutEvent startMatch
-		  endOffset: aPCRE2CalloutEvent currentPosition
+	^ self subjectCharacterRangeFromStartOffset: aPCRE2CalloutEvent startMatch endOffset: aPCRE2CalloutEvent currentPosition
 ]
 
 { #category : 'decoding' }
 PCRE2MatchTrace >> subjectCharacterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset [
 	"Translate PCRE2's zero-based subject code-unit interval to a 1-based Pharo character range."
 
-	^ input
-		  characterRangeFromStartOffset: zeroBasedStartOffset
-		  endOffset: exclusiveEndOffset
+	^ input characterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset
 ]

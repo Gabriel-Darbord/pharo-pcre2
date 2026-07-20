@@ -32,8 +32,7 @@ PCRE2ConvertContext >> checkSettingResult: resultCode [
 PCRE2ConvertContext >> codePointFor: aCharacterOrCodePoint [
 	"Answer a uint32 code point accepted by PCRE2 setters."
 
-	aCharacterOrCodePoint isCharacter ifTrue: [
-		^ aCharacterOrCodePoint asInteger ].
+	aCharacterOrCodePoint isCharacter ifTrue: [ ^ aCharacterOrCodePoint asInteger ].
 	^ aCharacterOrCodePoint
 ]
 
@@ -81,8 +80,7 @@ PCRE2ConvertContext >> globSeparator: aCharacterOrCodePoint [
 PCRE2ConvertContext >> postCopy [
 
 	handle := self privateCopy.
-	handle isNull ifTrue: [
-		PCRE2Error signal: 'Failed to obtain memory to copy convert context' ].
+	handle isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to copy convert context' ].
 	self autoRelease
 ]
 

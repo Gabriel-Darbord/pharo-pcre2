@@ -74,9 +74,7 @@ PCRE2TraceRecorder >> calloutSiteForEvent: aPCRE2CalloutEvent [
 { #category : 'accessing' }
 PCRE2TraceRecorder >> calloutSiteForEvent: aPCRE2CalloutEvent ifAbsent: absentBlock [
 
-	^ self asTrace
-		  calloutSiteForEvent: aPCRE2CalloutEvent
-		  ifAbsent: absentBlock
+	^ self asTrace calloutSiteForEvent: aPCRE2CalloutEvent ifAbsent: absentBlock
 ]
 
 { #category : 'accessing' }

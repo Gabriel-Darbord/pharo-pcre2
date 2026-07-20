@@ -82,9 +82,7 @@ PCRE2TraceStepRow >> size [
 PCRE2TraceStepRow >> stepMatching: aTraceStep ifAbsent: absentBlock [
 	"Answer the row step equivalent to aTraceStep. Step objects may be rebuilt when a live recorder refreshes, so matching by stable index is enough here."
 
-	^ steps
-		  detect: [ :step | step index = aTraceStep index ]
-		  ifNone: absentBlock
+	^ steps detect: [ :step | step index = aTraceStep index ] ifNone: absentBlock
 ]
 
 { #category : 'accessing' }

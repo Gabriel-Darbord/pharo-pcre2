@@ -18,11 +18,8 @@ PCRE2CalloutTest >> testAutomaticCalloutsExposePatternProgressSites [
 	sites := regex calloutSites.
 
 	self assert: sites size equals: 3.
-	self
-		assert: (sites collect: [ :site | site patternPosition ])
-		equals: #( 0 1 2 ).
-	self assert: (sites allSatisfy: [ :site |
-			 site number = PCRE2 automaticCalloutNumber ]).
+	self assert: (sites collect: [ :site | site patternPosition ]) equals: #( 0 1 2 ).
+	self assert: (sites allSatisfy: [ :site | site number = PCRE2 automaticCalloutNumber ]).
 	self assert: (sites allSatisfy: [ :site | site isAutomatic ]).
 	self assert: (regex matches: 'ab')
 ]
@@ -37,28 +34,28 @@ PCRE2CalloutTest >> testCalloutConvenienceVariantsUseTemporaryCallbacks [
 
 	self
 		assert: (regex find: 'zaa' calloutsDo: [ :event |
-				 events add: event.
-				 0 ])
+					 events add: event.
+					 0 ])
 		equals: 'aa'.
 	self
 		assert: (regex findAll: 'a aa' calloutsDo: [ :event |
-				 events add: event.
-				 0 ]) asArray
+					 events add: event.
+					 0 ]) asArray
 		equals: #( 'a' 'aa' ).
 	self assert: (regex matchesPrefix: 'aaa!' calloutsDo: [ :event |
-			 events add: event.
-			 0 ]).
+				 events add: event.
+				 0 ]).
 	self assert: (regex search: 'zaa' calloutsDo: [ :event |
-			 events add: event.
-			 0 ]).
+				 events add: event.
+				 0 ]).
 	self
 		assert: (regex
 				 matchBytes: bytes
 				 from: 1
 				 to: bytes size
 				 calloutsDo: [ :event |
-					 events add: event.
-					 0 ]) readMatch
+						 events add: event.
+						 0 ]) readMatch
 		equals: bytes.
 
 	self assert: events size >= 5.
@@ -121,8 +118,8 @@ PCRE2CalloutTest >> testFindMatchCalloutsDoAnswersStandaloneMatch [
 	events := OrderedCollection new.
 
 	match := regex findMatch: 'zab' calloutsDo: [ :event |
-		         events add: event.
-		         0 ].
+			         events add: event.
+			         0 ].
 	self assert: match readMatch equals: 'ab'.
 	self assert: match readMatches equals: #( 'ab' 'a' ).
 	self assert: events size equals: 1.
@@ -138,12 +135,11 @@ PCRE2CalloutTest >> testMatcherCalloutsDoCanAbortWithCalloutError [
 
 	self
 		should: [
-			regex matches: 'ab' calloutsDo: [ :event |
-				events add: event.
-				PCRE2 errorCallout ] ]
+				regex matches: 'ab' calloutsDo: [ :event |
+						events add: event.
+						PCRE2 errorCallout ] ]
 		raise: PCRE2MatchError
-		withExceptionDo: [ :error |
-			self assert: error messageText equals: 'callout error code' ].
+		withExceptionDo: [ :error | self assert: error messageText equals: 'callout error code' ].
 	self assert: events size equals: 1.
 	self assert: (regex matches: 'ab')
 ]
@@ -156,8 +152,8 @@ PCRE2CalloutTest >> testMatcherCalloutsDoCanAbortWithNoMatch [
 	events := OrderedCollection new.
 
 	self deny: (regex matches: 'ab' calloutsDo: [ :event |
-			 events add: event.
-			 PCRE2 errorNoMatch ]).
+				 events add: event.
+				 PCRE2 errorNoMatch ]).
 	self assert: events size equals: 1.
 	self assert: (regex matches: 'ab')
 ]
@@ -170,8 +166,8 @@ PCRE2CalloutTest >> testMatcherCalloutsDoInvokesCallbackTemporarily [
 	events := OrderedCollection new.
 
 	self assert: (regex matches: 'ab' calloutsDo: [ :event |
-			 events add: event.
-			 nil ]).
+				 events add: event.
+				 nil ]).
 	self assert: events size equals: 1.
 	self assert: events first number equals: 1.
 	self assert: (regex matches: 'ab').
@@ -186,14 +182,13 @@ PCRE2CalloutTest >> testRuntimeCalloutCanAbortWithCalloutError [
 	regex addOptions: PCRE2 noJIT.
 	events := OrderedCollection new.
 	regex context calloutBlock: [ :event |
-		events add: event.
-		PCRE2 errorCallout ].
+			events add: event.
+			PCRE2 errorCallout ].
 
 	self
 		should: [ regex matches: 'ab' ]
 		raise: PCRE2MatchError
-		withExceptionDo: [ :error |
-			self assert: error messageText equals: 'callout error code' ].
+		withExceptionDo: [ :error | self assert: error messageText equals: 'callout error code' ].
 	self assert: events size equals: 1
 ]
 
@@ -205,8 +200,8 @@ PCRE2CalloutTest >> testRuntimeCalloutCanAbortWithNoMatch [
 	regex addOptions: PCRE2 noJIT.
 	events := OrderedCollection new.
 	regex context calloutBlock: [ :event |
-		events add: event.
-		PCRE2 errorNoMatch ].
+			events add: event.
+			PCRE2 errorNoMatch ].
 
 	self deny: (regex matches: 'ab').
 	self assert: events size equals: 1
@@ -220,8 +215,8 @@ PCRE2CalloutTest >> testRuntimeCalloutCanBeCleared [
 	regex addOptions: PCRE2 noJIT.
 	events := OrderedCollection new.
 	regex context calloutBlock: [ :event |
-		events add: event.
-		0 ].
+			events add: event.
+			0 ].
 	regex context clearCallout.
 
 	self assert: (regex matches: 'ab').
@@ -237,8 +232,8 @@ PCRE2CalloutTest >> testRuntimeCalloutReceivesMatchState [
 	sites := regex calloutSites.
 	events := OrderedCollection new.
 	regex context calloutBlock: [ :event |
-		events add: event.
-		0 ].
+			events add: event.
+			0 ].
 
 	self assert: (regex matches: 'ab').
 	self assert: events size equals: 2.
@@ -252,16 +247,12 @@ PCRE2CalloutTest >> testRuntimeCalloutReceivesMatchState [
 	self assert: first isStartMatch.
 	self deny: first isBacktrack.
 	self deny: first hasString.
-	self
-		assert: first patternPosition
-		equals: sites first patternPosition.
+	self assert: first patternPosition equals: sites first patternPosition.
 
 	self assert: second number equals: 0.
 	self assert: second string equals: 'step'.
 	self assert: second currentPosition equals: 1.
-	self
-		assert: second patternPosition
-		equals: sites second patternPosition
+	self assert: second patternPosition equals: sites second patternPosition
 ]
 
 { #category : 'tests' }
@@ -272,13 +263,11 @@ PCRE2CalloutTest >> testRuntimeCalloutReportsBacktracking [
 	regex addOptions: PCRE2 noJIT.
 	events := OrderedCollection new.
 	regex context calloutBlock: [ :event |
-		events add: event.
-		0 ].
+			events add: event.
+			0 ].
 
 	self assert: (regex matches: 'ac').
-	self
-		assert: (events collect: [ :event | event number ]) asArray
-		equals: #( 1 2 3 ).
+	self assert: (events collect: [ :event | event number ]) asArray equals: #( 1 2 3 ).
 	self assert: events first isStartMatch.
 	self deny: events first isBacktrack.
 	self assert: events first eventKind equals: #startMatch.
@@ -295,8 +284,8 @@ PCRE2CalloutTest >> testRuntimeCalloutReportsMarksAndCaptures [
 	regex addOptions: PCRE2 noJIT.
 	events := OrderedCollection new.
 	regex context calloutBlock: [ :each |
-		events add: each.
-		0 ].
+			events add: each.
+			0 ].
 
 	self assert: (regex matches: 'ab').
 	event := events first.
@@ -315,8 +304,8 @@ PCRE2CalloutTest >> testWithAutomaticCalloutsDoGeneratesCallbacksWithoutChanging
 
 	result := regex
 		          withAutomaticCallouts: [ :event |
-			          events add: event.
-			          0 ]
+				          events add: event.
+				          0 ]
 		          do: [ :callbackMatcher | callbackMatcher matches: 'ab' ].
 	self assert: result.
 	self assert: events size >= 3.
@@ -333,8 +322,8 @@ PCRE2CalloutTest >> testWithCalloutDoSupportsCustomOperation [
 
 	answer := regex
 		          withCallout: [ :event |
-			          events add: event.
-			          0 ]
+				          events add: event.
+				          0 ]
 		          do: [ :callbackMatcher | callbackMatcher find: 'zab' ].
 	self assert: answer equals: 'ab'.
 	self assert: events size equals: 1

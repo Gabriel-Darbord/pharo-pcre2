@@ -12,8 +12,7 @@ Class {
 PCRE2UTF32InputTest >> testBigEndianUTF32BytesAreNormalized [
 
 	| input |
-	input := #[ 0 0 0 99 0 0 0 97 0 0 0 102 0 0 0 233 ]
-		         asPCRE2UTF32BigEndianInput.
+	input := #[ 0 0 0 99 0 0 0 97 0 0 0 102 0 0 0 233 ] asPCRE2UTF32BigEndianInput.
 
 	self assert: input size equals: 4.
 	self assert: (input readFrom: 1 to: 4) equals: 'café'
@@ -24,8 +23,7 @@ PCRE2UTF32InputTest >> testDetectingUTF32BOMFallsBackToNativeEndian [
 
 	| input subject |
 	subject := 'café'.
-	input := subject asPCRE2UTF32Input bytes
-		         asPCRE2UTF32InputDetectingBOM.
+	input := subject asPCRE2UTF32Input bytes asPCRE2UTF32InputDetectingBOM.
 
 	self assert: input size equals: 4.
 	self assert: (input readFrom: 1 to: 4) equals: subject
@@ -35,8 +33,7 @@ PCRE2UTF32InputTest >> testDetectingUTF32BOMFallsBackToNativeEndian [
 PCRE2UTF32InputTest >> testDetectingUTF32BOMStripsBigEndianBOM [
 
 	| input |
-	input := #[ 0 0 254 255 0 0 0 99 0 0 0 97 0 0 0 102 0 0 0 233 ]
-		         asPCRE2UTF32InputDetectingBOM.
+	input := #[ 0 0 254 255 0 0 0 99 0 0 0 97 0 0 0 102 0 0 0 233 ] asPCRE2UTF32InputDetectingBOM.
 
 	self assert: input size equals: 4.
 	self assert: (input readFrom: 1 to: 4) equals: 'café'
@@ -46,8 +43,7 @@ PCRE2UTF32InputTest >> testDetectingUTF32BOMStripsBigEndianBOM [
 PCRE2UTF32InputTest >> testDetectingUTF32BOMStripsLittleEndianBOM [
 
 	| input |
-	input := #[ 255 254 0 0 99 0 0 0 97 0 0 0 102 0 0 0 233 0 0 0 ]
-		         asPCRE2UTF32InputDetectingBOM.
+	input := #[ 255 254 0 0 99 0 0 0 97 0 0 0 102 0 0 0 233 0 0 0 ] asPCRE2UTF32InputDetectingBOM.
 
 	self assert: input size equals: 4.
 	self assert: (input readFrom: 1 to: 4) equals: 'café'
@@ -57,8 +53,7 @@ PCRE2UTF32InputTest >> testDetectingUTF32BOMStripsLittleEndianBOM [
 PCRE2UTF32InputTest >> testLittleEndianUTF32BytesAreNormalized [
 
 	| input |
-	input := #[ 99 0 0 0 97 0 0 0 102 0 0 0 233 0 0 0 ]
-		         asPCRE2UTF32LittleEndianInput.
+	input := #[ 99 0 0 0 97 0 0 0 102 0 0 0 233 0 0 0 ] asPCRE2UTF32LittleEndianInput.
 
 	self assert: input size equals: 4.
 	self assert: (input readFrom: 1 to: 4) equals: 'café'
@@ -70,9 +65,7 @@ PCRE2UTF32InputTest >> testUTF32ByteInputRejectsInvalidSize [
 	self
 		should: [ PCRE2UTF32Input fromBytes: #[ 97 0 ] ]
 		raise: PCRE2Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring: 'divisible by four') ]
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'divisible by four') ]
 ]
 
 { #category : 'tests' }
@@ -90,6 +83,5 @@ PCRE2UTF32InputTest >> testUTF32InputWithBOMRejectsMissingBOM [
 	self
 		should: [ #[ 99 0 0 0 ] asPCRE2UTF32InputWithBOM ]
 		raise: PCRE2Error
-		withExceptionDo: [ :error |
-		self assert: (error messageText includesSubstring: 'BOM') ]
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'BOM') ]
 ]

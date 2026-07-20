@@ -52,13 +52,10 @@ PCRE2Input >> characterRangeFromStartOffset: zeroBasedStartOffset endOffset: exc
 	"Translate PCRE2's zero-based code-unit interval to a 1-based Pharo character range. The end offset is exclusive, matching PCRE2 match offsets."
 
 	| exclusiveEndCharacterCount startCharacterCount |
-	startCharacterCount := self characterCountUpToCodeUnitOffset:
-		                       zeroBasedStartOffset.
+	startCharacterCount := self characterCountUpToCodeUnitOffset: zeroBasedStartOffset.
 	exclusiveEndCharacterCount := self
-		                              characterCountUpToCodeUnitOffset:
-		                              exclusiveEndOffset
-		                              fromCodeUnitOffset:
-		                              zeroBasedStartOffset
+		                              characterCountUpToCodeUnitOffset: exclusiveEndOffset
+		                              fromCodeUnitOffset: zeroBasedStartOffset
 		                              characterCount: startCharacterCount.
 	^ startCharacterCount + 1 to: exclusiveEndCharacterCount
 ]

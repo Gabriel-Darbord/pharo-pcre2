@@ -31,9 +31,7 @@ PCRE2UTF8InputTest >> testASCIIRangeTranslationUsesCodeUnitOffsets [
 
 	self assert: (input characterCountUpToCodeUnitOffset: 0) equals: 0.
 	self assert: (input characterCountUpToCodeUnitOffset: 3) equals: 3.
-	self
-		assert: (input characterRangeFromStartOffset: 1 endOffset: 4)
-		equals: (2 to: 4).
+	self assert: (input characterRangeFromStartOffset: 1 endOffset: 4) equals: (2 to: 4).
 	self assert: (input decodeBytes: 'bc') equals: 'bc'
 ]
 
@@ -60,9 +58,7 @@ PCRE2UTF8InputTest >> testByteArrayCanCreateReusableUTF8Input [
 	self assert: input decoder class equals: ZnUTF8Encoder.
 	self assert: input size equals: bytes size.
 	self assert: (input readFrom: 1 to: input size) equals: subject.
-	self
-		assert: (input characterCountUpToCodeUnitOffset: input size)
-		equals: subject size
+	self assert: (input characterCountUpToCodeUnitOffset: input size) equals: subject size
 ]
 
 { #category : 'tests' }
@@ -70,46 +66,33 @@ PCRE2UTF8InputTest >> testCharacterRangeTranslationHandlesUTF8CodeUnitOffsets [
 
 	| input subject |
 	subject := String streamContents: [ :stream |
-		           stream
-			           nextPut: (Character value: 16rE9);
-			           nextPut: $a;
-			           nextPut: (Character value: 16r20AC);
-			           nextPut: (Character value: 16r1F60A) ].
+			           stream
+				           nextPut: (Character value: 16rE9);
+				           nextPut: $a;
+				           nextPut: (Character value: 16r20AC);
+				           nextPut: (Character value: 16r1F60A) ].
 	input := PCRE2UTF8Input fromString: subject.
 
-	self
-		assert: input bytes
-		equals: #[ 195 169 97 226 130 172 240 159 152 138 ].
+	self assert: input bytes equals: #[ 195 169 97 226 130 172 240 159 152 138 ].
 	self assert: (input characterCountUpToCodeUnitOffset: 0) equals: 0.
 	self assert: (input characterCountUpToCodeUnitOffset: 2) equals: 1.
 	self assert: (input characterCountUpToCodeUnitOffset: 3) equals: 2.
 	self assert: (input characterCountUpToCodeUnitOffset: 6) equals: 3.
 	self assert: (input characterCountUpToCodeUnitOffset: 10) equals: 4.
-	self
-		assert: (input characterRangeFromStartOffset: 0 endOffset: 2)
-		equals: (1 to: 1).
-	self
-		assert: (input characterRangeFromStartOffset: 2 endOffset: 6)
-		equals: (2 to: 3).
-	self
-		assert: (input characterRangeFromStartOffset: 6 endOffset: 10)
-		equals: (4 to: 4)
+	self assert: (input characterRangeFromStartOffset: 0 endOffset: 2) equals: (1 to: 1).
+	self assert: (input characterRangeFromStartOffset: 2 endOffset: 6) equals: (2 to: 3).
+	self assert: (input characterRangeFromStartOffset: 6 endOffset: 10) equals: (4 to: 4)
 ]
 
 { #category : 'tests' }
 PCRE2UTF8InputTest >> testDecodingAndStreamingUsePreparedDecoder [
 
 	| input stream |
-	input := PCRE2UTF8Input fromString:
-		         (String with: (Character value: 16rE9) with: $a).
+	input := PCRE2UTF8Input fromString: (String with: (Character value: 16rE9) with: $a).
 	stream := input bytes readStream.
 
-	self
-		assert: (input decodeBytes: (input bytes copyFrom: 1 to: 2))
-		equals: (String with: (Character value: 16rE9)).
-	self
-		assert: (input nextFromStream: stream)
-		equals: (Character value: 16rE9).
+	self assert: (input decodeBytes: (input bytes copyFrom: 1 to: 2)) equals: (String with: (Character value: 16rE9)).
+	self assert: (input nextFromStream: stream) equals: (Character value: 16rE9).
 	self assert: (input nextFromStream: stream) equals: $a
 ]
 
@@ -122,9 +105,7 @@ PCRE2UTF8InputTest >> testNonASCIIByteStringIsEncoded [
 
 	self deny: (PCRE2UTF8Input canUseDirectly: subject).
 	self deny: input bytes identicalTo: subject.
-	self
-		assert: input bytes
-		equals: (ZnUTF8Encoder default encodeString: subject).
+	self assert: input bytes equals: (ZnUTF8Encoder default encodeString: subject).
 	self assert: input decoder class equals: ZnUTF8Encoder
 ]
 
@@ -136,9 +117,7 @@ PCRE2UTF8InputTest >> testStringCanCreateReusableUTF8Input [
 	input := subject asPCRE2UTF8Input.
 
 	self assert: input class equals: PCRE2UTF8Input.
-	self
-		assert: input bytes
-		equals: (ZnUTF8Encoder default encodeString: subject).
+	self assert: input bytes equals: (ZnUTF8Encoder default encodeString: subject).
 	self assert: input decoder class equals: ZnUTF8Encoder
 ]
 
@@ -150,8 +129,6 @@ PCRE2UTF8InputTest >> testWideStringIsEncoded [
 	input := PCRE2UTF8Input fromString: subject.
 
 	self deny: (PCRE2UTF8Input canUseDirectly: subject).
-	self
-		assert: input bytes
-		equals: (ZnUTF8Encoder default encodeString: subject).
+	self assert: input bytes equals: (ZnUTF8Encoder default encodeString: subject).
 	self assert: input decoder class equals: ZnUTF8Encoder
 ]

@@ -36,8 +36,7 @@ PCRE2PatternConversionTest >> testConvertGlobCanUseCustomEscape [
 	context := LibPCRE2UTF8 newConvertContext.
 	context globEscape: $!.
 
-	regex := (LibPCRE2UTF8 convertGlob: 'file!*.st' context: context)
-		         asPerlCompatibleRegex.
+	regex := (LibPCRE2UTF8 convertGlob: 'file!*.st' context: context) asPerlCompatibleRegex.
 
 	self assert: (regex matches: 'file*.st').
 	self deny: (regex matches: 'fileABC.st')
@@ -60,9 +59,7 @@ PCRE2PatternConversionTest >> testConvertGlobSignalsConversionErrors [
 
 	self skipUnlessPatternConversionSupported ifTrue: [ ^ self ].
 
-	self
-		should: [ LibPCRE2UTF8 convertGlob: '[abc' ]
-		raise: PCRE2CompileError
+	self should: [ LibPCRE2UTF8 convertGlob: '[abc' ] raise: PCRE2CompileError
 ]
 
 { #category : 'tests' }
@@ -71,8 +68,7 @@ PCRE2PatternConversionTest >> testConvertPOSIXBasicCanCompileAndMatch [
 	| regex |
 	self skipUnlessPatternConversionSupported ifTrue: [ ^ self ].
 
-	regex := (LibPCRE2UTF8 convertPOSIXBasic: 'a\{2\}')
-		         asPerlCompatibleRegex.
+	regex := (LibPCRE2UTF8 convertPOSIXBasic: 'a\{2\}') asPerlCompatibleRegex.
 
 	self assert: (regex matches: 'aa').
 	self deny: (regex matches: 'a')
@@ -84,8 +80,7 @@ PCRE2PatternConversionTest >> testConvertPOSIXExtendedCanCompileAndMatch [
 	| regex |
 	self skipUnlessPatternConversionSupported ifTrue: [ ^ self ].
 
-	regex := (LibPCRE2UTF8 convertPOSIXExtended: 'a(b|c)+')
-		         asPerlCompatibleRegex.
+	regex := (LibPCRE2UTF8 convertPOSIXExtended: 'a(b|c)+') asPerlCompatibleRegex.
 
 	self assert: (regex matches: 'abcb').
 	self deny: (regex matches: 'ad')

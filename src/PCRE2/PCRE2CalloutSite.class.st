@@ -30,9 +30,7 @@ PCRE2CalloutSite class >> fromEnumerationBlock: anExternalAddress [
 { #category : 'instance creation' }
 PCRE2CalloutSite class >> fromEnumerationBlock: anExternalAddress codeUnitWidth: codeUnitWidth [
 
-	^ self new
-		  initializeFromEnumerationBlock: anExternalAddress
-		  codeUnitWidth: codeUnitWidth
+	^ self new initializeFromEnumerationBlock: anExternalAddress codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'private' }
@@ -41,10 +39,8 @@ PCRE2CalloutSite class >> sizeTFrom: anExternalAddress atOffset: structOffsetInB
 
 	| wordSize |
 	wordSize := ExternalAddress wordSize.
-	wordSize == 8 ifTrue: [
-		^ anExternalAddress uint64AtOffset: structOffsetInBytes ].
-	wordSize == 4 ifTrue: [
-		^ anExternalAddress uint32AtOffset: structOffsetInBytes ].
+	wordSize == 8 ifTrue: [ ^ anExternalAddress uint64AtOffset: structOffsetInBytes ].
+	wordSize == 4 ifTrue: [ ^ anExternalAddress uint32AtOffset: structOffsetInBytes ].
 	^ anExternalAddress platformSizeTAt: structOffsetInBytes + 1
 ]
 
@@ -59,12 +55,10 @@ PCRE2CalloutSite class >> stringFrom: anExternalAddress length: length codeUnitW
 	"Decode a string callout payload for the given PCRE2 code-unit width."
 
 	| bytes byteSize |
-	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [
-		^ nil ].
+	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [ ^ nil ].
 	byteSize := length * (codeUnitWidth // 8).
 	bytes := ByteArray new: byteSize.
-	1 to: byteSize do: [ :index |
-		bytes at: index put: (anExternalAddress uint8AtOffset: index - 1) ].
+	1 to: byteSize do: [ :index | bytes at: index put: (anExternalAddress uint8AtOffset: index - 1) ].
 	^ self stringFromBytes: bytes codeUnitWidth: codeUnitWidth
 ]
 
@@ -73,10 +67,8 @@ PCRE2CalloutSite class >> stringFromBytes: bytes codeUnitWidth: codeUnitWidth [
 	"Decode native PCRE2 string bytes for the given code-unit width."
 
 	codeUnitWidth = 8 ifTrue: [ ^ bytes utf8Decoded ].
-	codeUnitWidth = 16 ifTrue: [
-		^ (PCRE2UTF16Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
-	codeUnitWidth = 32 ifTrue: [
-		^ (PCRE2UTF32Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
+	codeUnitWidth = 16 ifTrue: [ ^ (PCRE2UTF16Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
+	codeUnitWidth = 32 ifTrue: [ ^ (PCRE2UTF32Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
 	PCRE2Error signal: 'Unsupported PCRE2 callout string code-unit width'
 ]
 
@@ -85,22 +77,17 @@ PCRE2CalloutSite class >> zeroTerminatedStringFrom: anExternalAddress codeUnitWi
 	"Decode a zero-terminated native PCRE2 string for the given code-unit width."
 
 	| bytes offset width |
-	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [
-		^ nil ].
+	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [ ^ nil ].
 	width := codeUnitWidth // 8.
 	bytes := ByteArray new writeStream.
 	offset := 0.
 	[
-	| allZero |
-	allZero := true.
-	1 to: width do: [ :index |
-		(anExternalAddress uint8AtOffset: offset + index - 1) = 0 ifFalse: [
-			allZero := false ] ].
-	allZero ] whileFalse: [
-		1 to: width do: [ :index |
-			bytes nextPut:
-				(anExternalAddress uint8AtOffset: offset + index - 1) ].
-		offset := offset + width ].
+		| allZero |
+		allZero := true.
+		1 to: width do: [ :index | (anExternalAddress uint8AtOffset: offset + index - 1) = 0 ifFalse: [ allZero := false ] ].
+		allZero ] whileFalse: [
+			1 to: width do: [ :index | bytes nextPut: (anExternalAddress uint8AtOffset: offset + index - 1) ].
+			offset := offset + width ].
 	^ self stringFromBytes: bytes contents codeUnitWidth: codeUnitWidth
 ]
 
@@ -113,9 +100,7 @@ PCRE2CalloutSite >> hasString [
 { #category : 'initialization' }
 PCRE2CalloutSite >> initializeFromEnumerationBlock: anExternalAddress [
 
-	^ self
-		  initializeFromEnumerationBlock: anExternalAddress
-		  codeUnitWidth: 8
+	^ self initializeFromEnumerationBlock: anExternalAddress codeUnitWidth: 8
 ]
 
 { #category : 'initialization' }
@@ -150,8 +135,7 @@ PCRE2CalloutSite >> matchesEvent: aPCRE2CalloutEvent [
 	"Answer whether this static site corresponds to the runtime callout event."
 
 	^ patternPosition = aPCRE2CalloutEvent patternPosition and: [
-		  number = aPCRE2CalloutEvent number and: [
-			  string = aPCRE2CalloutEvent string ] ]
+		  number = aPCRE2CalloutEvent number and: [ string = aPCRE2CalloutEvent string ] ]
 ]
 
 { #category : 'accessing' }
@@ -184,9 +168,9 @@ PCRE2CalloutSite >> printOn: aStream [
 		nextPutAll: ', ';
 		print: number.
 	string ifNotNil: [
-		aStream
-			nextPutAll: ', ';
-			print: string ].
+			aStream
+				nextPutAll: ', ';
+				print: string ].
 	aStream nextPut: $)
 ]
 

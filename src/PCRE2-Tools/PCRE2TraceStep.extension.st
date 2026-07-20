@@ -6,8 +6,7 @@ PCRE2TraceStep >> debuggerCalloutLabel [
 	| calloutEvent |
 	calloutEvent := self event.
 	calloutEvent isAutomatic ifTrue: [ ^ 'automatic' ].
-	calloutEvent string ifNotNil: [ :string |
-		^ '#' , calloutEvent number asString , ' ' , string printString ].
+	calloutEvent string ifNotNil: [ :string | ^ '#' , calloutEvent number asString , ' ' , string printString ].
 	^ '#' , calloutEvent number asString
 ]
 
@@ -30,10 +29,8 @@ PCRE2TraceStep >> debuggerPatternRangeLabel [
 PCRE2TraceStep >> debuggerRangeLabelFor: anIntervalOrNil [
 
 	anIntervalOrNil ifNil: [ ^ '' ].
-	anIntervalOrNil isEmpty ifTrue: [
-		^ anIntervalOrNil first asString , ' (empty)' ].
-	^ anIntervalOrNil first asString , '-'
-	  , anIntervalOrNil last asString
+	anIntervalOrNil isEmpty ifTrue: [ ^ anIntervalOrNil first asString , ' (empty)' ].
+	^ anIntervalOrNil first asString , '-' , anIntervalOrNil last asString
 ]
 
 { #category : '*PCRE2-Tools' }

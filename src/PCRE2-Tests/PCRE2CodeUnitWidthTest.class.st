@@ -330,12 +330,8 @@ PCRE2CodeUnitWidthTest >> testCompileAndMatchContextsUseNativeAPI [
 	subject := 'a' , String cr , 'b'.
 	self assert: (crRegex find: subject) equals: 'b'.
 	self assert: (lfRegex find: subject) isNil.
-	self
-		assert: (crRegex info: PCRE2 infoNewline)
-		equals: PCRE2 newlineCR.
-	self
-		assert: (lfRegex info: PCRE2 infoNewline)
-		equals: PCRE2 newlineLF.
+	self assert: (crRegex info: PCRE2 infoNewline) equals: PCRE2 newlineCR.
+	self assert: (lfRegex info: PCRE2 infoNewline) equals: PCRE2 newlineLF.
 
 	limitRegex := self regexFor: '(a+)+'.
 	limitRegex addOptions: PCRE2 noJIT.
@@ -350,10 +346,7 @@ PCRE2CodeUnitWidthTest >> testCompileErrorFromNativeBytePatternDecodesPattern [
 	self skipUnlessSupported ifTrue: [ ^ self ].
 
 	patternInput := self nativeBytesInputFor: '(a'.
-	self
-		should: [ self compiler compile: patternInput ]
-		raise: PCRE2CompileError
-		withExceptionDo: [ :error |
+	self should: [ self compiler compile: patternInput ] raise: PCRE2CompileError withExceptionDo: [ :error |
 			self assert: error pattern equals: '(a'.
 			self assert: error offset isInteger.
 			self assert: (error messageText includesSubstring: '(*ERROR)') ]
@@ -441,9 +434,7 @@ PCRE2CodeUnitWidthTest >> testConvertContextIsWidthSpecific [
 	self skipUnlessSupported ifTrue: [ ^ self ].
 	LibPCRE2 supportsPatternConversion ifFalse: [ ^ self ].
 
-	self
-		assert: libraryClass newConvertContext class
-		equals: convertContextClass
+	self assert: libraryClass newConvertContext class equals: convertContextClass
 ]
 
 { #category : 'tests' }
@@ -458,12 +449,8 @@ PCRE2CodeUnitWidthTest >> testDFAMatchReturnsAllAlternatives [
 
 	self assert: match class equals: matchClass.
 	self assert: match count equals: 3.
-	self
-		assert: match readMatches
-		equals: #( 'caterpillar' 'cater' 'cat' ).
-	self
-		assert: (regex dfaMatches: subject workspaceSize: 40 ovectorSize: 3)
-		equals: #( 'caterpillar' 'cater' 'cat' )
+	self assert: match readMatches equals: #( 'caterpillar' 'cater' 'cat' ).
+	self assert: (regex dfaMatches: subject workspaceSize: 40 ovectorSize: 3) equals: #( 'caterpillar' 'cater' 'cat' )
 ]
 
 { #category : 'tests' }
@@ -473,12 +460,8 @@ PCRE2CodeUnitWidthTest >> testFindAllAndSplitReuseHighLevelFlow [
 	self skipUnlessSupported ifTrue: [ ^ self ].
 
 	regex := self regexFor: '\p{L}+'.
-	self
-		assert: (regex findAll: 'aa 123 éé') asArray
-		equals: #( 'aa' 'éé' ).
-	self
-		assert: ((self regexFor: ',') split: 'a,b,c') asArray
-		equals: #( 'a' 'b' 'c' )
+	self assert: (regex findAll: 'aa 123 éé') asArray equals: #( 'aa' 'éé' ).
+	self assert: ((self regexFor: ',') split: 'a,b,c') asArray equals: #( 'a' 'b' 'c' )
 ]
 
 { #category : 'tests' }
@@ -488,9 +471,7 @@ PCRE2CodeUnitWidthTest >> testFindAllHandlesEmptyGlobalMatches [
 	self skipUnlessSupported ifTrue: [ ^ self ].
 
 	regex := self regexFor: 'a*?'.
-	self
-		assert: (regex findAll: 'aaa') asArray
-		equals: #( '' 'a' '' 'a' '' 'a' '' )
+	self assert: (regex findAll: 'aaa') asArray equals: #( '' 'a' '' 'a' '' 'a' '' )
 ]
 
 { #category : 'tests' }
@@ -515,10 +496,7 @@ PCRE2CodeUnitWidthTest >> testInputDecodesLeadingByteSlice [
 
 	input := self preparedInputFor: 'éclair'.
 
-	self
-		assert: (input decodeBytes:
-				 (input bytes copyFrom: 1 to: self leadingEcByteSize))
-		equals: 'éc'
+	self assert: (input decodeBytes: (input bytes copyFrom: 1 to: self leadingEcByteSize)) equals: 'éc'
 ]
 
 { #category : 'tests' }
@@ -563,8 +541,7 @@ PCRE2CodeUnitWidthTest >> testLibraryCanConvertPreparedGlobBytes [
 	LibPCRE2 supportsPatternConversion ifFalse: [ ^ self ].
 
 	patternBytes := (self preparedInputFor: '*é') bytes.
-	regex := compilerClass new compile:
-		         (libraryClass convertGlob: patternBytes).
+	regex := compilerClass new compile: (libraryClass convertGlob: patternBytes).
 
 	self assert: regex codeUnitWidth equals: codeUnitWidth.
 	self assert: (regex matches: 'café').
@@ -580,8 +557,7 @@ PCRE2CodeUnitWidthTest >> testLibraryCanUseConvertContext [
 
 	context := libraryClass newConvertContext.
 	context globEscape: $!.
-	regex := self compiler compile:
-		         (libraryClass convertGlob: 'file!*.st' context: context).
+	regex := self compiler compile: (libraryClass convertGlob: 'file!*.st' context: context).
 
 	self assert: regex class equals: matcherClass.
 	self assert: (regex matches: 'file*.st').
@@ -616,8 +592,8 @@ PCRE2CodeUnitWidthTest >> testMatchDataDiagnosticsUseNativeAPI [
 	self assert: match matchDataSize > 0.
 	libraryClass supportsMatchDataHeapframesSize
 		ifTrue: [
-			self assert: heapframesSize isInteger.
-			self assert: heapframesSize >= 0 ]
+				self assert: heapframesSize isInteger.
+				self assert: heapframesSize >= 0 ]
 		ifFalse: [ self assert: heapframesSize isNil ]
 ]
 
@@ -661,13 +637,9 @@ PCRE2CodeUnitWidthTest >> testNativeEndianBytesCanCreateReusableInput [
 	input := self nativeBytesInputFor: subject.
 
 	self assert: input class equals: inputClass.
-	self
-		assert: input bytes size
-		equals: input size * (codeUnitWidth // 8).
+	self assert: input bytes size equals: input size * (codeUnitWidth // 8).
 	self assert: (input readFrom: 1 to: input size) equals: subject.
-	self
-		assert: (input characterCountUpToCodeUnitOffset: input size)
-		equals: subject size
+	self assert: (input characterCountUpToCodeUnitOffset: input size) equals: subject size
 ]
 
 { #category : 'tests' }
@@ -694,8 +666,8 @@ PCRE2CodeUnitWidthTest >> testRuntimeCalloutDecodesPayloadsAndMarks [
 	events := OrderedCollection new.
 
 	self assert: (regex matches: 'x' calloutsDo: [ :each |
-			 events add: each.
-			 0 ]).
+				 events add: each.
+				 0 ]).
 	event := events first.
 	self assert: event string equals: 'cœur'.
 	self assert: event mark equals: 'café'
@@ -711,13 +683,9 @@ PCRE2CodeUnitWidthTest >> testStringCanCreateReusableInput [
 	input := self preparedInputFor: subject.
 
 	self assert: input class equals: inputClass.
-	self
-		assert: input bytes size
-		equals: input size * (codeUnitWidth // 8).
+	self assert: input bytes size equals: input size * (codeUnitWidth // 8).
 	self assert: (input readFrom: 1 to: input size) equals: subject.
-	self
-		assert: (input characterCountUpToCodeUnitOffset: input size)
-		equals: subject size
+	self assert: (input characterCountUpToCodeUnitOffset: input size) equals: subject size
 ]
 
 { #category : 'tests' }
@@ -729,10 +697,7 @@ PCRE2CodeUnitWidthTest >> testSubstituteCalloutDecodesText [
 
 	regex := self regexFor: 'é'.
 	events := OrderedCollection new.
-	result := regex
-		          substituteAll: 'café café'
-		          with: 'e$0'
-		          calloutsDo: [ :event |
+	result := regex substituteAll: 'café café' with: 'e$0' calloutsDo: [ :event |
 			          events add: event.
 			          PCRE2 substituteCalloutAccept ].
 
@@ -758,8 +723,8 @@ PCRE2CodeUnitWidthTest >> testSubstituteCaseCalloutDecodesText [
 		          with: '\U$0'
 		          options: PCRE2 substituteExtended
 		          caseCallout: [ :event |
-			          events add: event.
-			          event inputText , '!' ].
+				          events add: event.
+				          event inputText , '!' ].
 
 	self assert: result equals: 'café! thé!'.
 	self assert: events size equals: 2.
@@ -775,29 +740,19 @@ PCRE2CodeUnitWidthTest >> testSubstitutionAndCopyReuseHighLevelFlow [
 	self skipUnlessSupported ifTrue: [ ^ self ].
 
 	regex := self regexFor: 'é'.
-	self
-		assert: (regex substituteAll: 'café café' with: 'e')
-		equals: 'cafe cafe'.
+	self assert: (regex substituteAll: 'café café' with: 'e') equals: 'cafe cafe'.
 
 	input := self preparedInputFor: 'café café'.
 	replacement := self preparedInputFor: 'e'.
-	self
-		assert: (regex substituteAll: input with: replacement)
-		equals: 'cafe cafe'.
+	self assert: (regex substituteAll: input with: replacement) equals: 'cafe cafe'.
 
 	regex := self regexFor: '(\p{L}+)'.
 	input := self preparedInputFor: 'one two'.
 	match := regex findMatch: input.
-	self
-		assert: (regex substituteUsingMatch: match with: '[$0]')
-		equals: '[one] two'.
+	self assert: (regex substituteUsingMatch: match with: '[$0]') equals: '[one] two'.
 
 	regex := self regexFor: '\d+'.
-	self
-		assert: (regex
-				 copy: 'a12b3'
-				 translatingMatchesUsing: [ :each | '[' , each , ']' ])
-		equals: 'a[12]b[3]'
+	self assert: (regex copy: 'a12b3' translatingMatchesUsing: [ :each | '[' , each , ']' ]) equals: 'a[12]b[3]'
 ]
 
 { #category : 'tests' }
@@ -825,9 +780,7 @@ PCRE2CodeUnitWidthTest >> testTraceMatchTranslatesPatternRanges [
 	trace := (self regexFor: emoji , '(?C2)a') traceMatch: emoji , 'a'.
 	event := trace events detect: [ :each | each number = 2 ].
 
-	self
-		assert: (trace patternCharacterRangeForEvent: event)
-		equals: (7 to: 7).
+	self assert: (trace patternCharacterRangeForEvent: event) equals: (7 to: 7).
 	self assert: (trace subjectCharacterPositionAtEvent: event) equals: 2
 ]
 

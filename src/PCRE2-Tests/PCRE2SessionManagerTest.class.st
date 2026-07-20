@@ -17,13 +17,13 @@ PCRE2SessionManagerTest >> testClassSideConfigurationToggles [
 	original := PCRE2SessionManager shouldUseSerialization.
 
 	[
-	PCRE2SessionManager useRecompilation.
-	self deny: PCRE2SessionManager shouldUseSerialization.
-	PCRE2SessionManager useSerialization.
-	self assert: PCRE2SessionManager shouldUseSerialization ] ensure: [
-		original
-			ifTrue: [ PCRE2SessionManager useSerialization ]
-			ifFalse: [ PCRE2SessionManager useRecompilation ] ]
+		PCRE2SessionManager useRecompilation.
+		self deny: PCRE2SessionManager shouldUseSerialization.
+		PCRE2SessionManager useSerialization.
+		self assert: PCRE2SessionManager shouldUseSerialization ] ensure: [
+			original
+				ifTrue: [ PCRE2SessionManager useSerialization ]
+				ifFalse: [ PCRE2SessionManager useRecompilation ] ]
 ]
 
 { #category : 'tests' }
@@ -74,9 +74,7 @@ PCRE2SessionManagerTest >> testShutDownWithSerialization [
 
 	self deny: manager serializedMatchers identicalTo: nil.
 	self assert: manager serializedMatchers notEmpty.
-	self
-		assert: manager serializedSignature
-		equals: PCRE2MockSessionManager serializationSignature.
+	self assert: manager serializedSignature equals: PCRE2MockSessionManager serializationSignature.
 	self deny: regex isNull
 ]
 
@@ -89,8 +87,7 @@ PCRE2SessionManagerTest >> testStartUpWithInvalidSerializationFallsBackToRecompi
 	regex := 'a' asPerlCompatibleRegex.
 	manager matchersToRestore: { regex }.
 	manager serializedMatchers: #[ 1 2 3 ].
-	manager serializedSignature:
-		PCRE2MockSessionManager serializationSignature.
+	manager serializedSignature: PCRE2MockSessionManager serializationSignature.
 
 	regex finalize.
 	self assert: regex isNull.
@@ -105,8 +102,7 @@ PCRE2SessionManagerTest >> testStartUpWithInvalidSerializationFallsBackToRecompi
 PCRE2SessionManagerTest >> testStartUpWithMixedWidthSerialization [
 
 	| manager utf8 utf16 utf32 |
-	(LibPCRE2 supports16BitCodeUnitWidth and: [
-		 LibPCRE2 supports32BitCodeUnitWidth ]) ifFalse: [ ^ self ].
+	(LibPCRE2 supports16BitCodeUnitWidth and: [ LibPCRE2 supports32BitCodeUnitWidth ]) ifFalse: [ ^ self ].
 
 	PCRE2MockSessionManager useSerialization: true.
 	manager := PCRE2MockSessionManager new.
@@ -204,8 +200,7 @@ PCRE2SessionManagerTest >> testStartUpWithStaleSerializationFallsBackToRecompila
 	regex := 'a' asPerlCompatibleRegex.
 	manager matchersToRestore: { regex }.
 	manager serializedMatchers: #[ 1 2 3 ].
-	manager serializedSignature:
-		(Dictionary newFrom: { (#stale -> true) }).
+	manager serializedSignature: (Dictionary newFrom: { (#stale -> true) }).
 
 	regex finalize.
 	self assert: regex isNull.

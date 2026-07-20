@@ -23,14 +23,10 @@ Class {
 PCRE2SubstitutionCaseCalloutEvent class >> bytesForString: aString codeUnitWidth: codeUnitWidth [
 	"Encode aString for the active PCRE2 code-unit width."
 
-	codeUnitWidth = 8 ifTrue: [
-		^ (PCRE2UTF8Input fromString: aString) bytes asByteArray ].
-	codeUnitWidth = 16 ifTrue: [
-		^ (PCRE2UTF16Input fromString: aString) bytes ].
-	codeUnitWidth = 32 ifTrue: [
-		^ (PCRE2UTF32Input fromString: aString) bytes ].
-	PCRE2Error signal:
-		'Unsupported PCRE2 substitution case code-unit width'
+	codeUnitWidth = 8 ifTrue: [ ^ (PCRE2UTF8Input fromString: aString) bytes asByteArray ].
+	codeUnitWidth = 16 ifTrue: [ ^ (PCRE2UTF16Input fromString: aString) bytes ].
+	codeUnitWidth = 32 ifTrue: [ ^ (PCRE2UTF32Input fromString: aString) bytes ].
+	PCRE2Error signal: 'Unsupported PCRE2 substitution case code-unit width'
 ]
 
 { #category : 'private' }
@@ -55,10 +51,7 @@ PCRE2SubstitutionCaseCalloutEvent class >> fromInput: inputPointer length: input
 { #category : 'private' }
 PCRE2SubstitutionCaseCalloutEvent class >> stringFrom: inputPointer length: inputLength codeUnitWidth: codeUnitWidth [
 
-	^ PCRE2CalloutSite
-		  stringFrom: inputPointer
-		  length: inputLength
-		  codeUnitWidth: codeUnitWidth
+	^ PCRE2CalloutSite stringFrom: inputPointer length: inputLength codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'accessing' }
@@ -161,6 +154,5 @@ PCRE2SubstitutionCaseCalloutEvent >> titleFirst: aString [
 	"Titlecase the first character and lowercase the rest, matching PCRE2's title-first request shape."
 
 	aString isEmpty ifTrue: [ ^ aString copy ].
-	^ aString first asUppercase asString
-	  , aString allButFirst asLowercase
+	^ aString first asUppercase asString , aString allButFirst asLowercase
 ]

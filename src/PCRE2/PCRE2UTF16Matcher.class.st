@@ -22,8 +22,7 @@ PCRE2UTF16Matcher >> compileJIT: anInteger [
 
 	| newCompiler |
 	newCompiler := PCRE2UTF16Compiler new.
-	compiler copyContextIfPresent ifNotNil: [ :contextCopy |
-		newCompiler context: contextCopy ].
+	compiler copyContextIfPresent ifNotNil: [ :contextCopy | newCompiler context: contextCopy ].
 	newCompiler
 		options: compiler options;
 		optionsJIT: anInteger;

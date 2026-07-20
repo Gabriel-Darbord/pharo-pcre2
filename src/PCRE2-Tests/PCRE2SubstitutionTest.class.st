@@ -31,9 +31,7 @@ PCRE2SubstitutionTest >> testLiteralReplacementDoesNotExpandCaptures [
 	regex := '(\d+)' asPerlCompatibleRegex.
 
 	self assert: (regex substitute: 'a12' with: '[$1]') equals: 'a[12]'.
-	self
-		assert: (regex substitute: 'a12' withLiteral: '[$1]')
-		equals: 'a[$1]'
+	self assert: (regex substitute: 'a12' withLiteral: '[$1]') equals: 'a[$1]'
 ]
 
 { #category : 'tests' }
@@ -42,13 +40,8 @@ PCRE2SubstitutionTest >> testReplacementOnly [
 	| regex |
 	regex := '\d+' asPerlCompatibleRegex.
 
-	self
-		assert: (regex substituteReplacementsOnly: 'a1 b22' with: '<$0>')
-		equals: '<1>'.
-	self
-		assert:
-		(regex substituteAllReplacementsOnly: 'a1 b22 c333' with: '<$0>')
-		equals: '<1><22><333>'
+	self assert: (regex substituteReplacementsOnly: 'a1 b22' with: '<$0>') equals: '<1>'.
+	self assert: (regex substituteAllReplacementsOnly: 'a1 b22 c333' with: '<$0>') equals: '<1><22><333>'
 ]
 
 { #category : 'tests' }
@@ -59,9 +52,7 @@ PCRE2SubstitutionTest >> testSubstituteAllAcceptsReusableUTF8InputAndReplacement
 	input := 'café café' asPCRE2UTF8Input.
 	replacement := 'e' asPCRE2UTF8Input.
 
-	self
-		assert: (regex substituteAll: input with: replacement)
-		equals: 'cafe cafe'
+	self assert: (regex substituteAll: input with: replacement) equals: 'cafe cafe'
 ]
 
 { #category : 'tests' }
@@ -69,20 +60,13 @@ PCRE2SubstitutionTest >> testSubstituteAllConvenienceVariants [
 
 	| regex |
 	regex := 'a' asPerlCompatibleRegex.
-	self
-		assert: (regex substituteAll: 'a a' withLiteral: '$0')
-		equals: '$0 $0'.
+	self assert: (regex substituteAll: 'a a' withLiteral: '$0') equals: '$0 $0'.
 
 	regex := 'b' asPerlCompatibleRegex.
-	self
-		assert:
-		(regex substituteAll: 'b b' withUnknownCapturesEmpty: '<$1>')
-		equals: '<> <>'.
+	self assert: (regex substituteAll: 'b b' withUnknownCapturesEmpty: '<$1>') equals: '<> <>'.
 
 	regex := '(a)?b' asPerlCompatibleRegex.
-	self
-		assert: (regex substituteAll: 'b ab' withUnsetCapturesEmpty: '<$1>')
-		equals: '<> <a>'
+	self assert: (regex substituteAll: 'b ab' withUnsetCapturesEmpty: '<$1>') equals: '<> <a>'
 ]
 
 { #category : 'tests' }
@@ -102,9 +86,7 @@ PCRE2SubstitutionTest >> testSubstituteAutomaticallyHandlesLargeOutput [
 	regex := 'a' asPerlCompatibleRegex.
 	replacement := String new: 5000 withAll: $x.
 
-	self
-		assert: (regex substitute: 'a' with: replacement) size
-		equals: replacement size
+	self assert: (regex substitute: 'a' with: replacement) size equals: replacement size
 ]
 
 { #category : 'tests' }
@@ -115,10 +97,7 @@ PCRE2SubstitutionTest >> testSubstituteCalloutCanRejectAndContinue [
 	regex := '(\w+)' asPerlCompatibleRegex.
 	events := OrderedCollection new.
 
-	result := regex
-		          substituteAll: 'one two'
-		          with: '[$0]'
-		          calloutsDo: [ :event |
+	result := regex substituteAll: 'one two' with: '[$0]' calloutsDo: [ :event |
 			          events add: event.
 			          event substitutionCount = 1
 				          ifTrue: [ PCRE2 substituteCalloutRejectAndContinue ]
@@ -138,10 +117,7 @@ PCRE2SubstitutionTest >> testSubstituteCalloutCanRejectAndStop [
 	regex := '(\w+)' asPerlCompatibleRegex.
 	events := OrderedCollection new.
 
-	result := regex
-		          substituteAll: 'one two'
-		          with: '[$0]'
-		          calloutsDo: [ :event |
+	result := regex substituteAll: 'one two' with: '[$0]' calloutsDo: [ :event |
 			          events add: event.
 			          PCRE2 substituteCalloutRejectAndStop ].
 
@@ -159,10 +135,7 @@ PCRE2SubstitutionTest >> testSubstituteCalloutDecodesUTF8Text [
 	regex := 'é' asPerlCompatibleRegex.
 	events := OrderedCollection new.
 
-	result := regex
-		          substituteAll: 'café café'
-		          with: 'e$0'
-		          calloutsDo: [ :event |
+	result := regex substituteAll: 'café café' with: 'e$0' calloutsDo: [ :event |
 			          events add: event.
 			          PCRE2 substituteCalloutAccept ].
 
@@ -186,8 +159,8 @@ PCRE2SubstitutionTest >> testSubstituteCalloutDoesNotMutateReceiver [
 
 	self
 		assert: (regex substitute: 'a' with: 'x' calloutsDo: [ :event |
-				 calls := calls + 1.
-				 PCRE2 substituteCalloutAccept ])
+					 calls := calls + 1.
+					 PCRE2 substituteCalloutAccept ])
 		equals: 'x'.
 	self assert: calls equals: 1.
 	self assert: (regex substitute: 'a' with: 'x') equals: 'x'.
@@ -203,14 +176,9 @@ PCRE2SubstitutionTest >> testSubstituteCalloutHandlesLargeOutputRetry [
 	replacement := String new: 5000 withAll: $x.
 	count := 0.
 
-	result := regex
-		          substitute: 'a'
-		          with: replacement
-		          calloutsDo: [ :event |
+	result := regex substitute: 'a' with: replacement calloutsDo: [ :event |
 			          count := count + 1.
-			          self
-				          assert: event replacementText size
-				          equals: replacement size.
+			          self assert: event replacementText size equals: replacement size.
 			          PCRE2 substituteCalloutAccept ].
 
 	self assert: result size equals: replacement size.
@@ -225,10 +193,7 @@ PCRE2SubstitutionTest >> testSubstituteCalloutReceivesProcessedReplacement [
 	regex := '(\w+)' asPerlCompatibleRegex.
 	events := OrderedCollection new.
 
-	result := regex
-		          substituteAll: 'one two'
-		          with: '[$0]'
-		          calloutsDo: [ :event |
+	result := regex substituteAll: 'one two' with: '[$0]' calloutsDo: [ :event |
 			          events add: event.
 			          PCRE2 substituteCalloutAccept ].
 
@@ -258,8 +223,8 @@ PCRE2SubstitutionTest >> testSubstituteCaseCalloutCanGrowOutputAndRetry [
 		          with: '\U$0'
 		          options: PCRE2 substituteExtended
 		          caseCallout: [ :event |
-			          calls := calls + 1.
-			          replacement ].
+				          calls := calls + 1.
+				          replacement ].
 
 	self assert: result equals: replacement.
 	self assert: calls > 0
@@ -297,8 +262,8 @@ PCRE2SubstitutionTest >> testSubstituteCaseCalloutControlsExtendedCaseConversion
 		          with: '\U$0'
 		          options: PCRE2 substituteExtended
 		          caseCallout: [ :event |
-			          events add: event.
-			          event inputText reversed ].
+				          events add: event.
+				          event inputText reversed ].
 
 	self assert: result equals: 'eno owt'.
 	self assert: events size equals: 2.
@@ -316,15 +281,13 @@ PCRE2SubstitutionTest >> testSubstituteCaseCalloutNilSignalsReplaceCaseError [
 
 	self
 		should: [
-			regex
-				substitute: 'a'
-				with: '\U$0'
-				options: PCRE2 substituteExtended
-				caseCallout: [ :event | nil ] ]
+				regex
+					substitute: 'a'
+					with: '\U$0'
+					options: PCRE2 substituteExtended
+					caseCallout: [ :event | nil ] ]
 		raise: PCRE2MatchError
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring: 'case transformation') ]
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'case transformation') ]
 ]
 
 { #category : 'tests' }
@@ -335,15 +298,8 @@ PCRE2SubstitutionTest >> testSubstituteUsingExistingMatch [
 	input := 'one two' asPCRE2UTF8Input.
 	match := regex findMatch: input.
 
-	self
-		assert: (regex substituteUsingMatch: match with: '[$0]')
-		equals: '[one] two'.
-	self
-		assert: (regex
-				 substituteUsingMatch: match
-				 with: '[$0]'
-				 options: PCRE2 substituteGlobal)
-		equals: '[one] [two]'
+	self assert: (regex substituteUsingMatch: match with: '[$0]') equals: '[one] two'.
+	self assert: (regex substituteUsingMatch: match with: '[$0]' options: PCRE2 substituteGlobal) equals: '[one] [two]'
 ]
 
 { #category : 'tests' }
@@ -355,18 +311,14 @@ PCRE2SubstitutionTest >> testSubstituteUsingMatchRejectsUnsuitableMatchData [
 	self
 		should: [ regex substituteUsingMatch: nil with: 'x' ]
 		raise: PCRE2Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring: 'external PCRE2 match data') ].
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'external PCRE2 match data') ].
 
 	match := regex findMatch: 'a'.
 	match bePersistent.
 	self
 		should: [ regex substituteUsingMatch: match with: 'x' ]
 		raise: PCRE2Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring: 'Persistent match data') ].
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'Persistent match data') ].
 
 	input := 'a' asPCRE2UTF8Input.
 	match := regex newMatchData.
@@ -378,20 +330,13 @@ PCRE2SubstitutionTest >> testSubstituteUsingMatchRejectsUnsuitableMatchData [
 	self
 		should: [ regex substituteUsingMatch: match with: 'x' ]
 		raise: PCRE2Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring: 'remember its subject bytes') ].
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'remember its subject bytes') ].
 
 	partialMatch := 'abc' asPerlCompatibleRegex findPartialMatch: 'ab'.
 	self
-		should: [
-			'abc' asPerlCompatibleRegex
-				substituteUsingMatch: partialMatch
-				with: 'x' ]
+		should: [ 'abc' asPerlCompatibleRegex substituteUsingMatch: partialMatch with: 'x' ]
 		raise: PCRE2Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring: 'complete match') ]
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'complete match') ]
 ]
 
 { #category : 'tests' }
@@ -404,10 +349,7 @@ PCRE2SubstitutionTest >> testSubstituteUsingMatchSupportsCallouts [
 	match := regex findMatch: input.
 	events := OrderedCollection new.
 
-	result := regex
-		          substituteUsingMatch: match
-		          with: '[$0]'
-		          calloutsDo: [ :event |
+	result := regex substituteUsingMatch: match with: '[$0]' calloutsDo: [ :event |
 			          events add: event.
 			          PCRE2 substituteCalloutAccept ].
 
@@ -441,12 +383,8 @@ PCRE2SubstitutionTest >> testUnknownCapturesEmpty [
 	| regex |
 	regex := 'a' asPerlCompatibleRegex.
 
-	self
-		should: [ regex substitute: 'a' with: '<$1>' ]
-		raise: PCRE2MatchError.
-	self
-		assert: (regex substitute: 'a' withUnknownCapturesEmpty: '<$1>')
-		equals: '<>'
+	self should: [ regex substitute: 'a' with: '<$1>' ] raise: PCRE2MatchError.
+	self assert: (regex substitute: 'a' withUnknownCapturesEmpty: '<$1>') equals: '<>'
 ]
 
 { #category : 'tests' }
@@ -455,10 +393,6 @@ PCRE2SubstitutionTest >> testUnsetCapturesEmpty [
 	| regex |
 	regex := '(a)?b' asPerlCompatibleRegex.
 
-	self
-		should: [ regex substitute: 'b' with: '<$1>' ]
-		raise: PCRE2MatchError.
-	self
-		assert: (regex substitute: 'b' withUnsetCapturesEmpty: '<$1>')
-		equals: '<>'
+	self should: [ regex substitute: 'b' with: '<$1>' ] raise: PCRE2MatchError.
+	self assert: (regex substitute: 'b' withUnsetCapturesEmpty: '<$1>') equals: '<>'
 ]

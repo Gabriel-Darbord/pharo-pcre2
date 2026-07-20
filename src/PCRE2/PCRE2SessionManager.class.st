@@ -62,8 +62,7 @@ PCRE2SessionManager class >> serializationSignature [
 			  (#pcre2Version -> LibPCRE2 versionString).
 			  (#endianness -> EndianDetector endianness).
 			  (#wordSize -> ExternalAddress wordSize).
-			  (#sizeTSize
-			   -> FFIArchitecture forCurrentArchitecture sizeTTypeSize).
+			  (#sizeTSize -> FFIArchitecture forCurrentArchitecture sizeTTypeSize).
 			  (#compiledWidths -> (LibPCRE2 config: PCRE2 configCompiledWidths)).
 			  (#unicode -> LibPCRE2 supportsUnicode) }
 ]
@@ -88,13 +87,12 @@ PCRE2SessionManager class >> startUp: resuming [
 	resuming & enabled ifFalse: [ ^ self ].
 
 	"Failsafe to disable restoration if it crashes the image (open an issue if this happens!)"
-	(OSEnvironment current includesKey: 'PHARO_PCRE2_NOSTARTUP') ifTrue: [
-		^ self ].
+	(OSEnvironment current includesKey: 'PHARO_PCRE2_NOSTARTUP') ifTrue: [ ^ self ].
 
 	"The instance has a list of all patterns to restore"
 	instance ifNotNil: [
-		instance startUp.
-		instance := nil "release unique reference to free memory" ]
+			instance startUp.
+			instance := nil "release unique reference to free memory" ]
 ]
 
 { #category : 'configuration' }
@@ -116,8 +114,7 @@ PCRE2SessionManager >> canDeserializeSerializedMatchers [
 	"Serialized PCRE2 bytecode is only a cache. Use it only when the saved runtime signature still matches."
 
 	^ serializedMatchers notNil and: [
-		  serializedMatchers isDictionary and: [
-			  serializedSignature = self class serializationSignature ] ]
+		  serializedMatchers isDictionary and: [ serializedSignature = self class serializationSignature ] ]
 ]
 
 { #category : 'enumerating' }
@@ -129,9 +126,7 @@ PCRE2SessionManager >> findMatchersToRestore [
 		PCRE2UTF8Matcher.
 		PCRE2UTF16Matcher.
 		PCRE2UTF32Matcher } do: [ :matcherClass |
-		matcherClass allInstancesDo: [ :matcher |
-			matcher isNull ifFalse: [
-				matchersToRestore add: matcher bePersistent ] ] ]
+		matcherClass allInstancesDo: [ :matcher | matcher isNull ifFalse: [ matchersToRestore add: matcher bePersistent ] ] ]
 ]
 
 { #category : 'persistence' }
@@ -140,10 +135,7 @@ PCRE2SessionManager >> matchersGroupedByCodeUnitWidth [
 
 	| groups |
 	groups := Dictionary new.
-	matchersToRestore do: [ :matcher |
-		(groups
-			 at: matcher codeUnitWidth
-			 ifAbsentPut: [ OrderedCollection new ]) add: matcher ].
+	matchersToRestore do: [ :matcher | (groups at: matcher codeUnitWidth ifAbsentPut: [ OrderedCollection new ]) add: matcher ].
 	^ groups
 ]
 
@@ -160,12 +152,10 @@ PCRE2SessionManager >> restoreSerializedMatchers [
 
 	self canDeserializeSerializedMatchers ifFalse: [ ^ false ].
 	[
-	self matchersGroupedByCodeUnitWidth keysAndValuesDo: [ :width :matchers |
-		| bytes |
-		bytes := serializedMatchers at: width ifAbsent: [ ^ false ].
-		(self class serializationLibraryForCodeUnitWidth: width)
-			restore: matchers
-			from: bytes ] ]
+		self matchersGroupedByCodeUnitWidth keysAndValuesDo: [ :width :matchers |
+				| bytes |
+				bytes := serializedMatchers at: width ifAbsent: [ ^ false ].
+				(self class serializationLibraryForCodeUnitWidth: width) restore: matchers from: bytes ] ]
 		on: PCRE2Error
 		do: [ :ex | ^ false ].
 	^ true
@@ -178,11 +168,7 @@ PCRE2SessionManager >> serializeMatchersByCodeUnitWidth [
 	| serialized |
 	serialized := Dictionary new.
 	self matchersGroupedByCodeUnitWidth keysAndValuesDo: [ :width :matchers |
-		serialized
-			at: width
-			put:
-				((self class serializationLibraryForCodeUnitWidth: width)
-					 serialize: matchers) ].
+		serialized at: width put: ((self class serializationLibraryForCodeUnitWidth: width) serialize: matchers) ].
 	^ serialized
 ]
 
@@ -203,10 +189,9 @@ PCRE2SessionManager >> shutDown [
 	"Make all compiled patterns persistent between sessions. Serialized bytecode is saved as a fast cache; the matchers keep enough state to be recompiled if the cache is incompatible."
 
 	self findMatchersToRestore.
-	(self class shouldUseSerialization and: [
-		 matchersToRestore isNotEmpty ]) ifTrue: [
-		serializedSignature := self class serializationSignature.
-		serializedMatchers := self serializeMatchersByCodeUnitWidth ]
+	(self class shouldUseSerialization and: [ matchersToRestore isNotEmpty ]) ifTrue: [
+			serializedSignature := self class serializationSignature.
+			serializedMatchers := self serializeMatchersByCodeUnitWidth ]
 ]
 
 { #category : 'system startup' }
@@ -215,7 +200,5 @@ PCRE2SessionManager >> startUp [
 
 	matchersToRestore isEmptyOrNil ifTrue: [ ^ self ].
 
-	(self class shouldUseSerialization and: [
-		 self restoreSerializedMatchers ]) ifFalse: [
-		self recompileMatchers ]
+	(self class shouldUseSerialization and: [ self restoreSerializedMatchers ]) ifFalse: [ self recompileMatchers ]
 ]

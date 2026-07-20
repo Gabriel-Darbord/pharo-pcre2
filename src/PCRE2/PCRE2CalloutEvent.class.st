@@ -40,24 +40,17 @@ PCRE2CalloutEvent class >> fromCalloutBlock: anExternalAddress [
 { #category : 'instance creation' }
 PCRE2CalloutEvent class >> fromCalloutBlock: anExternalAddress codeUnitWidth: codeUnitWidth [
 
-	^ self new
-		  initializeFromCalloutBlock: anExternalAddress
-		  codeUnitWidth: codeUnitWidth
+	^ self new initializeFromCalloutBlock: anExternalAddress codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'private' }
 PCRE2CalloutEvent class >> offsetsFrom: anExternalAddress count: count [
 
 	| values wordSize |
-	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [
-		^ #(  ) ].
+	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [ ^ #(  ) ].
 	values := Array new: count.
 	wordSize := ExternalAddress wordSize.
-	1 to: count do: [ :index |
-		values
-			at: index
-			put:
-			(self sizeTFrom: anExternalAddress atOffset: wordSize * (index - 1)) ].
+	1 to: count do: [ :index | values at: index put: (self sizeTFrom: anExternalAddress atOffset: wordSize * (index - 1)) ].
 	^ values
 ]
 
@@ -65,9 +58,7 @@ PCRE2CalloutEvent class >> offsetsFrom: anExternalAddress count: count [
 PCRE2CalloutEvent class >> sizeTFrom: anExternalAddress atOffset: structOffsetInBytes [
 	"Read a PCRE2_SIZE field from a native callout struct. The ExternalAddress offset is measured in bytes."
 
-	^ PCRE2CalloutSite
-		  sizeTFrom: anExternalAddress
-		  atOffset: structOffsetInBytes
+	^ PCRE2CalloutSite sizeTFrom: anExternalAddress atOffset: structOffsetInBytes
 ]
 
 { #category : 'private' }
@@ -79,10 +70,7 @@ PCRE2CalloutEvent class >> stringFrom: anExternalAddress length: length [
 { #category : 'private' }
 PCRE2CalloutEvent class >> stringFrom: anExternalAddress length: length codeUnitWidth: codeUnitWidth [
 
-	^ PCRE2CalloutSite
-		  stringFrom: anExternalAddress
-		  length: length
-		  codeUnitWidth: codeUnitWidth
+	^ PCRE2CalloutSite stringFrom: anExternalAddress length: length codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'accessing' }
@@ -237,9 +225,9 @@ PCRE2CalloutEvent >> printOn: aStream [
 		nextPutAll: ', ';
 		print: number.
 	string ifNotNil: [
-		aStream
-			nextPutAll: ', ';
-			print: string ].
+			aStream
+				nextPutAll: ', ';
+				print: string ].
 	aStream nextPut: $)
 ]
 

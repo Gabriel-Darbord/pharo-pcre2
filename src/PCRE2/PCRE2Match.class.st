@@ -39,8 +39,7 @@ PCRE2Match >> bePersistent [
 	self count.
 	self matchDataSize.
 	self heapframesSize.
-	offsets isArray ifFalse: [ "copy external data into local memory"
-		self offsets ].
+	offsets isArray ifFalse: [ "copy external data into local memory" self offsets ].
 	self free.
 	handle beNull.
 	isPersistent := true
@@ -52,8 +51,7 @@ PCRE2Match >> captureIndexesNamed: groupName [
 
 	| indexes |
 	indexes := OrderedCollection new.
-	self namedGroups keysAndValuesDo: [ :captureIndex :name |
-		name = groupName ifTrue: [ indexes add: captureIndex ] ].
+	self namedGroups keysAndValuesDo: [ :captureIndex :name | name = groupName ifTrue: [ indexes add: captureIndex ] ].
 	^ indexes asArray
 ]
 
@@ -96,17 +94,18 @@ PCRE2Match >> endOffsetAt: pairIndex [
 PCRE2Match >> ensureSubjectAvailable [
 
 	(input isNil and: [ subject isNil ]) ifTrue: [
-		self error:
-			'This match does not remember a subject; use readMatch: or readMatches: with an explicit subject' ]
+		self error: 'This match does not remember a subject; use readMatch: or readMatches: with an explicit subject' ]
 ]
 
 { #category : 'external resource management' }
 PCRE2Match >> free [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getCount [
+
 	^ self subclassResponsibility
 ]
 
@@ -120,9 +119,7 @@ PCRE2Match >> getHeapframesSize [
 PCRE2Match >> getMark [
 	"Answer the last MARK/PRUNE/THEN name as a Pharo string, or an empty string when PCRE2 reports no mark."
 
-	^ (PCRE2CalloutSite
-		   zeroTerminatedStringFrom: self getMarkPointer
-		   codeUnitWidth: self ffiLibraryName codeUnitWidth) ifNil: [ '' ]
+	^ (PCRE2CalloutSite zeroTerminatedStringFrom: self getMarkPointer codeUnitWidth: self ffiLibraryName codeUnitWidth) ifNil: [ '' ]
 ]
 
 { #category : 'private' }
@@ -139,11 +136,13 @@ PCRE2Match >> getMatchDataSize [
 
 { #category : 'private' }
 PCRE2Match >> getOffsets [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getStartIndex [
+
 	^ self subclassResponsibility
 ]
 
@@ -152,8 +151,7 @@ PCRE2Match >> groupAt: groupNumber [
 	"Answer the matched text for groupNumber, where 0 is the whole match and 1 is the first capture. Answer nil for an optional capture group that did not participate in the match."
 
 	| pair |
-	(groupNumber isInteger and: [ groupNumber >= 0 ]) ifFalse: [
-		self error: 'Group number must be a non-negative integer' ].
+	(groupNumber isInteger and: [ groupNumber >= 0 ]) ifFalse: [ self error: 'Group number must be a non-negative integer' ].
 	groupNumber >= self count ifTrue: [ ^ nil ].
 
 	self ensureSubjectAvailable.
@@ -177,9 +175,9 @@ PCRE2Match >> groupNamed: groupName ifAbsent: absentBlock [
 	indexes := self captureIndexesNamed: groupName.
 	indexes isEmpty ifTrue: [ ^ absentBlock value ].
 	indexes do: [ :captureIndex |
-		| group |
-		group := self groupAt: captureIndex.
-		group ifNotNil: [ ^ group ] ].
+			| group |
+			group := self groupAt: captureIndex.
+			group ifNotNil: [ ^ group ] ].
 	^ nil
 ]
 
@@ -190,8 +188,7 @@ PCRE2Match >> groupsByName [
 	| groups |
 	groups := Dictionary new.
 	self namedGroups do: [ :name |
-		(name notNil and: [ (groups includesKey: name) not ]) ifTrue: [
-			groups at: name put: (self groupNamed: name) ] ].
+		(name notNil and: [ (groups includesKey: name) not ]) ifTrue: [ groups at: name put: (self groupNamed: name) ] ].
 	^ groups
 ]
 
@@ -199,8 +196,7 @@ PCRE2Match >> groupsByName [
 PCRE2Match >> groupsNamed: groupName [
 	"Answer all matched texts for groupName in capture order. Duplicate names are preserved; optional captures that did not participate answer nil in their position."
 
-	^ (self captureIndexesNamed: groupName) collect: [ :captureIndex |
-		  self groupAt: captureIndex ]
+	^ (self captureIndexesNamed: groupName) collect: [ :captureIndex | self groupAt: captureIndex ]
 ]
 
 { #category : 'diagnostics' }
@@ -268,11 +264,11 @@ PCRE2Match >> lastMatchIndex [
 	^ isPersistent
 		  ifTrue: [ offsets at: 2 ]
 		  ifFalse: [
-			  offsets ifNil: [ offsets := self getOffsets ].
-			  wordSize := ExternalAddress wordSize.
-			  wordSize == 8 ifTrue: [ ^ offsets uint64AtOffset: 8 ].
-			  wordSize == 4 ifTrue: [ ^ offsets uint32AtOffset: 4 ].
-			  offsets platformSizeTAt: wordSize + 1 ]
+				  offsets ifNil: [ offsets := self getOffsets ].
+				  wordSize := ExternalAddress wordSize.
+				  wordSize == 8 ifTrue: [ ^ offsets uint64AtOffset: 8 ].
+				  wordSize == 4 ifTrue: [ ^ offsets uint32AtOffset: 4 ].
+				  offsets platformSizeTAt: wordSize + 1 ]
 ]
 
 { #category : 'accessing' }
@@ -312,9 +308,9 @@ PCRE2Match >> offsets [
 	offsets isArray ifTrue: [ ^ offsets ].
 	copy := Array new: 2 * self count.
 	1 to: self count do: [ :pairIndex |
-		pair := self offsetsAt: pairIndex.
-		copy at: 2 * pairIndex - 1 put: pair first.
-		copy at: 2 * pairIndex put: pair second ].
+			pair := self offsetsAt: pairIndex.
+			copy at: 2 * pairIndex - 1 put: pair first.
+			copy at: 2 * pairIndex put: pair second ].
 	^ offsets := copy
 ]
 
@@ -325,20 +321,20 @@ PCRE2Match >> offsetsAt: pairIndex [
 	| index wordSize |
 	index := 2 * (pairIndex - 1). "to 0-based"
 	offsets isArray ifTrue: [
-		^ {
-			  (offsets at: index + 1).
-			  (offsets at: index + 2) } ].
+			^ {
+				  (offsets at: index + 1).
+				  (offsets at: index + 2) } ].
 
 	offsets ifNil: [ offsets := self getOffsets ].
 	wordSize := ExternalAddress wordSize.
 	wordSize == 8 ifTrue: [
-		^ {
-			  (offsets uint64AtOffset: 8 * index).
-			  (offsets uint64AtOffset: 8 * (index + 1)) } ].
+			^ {
+				  (offsets uint64AtOffset: 8 * index).
+				  (offsets uint64AtOffset: 8 * (index + 1)) } ].
 	wordSize == 4 ifTrue: [
-		^ {
-			  (offsets uint32AtOffset: 4 * index).
-			  (offsets uint32AtOffset: 4 * (index + 1)) } ].
+			^ {
+				  (offsets uint32AtOffset: 4 * index).
+				  (offsets uint32AtOffset: 4 * (index + 1)) } ].
 	^ {
 		  (offsets platformSizeTAt: wordSize * index + 1).
 		  (offsets platformSizeTAt: wordSize * (index + 1) + 1) }
@@ -350,38 +346,36 @@ PCRE2Match >> offsetsDo: aBlock [
 
 	| wordSize |
 	offsets isArray ifTrue: [ "offsets have already been copied to a local array"
-		1 to: self count do: [ :pairIndex |
-			| index |
-			index := 2 * (pairIndex - 1).
-			aBlock
-				value: (offsets at: index + 1) + 1
-				value: (offsets at: index + 2) ].
-		^ self ].
+			1 to: self count do: [ :pairIndex |
+					| index |
+					index := 2 * (pairIndex - 1).
+					aBlock value: (offsets at: index + 1) + 1 value: (offsets at: index + 2) ].
+			^ self ].
 
 	offsets ifNil: [ offsets := self getOffsets ]. "PCRE2 ovector: pairs of zero-based code-unit offsets"
 	wordSize := ExternalAddress wordSize.
 
 	wordSize == 8 ifTrue: [
-		1 to: self count do: [ :i |
-			| start end |
-			start := (offsets uint64AtOffset: 16 * (i - 1)) + 1.
-			end := offsets uint64AtOffset: 16 * i - 8.
-			aBlock value: start value: end ].
-		^ self ].
+			1 to: self count do: [ :i |
+					| start end |
+					start := (offsets uint64AtOffset: 16 * (i - 1)) + 1.
+					end := offsets uint64AtOffset: 16 * i - 8.
+					aBlock value: start value: end ].
+			^ self ].
 
 	wordSize == 4 ifTrue: [
-		1 to: self count do: [ :i |
-			| start end |
-			start := (offsets uint32AtOffset: 8 * (i - 1)) + 1.
-			end := offsets uint32AtOffset: 8 * i - 4.
-			aBlock value: start value: end ].
-		^ self ].
+			1 to: self count do: [ :i |
+					| start end |
+					start := (offsets uint32AtOffset: 8 * (i - 1)) + 1.
+					end := offsets uint32AtOffset: 8 * i - 4.
+					aBlock value: start value: end ].
+			^ self ].
 
 	1 to: self count do: [ :i |
-		| start end |
-		start := (offsets platformSizeTAt: 2 * wordSize * (i - 1) + 1) + 1.
-		end := offsets platformSizeTAt: wordSize * (2 * i - 1) + 1.
-		aBlock value: start value: end ]
+			| start end |
+			start := (offsets platformSizeTAt: 2 * wordSize * (i - 1) + 1) + 1.
+			end := offsets platformSizeTAt: wordSize * (2 * i - 1) + 1.
+			aBlock value: start value: end ]
 ]
 
 { #category : 'accessing' }
@@ -398,12 +392,10 @@ PCRE2Match >> readMatch [
 	| bytes |
 	self ensureSubjectAvailable.
 	input ifNotNil: [
-		self offsetsDo: [ :start :end | ^ input readFrom: start to: end ].
-		^ nil ].
+			self offsetsDo: [ :start :end | ^ input readFrom: start to: end ].
+			^ nil ].
 	bytes := self readMatch: subject.
-	^ decoder
-		  ifNil: [ bytes ]
-		  ifNotNil: [ bytes ifNotNil: [ decoder decodeBytes: bytes ] ]
+	^ decoder ifNil: [ bytes ] ifNotNil: [ bytes ifNotNil: [ decoder decodeBytes: bytes ] ]
 ]
 
 { #category : 'match enumeration' }
@@ -421,16 +413,11 @@ PCRE2Match >> readMatches [
 	| index matches |
 	self ensureSubjectAvailable.
 	input ifNotNil: [
-		matches := Array new: self count.
-		index := 0.
-		self offsetsDo: [ :start :end |
-			matches
-				at: (index := index + 1)
-				put: (input readFrom: start to: end) ].
-		^ matches ].
-	^ decoder
-		  ifNil: [ self readMatches: subject ]
-		  ifNotNil: [ self readMatches: subject decodeWith: decoder ]
+			matches := Array new: self count.
+			index := 0.
+			self offsetsDo: [ :start :end | matches at: (index := index + 1) put: (input readFrom: start to: end) ].
+			^ matches ].
+	^ decoder ifNil: [ self readMatches: subject ] ifNotNil: [ self readMatches: subject decodeWith: decoder ]
 ]
 
 { #category : 'match enumeration' }
@@ -440,10 +427,7 @@ PCRE2Match >> readMatches: subject [
 	| matches index |
 	matches := Array new: self count.
 	index := 0.
-	self offsetsDo: [ :start :end |
-		matches
-			at: (index := index + 1)
-			put: (subject copyFrom: start to: end) ].
+	self offsetsDo: [ :start :end | matches at: (index := index + 1) put: (subject copyFrom: start to: end) ].
 	^ matches
 ]
 
@@ -454,10 +438,7 @@ PCRE2Match >> readMatches: subject decodeWith: decoder [
 	| matches index |
 	matches := Array new: self count.
 	index := 0.
-	self offsetsDo: [ :start :end |
-		matches
-			at: (index := index + 1)
-			put: (decoder decodeBytes: (subject copyFrom: start to: end)) ].
+	self offsetsDo: [ :start :end | matches at: (index := index + 1) put: (decoder decodeBytes: (subject copyFrom: start to: end)) ].
 	^ matches
 ]
 

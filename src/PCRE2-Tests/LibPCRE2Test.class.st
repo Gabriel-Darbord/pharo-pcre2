@@ -21,14 +21,11 @@ LibPCRE2Test >> testConfig [
 	configs := LibPCRE2UTF8 uniqueInstance allConfigs.
 
 	self assert: LibPCRE2UTF8 requiredMajorVersion equals: 10.
-	self
-		assert: LibPCRE2 versionMajor
-		equals: LibPCRE2UTF8 requiredMajorVersion.
+	self assert: LibPCRE2 versionMajor equals: LibPCRE2UTF8 requiredMajorVersion.
 	self assert: version first equals: LibPCRE2 versionMajor.
 	self assert: version second equals: LibPCRE2 versionMinor.
 	self assert: version third equals: LibPCRE2 versionDate.
-	self assert: (LibPCRE2 versionString beginsWith:
-			 LibPCRE2UTF8 requiredMajorVersion asString , '.').
+	self assert: (LibPCRE2 versionString beginsWith: LibPCRE2UTF8 requiredMajorVersion asString , '.').
 	self assert: configs size equals: 16.
 
 	LibPCRE2UTF8 assertCompatibleLibrary.
@@ -59,12 +56,10 @@ LibPCRE2Test >> testSerializeDeserializeConvenienceDecodesAllCodes [
 
 	pointers := LibPCRE2UTF8 deserialize: bytes.
 	wordSize := ExternalAddress wordSize.
-	handles := (1 to: regexes size) collect: [ :index |
-		           pointers pointerAtOffset: wordSize * (index - 1) ].
+	handles := (1 to: regexes size) collect: [ :index | pointers pointerAtOffset: wordSize * (index - 1) ].
 
 	[
-	self assert: pointers size equals: regexes size * wordSize.
-	handles do: [ :handle | self deny: handle isNull ] ] ensure: [
-		handles do: [ :handle |
-			(PCRE2UTF8Matcher fromHandle: handle) finalize ] ]
+		self assert: pointers size equals: regexes size * wordSize.
+		handles do: [ :handle | self deny: handle isNull ] ] ensure: [
+		handles do: [ :handle | (PCRE2UTF8Matcher fromHandle: handle) finalize ] ]
 ]

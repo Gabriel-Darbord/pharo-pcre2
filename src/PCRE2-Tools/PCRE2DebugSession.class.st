@@ -92,8 +92,7 @@ PCRE2DebugSession >> continueLiveRun [
 { #category : 'private' }
 PCRE2DebugSession >> ensureLiveRun [
 
-	(liveRun isNil or: [ liveRun isFinished ]) ifTrue: [
-		^ self prepareLiveRun ].
+	(liveRun isNil or: [ liveRun isFinished ]) ifTrue: [ ^ self prepareLiveRun ].
 	^ liveRun
 ]
 
@@ -169,28 +168,28 @@ PCRE2DebugSession >> liveStatusString [
 
 	liveRun ifNil: [ ^ 'Live debugger idle.' ].
 	^ String streamContents: [ :stream |
-		  stream
-			  nextPutAll: 'Live ';
-			  nextPutAll: liveRun runState asString.
-		  trace ifNotNil: [
 			  stream
-				  nextPutAll: ' | steps ';
-				  print: self stepCount;
-				  nextPutAll: ' | events ';
-				  print: trace events size.
-			  trace isFinished ifTrue: [
-				  stream
-					  nextPutAll: ' | result code ';
-					  print: trace resultCode.
-				  trace matchedString ifNotNil: [ :matched |
+				  nextPutAll: 'Live ';
+				  nextPutAll: liveRun runState asString.
+			  trace ifNotNil: [
 					  stream
-						  nextPutAll: ' | matched ';
-						  print: matched ] ].
-			  trace isAborted ifTrue: [ stream nextPutAll: ' | aborted' ] ].
-		  liveRun lastError ifNotNil: [ :errorText |
-			  stream
-				  nextPutAll: ' | error ';
-				  nextPutAll: errorText ] ]
+						  nextPutAll: ' | steps ';
+						  print: self stepCount;
+						  nextPutAll: ' | events ';
+						  print: trace events size.
+					  trace isFinished ifTrue: [
+							  stream
+								  nextPutAll: ' | result code ';
+								  print: trace resultCode.
+							  trace matchedString ifNotNil: [ :matched |
+									  stream
+										  nextPutAll: ' | matched ';
+										  print: matched ] ].
+					  trace isAborted ifTrue: [ stream nextPutAll: ' | aborted' ] ].
+			  liveRun lastError ifNotNil: [ :errorText |
+					  stream
+						  nextPutAll: ' | error ';
+						  nextPutAll: errorText ] ]
 ]
 
 { #category : 'accessing' }
@@ -270,20 +269,17 @@ PCRE2DebugSession >> prepareLiveRun [
 	matcher := nil.
 	trace := nil.
 	selectedStepIndex := 0.
-	liveRun := PCRE2LiveDebugRun
-		           pattern: pattern
-		           subject: subject
-		           compiler: self compiler.
+	liveRun := PCRE2LiveDebugRun pattern: pattern subject: subject compiler: self compiler.
 	[
-	liveRun prepare.
-	matcher := liveRun matcher.
-	trace := liveRun recorder ]
+		liveRun prepare.
+		matcher := liveRun matcher.
+		trace := liveRun recorder ]
 		on: Error
 		do: [ :error |
-			lastError := error messageText ifNil: [ error printString ].
-			matcher := nil.
-			trace := nil.
-			liveRun := nil ].
+				lastError := error messageText ifNil: [ error printString ].
+				matcher := nil.
+				trace := nil.
+				liveRun := nil ].
 	^ liveRun
 ]
 
@@ -300,13 +296,13 @@ PCRE2DebugSession >> refreshLiveTrace [
 	trace := liveRun recorder.
 	liveRun lastError ifNotNil: [ :errorText | lastError := errorText ].
 	trace ifNil: [
-		selectedStepIndex := 0.
-		^ trace ].
+			selectedStepIndex := 0.
+			^ trace ].
 	self stepCount = 0
 		ifTrue: [ selectedStepIndex := 0 ]
 		ifFalse: [
-			selectedStepIndex = 0 ifTrue: [ selectedStepIndex := 1 ].
-			selectedStepIndex := selectedStepIndex min: self stepCount ].
+				selectedStepIndex = 0 ifTrue: [ selectedStepIndex := 1 ].
+				selectedStepIndex := selectedStepIndex min: self stepCount ].
 	^ trace
 ]
 
@@ -321,18 +317,18 @@ PCRE2DebugSession >> runTrace [
 	trace := nil.
 	selectedStepIndex := 0.
 	[
-	matcher := self compiler compile: pattern.
-	trace := matcher traceMatch: subject.
-	self persistTraceMatch.
-	selectedStepIndex := self stepCount = 0
-		                     ifTrue: [ 0 ]
-		                     ifFalse: [ 1 ] ]
+		matcher := self compiler compile: pattern.
+		trace := matcher traceMatch: subject.
+		self persistTraceMatch.
+		selectedStepIndex := self stepCount = 0
+			                     ifTrue: [ 0 ]
+			                     ifFalse: [ 1 ] ]
 		on: Error
 		do: [ :error |
-			lastError := error messageText ifNil: [ error printString ].
-			matcher := nil.
-			trace := nil.
-			selectedStepIndex := 0 ].
+				lastError := error messageText ifNil: [ error printString ].
+				matcher := nil.
+				trace := nil.
+				selectedStepIndex := 0 ].
 	^ trace
 ]
 
@@ -340,8 +336,8 @@ PCRE2DebugSession >> runTrace [
 PCRE2DebugSession >> selectStep: aTraceStep [
 
 	aTraceStep ifNil: [
-		selectedStepIndex := 0.
-		^ self ].
+			selectedStepIndex := 0.
+			^ self ].
 	^ self selectStepIndex: aTraceStep index
 ]
 
@@ -374,22 +370,22 @@ PCRE2DebugSession >> statusString [
 	executionMode = #stepLive ifTrue: [ ^ self liveStatusString ].
 	trace ifNil: [ ^ 'No trace yet.' ].
 	^ String streamContents: [ :stream |
-		  stream
-			  nextPutAll: (trace isMatch
-					   ifTrue: [ 'Match' ]
-					   ifFalse: [ 'No match' ]);
-			  nextPutAll: ' | result code ';
-			  print: trace resultCode;
-			  nextPutAll: ' | steps ';
-			  print: self stepCount.
-		  self traceWasLimited ifTrue: [
 			  stream
-				  nextPutAll: ' shown of ';
-				  print: trace events size ].
-		  trace matchedString ifNotNil: [ :matched |
-			  stream
-				  nextPutAll: ' | matched ';
-				  print: matched ] ]
+				  nextPutAll: (trace isMatch
+						   ifTrue: [ 'Match' ]
+						   ifFalse: [ 'No match' ]);
+				  nextPutAll: ' | result code ';
+				  print: trace resultCode;
+				  nextPutAll: ' | steps ';
+				  print: self stepCount.
+			  self traceWasLimited ifTrue: [
+					  stream
+						  nextPutAll: ' shown of ';
+						  print: trace events size ].
+			  trace matchedString ifNotNil: [ :matched |
+					  stream
+						  nextPutAll: ' | matched ';
+						  print: matched ] ]
 ]
 
 { #category : 'stepping' }
@@ -417,11 +413,11 @@ PCRE2DebugSession >> stepStatusString [
 
 	self stepCount = 0 ifTrue: [ ^ 'Step 0 / 0' ].
 	^ String streamContents: [ :stream |
-		  stream
-			  nextPutAll: 'Step ';
-			  print: selectedStepIndex;
-			  nextPutAll: ' / ';
-			  print: self stepCount ]
+			  stream
+				  nextPutAll: 'Step ';
+				  print: selectedStepIndex;
+				  nextPutAll: ' / ';
+				  print: self stepCount ]
 ]
 
 { #category : 'accessing' }
@@ -474,9 +470,7 @@ PCRE2DebugSession >> waitForLiveCompletionMilliseconds: timeoutMilliseconds [
 
 	| completed |
 	liveRun ifNil: [ ^ false ].
-	[
-	completed := liveRun waitForCompletionMilliseconds:
-		             timeoutMilliseconds ] ensure: [ self refreshLiveTrace ].
+	[ completed := liveRun waitForCompletionMilliseconds: timeoutMilliseconds ] ensure: [ self refreshLiveTrace ].
 	^ completed
 ]
 
@@ -485,8 +479,6 @@ PCRE2DebugSession >> waitForLivePauseOrFinishMilliseconds: timeoutMilliseconds [
 
 	| completed |
 	liveRun ifNil: [ ^ false ].
-	[
-	completed := liveRun waitForPauseOrFinishMilliseconds:
-		             timeoutMilliseconds ] ensure: [ self refreshLiveTrace ].
+	[ completed := liveRun waitForPauseOrFinishMilliseconds: timeoutMilliseconds ] ensure: [ self refreshLiveTrace ].
 	^ completed
 ]

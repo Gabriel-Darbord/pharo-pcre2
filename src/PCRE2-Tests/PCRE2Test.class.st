@@ -13,8 +13,7 @@ Class {
 { #category : 'private' }
 PCRE2Test >> optionSelectorsFrom: optionsByFunction [
 
-	^ optionsByFunction collect: [ :optionsByValue |
-		  optionsByValue collect: [ :method | method selector ] ]
+	^ optionsByFunction collect: [ :optionsByValue | optionsByValue collect: [ :method | method selector ] ]
 ]
 
 { #category : 'tests' }
@@ -132,9 +131,7 @@ PCRE2Test >> testAllOptions [
 					              (131072 -> #substituteReplacementOnly).
 					              (262144 -> #disableRecurseloopCheck) })) }.
 
-	self
-		assert: (self optionSelectorsFrom: PCRE2 allOptions)
-		equals: expected
+	self assert: (self optionSelectorsFrom: PCRE2 allOptions) equals: expected
 ]
 
 { #category : 'tests' }
@@ -154,8 +151,7 @@ PCRE2Test >> testReadOptions [
 	"Options are flags with different meanings depending on the function to which they are applied."
 
 	| options expected actual |
-	options := PCRE2 autoCallout | PCRE2 dotAll | PCRE2 extended
-	           | PCRE2 firstLine.
+	options := PCRE2 autoCallout | PCRE2 dotAll | PCRE2 extended | PCRE2 firstLine.
 
 	actual := PCRE2 readOptions: options.
 
@@ -165,26 +161,16 @@ PCRE2Test >> testReadOptions [
 				 with: PCRE2 class >> #dotAll
 				 with: PCRE2 class >> #extended
 				 with: PCRE2 class >> #firstLine);
-		at: #convert
-		put: (OrderedCollection with: PCRE2 class >> #convertPOSIXBasic);
-		at: #dfa_match put: (OrderedCollection
-				 with: PCRE2 class >> #notEmpty
-				 with: PCRE2 class >> #partialHard
-				 with: PCRE2 class >> #dfaShortest);
-		at: #jit_compile
-		put: (OrderedCollection with: PCRE2 class >> #jitPartialHard);
-		at: #jit_match put: (OrderedCollection
-				 with: PCRE2 class >> #notEmpty
-				 with: PCRE2 class >> #partialHard);
-		at: #match put: (OrderedCollection
-				 with: PCRE2 class >> #notEmpty
-				 with: PCRE2 class >> #partialHard);
-		at: #substitute
-		put: (OrderedCollection with: PCRE2 class >> #substituteGlobal).
+		at: #convert put: (OrderedCollection with: PCRE2 class >> #convertPOSIXBasic);
+		at: #dfa_match
+		put: (OrderedCollection with: PCRE2 class >> #notEmpty with: PCRE2 class >> #partialHard with: PCRE2 class >> #dfaShortest);
+		at: #jit_compile put: (OrderedCollection with: PCRE2 class >> #jitPartialHard);
+		at: #jit_match put: (OrderedCollection with: PCRE2 class >> #notEmpty with: PCRE2 class >> #partialHard);
+		at: #match put: (OrderedCollection with: PCRE2 class >> #notEmpty with: PCRE2 class >> #partialHard);
+		at: #substitute put: (OrderedCollection with: PCRE2 class >> #substituteGlobal).
 
 	"assert:equals: should work, but it does not pass in the CI on Ubuntu"
-	expected keysAndValuesDo: [ :key :value |
-		self assertCollection: (actual at: key) hasSameElements: value ]
+	expected keysAndValuesDo: [ :key :value | self assertCollection: (actual at: key) hasSameElements: value ]
 ]
 
 { #category : 'tests' }
@@ -196,21 +182,15 @@ PCRE2Test >> testReadOptionsFor [
 
 	self assert: (PCRE2 readOptions: regex options for: #match) isEmpty.
 
-	self
-		assert: (PCRE2 readOptions: regex compiler options for: #compile)
-		equals: (OrderedCollection with: PCRE2 class >> #utf).
+	self assert: (PCRE2 readOptions: regex compiler options for: #compile) equals: (OrderedCollection with: PCRE2 class >> #utf).
 
 	self
-		assert:
-		(PCRE2 readOptions: regex compiler optionsJIT for: #jit_compile)
+		assert: (PCRE2 readOptions: regex compiler optionsJIT for: #jit_compile)
 		equals: (OrderedCollection with: PCRE2 class >> #jitComplete).
 
 	"check that some match() options are recognized"
 	self
-		assert: (PCRE2
-				 readOptions:
-				 PCRE2 notEmpty | PCRE2 noJIT | PCRE2 noUTFCheck | PCRE2 anchored
-				 for: #match)
+		assert: (PCRE2 readOptions: PCRE2 notEmpty | PCRE2 noJIT | PCRE2 noUTFCheck | PCRE2 anchored for: #match)
 		equals: (OrderedCollection
 				 with: PCRE2 class >> #notEmpty
 				 with: PCRE2 class >> #noJIT

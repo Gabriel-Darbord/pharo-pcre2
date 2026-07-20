@@ -125,6 +125,7 @@ PCRE2CompileContext >> enableStartOptimization [
 
 { #category : 'external resource management' }
 PCRE2CompileContext >> free [
+
 	^ self subclassResponsibility
 ]
 
@@ -243,15 +244,14 @@ PCRE2CompileContext >> parensNestLimit: anInteger [
 PCRE2CompileContext >> postCopy [
 
 	handle := self privateCopy.
-	handle isNull ifTrue: [
-		PCRE2Error signal: 'Failed to obtain memory to copy compile context' ].
-	optimizationDirectives ifNotNil: [
-		optimizationDirectives := optimizationDirectives copy ].
+	handle isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to copy compile context' ].
+	optimizationDirectives ifNotNil: [ optimizationDirectives := optimizationDirectives copy ].
 	self autoRelease
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> privateCopy [
+
 	^ self subclassResponsibility
 ]
 
@@ -266,12 +266,12 @@ PCRE2CompileContext >> requireSupportedFeature: featureName since: versionString
 	"Fail before calling an FFI entry point that may not exist in older PCRE2 10.x runtimes."
 
 	aBoolean ifTrue: [ ^ self ].
-	PCRE2Error signal: featureName , ' requires PCRE2 ' , versionString
-		, ' or newer; loaded ' , self ffiLibraryName versionString
+	PCRE2Error signal: featureName , ' requires PCRE2 ' , versionString , ' or newer; loaded ' , self ffiLibraryName versionString
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setBSR: value [
+
 	^ self subclassResponsibility
 ]
 
@@ -283,36 +283,43 @@ PCRE2CompileContext >> setCharacterTables: characterTablesOrNil [
 
 { #category : 'private' }
 PCRE2CompileContext >> setMaxPatternCompiledLength: value [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setMaxPatternLength: value [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setMaxVarLookbehind: value [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setNewline: value [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setOptimize: directive [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setOptions: value [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setParensNestLimit: value [
+
 	^ self subclassResponsibility
 ]
 

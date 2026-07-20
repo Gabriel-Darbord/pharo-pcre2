@@ -33,18 +33,14 @@ PCRE2WideInputBytes class >> bytesAfterBOM: aByteCollection byteCount: bomByteCo
 PCRE2WideInputBytes class >> hasBigEndianBOM: aByteCollection width: width [
 	"Answer whether a byte collection starts with the big-endian BOM for width."
 
-	^ self
-		  startsWith: aByteCollection
-		  bytes: (self bigEndianBOMForWidth: width)
+	^ self startsWith: aByteCollection bytes: (self bigEndianBOMForWidth: width)
 ]
 
 { #category : 'testing' }
 PCRE2WideInputBytes class >> hasLittleEndianBOM: aByteCollection width: width [
 	"Answer whether a byte collection starts with the little-endian BOM for width."
 
-	^ self
-		  startsWith: aByteCollection
-		  bytes: (self littleEndianBOMForWidth: width)
+	^ self startsWith: aByteCollection bytes: (self littleEndianBOMForWidth: width)
 ]
 
 { #category : 'private' }
@@ -89,9 +85,7 @@ PCRE2WideInputBytes class >> startsWith: aByteCollection bytes: prefixBytes [
 	"Answer whether a byte collection starts with prefixBytes."
 
 	aByteCollection size < prefixBytes size ifTrue: [ ^ false ].
-	1 to: prefixBytes size do: [ :index |
-		(aByteCollection at: index) = (prefixBytes at: index) ifFalse: [
-			^ false ] ].
+	1 to: prefixBytes size do: [ :index | (aByteCollection at: index) = (prefixBytes at: index) ifFalse: [ ^ false ] ].
 	^ true
 ]
 
@@ -100,16 +94,10 @@ PCRE2WideInputBytes class >> swapBytes: aByteCollection width: width [
 	"Answer a copy where each code unit of width bytes has its byte order reversed."
 
 	| swapped |
-	self
-		validateByteSize: aByteCollection
-		multipleOf: width
-		message: 'Input byte size must be divisible by the code-unit width'.
+	self validateByteSize: aByteCollection multipleOf: width message: 'Input byte size must be divisible by the code-unit width'.
 	swapped := ByteArray new: aByteCollection size.
 	1 to: aByteCollection size by: width do: [ :start |
-		1 to: width do: [ :offset |
-			swapped
-				at: start + offset - 1
-				put: (aByteCollection at: start + width - offset) ] ].
+	1 to: width do: [ :offset | swapped at: start + offset - 1 put: (aByteCollection at: start + width - offset) ] ].
 	^ swapped
 ]
 
@@ -117,6 +105,5 @@ PCRE2WideInputBytes class >> swapBytes: aByteCollection width: width [
 PCRE2WideInputBytes class >> validateByteSize: aByteCollection multipleOf: width message: messageText [
 	"Signal when a byte collection cannot be split into whole code units of width bytes."
 
-	(aByteCollection size rem: width) = 0 ifFalse: [
-		PCRE2Error signal: messageText ]
+	(aByteCollection size rem: width) = 0 ifFalse: [ PCRE2Error signal: messageText ]
 ]

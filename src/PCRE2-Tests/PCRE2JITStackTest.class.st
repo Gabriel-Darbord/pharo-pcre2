@@ -39,11 +39,10 @@ PCRE2JITStackTest >> testMatchContextCopyKeepsJITStackReference [
 	context jitStack: stack.
 	copy := context copy.
 	[
-	self assert: copy jitStack identicalTo: stack.
-	copy clearJITStack.
-	self assert: copy jitStack isNil.
-	self assert: context jitStack identicalTo: stack ] ensure: [
-		copy free ]
+		self assert: copy jitStack identicalTo: stack.
+		copy clearJITStack.
+		self assert: copy jitStack isNil.
+		self assert: context jitStack identicalTo: stack ] ensure: [ copy free ]
 ]
 
 { #category : 'tests' }

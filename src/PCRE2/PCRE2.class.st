@@ -22,10 +22,10 @@ PCRE2 class >> allInfoOnRegex: regex [
 	| infos |
 	infos := Dictionary new: 27.
 	self class methods do: [ :method |
-		(method selector beginsWith: #info) ifTrue: [
-			| option |
-			option := self perform: method selector.
-			infos at: method put: (regex info: option) ] ].
+			(method selector beginsWith: #info) ifTrue: [
+					| option |
+					option := self perform: method selector.
+					infos at: method put: (regex info: option) ] ].
 	^ infos
 ]
 
@@ -37,16 +37,11 @@ PCRE2 class >> allOptions [
 	| options |
 	options := Dictionary new: 7.
 	self class methods do: [ :method |
-		method pragmas
-			detect: [ :pragma | pragma selector = #pcre2Option: ]
-			ifFound: [ :pragma |
-				| option |
-				option := self perform: method selector.
-				pragma arguments first do: [ :fun |
-					options
-						at: fun
-						ifPresent: [ :methods | methods at: option put: method ]
-						ifAbsentPut: [ Dictionary with: option -> method ] ] ] ].
+			method pragmas detect: [ :pragma | pragma selector = #pcre2Option: ] ifFound: [ :pragma |
+					| option |
+					option := self perform: method selector.
+					pragma arguments first do: [ :fun |
+						options at: fun ifPresent: [ :methods | methods at: option put: method ] ifAbsentPut: [ Dictionary with: option -> method ] ] ] ].
 	^ options
 ]
 
@@ -749,176 +744,175 @@ PCRE2 class >> infoSize [
 PCRE2 class >> initialize [
 
 	errorCodeTable := Dictionary newFrom: {
+			                  (-67 -> 'INTERNAL ERROR: invalid substring offset').
+			                  (-66 -> 'PCRE2_MATCH_INVALID_UTF is not supported for DFA matching').
+			                  (-65 -> 'internal error - duplicate substitution match').
+			                  (-64 -> 'invalid syntax').
+			                  (-63 -> 'heap limit exceeded').
+			                  (-62 -> 'bad serialized data').
+			                  (-61 -> 'too many replacements (more than INT_MAX)').
+			                  (-60 -> 'match with end before start or start moved backwards is not supported').
+			                  (-59 -> 'bad substitution in replacement string').
+			                  (-58 -> 'expected closing curly bracket in replacement string').
+			                  (-57 -> 'bad escape sequence in replacement string').
+			                  (-56 -> 'offset limit set without PCRE2_USE_OFFSET_LIMIT').
+			                  (-55 -> 'requested value is not set').
+			                  (-54 -> 'requested value is not available').
+			                  (-53 -> 'matching depth limit exceeded').
+			                  (-52 -> 'nested recursion at the same subject position').
+			                  (-51 -> 'NULL argument passed with non-zero length').
+			                  (-50 -> 'non-unique substring name').
+			                  (-49 -> 'unknown substring').
+			                  (-48 -> 'no more memory').
+			                  (-47 -> 'match limit exceeded').
+			                  (-46 -> 'JIT stack limit reached').
+			                  (-45 -> 'bad JIT option').
+			                  (-44 -> 'internal error - pattern overwritten?').
+			                  (-43 -> 'workspace size exceeded in DFA matching').
+			                  (-42 -> 'pattern contains an item that is not supported for DFA matching').
+			                  (-41 -> 'function is not supported for DFA matching').
+			                  (-40 -> 'backreference condition or recursion test is not supported for DFA matching').
+			                  (-39 -> 'too much recursion for DFA matching').
+			                  (-38 -> 'invalid data in workspace for DFA restart').
+			                  (-37 -> 'callout error code').
+			                  (-36 -> 'bad offset into UTF string').
+			                  (-35 -> 'invalid replacement string').
+			                  (-34 -> 'bad option value').
+			                  (-33 -> 'bad offset value').
+			                  (-32 -> 'pattern compiled in wrong mode: 8/16/32-bit error').
+			                  (-31 -> 'magic number missing').
+			                  (-30 -> 'patterns do not all use the same character tables').
+			                  (-29 -> 'bad data value').
+			                  (-28 -> 'UTF-32 error: code points greater than 0x10ffff are not defined').
+			                  (-27 -> 'UTF-32 error: code points 0xd800-0xdfff are not defined').
+			                  (-26 -> 'UTF-16 error: isolated low surrogate').
+			                  (-25 -> 'UTF-16 error: invalid low surrogate').
+			                  (-24 -> 'UTF-16 error: missing low surrogate at end').
+			                  (-23 -> 'UTF-8 error: illegal byte (0xfe or 0xff)').
+			                  (-22 -> 'UTF-8 error: isolated byte with 0x80 bit set').
+			                  (-21 -> 'UTF-8 error: overlong 6-byte sequence').
+			                  (-20 -> 'UTF-8 error: overlong 5-byte sequence').
+			                  (-19 -> 'UTF-8 error: overlong 4-byte sequence').
+			                  (-18 -> 'UTF-8 error: overlong 3-byte sequence').
+			                  (-17 -> 'UTF-8 error: overlong 2-byte sequence').
+			                  (-16 -> 'UTF-8 error: code points 0xd800-0xdfff are not defined').
+			                  (-15 -> 'UTF-8 error: code points greater than 0x10ffff are not defined').
+			                  (-14 -> 'UTF-8 error: 6-byte character is not allowed (RFC 3629)').
+			                  (-13 -> 'UTF-8 error: 5-byte character is not allowed (RFC 3629)').
+			                  (-12 -> 'UTF-8 error: byte 6 top bits not 0x80').
+			                  (-11 -> 'UTF-8 error: byte 5 top bits not 0x80').
+			                  (-10 -> 'UTF-8 error: byte 4 top bits not 0x80').
+			                  (-9 -> 'UTF-8 error: byte 3 top bits not 0x80').
+			                  (-8 -> 'UTF-8 error: byte 2 top bits not 0x80').
+			                  (-7 -> 'UTF-8 error: 5 bytes missing at end').
+			                  (-6 -> 'UTF-8 error: 4 bytes missing at end').
+			                  (-5 -> 'UTF-8 error: 3 bytes missing at end').
+			                  (-4 -> 'UTF-8 error: 2 bytes missing at end').
+			                  (-3 -> 'UTF-8 error: 1 byte missing at end').
+			                  "compile errors"
+			                  (100 -> 'no error').
+			                  (101 -> '\ at end of pattern').
+			                  (102 -> '\c at end of pattern').
+			                  (103 -> 'unrecognized character follows \').
+			                  (104 -> 'numbers out of order in {} quantifier').
+			                  (105 -> 'number too big in {} quantifier').
+			                  (106 -> 'missing terminating ] for character class').
+			                  (107 -> 'escape sequence is invalid in character class').
+			                  (108 -> 'range out of order in character class').
+			                  (109 -> 'quantifier does not follow a repeatable item').
+			                  (110 -> 'internal error: unexpected repeat').
+			                  (111 -> 'unrecognized character after (? or (?-').
+			                  (112 -> 'POSIX named classes are supported only within a class').
+			                  (113 -> 'POSIX collating elements are not supported').
+			                  (114 -> 'missing closing parenthesis').
+			                  (115 -> 'reference to non-existent subpattern').
+			                  (116 -> 'pattern passed as NULL with non-zero length').
+			                  (117 -> 'unrecognised compile-time option bit(s)').
+			                  (118 -> 'missing ) after (?# comment').
+			                  (119 -> 'parentheses are too deeply nested').
+			                  (120 -> 'regular expression is too large').
+			                  (121 -> 'failed to allocate heap memory').
+			                  (122 -> 'unmatched closing parenthesis').
+			                  (123 -> 'internal error: code overflow').
+			                  (124 -> 'missing closing parenthesis for condition').
+			                  (125 -> 'length of lookbehind assertion is not limited').
+			                  (126 -> 'a relative value of zero is not allowed').
+			                  (127 -> 'conditional subpattern contains more than two branches').
+			                  (128 -> 'assertion expected after (?( or (?(?C)').
+			                  (129 -> 'digit expected after (?+ or (?-').
+			                  (130 -> 'unknown POSIX class name').
+			                  (131 -> 'internal error in pcre2_study(): should not occur').
+			                  (132 -> 'this version of PCRE2 does not have Unicode support').
+			                  (133 -> 'parentheses are too deeply nested (stack check)').
+			                  (134 -> 'character code point value in \x{} or \o{} is too large').
+			                  (135 -> 'lookbehind is too complicated').
+			                  (136 -> '\C is not allowed in a lookbehind assertion in UTF-8 mode').
+			                  (137 -> 'PCRE2 does not support \F, \L, \l, \N{name}, \U, or \u').
+			                  (138 -> 'number after (?C is greater than 255').
+			                  (139 -> 'closing parenthesis for (?C expected').
+			                  (140 -> 'invalid escape sequence in (*VERB) name').
+			                  (141 -> 'unrecognized character after (?P').
+			                  (142 -> 'syntax error in subpattern name (missing terminator?)').
+			                  (143 -> 'two named subpatterns have the same name (PCRE2_DUPNAMES not set)').
+			                  (144 -> 'subpattern name must start with a non-digit').
+			                  (145 -> 'this version of PCRE2 does not have support for \P, \p, or \X').
+			                  (146 -> 'malformed \P or \p sequence').
+			                  (147 -> 'unknown property after \P or \p').
+			                  (148 -> 'subpattern name is too long (maximum 128 code units)').
+			                  (149 -> 'too many named subpatterns (maximum 10000)').
+			                  (150 -> 'invalid range in character class').
+			                  (151 -> 'octal value is greater than \377 in 8-bit non-UTF-8 mode').
+			                  (152 -> 'internal error: overran compiling workspace').
+			                  (153 -> 'internal error: previously-checked referenced subpattern not found').
+			                  (154 -> 'DEFINE subpattern contains more than one branch').
+			                  (155 -> 'missing opening brace after \o').
+			                  (156 -> 'internal error: unknown newline setting').
+			                  (157 -> '\g is not followed by a braced, angle-bracketed, or quoted name/number or by a plain number').
+			                  (158 -> '(?R (recursive pattern call) must be followed by a closing parenthesis').
+			                  (159 -> 'obsolete error (should not occur)').
+			                  (160 -> '(*VERB) not recognized or malformed').
+			                  (161 -> 'subpattern number is too big').
+			                  (162 -> 'subpattern name expected').
+			                  (163 -> 'internal error: parsed pattern overflow').
+			                  (164 -> 'non-octal character in \o{} (closing brace missing?)').
+			                  (165 -> 'different names for subpatterns of the same number are not allowed').
+			                  (166 -> '(*MARK) must have an argument').
+			                  (167 -> 'non-hex character in \x{} (closing brace missing?)').
+			                  (168 -> '\c must be followed by a printable ASCII character').
+			                  (169 -> '\k is not followed by a braced, angle-bracketed, or quoted name').
+			                  (170 -> 'internal error: unknown meta code in check_lookbehinds()').
+			                  (171 -> '\N is not supported in a class').
+			                  (172 -> 'callout string is too long').
+			                  (173 -> 'disallowed Unicode code point (>= 0xd800 && <= 0xdfff)').
+			                  (174 -> 'using UTF is disabled by the application').
+			                  (175 -> 'using UCP is disabled by the application').
+			                  (176 -> 'name is too long in (*MARK), (*PRUNE), (*SKIP), or (*THEN)').
+			                  (177 -> 'character code point value in \u.... sequence is too large').
+			                  (178 -> 'digits missing in \x{} or \o{} or \N{U+}').
+			                  (179 -> 'syntax error or number too big in (?(VERSION condition').
+			                  (180 -> 'internal error: unknown opcode in auto_possessify()').
+			                  (181 -> 'missing terminating delimiter for callout with string argument').
+			                  (182 -> 'unrecognized string delimiter follows (?C').
+			                  (183 -> 'using \C is disabled by the application').
+			                  (184 -> '(?| and/or (?J: or (?x: parentheses are too deeply nested').
+			                  (185 -> 'using \C is disabled in this PCRE2 library').
+			                  (186 -> 'regular expression is too complicated').
+			                  (187 -> 'lookbehind assertion is too long').
+			                  (188 -> 'pattern string is longer than the limit set by the application').
+			                  (189 -> 'internal error: unknown code in parsed pattern').
+			                  (190 -> 'internal error: bad code value in parsed_skip()').
+			                  (191 -> 'PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES is not allowed in UTF-16 mode').
+			                  (192 -> 'invalid option bits with PCRE2_LITERAL').
+			                  (193 -> '\N{U+dddd} is supported only in Unicode (UTF) mode').
+			                  (194 -> 'invalid hyphen in option setting').
+			                  (195 -> '(*alpha_assertion) not recognized').
+			                  (196 -> 'script runs require Unicode support, which this version of PCRE2 does not have').
+			                  (197 -> 'too many capturing groups (maximum 65535)').
+			                  (198 -> 'atomic assertion expected after (?( or (?(?C)').
+			                  (199 -> '\K is not allowed in lookarounds (but see PCRE2_EXTRA_ALLOW_LOOKAROUND_BSK)').
+			                  (200 -> 'branch too long in variable-length lookbehind assertion').
+			                  (201 -> 'compiled pattern would be longer than the limit set by the application') }
 	"match errors; (-1 -> NOMATCH) and (-2 -> PARTIAL) are handled, so excluded here"
-	(-67 -> 'INTERNAL ERROR: invalid substring offset').
-	(-66 -> 'PCRE2_MATCH_INVALID_UTF is not supported for DFA matching').
-	(-65 -> 'internal error - duplicate substitution match').
-	(-64 -> 'invalid syntax').
-	(-63 -> 'heap limit exceeded').
-	(-62 -> 'bad serialized data').
-	(-61 -> 'too many replacements (more than INT_MAX)').
-	(-60 -> 'match with end before start or start moved backwards is not supported').
-	(-59 -> 'bad substitution in replacement string').
-	(-58 -> 'expected closing curly bracket in replacement string').
-	(-57 -> 'bad escape sequence in replacement string').
-	(-56 -> 'offset limit set without PCRE2_USE_OFFSET_LIMIT').
-	(-55 -> 'requested value is not set').
-	(-54 -> 'requested value is not available').
-	(-53 -> 'matching depth limit exceeded').
-	(-52 -> 'nested recursion at the same subject position').
-	(-51 -> 'NULL argument passed with non-zero length').
-	(-50 -> 'non-unique substring name').
-	(-49 -> 'unknown substring').
-	(-48 -> 'no more memory').
-	(-47 -> 'match limit exceeded').
-	(-46 -> 'JIT stack limit reached').
-	(-45 -> 'bad JIT option').
-	(-44 -> 'internal error - pattern overwritten?').
-	(-43 -> 'workspace size exceeded in DFA matching').
-	(-42 -> 'pattern contains an item that is not supported for DFA matching').
-	(-41 -> 'function is not supported for DFA matching').
-	(-40 -> 'backreference condition or recursion test is not supported for DFA matching').
-	(-39 -> 'too much recursion for DFA matching').
-	(-38 -> 'invalid data in workspace for DFA restart').
-	(-37 -> 'callout error code').
-	(-36 -> 'bad offset into UTF string').
-	(-35 -> 'invalid replacement string').
-	(-34 -> 'bad option value').
-	(-33 -> 'bad offset value').
-	(-32 -> 'pattern compiled in wrong mode: 8/16/32-bit error').
-	(-31 -> 'magic number missing').
-	(-30 -> 'patterns do not all use the same character tables').
-	(-29 -> 'bad data value').
-	(-28 -> 'UTF-32 error: code points greater than 0x10ffff are not defined').
-	(-27 -> 'UTF-32 error: code points 0xd800-0xdfff are not defined').
-	(-26 -> 'UTF-16 error: isolated low surrogate').
-	(-25 -> 'UTF-16 error: invalid low surrogate').
-	(-24 -> 'UTF-16 error: missing low surrogate at end').
-	(-23 -> 'UTF-8 error: illegal byte (0xfe or 0xff)').
-	(-22 -> 'UTF-8 error: isolated byte with 0x80 bit set').
-	(-21 -> 'UTF-8 error: overlong 6-byte sequence').
-	(-20 -> 'UTF-8 error: overlong 5-byte sequence').
-	(-19 -> 'UTF-8 error: overlong 4-byte sequence').
-	(-18 -> 'UTF-8 error: overlong 3-byte sequence').
-	(-17 -> 'UTF-8 error: overlong 2-byte sequence').
-	(-16 -> 'UTF-8 error: code points 0xd800-0xdfff are not defined').
-	(-15 -> 'UTF-8 error: code points greater than 0x10ffff are not defined').
-	(-14 -> 'UTF-8 error: 6-byte character is not allowed (RFC 3629)').
-	(-13 -> 'UTF-8 error: 5-byte character is not allowed (RFC 3629)').
-	(-12 -> 'UTF-8 error: byte 6 top bits not 0x80').
-	(-11 -> 'UTF-8 error: byte 5 top bits not 0x80').
-	(-10 -> 'UTF-8 error: byte 4 top bits not 0x80').
-	(-9 -> 'UTF-8 error: byte 3 top bits not 0x80').
-	(-8 -> 'UTF-8 error: byte 2 top bits not 0x80').
-	(-7 -> 'UTF-8 error: 5 bytes missing at end').
-	(-6 -> 'UTF-8 error: 4 bytes missing at end').
-	(-5 -> 'UTF-8 error: 3 bytes missing at end').
-	(-4 -> 'UTF-8 error: 2 bytes missing at end').
-	(-3 -> 'UTF-8 error: 1 byte missing at end').
-	"compile errors"
-	(100 -> 'no error').
-	(101 -> '\ at end of pattern').
-	(102 -> '\c at end of pattern').
-	(103 -> 'unrecognized character follows \').
-	(104 -> 'numbers out of order in {} quantifier').
-	(105 -> 'number too big in {} quantifier').
-	(106 -> 'missing terminating ] for character class').
-	(107 -> 'escape sequence is invalid in character class').
-	(108 -> 'range out of order in character class').
-	(109 -> 'quantifier does not follow a repeatable item').
-	(110 -> 'internal error: unexpected repeat').
-	(111 -> 'unrecognized character after (? or (?-').
-	(112 -> 'POSIX named classes are supported only within a class').
-	(113 -> 'POSIX collating elements are not supported').
-	(114 -> 'missing closing parenthesis').
-	(115 -> 'reference to non-existent subpattern').
-	(116 -> 'pattern passed as NULL with non-zero length').
-	(117 -> 'unrecognised compile-time option bit(s)').
-	(118 -> 'missing ) after (?# comment').
-	(119 -> 'parentheses are too deeply nested').
-	(120 -> 'regular expression is too large').
-	(121 -> 'failed to allocate heap memory').
-	(122 -> 'unmatched closing parenthesis').
-	(123 -> 'internal error: code overflow').
-	(124 -> 'missing closing parenthesis for condition').
-	(125 -> 'length of lookbehind assertion is not limited').
-	(126 -> 'a relative value of zero is not allowed').
-	(127 -> 'conditional subpattern contains more than two branches').
-	(128 -> 'assertion expected after (?( or (?(?C)').
-	(129 -> 'digit expected after (?+ or (?-').
-	(130 -> 'unknown POSIX class name').
-	(131 -> 'internal error in pcre2_study(): should not occur').
-	(132 -> 'this version of PCRE2 does not have Unicode support').
-	(133 -> 'parentheses are too deeply nested (stack check)').
-	(134 -> 'character code point value in \x{} or \o{} is too large').
-	(135 -> 'lookbehind is too complicated').
-	(136 -> '\C is not allowed in a lookbehind assertion in UTF-8 mode').
-	(137 -> 'PCRE2 does not support \F, \L, \l, \N{name}, \U, or \u').
-	(138 -> 'number after (?C is greater than 255').
-	(139 -> 'closing parenthesis for (?C expected').
-	(140 -> 'invalid escape sequence in (*VERB) name').
-	(141 -> 'unrecognized character after (?P').
-	(142 -> 'syntax error in subpattern name (missing terminator?)').
-	(143 -> 'two named subpatterns have the same name (PCRE2_DUPNAMES not set)').
-	(144 -> 'subpattern name must start with a non-digit').
-	(145 ->  'this version of PCRE2 does not have support for \P, \p, or \X').
-	(146 -> 'malformed \P or \p sequence').
-	(147 -> 'unknown property after \P or \p').
-	(148 -> 'subpattern name is too long (maximum 128 code units)').
-	(149 -> 'too many named subpatterns (maximum 10000)').
-	(150 -> 'invalid range in character class').
-	(151 -> 'octal value is greater than \377 in 8-bit non-UTF-8 mode').
-	(152 -> 'internal error: overran compiling workspace').
-	(153 -> 'internal error: previously-checked referenced subpattern not found').
-	(154 -> 'DEFINE subpattern contains more than one branch').
-	(155 -> 'missing opening brace after \o').
-	(156 -> 'internal error: unknown newline setting').
-	(157 -> '\g is not followed by a braced, angle-bracketed, or quoted name/number or by a plain number').
-	(158 -> '(?R (recursive pattern call) must be followed by a closing parenthesis').
-	(159 -> 'obsolete error (should not occur)').
-	(160 -> '(*VERB) not recognized or malformed').
-	(161 -> 'subpattern number is too big').
-	(162 -> 'subpattern name expected').
-	(163 -> 'internal error: parsed pattern overflow').
-	(164 -> 'non-octal character in \o{} (closing brace missing?)').
-	(165 -> 'different names for subpatterns of the same number are not allowed').
-	(166 -> '(*MARK) must have an argument').
-	(167 -> 'non-hex character in \x{} (closing brace missing?)').
-	(168 -> '\c must be followed by a printable ASCII character').
-	(169 -> '\k is not followed by a braced, angle-bracketed, or quoted name').
-	(170 -> 'internal error: unknown meta code in check_lookbehinds()').
-	(171 -> '\N is not supported in a class').
-	(172 -> 'callout string is too long').
-	(173 -> 'disallowed Unicode code point (>= 0xd800 && <= 0xdfff)').
-	(174 -> 'using UTF is disabled by the application').
-	(175 -> 'using UCP is disabled by the application').
-	(176 ->  'name is too long in (*MARK), (*PRUNE), (*SKIP), or (*THEN)').
-	(177 ->  'character code point value in \u.... sequence is too large').
-	(178 -> 'digits missing in \x{} or \o{} or \N{U+}').
-	(179 -> 'syntax error or number too big in (?(VERSION condition').
-	(180 -> 'internal error: unknown opcode in auto_possessify()').
-	(181 -> 'missing terminating delimiter for callout with string argument').
-	(182 -> 'unrecognized string delimiter follows (?C').
-	(183 -> 'using \C is disabled by the application').
-	(184 -> '(?| and/or (?J: or (?x: parentheses are too deeply nested').
-	(185 -> 'using \C is disabled in this PCRE2 library').
-	(186 -> 'regular expression is too complicated').
-	(187 -> 'lookbehind assertion is too long').
-	(188 -> 'pattern string is longer than the limit set by the application').
-	(189 -> 'internal error: unknown code in parsed pattern').
-	(190 -> 'internal error: bad code value in parsed_skip()').
-	(191 -> 'PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES is not allowed in UTF-16 mode').
-	(192 -> 'invalid option bits with PCRE2_LITERAL').
-	(193 -> '\N{U+dddd} is supported only in Unicode (UTF) mode').
-	(194 -> 'invalid hyphen in option setting').
-	(195 -> '(*alpha_assertion) not recognized').
-	(196 -> 'script runs require Unicode support, which this version of PCRE2 does not have').
-	(197 -> 'too many capturing groups (maximum 65535)').
-	(198 -> 'atomic assertion expected after (?( or (?(?C)').
-	(199 -> '\K is not allowed in lookarounds (but see PCRE2_EXTRA_ALLOW_LOOKAROUND_BSK)').
-	(200 -> 'branch too long in variable-length lookbehind assertion').
-	(201 -> 'compiled pattern would be longer than the limit set by the application') }
-
 ]
 
 { #category : 'options' }
@@ -1195,9 +1189,7 @@ PCRE2 class >> optionsFor: function [
 	Expected symbols are #compile, #jit_compile, #match, #jit_match, #dfa_match, #substitute, and #convert."
 
 	^ self class methods select: [ :option |
-		  option pragmas anySatisfy: [ :pragma |
-			  pragma selector = #pcre2Option: and: [
-				  pragma arguments first includes: function ] ] ]
+		  option pragmas anySatisfy: [ :pragma | pragma selector = #pcre2Option: and: [ pragma arguments first includes: function ] ] ]
 ]
 
 { #category : 'options' }
@@ -1225,14 +1217,13 @@ PCRE2 class >> readOptions: anInteger [
 	options := self allOptions.
 	bit := 1.
 	1 to: 32 do: [ :i |
-		(anInteger bitAnd: bit) = bit ifTrue: [
-			options keysAndValuesDo: [ :fun :forFun |
-				forFun at: bit ifPresent: [ :method |
-					result
-						at: fun
-						ifPresent: [ :methods | methods add: method ]
-						ifAbsentPut: [ OrderedCollection with: method ] ] ] ].
-		bit := bit * 2 ].
+			(anInteger bitAnd: bit) = bit ifTrue: [
+					options keysAndValuesDo: [ :fun :forFun |
+							forFun
+								at: bit
+								ifPresent: [ :method |
+								result at: fun ifPresent: [ :methods | methods add: method ] ifAbsentPut: [ OrderedCollection with: method ] ] ] ].
+			bit := bit * 2 ].
 	^ result
 ]
 
@@ -1353,11 +1344,8 @@ PCRE2 class >> substituteUnsetEmpty [
 { #category : 'error handling' }
 PCRE2 class >> translateErrorCode: errorCode [
 
-	errorCode = self errorReplaceCase ifTrue: [
-		^ 'case transformation failed in replacement string' ].
-	^ errorCodeTable
-		  at: errorCode
-		  ifAbsent: [ 'unknown error code: ' , errorCode asString ]
+	errorCode = self errorReplaceCase ifTrue: [ ^ 'case transformation failed in replacement string' ].
+	^ errorCodeTable at: errorCode ifAbsent: [ 'unknown error code: ' , errorCode asString ]
 ]
 
 { #category : 'options' }

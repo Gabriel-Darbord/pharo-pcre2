@@ -64,18 +64,14 @@ String >> asPerlCompatibleRegexWithOptions: compileOptions [
 String >> copyWithPerlCompatibleRegex: regexString matchesReplacedWith: replacementString [
 	"Answer a copy of myself with each regexString match replaced by replacementString."
 
-	^ regexString asPerlCompatibleRegex
-		  copy: self
-		  replacingMatchesWith: replacementString
+	^ regexString asPerlCompatibleRegex copy: self replacingMatchesWith: replacementString
 ]
 
 { #category : '*PCRE2' }
 String >> copyWithPerlCompatibleRegex: regexString matchesTranslatedUsing: aBlock [
 	"Answer a copy of myself with each regexString match replaced by aBlock's String answer."
 
-	^ regexString asPerlCompatibleRegex
-		  copy: self
-		  translatingMatchesUsing: aBlock
+	^ regexString asPerlCompatibleRegex copy: self translatingMatchesUsing: aBlock
 ]
 
 { #category : '*PCRE2' }

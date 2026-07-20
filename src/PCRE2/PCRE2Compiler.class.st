@@ -30,10 +30,10 @@ Class {
 
 { #category : 'accessing' }
 PCRE2Compiler class >> default [
+
 	self == PCRE2Compiler ifTrue: [
-		(default isNil or: [ default class ~~ PCRE2UTF8Compiler ]) ifTrue: [
-			default := PCRE2UTF8Compiler new ].
-		^ default ].
+			(default isNil or: [ default class ~~ PCRE2UTF8Compiler ]) ifTrue: [ default := PCRE2UTF8Compiler new ].
+			^ default ].
 	^ self new
 ]
 
@@ -72,6 +72,7 @@ PCRE2Compiler class >> nativeLibraryAvailable [
 
 { #category : 'instance creation' }
 PCRE2Compiler class >> new [
+
 	self == PCRE2Compiler ifTrue: [ ^ PCRE2UTF8Compiler basicNew initialize ].
 	^ super new
 ]
@@ -117,19 +118,18 @@ PCRE2Compiler >> compile: pattern [
 
 	| input matcher |
 	input := self preparedPatternFor: pattern.
-	(matcher := self matcherClass fromHandle:
-			            (self compilePreparedInput: input))
+	(matcher := self matcherClass fromHandle: (self compilePreparedInput: input))
 		autoRelease;
 		initialize;
 		pattern: (self patternStringFromInput: input);
 		compiler: self.
-	matcher isJIT: (EagerJIT and: [
-			 SupportsJIT and: [ (self privateJITCompile: matcher) == 0 ] ]).
+	matcher isJIT: (EagerJIT and: [ SupportsJIT and: [ (self privateJITCompile: matcher) == 0 ] ]).
 	^ matcher
 ]
 
 { #category : 'private' }
 PCRE2Compiler >> compile: pattern upTo: length errorCode: errorCode errorOffset: errorOffset [
+
 	^ self subclassResponsibility
 ]
 
@@ -168,8 +168,7 @@ PCRE2Compiler >> compilePreparedInput: input [
 		          upTo: input size
 		          errorCode: errorCode
 		          errorOffset: errorOffset.
-	handle isNull ifTrue: [
-		self errorCode: errorCode value in: input at: errorOffset value ].
+	handle isNull ifTrue: [ self errorCode: errorCode value in: input at: errorOffset value ].
 	^ handle
 ]
 
@@ -177,12 +176,11 @@ PCRE2Compiler >> compilePreparedInput: input [
 PCRE2Compiler >> context [
 
 	^ context ifNil: [
-		  context := self createCompileContext.
-		  context isNull ifTrue: [
-			  context := nil.
-			  PCRE2Error signal:
-				  'Failed to obtain memory to create compile context' ].
-		  context autoRelease ]
+			  context := self createCompileContext.
+			  context isNull ifTrue: [
+					  context := nil.
+					  PCRE2Error signal: 'Failed to obtain memory to create compile context' ].
+			  context autoRelease ]
 ]
 
 { #category : 'accessing' }
@@ -197,13 +195,14 @@ PCRE2Compiler >> copyContextIfPresent [
 
 	context ifNil: [ ^ nil ].
 	context isNull ifTrue: [
-		context := nil.
-		^ nil ].
+			context := nil.
+			^ nil ].
 	^ context copy
 ]
 
 { #category : 'private' }
 PCRE2Compiler >> createCompileContext [
+
 	^ self subclassResponsibility
 ]
 
@@ -219,14 +218,12 @@ PCRE2Compiler >> errorCode: errorCode in: input at: codeUnitOffset [
 	"Signal a compile error reported for prepared PCRE2 input at a zero-based code-unit offset."
 
 	<debuggerCompleteToSender>
-	PCRE2CompileError
-		signal: (PCRE2 translateErrorCode: errorCode)
-		in: input
-		at: codeUnitOffset
+	PCRE2CompileError signal: (PCRE2 translateErrorCode: errorCode) in: input at: codeUnitOffset
 ]
 
 { #category : 'library path' }
 PCRE2Compiler >> ffiLibraryName [
+
 	^ self subclassResponsibility
 ]
 
@@ -242,11 +239,13 @@ PCRE2Compiler >> initialize [
 
 { #category : 'private' }
 PCRE2Compiler >> inputClass [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Compiler >> matcherClass [
+
 	^ self subclassResponsibility
 ]
 
@@ -279,5 +278,6 @@ PCRE2Compiler >> preparedPatternFor: aStringOrInput [
 
 { #category : 'private' }
 PCRE2Compiler >> privateJITCompile: matcher [
+
 	^ self subclassResponsibility
 ]

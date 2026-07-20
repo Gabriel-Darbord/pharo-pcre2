@@ -18,6 +18,7 @@ PCRE2UTF32MatchContext >> codeUnitWidth [
 
 { #category : 'library path' }
 PCRE2UTF32MatchContext >> ffiLibraryName [
+
 	^ LibPCRE2UTF32
 ]
 

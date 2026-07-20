@@ -29,8 +29,7 @@ PCRE2UTF16InputTest >> testDetectingUTF16BOMFallsBackToNativeEndian [
 
 	| input subject |
 	subject := 'café'.
-	input := subject asPCRE2UTF16Input bytes
-		         asPCRE2UTF16InputDetectingBOM.
+	input := subject asPCRE2UTF16Input bytes asPCRE2UTF16InputDetectingBOM.
 
 	self assert: input size equals: 4.
 	self assert: (input readFrom: 1 to: 4) equals: subject
@@ -40,8 +39,7 @@ PCRE2UTF16InputTest >> testDetectingUTF16BOMFallsBackToNativeEndian [
 PCRE2UTF16InputTest >> testDetectingUTF16BOMStripsBigEndianBOM [
 
 	| input |
-	input := #[ 254 255 0 99 0 97 0 102 0 233 ]
-		         asPCRE2UTF16InputDetectingBOM.
+	input := #[ 254 255 0 99 0 97 0 102 0 233 ] asPCRE2UTF16InputDetectingBOM.
 
 	self assert: input size equals: 4.
 	self assert: (input readFrom: 1 to: 4) equals: 'café'
@@ -51,8 +49,7 @@ PCRE2UTF16InputTest >> testDetectingUTF16BOMStripsBigEndianBOM [
 PCRE2UTF16InputTest >> testDetectingUTF16BOMStripsLittleEndianBOM [
 
 	| input |
-	input := #[ 255 254 99 0 97 0 102 0 233 0 ]
-		         asPCRE2UTF16InputDetectingBOM.
+	input := #[ 255 254 99 0 97 0 102 0 233 0 ] asPCRE2UTF16InputDetectingBOM.
 
 	self assert: input size equals: 4.
 	self assert: (input readFrom: 1 to: 4) equals: 'café'
@@ -74,9 +71,7 @@ PCRE2UTF16InputTest >> testUTF16ByteInputRejectsOddSize [
 	self
 		should: [ PCRE2UTF16Input fromBytes: #[ 97 ] ]
 		raise: PCRE2Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring: 'even byte size') ]
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'even byte size') ]
 ]
 
 { #category : 'tests' }
@@ -93,9 +88,7 @@ PCRE2UTF16InputTest >> testUTF16InputEncodesSupplementaryCharactersAsSurrogatePa
 	self assert: (input bytes uint16AtOffset: 2) equals: 16rD83D.
 	self assert: (input bytes uint16AtOffset: 4) equals: 16rDE00.
 	self assert: (input bytes uint16AtOffset: 6) equals: $b asInteger.
-	self
-		assert: (input characterRangeFromStartOffset: 1 endOffset: 3)
-		equals: (2 to: 2).
+	self assert: (input characterRangeFromStartOffset: 1 endOffset: 3) equals: (2 to: 2).
 	self assert: (input readFrom: 2 to: 3) equals: emoji.
 	self assert: (input decodeBytes: input bytes) equals: subject
 ]
@@ -115,6 +108,5 @@ PCRE2UTF16InputTest >> testUTF16InputWithBOMRejectsMissingBOM [
 	self
 		should: [ #[ 99 0 ] asPCRE2UTF16InputWithBOM ]
 		raise: PCRE2Error
-		withExceptionDo: [ :error |
-		self assert: (error messageText includesSubstring: 'BOM') ]
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'BOM') ]
 ]

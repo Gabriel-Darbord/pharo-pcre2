@@ -35,36 +35,22 @@ PCRE2TracePresenter class >> title [
 { #category : 'display' }
 PCRE2TracePresenter >> applyContextMetaAttributesTo: aText range: anInterval [
 
-	aText
-		addAttribute: TextColor gray
-		from: anInterval first
-		to: anInterval last
+	aText addAttribute: TextColor gray from: anInterval first to: anInterval last
 ]
 
 { #category : 'display' }
 PCRE2TracePresenter >> applySourceHighlightTo: aText range: anInterval [
 
-	aText
-		addAttribute: (TextBackgroundColor color: (Color red alpha: 0.12))
-		from: anInterval first
-		to: anInterval last.
-	aText
-		addAttribute: (TextColor color: Color red)
-		from: anInterval first
-		to: anInterval last.
-	aText
-		addAttribute: TextEmphasis bold
-		from: anInterval first
-		to: anInterval last
+	aText addAttribute: (TextBackgroundColor color: (Color red alpha: 0.12)) from: anInterval first to: anInterval last.
+	aText addAttribute: (TextColor color: Color red) from: anInterval first to: anInterval last.
+	aText addAttribute: TextEmphasis bold from: anInterval first to: anInterval last
 ]
 
 { #category : 'display' }
 PCRE2TracePresenter >> calloutLabelForRow: aTraceStepRow [
 
-	aTraceStepRow isGroup ifFalse: [
-		^ aTraceStepRow firstStep debuggerCalloutLabel ].
-	^ aTraceStepRow firstStep debuggerCalloutLabel , ' x'
-	  , aTraceStepRow size asString
+	aTraceStepRow isGroup ifFalse: [ ^ aTraceStepRow firstStep debuggerCalloutLabel ].
+	^ aTraceStepRow firstStep debuggerCalloutLabel , ' x' , aTraceStepRow size asString
 ]
 
 { #category : 'display' }
@@ -74,12 +60,9 @@ PCRE2TracePresenter >> captureRowsForStep: aTraceStep [
 	subjectString := trace subject asString.
 	rows := OrderedCollection new.
 	1 to: aTraceStep captureRanges size do: [ :storageIndex |
-		| range |
-		range := aTraceStep captureRanges at: storageIndex.
-		rows add: (PCRE2TraceCaptureRow
-				 index: storageIndex - 1
-				 range: range
-				 text: (self textFrom: subjectString range: range)) ].
+			| range |
+			range := aTraceStep captureRanges at: storageIndex.
+			rows add: (PCRE2TraceCaptureRow index: storageIndex - 1 range: range text: (self textFrom: subjectString range: range)) ].
 	^ rows asArray
 ]
 
@@ -100,16 +83,14 @@ PCRE2TracePresenter >> combinedRangeForRow: aTraceStepRow using: rangeBlock [
 
 	| first firstRange last ranges |
 	ranges := OrderedCollection new.
-	aTraceStepRow steps do: [ :step |
-		(rangeBlock value: step) ifNotNil: [ :range |
-			range isEmpty ifFalse: [ ranges add: range ] ] ].
+	aTraceStepRow steps do: [ :step | (rangeBlock value: step) ifNotNil: [ :range | range isEmpty ifFalse: [ ranges add: range ] ] ].
 	firstRange := rangeBlock value: aTraceStepRow firstStep.
 	ranges ifEmpty: [ ^ firstRange ].
 	first := ranges first first.
 	last := ranges first last.
 	ranges do: [ :range |
-		first := first min: range first.
-		last := last max: range last ].
+			first := first min: range first.
+			last := last max: range last ].
 	^ first to: last
 ]
 
@@ -136,26 +117,14 @@ PCRE2TracePresenter >> defaultLayout [
 	| bottomPane detailsPane patternPane sourcePane subjectPane |
 	patternPane := SpBoxLayout newTopToBottom
 		               spacing: 4;
-		               add: (self
-				                labelledPresenter: patternText
-				                label: 'Traced pattern'
-				                help: self patternSourceHelpString);
-		               add: (self
-				                labelledPresenter: patternContextText
-				                label: 'Pattern context'
-				                help: self patternContextHelpString)
+		               add: (self labelledPresenter: patternText label: 'Traced pattern' help: self patternSourceHelpString);
+		               add: (self labelledPresenter: patternContextText label: 'Pattern context' help: self patternContextHelpString)
 		               height: 88;
 		               yourself.
 	subjectPane := SpBoxLayout newTopToBottom
 		               spacing: 4;
-		               add: (self
-				                labelledPresenter: subjectText
-				                label: 'Traced subject'
-				                help: self subjectSourceHelpString);
-		               add: (self
-				                labelledPresenter: subjectContextText
-				                label: 'Subject context'
-				                help: self subjectContextHelpString)
+		               add: (self labelledPresenter: subjectText label: 'Traced subject' help: self subjectSourceHelpString);
+		               add: (self labelledPresenter: subjectContextText label: 'Subject context' help: self subjectContextHelpString)
 		               height: 88;
 		               yourself.
 	sourcePane := SpPanedLayout newLeftToRight
@@ -165,22 +134,12 @@ PCRE2TracePresenter >> defaultLayout [
 		              yourself.
 	detailsPane := SpBoxLayout newTopToBottom
 		               spacing: 4;
-		               add: (self
-				                labelledPresenter: capturesTable
-				                label: 'Captures'
-				                help: self capturesHelpString);
-		               add: (self
-				                labelledPresenter: detailsText
-				                label: 'Event details'
-				                help: self eventDetailsHelpString)
-		               height: 130;
+		               add: (self labelledPresenter: capturesTable label: 'Captures' help: self capturesHelpString);
+		               add: (self labelledPresenter: detailsText label: 'Event details' help: self eventDetailsHelpString) height: 130;
 		               yourself.
 	bottomPane := SpPanedLayout newLeftToRight
 		              positionOfSlider: 70 percent;
-		              add: (self
-				               labelledPresenter: stepsTable
-				               label: 'Trace timeline'
-				               help: self traceTimelineHelpString);
+		              add: (self labelledPresenter: stepsTable label: 'Trace timeline' help: self traceTimelineHelpString);
 		              add: detailsPane;
 		              yourself.
 	^ SpBoxLayout newTopToBottom
@@ -201,34 +160,33 @@ PCRE2TracePresenter >> detailsText [
 { #category : 'display' }
 PCRE2TracePresenter >> detailsTextForRow: aTraceStepRow [
 
-	aTraceStepRow isGroup ifFalse: [
-		^ self detailsTextForStep: aTraceStepRow representativeStep ].
+	aTraceStepRow isGroup ifFalse: [ ^ self detailsTextForStep: aTraceStepRow representativeStep ].
 	^ String streamContents: [ :stream |
-		  stream
-			  nextPutAll: 'Steps: ';
-			  nextPutAll: aTraceStepRow indexLabel;
-			  nextPutAll: ' (';
-			  nextPutAll: aTraceStepRow kindLabel;
-			  nextPut: $);
-			  cr;
-			  nextPutAll: 'Pattern: ';
-			  nextPutAll: (self patternLabelForRow: aTraceStepRow);
-			  cr;
-			  nextPutAll: 'Subject: ';
-			  nextPutAll: (self subjectLabelForRow: aTraceStepRow);
-			  cr;
-			  nextPutAll: 'Callout: ';
-			  nextPutAll: (self calloutLabelForRow: aTraceStepRow);
-			  cr;
-			  cr;
-			  nextPutAll: 'First event';
-			  cr;
-			  nextPutAll: (self detailsTextForStep: aTraceStepRow firstStep);
-			  cr;
-			  cr;
-			  nextPutAll: 'Last event';
-			  cr;
-			  nextPutAll: (self detailsTextForStep: aTraceStepRow lastStep) ]
+			  stream
+				  nextPutAll: 'Steps: ';
+				  nextPutAll: aTraceStepRow indexLabel;
+				  nextPutAll: ' (';
+				  nextPutAll: aTraceStepRow kindLabel;
+				  nextPut: $);
+				  cr;
+				  nextPutAll: 'Pattern: ';
+				  nextPutAll: (self patternLabelForRow: aTraceStepRow);
+				  cr;
+				  nextPutAll: 'Subject: ';
+				  nextPutAll: (self subjectLabelForRow: aTraceStepRow);
+				  cr;
+				  nextPutAll: 'Callout: ';
+				  nextPutAll: (self calloutLabelForRow: aTraceStepRow);
+				  cr;
+				  cr;
+				  nextPutAll: 'First event';
+				  cr;
+				  nextPutAll: (self detailsTextForStep: aTraceStepRow firstStep);
+				  cr;
+				  cr;
+				  nextPutAll: 'Last event';
+				  cr;
+				  nextPutAll: (self detailsTextForStep: aTraceStepRow lastStep) ]
 ]
 
 { #category : 'display' }
@@ -239,64 +197,63 @@ PCRE2TracePresenter >> detailsTextForStep: aTraceStep [
 	site := aTraceStep site.
 	row := PCRE2TraceStepRow steps: { aTraceStep }.
 	^ String streamContents: [ :stream |
-		  stream
-			  nextPutAll: 'Step: ';
-			  print: aTraceStep index;
-			  cr;
-			  nextPutAll: 'Kind: ';
-			  nextPutAll: aTraceStep debuggerKindLabel;
-			  cr;
-			  nextPutAll: 'Pattern: ';
-			  nextPutAll: (self patternLabelForRow: row);
-			  cr;
-			  nextPutAll: 'Subject: ';
-			  nextPutAll: (self subjectLabelForRow: row);
-			  cr;
-			  nextPutAll: 'Callout: ';
-			  nextPutAll: aTraceStep debuggerCalloutLabel;
-			  cr.
-		  aTraceStep mark ifNotNil: [ :mark |
 			  stream
-				  nextPutAll: 'Mark: ';
-				  nextPutAll: mark;
-				  cr ].
-		  stream
-			  nextPutAll: 'Native pattern offset: ';
-			  print: event patternPosition;
-			  cr;
-			  nextPutAll: 'Native next item length: ';
-			  print: event nextItemLength;
-			  cr;
-			  nextPutAll: 'Native subject offset: ';
-			  print: event currentPosition;
-			  cr;
-			  nextPutAll: 'Native start match offset: ';
-			  print: event startMatch;
-			  cr;
-			  nextPutAll: 'Capture top: ';
-			  print: event captureTop;
-			  cr;
-			  nextPutAll: 'Capture last: ';
-			  print: event captureLast;
-			  cr;
-			  nextPutAll: 'Flags: ';
-			  print: event flags.
-		  site ifNotNil: [
+				  nextPutAll: 'Step: ';
+				  print: aTraceStep index;
+				  cr;
+				  nextPutAll: 'Kind: ';
+				  nextPutAll: aTraceStep debuggerKindLabel;
+				  cr;
+				  nextPutAll: 'Pattern: ';
+				  nextPutAll: (self patternLabelForRow: row);
+				  cr;
+				  nextPutAll: 'Subject: ';
+				  nextPutAll: (self subjectLabelForRow: row);
+				  cr;
+				  nextPutAll: 'Callout: ';
+				  nextPutAll: aTraceStep debuggerCalloutLabel;
+				  cr.
+			  aTraceStep mark ifNotNil: [ :mark |
+					  stream
+						  nextPutAll: 'Mark: ';
+						  nextPutAll: mark;
+						  cr ].
 			  stream
+				  nextPutAll: 'Native pattern offset: ';
+				  print: event patternPosition;
 				  cr;
+				  nextPutAll: 'Native next item length: ';
+				  print: event nextItemLength;
 				  cr;
-				  nextPutAll: 'Static site pattern offset: ';
-				  print: site patternPosition;
+				  nextPutAll: 'Native subject offset: ';
+				  print: event currentPosition;
 				  cr;
-				  nextPutAll: 'Static site item length: ';
-				  print: site nextItemLength ] ]
+				  nextPutAll: 'Native start match offset: ';
+				  print: event startMatch;
+				  cr;
+				  nextPutAll: 'Capture top: ';
+				  print: event captureTop;
+				  cr;
+				  nextPutAll: 'Capture last: ';
+				  print: event captureLast;
+				  cr;
+				  nextPutAll: 'Flags: ';
+				  print: event flags.
+			  site ifNotNil: [
+					  stream
+						  cr;
+						  cr;
+						  nextPutAll: 'Static site pattern offset: ';
+						  print: site patternPosition;
+						  cr;
+						  nextPutAll: 'Static site item length: ';
+						  print: site nextItemLength ] ]
 ]
 
 { #category : 'updating' }
 PCRE2TracePresenter >> display: aTextOrString inTextPresenter: aTextPresenter [
 
-	aTextPresenter text asString = aTextOrString asString ifTrue: [
-		aTextPresenter text: '' ].
+	aTextPresenter text asString = aTextOrString asString ifTrue: [ aTextPresenter text: '' ].
 	aTextPresenter text: aTextOrString
 ]
 
@@ -312,9 +269,7 @@ PCRE2TracePresenter >> flushProgressRun: pendingSteps into: rows [
 	pendingSteps ifEmpty: [ ^ self ].
 	pendingSteps size >= self minimumProgressRunSizeForGrouping
 		ifTrue: [ rows add: (PCRE2TraceStepRow steps: pendingSteps) ]
-		ifFalse: [
-			pendingSteps do: [ :step |
-				rows add: (PCRE2TraceStepRow steps: { step }) ] ].
+		ifFalse: [ pendingSteps do: [ :step | rows add: (PCRE2TraceStepRow steps: { step }) ] ].
 	pendingSteps removeAll
 ]
 
@@ -326,15 +281,12 @@ PCRE2TracePresenter >> highlightedTextFor: aString range: anIntervalOrNil [
 	text := source asText.
 	(anIntervalOrNil isNil or: [ source isEmpty ]) ifTrue: [ ^ text ].
 	anIntervalOrNil isEmpty ifTrue: [
-		highlightPosition := (anIntervalOrNil first max: 1) min: source size.
-		self
-			applySourceHighlightTo: text
-			range: (highlightPosition to: highlightPosition).
-		^ text ].
+			highlightPosition := (anIntervalOrNil first max: 1) min: source size.
+			self applySourceHighlightTo: text range: (highlightPosition to: highlightPosition).
+			^ text ].
 	start := anIntervalOrNil first max: 1.
 	stop := anIntervalOrNil last min: source size.
-	start <= stop ifTrue: [
-		self applySourceHighlightTo: text range: (start to: stop) ].
+	start <= stop ifTrue: [ self applySourceHighlightTo: text range: (start to: stop) ].
 	^ text
 ]
 
@@ -343,14 +295,9 @@ PCRE2TracePresenter >> initializeCapturesTable [
 
 	capturesTable := self newTable beResizable.
 	capturesTable
-		addColumn: (SpStringTableColumn
-				 title: 'Capture'
-				 evaluated: [ :row | row displayIndex ]);
-		addColumn: (SpStringTableColumn
-				 title: 'Range'
-				 evaluated: [ :row | row displayRange ]);
-		addColumn:
-			(SpStringTableColumn title: 'Text' evaluated: [ :row | row text ])
+		addColumn: (SpStringTableColumn title: 'Capture' evaluated: [ :row | row displayIndex ]);
+		addColumn: (SpStringTableColumn title: 'Range' evaluated: [ :row | row displayRange ]);
+		addColumn: (SpStringTableColumn title: 'Text' evaluated: [ :row | row text ])
 ]
 
 { #category : 'initialization' }
@@ -390,34 +337,23 @@ PCRE2TracePresenter >> initializeStepsTable [
 
 	stepsTable := self newTable beResizable.
 	stepsTable
-		addColumn:
-			((SpStringTableColumn
-				  title: '#'
-				  evaluated: [ :row | row indexLabel ])
+		addColumn: ((SpStringTableColumn title: '#' evaluated: [ :row | row indexLabel ])
 				 width: 35;
 				 beNotExpandable;
 				 yourself);
-		addColumn: ((SpStringTableColumn
-				  title: 'Kind'
-				  evaluated: [ :row | row kindLabel ])
+		addColumn: ((SpStringTableColumn title: 'Kind' evaluated: [ :row | row kindLabel ])
 				 width: 75;
 				 beNotExpandable;
 				 yourself);
-		addColumn: ((SpStringTableColumn
-				  title: 'Pattern'
-				  evaluated: [ :row | self patternLabelForRow: row ])
+		addColumn: ((SpStringTableColumn title: 'Pattern' evaluated: [ :row | self patternLabelForRow: row ])
 				 width: 120;
 				 beNotExpandable;
 				 yourself);
-		addColumn: ((SpStringTableColumn
-				  title: 'Subject range'
-				  evaluated: [ :row | self subjectLabelForRow: row ])
+		addColumn: ((SpStringTableColumn title: 'Subject range' evaluated: [ :row | self subjectLabelForRow: row ])
 				 width: 90;
 				 beNotExpandable;
 				 yourself);
-		addColumn: ((SpStringTableColumn
-				  title: 'Callout'
-				  evaluated: [ :row | self calloutLabelForRow: row ])
+		addColumn: ((SpStringTableColumn title: 'Callout' evaluated: [ :row | self calloutLabelForRow: row ])
 				 width: 70;
 				 beNotExpandable;
 				 yourself)
@@ -455,14 +391,12 @@ PCRE2TracePresenter >> minimumProgressRunSizeForGrouping [
 PCRE2TracePresenter >> oneLineSourceFor: sourceObject [
 
 	| source |
-	source := sourceObject
-		          ifNil: [ '' ]
-		          ifNotNil: [ sourceObject asString ].
+	source := sourceObject ifNil: [ '' ] ifNotNil: [ sourceObject asString ].
 	^ String streamContents: [ :stream |
-		  source do: [ :character |
-			  (character = Character cr or: [ character = Character lf ])
-				  ifTrue: [ stream nextPut: Character space ]
-				  ifFalse: [ stream nextPut: character ] ] ]
+			  source do: [ :character |
+					  (character = Character cr or: [ character = Character lf ])
+						  ifTrue: [ stream nextPut: Character space ]
+						  ifFalse: [ stream nextPut: character ] ] ]
 ]
 
 { #category : 'layout' }
@@ -490,17 +424,13 @@ PCRE2TracePresenter >> patternContextTextForRow: aTraceStepRow range: anInterval
 { #category : 'display' }
 PCRE2TracePresenter >> patternLabelForRow: aTraceStepRow [
 
-	^ self
-		  sourceLabelFor: trace pattern
-		  range: (self patternRangeForRow: aTraceStepRow)
+	^ self sourceLabelFor: trace pattern range: (self patternRangeForRow: aTraceStepRow)
 ]
 
 { #category : 'display' }
 PCRE2TracePresenter >> patternRangeForRow: aTraceStepRow [
 
-	^ self
-		  combinedRangeForRow: aTraceStepRow
-		  using: [ :step | step patternRange ]
+	^ self combinedRangeForRow: aTraceStepRow using: [ :step | step patternRange ]
 ]
 
 { #category : 'layout' }
@@ -520,13 +450,12 @@ PCRE2TracePresenter >> quotedSnippet: aString [
 
 	| clean limit |
 	clean := String streamContents: [ :stream |
-		         aString do: [ :character |
-			         character = Character cr
-				         ifTrue: [ stream nextPutAll: '\n' ]
-				         ifFalse: [ stream nextPut: character ] ] ].
+			         aString do: [ :character |
+					         character = Character cr
+						         ifTrue: [ stream nextPutAll: '\n' ]
+						         ifFalse: [ stream nextPut: character ] ] ].
 	limit := 18.
-	clean size > limit ifTrue: [
-		clean := (clean copyFrom: 1 to: limit - 3) , '...' ].
+	clean size > limit ifTrue: [ clean := (clean copyFrom: 1 to: limit - 3) , '...' ].
 	^ '"' , clean , '"'
 ]
 
@@ -535,21 +464,17 @@ PCRE2TracePresenter >> rangeLabelFor: anIntervalOrNil in: sourceString [
 
 	anIntervalOrNil ifNil: [ ^ '' ].
 	anIntervalOrNil isEmpty ifTrue: [
-		anIntervalOrNil first > sourceString size ifTrue: [ ^ 'end' ].
-		^ 'at ' , anIntervalOrNil first asString ].
-	anIntervalOrNil first = anIntervalOrNil last ifTrue: [
-		^ anIntervalOrNil first asString ].
-	^ anIntervalOrNil first asString , '-'
-	  , anIntervalOrNil last asString
+			anIntervalOrNil first > sourceString size ifTrue: [ ^ 'end' ].
+			^ 'at ' , anIntervalOrNil first asString ].
+	anIntervalOrNil first = anIntervalOrNil last ifTrue: [ ^ anIntervalOrNil first asString ].
+	^ anIntervalOrNil first asString , '-' , anIntervalOrNil last asString
 ]
 
 { #category : 'accessing' }
 PCRE2TracePresenter >> rowForStep: aTraceStep ifAbsent: absentBlock [
 
 	stepsTable ifNil: [ ^ absentBlock value ].
-	^ stepsTable items
-		  detect: [ :row | row includesStep: aTraceStep ]
-		  ifNone: absentBlock
+	^ stepsTable items detect: [ :row | row includesStep: aTraceStep ] ifNone: absentBlock
 ]
 
 { #category : 'accessing' }
@@ -562,12 +487,9 @@ PCRE2TracePresenter >> selectedRow [
 PCRE2TracePresenter >> selectedRow: aTraceStepRowOrNil [
 
 	selectedRow := aTraceStepRowOrNil.
-	selectedStep := selectedRow
-		                ifNil: [ nil ]
-		                ifNotNil: [ selectedRow representativeStep ].
-	(stepsTable notNil and: [
-		 selectedRow notNil and: [ stepsTable selectedItem ~~ selectedRow ] ])
-		ifTrue: [ stepsTable selectItem: selectedRow ].
+	selectedStep := selectedRow ifNil: [ nil ] ifNotNil: [ selectedRow representativeStep ].
+	(stepsTable notNil and: [ selectedRow notNil and: [ stepsTable selectedItem ~~ selectedRow ] ]) ifTrue: [
+		stepsTable selectItem: selectedRow ].
 	self updateSelectedStep
 ]
 
@@ -583,10 +505,10 @@ PCRE2TracePresenter >> selectedStep: aTraceStepOrNil [
 	selectedStep := aTraceStepOrNil.
 	selectedRow := nil.
 	(stepsTable notNil and: [ selectedStep notNil ]) ifTrue: [
-		selectedRow := self rowForStep: selectedStep ifAbsent: [ nil ].
-		selectedRow ifNotNil: [
-			stepsTable selectItem: selectedRow.
-			selectedStep := aTraceStepOrNil ] ].
+			selectedRow := self rowForStep: selectedStep ifAbsent: [ nil ].
+			selectedRow ifNotNil: [
+					stepsTable selectItem: selectedRow.
+					selectedStep := aTraceStepOrNil ] ].
 	self updateSelectedStep
 ]
 
@@ -600,15 +522,13 @@ PCRE2TracePresenter >> setModelBeforeInitialization: aPCRE2MatchTrace [
 PCRE2TracePresenter >> sourceContextHighlightIntervalFor: anIntervalOrNil contextStart: contextStart titleLineSize: titleLineSize excerpt: excerptString hasLeadingEllipsis: hasLeadingEllipsis [
 
 	| excerptEnd excerptStart highlightStart highlightStop leadingOffset size |
-	(anIntervalOrNil isNil or: [ excerptString isEmpty ]) ifTrue: [
-		^ nil ].
+	(anIntervalOrNil isNil or: [ excerptString isEmpty ]) ifTrue: [ ^ nil ].
 	excerptStart := titleLineSize + 2.
 	excerptEnd := excerptStart + excerptString size - 1.
 	leadingOffset := hasLeadingEllipsis
 		                 ifTrue: [ 3 ]
 		                 ifFalse: [ 0 ].
-	highlightStart := excerptStart + leadingOffset
-	                  + (anIntervalOrNil first - contextStart).
+	highlightStart := excerptStart + leadingOffset + (anIntervalOrNil first - contextStart).
 	highlightStart := (highlightStart max: excerptStart) min: excerptEnd.
 	size := anIntervalOrNil isEmpty
 		        ifTrue: [ 1 ]
@@ -653,25 +573,17 @@ PCRE2TracePresenter >> sourceContextTextFor: sourceObject range: anIntervalOrNil
 	hasLeadingEllipsis := start > 1.
 	hasTrailingEllipsis := stop < source size.
 	excerpt ifNotEmpty: [
-		excerptStart := titleLine size + 2.
-		excerptEnd := excerptStart + excerpt size - 1.
-		hasLeadingEllipsis ifTrue: [
-			self
-				applyContextMetaAttributesTo: text
-				range: (excerptStart to: excerptStart + 2) ].
-		hasTrailingEllipsis ifTrue: [
-			self
-				applyContextMetaAttributesTo: text
-				range: (excerptEnd - 2 to: excerptEnd) ] ].
+			excerptStart := titleLine size + 2.
+			excerptEnd := excerptStart + excerpt size - 1.
+			hasLeadingEllipsis ifTrue: [ self applyContextMetaAttributesTo: text range: (excerptStart to: excerptStart + 2) ].
+			hasTrailingEllipsis ifTrue: [ self applyContextMetaAttributesTo: text range: (excerptEnd - 2 to: excerptEnd) ] ].
 	highlightInterval := self
-		                     sourceContextHighlightIntervalFor:
-		                     anIntervalOrNil
+		                     sourceContextHighlightIntervalFor: anIntervalOrNil
 		                     contextStart: start
 		                     titleLineSize: titleLine size
 		                     excerpt: excerpt
 		                     hasLeadingEllipsis: hasLeadingEllipsis.
-	highlightInterval ifNotNil: [
-		self applySourceHighlightTo: text range: highlightInterval ].
+	highlightInterval ifNotNil: [ self applySourceHighlightTo: text range: highlightInterval ].
 	^ text
 ]
 
@@ -679,9 +591,7 @@ PCRE2TracePresenter >> sourceContextTextFor: sourceObject range: anIntervalOrNil
 PCRE2TracePresenter >> sourceLabelFor: sourceObject range: anIntervalOrNil [
 
 	| label snippet source |
-	source := sourceObject
-		          ifNil: [ '' ]
-		          ifNotNil: [ sourceObject asString ].
+	source := sourceObject ifNil: [ '' ] ifNotNil: [ sourceObject asString ].
 	label := self rangeLabelFor: anIntervalOrNil in: source.
 	snippet := self textFrom: source range: anIntervalOrNil.
 	snippet ifEmpty: [ ^ label ].
@@ -707,11 +617,11 @@ PCRE2TracePresenter >> stepRowsForSteps: traceSteps [
 	rows := OrderedCollection new.
 	pending := OrderedCollection new.
 	traceSteps do: [ :step |
-		(self isGroupableProgressStep: step)
-			ifTrue: [ pending add: step ]
-			ifFalse: [
-				self flushProgressRun: pending into: rows.
-				rows add: (PCRE2TraceStepRow steps: { step }) ] ].
+			(self isGroupableProgressStep: step)
+				ifTrue: [ pending add: step ]
+				ifFalse: [
+						self flushProgressRun: pending into: rows.
+						rows add: (PCRE2TraceStepRow steps: { step }) ] ].
 	self flushProgressRun: pending into: rows.
 	^ rows asArray
 ]
@@ -747,17 +657,13 @@ PCRE2TracePresenter >> subjectContextTextForRow: aTraceStepRow range: anInterval
 { #category : 'display' }
 PCRE2TracePresenter >> subjectLabelForRow: aTraceStepRow [
 
-	^ self
-		  rangeLabelFor: (self subjectRangeForRow: aTraceStepRow)
-		  in: trace subject asString
+	^ self rangeLabelFor: (self subjectRangeForRow: aTraceStepRow) in: trace subject asString
 ]
 
 { #category : 'display' }
 PCRE2TracePresenter >> subjectRangeForRow: aTraceStepRow [
 
-	^ self
-		  combinedRangeForRow: aTraceStepRow
-		  using: [ :step | step subjectRange ]
+	^ self combinedRangeForRow: aTraceStepRow using: [ :step | step subjectRange ]
 ]
 
 { #category : 'layout' }
@@ -777,9 +683,7 @@ PCRE2TracePresenter >> textFrom: sourceString range: anIntervalOrNil [
 
 	anIntervalOrNil ifNil: [ ^ '' ].
 	anIntervalOrNil isEmpty ifTrue: [ ^ '' ].
-	^ sourceString
-		  copyFrom: (anIntervalOrNil first max: 1)
-		  to: (anIntervalOrNil last min: sourceString size)
+	^ sourceString copyFrom: (anIntervalOrNil first max: 1) to: (anIntervalOrNil last min: sourceString size)
 ]
 
 { #category : 'accessing' }
@@ -801,40 +705,39 @@ PCRE2TracePresenter >> traceStatusString [
 	| rowCount |
 	trace ifNil: [ ^ 'No trace.' ].
 	rowCount := (self stepRowsForSteps: trace steps) size.
-	((trace respondsTo: #isFinished) and: [ trace isFinished not ])
-		ifTrue: [
+	((trace respondsTo: #isFinished) and: [ trace isFinished not ]) ifTrue: [
 			^ String streamContents: [ :stream |
-				  stream
-					  nextPutAll: 'Live trace';
-					  nextPutAll: ' | events ';
-					  print: trace events size.
-				  rowCount < trace events size ifTrue: [
+					  stream
+						  nextPutAll: 'Live trace';
+						  nextPutAll: ' | events ';
+						  print: trace events size.
+					  rowCount < trace events size ifTrue: [
+							  stream
+								  nextPutAll: ' | rows ';
+								  print: rowCount ].
+					  stream
+						  nextPutAll: ' | callout sites ';
+						  print: trace calloutSites size ] ].
+	^ String streamContents: [ :stream |
+			  stream
+				  nextPutAll: (trace isMatch
+						   ifTrue: [ 'Match' ]
+						   ifFalse: [ 'No match' ]);
+				  nextPutAll: ' | result code ';
+				  print: trace resultCode;
+				  nextPutAll: ' | events ';
+				  print: trace events size.
+			  rowCount < trace events size ifTrue: [
 					  stream
 						  nextPutAll: ' | rows ';
 						  print: rowCount ].
-				  stream
-					  nextPutAll: ' | callout sites ';
-					  print: trace calloutSites size ] ].
-	^ String streamContents: [ :stream |
-		  stream
-			  nextPutAll: (trace isMatch
-					   ifTrue: [ 'Match' ]
-					   ifFalse: [ 'No match' ]);
-			  nextPutAll: ' | result code ';
-			  print: trace resultCode;
-			  nextPutAll: ' | events ';
-			  print: trace events size.
-		  rowCount < trace events size ifTrue: [
 			  stream
-				  nextPutAll: ' | rows ';
-				  print: rowCount ].
-		  stream
-			  nextPutAll: ' | callout sites ';
-			  print: trace calloutSites size.
-		  trace matchedString ifNotNil: [ :matched |
-			  stream
-				  nextPutAll: ' | matched ';
-				  print: matched ] ]
+				  nextPutAll: ' | callout sites ';
+				  print: trace calloutSites size.
+			  trace matchedString ifNotNil: [ :matched |
+					  stream
+						  nextPutAll: ' | matched ';
+						  print: matched ] ]
 ]
 
 { #category : 'layout' }
@@ -849,33 +752,27 @@ PCRE2TracePresenter >> updatePresenter [
 	| matchingStep previousStep rows |
 	previousStep := selectedStep.
 	trace ifNil: [
-		statusLabel label: 'No trace.'.
-		stepsTable items: #(  ).
-		selectedRow := nil.
-		selectedStep := nil.
-		self updateSelectedStep.
-		^ self ].
+			statusLabel label: 'No trace.'.
+			stepsTable items: #(  ).
+			selectedRow := nil.
+			selectedStep := nil.
+			self updateSelectedStep.
+			^ self ].
 	rows := self stepRowsForSteps: trace steps.
 	statusLabel label: self traceStatusString.
 	stepsTable items: rows.
 	previousStep ifNotNil: [
-		selectedRow := rows
-			               detect: [ :row | row includesStep: previousStep ]
-			               ifNone: [ nil ].
-		selectedRow ifNotNil: [
-			matchingStep := selectedRow
-				                stepMatching: previousStep
-				                ifAbsent: [ selectedRow representativeStep ].
-			stepsTable selectItem: selectedRow.
-			selectedStep := matchingStep.
-			self updateSelectedStep.
-			^ self ] ].
+			selectedRow := rows detect: [ :row | row includesStep: previousStep ] ifNone: [ nil ].
+			selectedRow ifNotNil: [
+					matchingStep := selectedRow stepMatching: previousStep ifAbsent: [ selectedRow representativeStep ].
+					stepsTable selectItem: selectedRow.
+					selectedStep := matchingStep.
+					self updateSelectedStep.
+					^ self ] ].
 	selectedRow := rows isEmpty
 		               ifTrue: [ nil ]
 		               ifFalse: [ rows first ].
-	selectedStep := selectedRow
-		                ifNil: [ nil ]
-		                ifNotNil: [ selectedRow representativeStep ].
+	selectedStep := selectedRow ifNil: [ nil ] ifNotNil: [ selectedRow representativeStep ].
 	selectedRow ifNotNil: [ stepsTable selectItem: selectedRow ].
 	self updateSelectedStep
 ]
@@ -885,21 +782,15 @@ PCRE2TracePresenter >> updateSelectedStep [
 
 	| contextRow patternRange row showsGroup subjectRange |
 	selectedStep ifNil: [
-		self
-			display: (trace ifNil: [ '' ] ifNotNil: [ trace pattern ])
-			inTextPresenter: patternText.
-		self display: '' inTextPresenter: patternContextText.
-		self
-			display: (trace ifNil: [ '' ] ifNotNil: [ trace subject asString ])
-			inTextPresenter: subjectText.
-		self display: '' inTextPresenter: subjectContextText.
-		capturesTable items: #(  ).
-		self display: '' inTextPresenter: detailsText.
-		^ self ].
-	row := selectedRow ifNil: [
-		       PCRE2TraceStepRow steps: { selectedStep } ].
-	showsGroup := row isGroup and: [
-		              selectedStep == row representativeStep ].
+			self display: (trace ifNil: [ '' ] ifNotNil: [ trace pattern ]) inTextPresenter: patternText.
+			self display: '' inTextPresenter: patternContextText.
+			self display: (trace ifNil: [ '' ] ifNotNil: [ trace subject asString ]) inTextPresenter: subjectText.
+			self display: '' inTextPresenter: subjectContextText.
+			capturesTable items: #(  ).
+			self display: '' inTextPresenter: detailsText.
+			^ self ].
+	row := selectedRow ifNil: [ PCRE2TraceStepRow steps: { selectedStep } ].
+	showsGroup := row isGroup and: [ selectedStep == row representativeStep ].
 	contextRow := showsGroup
 		              ifTrue: [ row ]
 		              ifFalse: [ PCRE2TraceStepRow steps: { selectedStep } ].
@@ -909,22 +800,10 @@ PCRE2TracePresenter >> updateSelectedStep [
 	subjectRange := showsGroup
 		                ifTrue: [ self subjectRangeForRow: row ]
 		                ifFalse: [ selectedStep subjectRange ].
-	self
-		display:
-		(self highlightedTextFor: trace pattern range: patternRange)
-		inTextPresenter: patternText.
-	self
-		display:
-		(self patternContextTextForRow: contextRow range: patternRange)
-		inTextPresenter: patternContextText.
-	self
-		display:
-		(self highlightedTextFor: trace subject asString range: subjectRange)
-		inTextPresenter: subjectText.
-	self
-		display:
-		(self subjectContextTextForRow: contextRow range: subjectRange)
-		inTextPresenter: subjectContextText.
+	self display: (self highlightedTextFor: trace pattern range: patternRange) inTextPresenter: patternText.
+	self display: (self patternContextTextForRow: contextRow range: patternRange) inTextPresenter: patternContextText.
+	self display: (self highlightedTextFor: trace subject asString range: subjectRange) inTextPresenter: subjectText.
+	self display: (self subjectContextTextForRow: contextRow range: subjectRange) inTextPresenter: subjectContextText.
 	capturesTable items: (self captureRowsForStep: selectedStep).
 	self
 		display: (showsGroup

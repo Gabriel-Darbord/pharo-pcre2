@@ -46,9 +46,7 @@ PCRE2Matcher >> bePersistent [
 PCRE2Matcher >> calloutSiteFromEnumerationBlock: anExternalAddress [
 	"Answer a static callout site decoded for this matcher's code-unit width."
 
-	^ PCRE2CalloutSite
-		  fromEnumerationBlock: anExternalAddress
-		  codeUnitWidth: self codeUnitWidth
+	^ PCRE2CalloutSite fromEnumerationBlock: anExternalAddress codeUnitWidth: self codeUnitWidth
 ]
 
 { #category : 'documentation' }
@@ -79,10 +77,8 @@ PCRE2Matcher >> canUseJITForOptions: matchOptions [
 
 	isJIT ifFalse: [ ^ false ].
 	(matchOptions bitAnd: PCRE2 noJIT) ~~ 0 ifTrue: [ ^ false ].
-	(matchOptions bitAnd: PCRE2 partialHard) ~~ 0 ifTrue: [
-		^ (compiler optionsJIT bitAnd: PCRE2 jitPartialHard) ~~ 0 ].
-	(matchOptions bitAnd: PCRE2 partialSoft) ~~ 0 ifTrue: [
-		^ (compiler optionsJIT bitAnd: PCRE2 jitPartialSoft) ~~ 0 ].
+	(matchOptions bitAnd: PCRE2 partialHard) ~~ 0 ifTrue: [ ^ (compiler optionsJIT bitAnd: PCRE2 jitPartialHard) ~~ 0 ].
+	(matchOptions bitAnd: PCRE2 partialSoft) ~~ 0 ifTrue: [ ^ (compiler optionsJIT bitAnd: PCRE2 jitPartialSoft) ~~ 0 ].
 	^ (compiler optionsJIT bitAnd: PCRE2 jitComplete) ~~ 0
 ]
 
@@ -95,6 +91,7 @@ PCRE2Matcher >> codeUnitByteSize [
 
 { #category : 'documentation' }
 PCRE2Matcher >> codeUnitWidth [
+
 	^ self subclassResponsibility
 ]
 
@@ -108,6 +105,7 @@ PCRE2Matcher >> compileJIT [
 
 { #category : 'compiling' }
 PCRE2Matcher >> compileJIT: anInteger [
+
 	^ self subclassResponsibility
 ]
 
@@ -135,12 +133,11 @@ PCRE2Matcher >> compilerClass [
 PCRE2Matcher >> context [
 
 	^ context ifNil: [
-		  context := self createMatchContext.
-		  context isNull ifTrue: [
-			  context := nil.
-			  PCRE2Error signal:
-				  'Failed to obtain memory to create match context' ].
-		  context autoRelease ]
+			  context := self createMatchContext.
+			  context isNull ifTrue: [
+					  context := nil.
+					  PCRE2Error signal: 'Failed to obtain memory to create match context' ].
+			  context autoRelease ]
 ]
 
 { #category : 'accessing' }
@@ -165,19 +162,18 @@ PCRE2Matcher >> copy: subject matchesDo: aBlock [
 		from: 1
 		to: input size
 		do: [ :match |
-			| byteEnd byteStart startOffset |
-			startOffset := match startOffsetAt: 1.
-			byteStart := startOffset * bytesPerCodeUnit + 1.
-			byteEnd := (match endOffsetAt: 1) * bytesPerCodeUnit.
-			rs position: lastByteIndex.
-			[ rs position < (byteStart - 1) ] whileTrue: [
-				ws nextPut: (input nextFromStream: rs) ].
-			aBlock
-				value: ws
-				value: input bytes
-				value: byteStart
-				value: byteEnd.
-			lastByteIndex := byteEnd ].
+				| byteEnd byteStart startOffset |
+				startOffset := match startOffsetAt: 1.
+				byteStart := startOffset * bytesPerCodeUnit + 1.
+				byteEnd := (match endOffsetAt: 1) * bytesPerCodeUnit.
+				rs position: lastByteIndex.
+				[ rs position < (byteStart - 1) ] whileTrue: [ ws nextPut: (input nextFromStream: rs) ].
+				aBlock
+					value: ws
+					value: input bytes
+					value: byteStart
+					value: byteEnd.
+				lastByteIndex := byteEnd ].
 
 	rs position: lastByteIndex.
 	[ rs atEnd ] whileFalse: [ ws nextPut: (input nextFromStream: rs) ].
@@ -188,9 +184,7 @@ PCRE2Matcher >> copy: subject matchesDo: aBlock [
 PCRE2Matcher >> copy: subject replacingMatchesWith: aString [
 	"Copy the subject replacing each match with aString"
 
-	^ self
-		  copy: subject
-		  matchesDo: [ :ws :utfSubject :start :end | ws nextPutAll: aString ]
+	^ self copy: subject matchesDo: [ :ws :utfSubject :start :end | ws nextPutAll: aString ]
 ]
 
 { #category : 'match enumeration' }
@@ -199,9 +193,10 @@ PCRE2Matcher >> copy: subject translatingMatchesUsing: aBlock [
 
 	| input |
 	input := self preparedInputFor: subject.
-	^ self copy: input matchesDo: [ :ws :utfSubject :start :end |
-		  ws nextPutAll: (aBlock value:
-				   (input decodeBytes: (utfSubject copyFrom: start to: end))) ]
+	^ self
+		  copy: input
+		  matchesDo: [ :ws :utfSubject :start :end |
+		  ws nextPutAll: (aBlock value: (input decodeBytes: (utfSubject copyFrom: start to: end))) ]
 ]
 
 { #category : 'copying' }
@@ -210,9 +205,7 @@ PCRE2Matcher >> copyWithCharacterTables [
 
 	| copy newHandle |
 	newHandle := self privateCopyWithCharacterTables.
-	newHandle isNull ifTrue: [
-		PCRE2Error signal:
-			'Failed to obtain memory to copy matcher with character tables' ].
+	newHandle isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to copy matcher with character tables' ].
 	copy := self shallowCopy.
 	copy setHandle: newHandle.
 	copy autoRelease initialize.
@@ -222,16 +215,19 @@ PCRE2Matcher >> copyWithCharacterTables [
 
 { #category : 'private' }
 PCRE2Matcher >> createMatchContext [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> createMatchDataFromPattern [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> createMatchDataWithOvectorSize: ovectorSize [
+
 	^ self subclassResponsibility
 ]
 
@@ -250,6 +246,7 @@ PCRE2Matcher >> dfaMatch: subject [
 
 { #category : 'private' }
 PCRE2Matcher >> dfaMatch: subject from: start to: end matchData: aMatchData workspace: workspace size: workspaceSize [
+
 	^ self subclassResponsibility
 ]
 
@@ -324,26 +321,21 @@ PCRE2Matcher >> dfaMatches: subject [
 PCRE2Matcher >> dfaMatches: subject workspaceSize: workspaceSize [
 	"Return all same-start DFA alternatives decoded back to Pharo strings."
 
-	^ self
-		  dfaMatches: subject
-		  workspaceSize: workspaceSize
-		  ovectorSize: 20
+	^ self dfaMatches: subject workspaceSize: workspaceSize ovectorSize: 20
 ]
 
 { #category : 'matching' }
 PCRE2Matcher >> dfaMatches: subject workspaceSize: workspaceSize ovectorSize: ovectorSize [
 	"Return all same-start DFA alternatives decoded back to Pharo strings."
 
-	^ (self
-		   dfaMatch: subject
-		   workspaceSize: workspaceSize
-		   ovectorSize: ovectorSize)
+	^ (self dfaMatch: subject workspaceSize: workspaceSize ovectorSize: ovectorSize)
 		  ifNil: [ #(  ) ]
 		  ifNotNil: [ :match | match readMatches ]
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> enumerateCalloutsWith: callback [
+
 	^ self subclassResponsibility
 ]
 
@@ -365,9 +357,7 @@ PCRE2Matcher >> find: subject [
 PCRE2Matcher >> find: subject calloutsDo: calloutBlock [
 	"Answer the first matching substring while invoking calloutBlock for runtime PCRE2 callouts."
 
-	^ self
-		  withCallout: calloutBlock
-		  do: [ :callbackMatcher | callbackMatcher find: subject ]
+	^ self withCallout: calloutBlock do: [ :callbackMatcher | callbackMatcher find: subject ]
 ]
 
 { #category : 'match enumeration' }
@@ -389,9 +379,7 @@ PCRE2Matcher >> findAll: subject [
 PCRE2Matcher >> findAll: subject calloutsDo: calloutBlock [
 	"Answer all matching substrings while invoking calloutBlock for runtime PCRE2 callouts."
 
-	^ self
-		  withCallout: calloutBlock
-		  do: [ :callbackMatcher | callbackMatcher findAll: subject ]
+	^ self withCallout: calloutBlock do: [ :callbackMatcher | callbackMatcher findAll: subject ]
 ]
 
 { #category : 'match enumeration' }
@@ -444,9 +432,7 @@ PCRE2Matcher >> findMatch: subject [
 PCRE2Matcher >> findMatch: subject calloutsDo: calloutBlock [
 	"Answer the first match while invoking calloutBlock for runtime PCRE2 callouts."
 
-	^ self
-		  withCallout: calloutBlock
-		  do: [ :callbackMatcher | callbackMatcher findMatch: subject ]
+	^ self withCallout: calloutBlock do: [ :callbackMatcher | callbackMatcher findMatch: subject ]
 ]
 
 { #category : 'matching' }
@@ -486,13 +472,12 @@ PCRE2Matcher >> findSoftPartialMatch: subject [
 PCRE2Matcher >> findWithGroups: subject [
 	"Returns the first matching substring and groups within the subject."
 
-	^ (self findMatch: subject)
-		  ifNil: [ #(  ) ]
-		  ifNotNil: [ :match | match readMatches ]
+	^ (self findMatch: subject) ifNil: [ #(  ) ] ifNotNil: [ :match | match readMatches ]
 ]
 
 { #category : 'external resource management' }
 PCRE2Matcher >> free [
+
 	^ self subclassResponsibility
 ]
 
@@ -503,25 +488,20 @@ PCRE2Matcher >> info: option [
 
 	| buffer size rc |
 	size := (option == PCRE2 infoSize or: [
-		         option == PCRE2 infoJITSize or: [
-			         option == PCRE2 infoFirstBitmap or: [
-				         option == PCRE2 infoNameTable ] ] ])
+		         option == PCRE2 infoJITSize or: [ option == PCRE2 infoFirstBitmap or: [ option == PCRE2 infoNameTable ] ] ])
 		        ifTrue: [ "size_t or pointer" ExternalAddress wordSize ]
 		        ifFalse: [ "uint32" 4 ].
 	buffer := ByteArray new: size.
 	rc := self info: option output: buffer.
 	rc < 0 ifTrue: [
-		rc == PCRE2 errorUnset ifTrue: [ ^ nil ].
-		super errorCode: rc "not a match error" ].
+			rc == PCRE2 errorUnset ifTrue: [ ^ nil ].
+			super errorCode: rc "not a match error" ].
 
-	(option == PCRE2 infoSize or: [ option == PCRE2 infoJITSize ])
-		ifTrue: [ "info is a size_t"
+	(option == PCRE2 infoSize or: [ option == PCRE2 infoJITSize ]) ifTrue: [ "info is a size_t"
 			^ size == 8
 				  ifTrue: [ buffer uint64AtOffset: 0 ]
-				  ifFalse: [ "assume size == 4, make an issue if it crashes!"
-				  buffer uint32AtOffset: 0 ] ].
-	(option == PCRE2 infoFirstBitmap or: [ option == PCRE2 infoNameTable ])
-		ifTrue: [ "a pointer to external data"
+				  ifFalse: [ "assume size == 4, make an issue if it crashes!" buffer uint32AtOffset: 0 ] ].
+	(option == PCRE2 infoFirstBitmap or: [ option == PCRE2 infoNameTable ]) ifTrue: [ "a pointer to external data"
 			^ (buffer allSatisfy: [ :byte | byte == 0 ])
 				  ifTrue: [ nil ]
 				  ifFalse: [ buffer ] ].
@@ -531,6 +511,7 @@ PCRE2Matcher >> info: option [
 
 { #category : 'private' }
 PCRE2Matcher >> info: what output: where [
+
 	^ self subclassResponsibility
 ]
 
@@ -560,6 +541,7 @@ PCRE2Matcher >> isJIT: aBoolean [
 
 { #category : 'private' }
 PCRE2Matcher >> jitMatch: subject from: start to: end options: matchOptions matchData: aMatchData [
+
 	^ self subclassResponsibility
 ]
 
@@ -567,12 +549,12 @@ PCRE2Matcher >> jitMatch: subject from: start to: end options: matchOptions matc
 PCRE2Matcher >> mark [
 	"Matchers no longer keep the last match. Query mark on the returned PCRE2Match."
 
-	self error:
-		'PCRE2Matcher no longer keeps the last match; query mark on the returned PCRE2Match'
+	self error: 'PCRE2Matcher no longer keeps the last match; query mark on the returned PCRE2Match'
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> match: subject from: start to: end options: matchOptions matchData: aMatchData [
+
 	^ self subclassResponsibility
 ]
 
@@ -586,30 +568,30 @@ PCRE2Matcher >> matchAll: subject from: start to: end advancingEmptyMatchesWith:
 	extraOptions := 0.
 	retryingEmpty := false.
 	[ offset <= subjectEnd ] whileTrue: [
-		| rc |
-		match := self newMatchData.
-		rc := self
-			      matchBytes: subject
-			      from: offset + 1
-			      to: subjectEnd
-			      options: options | extraOptions
-			      into: match.
-		rc == PCRE2 errorNoMatch
-			ifTrue: [
-				retryingEmpty ifFalse: [ ^ self ].
-				offset := nextStartBlock value: offset.
-				extraOptions := 0.
-				retryingEmpty := false ]
-			ifFalse: [
-				| endOffset offsets |
-				offsets := match offsetsAt: 1.
-				aBlock cull: match.
-				endOffset := offsets second.
-				offset := endOffset.
-				retryingEmpty := offsets first = endOffset.
-				extraOptions := retryingEmpty
-					                ifTrue: [ PCRE2 notEmptyAtStart ]
-					                ifFalse: [ 0 ] ] ]
+			| rc |
+			match := self newMatchData.
+			rc := self
+				      matchBytes: subject
+				      from: offset + 1
+				      to: subjectEnd
+				      options: options | extraOptions
+				      into: match.
+			rc == PCRE2 errorNoMatch
+				ifTrue: [
+						retryingEmpty ifFalse: [ ^ self ].
+						offset := nextStartBlock value: offset.
+						extraOptions := 0.
+						retryingEmpty := false ]
+				ifFalse: [
+						| endOffset offsets |
+						offsets := match offsetsAt: 1.
+						aBlock cull: match.
+						endOffset := offsets second.
+						offset := endOffset.
+						retryingEmpty := offsets first = endOffset.
+						extraOptions := retryingEmpty
+							                ifTrue: [ PCRE2 notEmptyAtStart ]
+							                ifFalse: [ 0 ] ] ]
 ]
 
 { #category : 'prepared matching' }
@@ -622,8 +604,8 @@ PCRE2Matcher >> matchAll: subject from: start to: end do: aBlock [
 		to: end
 		advancingEmptyMatchesWith: [ :offset | offset + 1 ]
 		do: [ :match |
-			match subject: subject decoder: nil.
-			aBlock cull: match ]
+				match subject: subject decoder: nil.
+				aBlock cull: match ]
 ]
 
 { #category : 'prepared matching' }
@@ -645,11 +627,10 @@ PCRE2Matcher >> matchAllIn: input from: start to: end do: aBlock [
 		matchAll: input bytes
 		from: start
 		to: end
-		advancingEmptyMatchesWith: [ :offset |
-		input nextMatchStartOffsetAfter: offset ]
+		advancingEmptyMatchesWith: [ :offset | input nextMatchStartOffsetAfter: offset ]
 		do: [ :match |
-			input recordOn: match.
-			aBlock cull: match ]
+				input recordOn: match.
+				aBlock cull: match ]
 ]
 
 { #category : 'prepared matching' }
@@ -672,8 +653,7 @@ PCRE2Matcher >> matchBytes: subject from: start to: end [
 PCRE2Matcher >> matchBytes: subject from: start to: end calloutsDo: calloutBlock [
 	"Run a byte-level match while invoking calloutBlock for runtime PCRE2 callouts."
 
-	^ self withCallout: calloutBlock do: [ :callbackMatcher |
-		  callbackMatcher matchBytes: subject from: start to: end ]
+	^ self withCallout: calloutBlock do: [ :callbackMatcher | callbackMatcher matchBytes: subject from: start to: end ]
 ]
 
 { #category : 'prepared matching' }
@@ -699,25 +679,26 @@ PCRE2Matcher >> matchBytes: subject from: start to: end options: matchOptions in
 
 	rc := (self canUseJITForOptions: matchOptions)
 		      ifFalse: [
-			      self
-				      match: subject
-				      from: start - 1
-				      to: end
-				      options: matchOptions
-				      matchData: aPCRE2Match ]
+				      self
+					      match: subject
+					      from: start - 1
+					      to: end
+					      options: matchOptions
+					      matchData: aPCRE2Match ]
 		      ifTrue: [
-			      self
-				      jitMatch: subject
-				      from: start - 1
-				      to: end
-				      options: matchOptions
-				      matchData: aPCRE2Match ].
+				      self
+					      jitMatch: subject
+					      from: start - 1
+					      to: end
+					      options: matchOptions
+					      matchData: aPCRE2Match ].
 
 	^ self recordMatchResult: rc in: aPCRE2Match
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> matchClass [
+
 	^ self subclassResponsibility
 ]
 
@@ -725,16 +706,14 @@ PCRE2Matcher >> matchClass [
 PCRE2Matcher >> matchData [
 	"Matchers no longer own match data. Use findMatch: or matchBytes:from:to: and query the returned PCRE2Match."
 
-	self error:
-		'PCRE2Matcher no longer keeps match data; query the PCRE2Match returned by a match operation'
+	self error: 'PCRE2Matcher no longer keeps match data; query the PCRE2Match returned by a match operation'
 ]
 
 { #category : 'accessing' }
 PCRE2Matcher >> matchData: aPCRE2Match [
 	"Matchers no longer own match data. Reuse match data with matchBytes:from:to:into:."
 
-	self error:
-		'PCRE2Matcher no longer accepts stored match data; pass it to a match operation instead'
+	self error: 'PCRE2Matcher no longer accepts stored match data; pass it to a match operation instead'
 ]
 
 { #category : 'matching' }
@@ -746,8 +725,7 @@ PCRE2Matcher >> matches: subject [
 	match := self matchBytes: input bytes from: 1 to: input size.
 	match ifNil: [ ^ false ].
 	match isPartial ifTrue: [ ^ false ].
-	match offsetsDo: [ :start :end |
-		^ start == 1 and: [ end == input size ] ].
+	match offsetsDo: [ :start :end | ^ start == 1 and: [ end == input size ] ].
 	^ false
 ]
 
@@ -755,9 +733,7 @@ PCRE2Matcher >> matches: subject [
 PCRE2Matcher >> matches: subject calloutsDo: calloutBlock [
 	"Answer whether the subject is fully matched while invoking calloutBlock for runtime PCRE2 callouts."
 
-	^ self
-		  withCallout: calloutBlock
-		  do: [ :callbackMatcher | callbackMatcher matches: subject ]
+	^ self withCallout: calloutBlock do: [ :callbackMatcher | callbackMatcher matches: subject ]
 ]
 
 { #category : 'match enumeration' }
@@ -773,9 +749,7 @@ PCRE2Matcher >> matchesIn: subject collect: aBlock [
 
 	| result |
 	result := OrderedCollection new.
-	self
-		findAll: subject
-		do: [ :match | result add: (aBlock value: match) ].
+	self findAll: subject do: [ :match | result add: (aBlock value: match) ].
 	^ result
 ]
 
@@ -803,9 +777,7 @@ PCRE2Matcher >> matchesPrefix: subject [
 PCRE2Matcher >> matchesPrefix: subject calloutsDo: calloutBlock [
 	"Answer whether the subject prefix matches while invoking calloutBlock for runtime PCRE2 callouts."
 
-	^ self
-		  withCallout: calloutBlock
-		  do: [ :callbackMatcher | callbackMatcher matchesPrefix: subject ]
+	^ self withCallout: calloutBlock do: [ :callbackMatcher | callbackMatcher matchesPrefix: subject ]
 ]
 
 { #category : 'match enumeration' }
@@ -820,11 +792,9 @@ PCRE2Matcher >> matchingRangesIn: subject [
 		from: 1
 		to: input size
 		do: [ :match |
-			| offsets |
-			offsets := match offsetsAt: 1.
-			ranges add: (input
-					 characterRangeFromStartOffset: offsets first
-					 endOffset: offsets second) ].
+				| offsets |
+				offsets := match offsetsAt: 1.
+				ranges add: (input characterRangeFromStartOffset: offsets first endOffset: offsets second) ].
 	^ ranges
 ]
 
@@ -833,9 +803,8 @@ PCRE2Matcher >> nameTableCaptureIndexAt: entryOffset in: nameTableAddress [
 	"PCRE2-8 stores the capture index in the first two 8-bit code units; PCRE2-16/32 store it in the first native code unit."
 
 	self codeUnitWidth = 8 ifTrue: [
-		^ ((self nameTableCodeUnitAt: entryOffset in: nameTableAddress)
-			   bitShift: 8) bitOr:
-			  (self nameTableCodeUnitAt: entryOffset + 1 in: nameTableAddress) ].
+			^ ((self nameTableCodeUnitAt: entryOffset in: nameTableAddress) bitShift: 8) bitOr:
+				  (self nameTableCodeUnitAt: entryOffset + 1 in: nameTableAddress) ].
 	^ self nameTableCodeUnitAt: entryOffset in: nameTableAddress
 ]
 
@@ -843,13 +812,9 @@ PCRE2Matcher >> nameTableCaptureIndexAt: entryOffset in: nameTableAddress [
 PCRE2Matcher >> nameTableCodeUnitAt: codeUnitOffset in: nameTableAddress [
 	"Answer one native PCRE2 code unit from the name table. The offset is measured in code units, not bytes."
 
-	self codeUnitWidth = 8 ifTrue: [
-		^ nameTableAddress uint8AtOffset: codeUnitOffset ].
-	self codeUnitWidth = 16 ifTrue: [
-		^ nameTableAddress uint16AtOffset:
-			  codeUnitOffset * self codeUnitByteSize ].
-	^ nameTableAddress uint32AtOffset:
-		  codeUnitOffset * self codeUnitByteSize
+	self codeUnitWidth = 8 ifTrue: [ ^ nameTableAddress uint8AtOffset: codeUnitOffset ].
+	self codeUnitWidth = 16 ifTrue: [ ^ nameTableAddress uint16AtOffset: codeUnitOffset * self codeUnitByteSize ].
+	^ nameTableAddress uint32AtOffset: codeUnitOffset * self codeUnitByteSize
 ]
 
 { #category : 'private' }
@@ -857,24 +822,20 @@ PCRE2Matcher >> nameTableNameAt: entryOffset in: nameTableAddress [
 	"Decode the zero-terminated group name stored after the capture index in a native name-table entry."
 
 	self codeUnitWidth = 8 ifTrue: [
-		^ (ByteArray streamContents: [ :stream |
-			   | codeUnit offset |
-			   offset := entryOffset + 1.
-			   [
-			   offset := offset + 1.
-			   codeUnit := self
-				               nameTableCodeUnitAt: offset
-				               in: nameTableAddress.
-			   codeUnit = 0 ] whileFalse: [ stream nextPut: codeUnit ] ])
-			  utf8Decoded ].
+			^ (ByteArray streamContents: [ :stream |
+					   | codeUnit offset |
+					   offset := entryOffset + 1.
+					   [
+						   offset := offset + 1.
+						   codeUnit := self nameTableCodeUnitAt: offset in: nameTableAddress.
+						   codeUnit = 0 ] whileFalse: [ stream nextPut: codeUnit ] ]) utf8Decoded ].
 	^ String streamContents: [ :stream |
-		  | codeUnit offset |
-		  offset := entryOffset.
-		  [
-		  offset := offset + 1.
-		  codeUnit := self nameTableCodeUnitAt: offset in: nameTableAddress.
-		  codeUnit = 0 ] whileFalse: [
-			  stream nextPut: (Character value: codeUnit) ] ]
+			  | codeUnit offset |
+			  offset := entryOffset.
+			  [
+				  offset := offset + 1.
+				  codeUnit := self nameTableCodeUnitAt: offset in: nameTableAddress.
+				  codeUnit = 0 ] whileFalse: [ stream nextPut: (Character value: codeUnit) ] ]
 ]
 
 { #category : 'documentation' }
@@ -891,8 +852,7 @@ PCRE2Matcher >> newMatchData [
 
 	| pointer |
 	pointer := self createMatchDataFromPattern.
-	pointer isNull ifTrue: [
-		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
+	pointer isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create match data' ].
 	^ (self matchClass fromHandle: pointer) initialize autoRelease
 ]
 
@@ -902,8 +862,7 @@ PCRE2Matcher >> newMatchDataWithOvectorSize: ovectorSize [
 
 	| pointer |
 	pointer := self createMatchDataWithOvectorSize: ovectorSize.
-	pointer isNull ifTrue: [
-		PCRE2Error signal: 'Failed to obtain memory to create match data' ].
+	pointer isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create match data' ].
 	^ (self matchClass fromHandle: pointer) initialize autoRelease
 ]
 
@@ -912,8 +871,7 @@ PCRE2Matcher >> optionsWithPartialOption: partialOption [
 	"Answer my match options with exactly the requested partial-matching mode."
 
 	self validatePartialOption: partialOption.
-	^ (options bitAnd: (PCRE2 partialSoft | PCRE2 partialHard) bitInvert)
-		  bitOr: partialOption
+	^ (options bitAnd: (PCRE2 partialSoft | PCRE2 partialHard) bitInvert) bitOr: partialOption
 ]
 
 { #category : 'accessing' }
@@ -936,19 +894,20 @@ PCRE2Matcher >> postCopy [
 	"Copy the external structure of the compiled pattern."
 
 	handle := self privateCopy.
-	handle isNull ifTrue: [
-		PCRE2Error signal: 'Failed to obtain memory to copy matcher' ].
+	handle isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to copy matcher' ].
 	self autoRelease initialize.
 	self restoreJITIfNeeded
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> preparedInputFor: aStringOrInput [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> privateCopy [
+
 	^ self subclassResponsibility
 ]
 
@@ -982,11 +941,9 @@ PCRE2Matcher >> readNamedGroups [
 	buffer := buffer pointerAtOffset: 0.
 
 	1 to: nameCount do: [ :entryIndex |
-		| entryOffset |
-		entryOffset := entrySize * (entryIndex - 1).
-		table
-			at: (self nameTableCaptureIndexAt: entryOffset in: buffer)
-			put: (self nameTableNameAt: entryOffset in: buffer) ].
+			| entryOffset |
+			entryOffset := entrySize * (entryIndex - 1).
+			table at: (self nameTableCaptureIndexAt: entryOffset in: buffer) put: (self nameTableNameAt: entryOffset in: buffer) ].
 	^ table
 ]
 
@@ -1005,19 +962,17 @@ PCRE2Matcher >> recordDFAMatchResult: rc in: aPCRE2Match [
 
 	aPCRE2Match resultCode: rc.
 	rc > 0 ifTrue: [
-		aPCRE2Match count: rc.
-		^ rc ].
+			aPCRE2Match count: rc.
+			^ rc ].
 
 	rc == PCRE2 errorPartial ifTrue: [
-		aPCRE2Match count: 1.
-		^ rc ].
+			aPCRE2Match count: 1.
+			^ rc ].
 
 	aPCRE2Match count: 0.
 	rc == PCRE2 errorNoMatch ifTrue: [ ^ rc ].
 
-	rc == 0 ifTrue: [
-		PCRE2Error signal:
-			'Not enough match data ovector slots to store DFA results' ].
+	rc == 0 ifTrue: [ PCRE2Error signal: 'Not enough match data ovector slots to store DFA results' ].
 
 	self errorCode: rc
 ]
@@ -1027,19 +982,17 @@ PCRE2Matcher >> recordMatchResult: rc in: aPCRE2Match [
 
 	aPCRE2Match resultCode: rc.
 	rc > 0 ifTrue: [
-		aPCRE2Match count: rc.
-		^ rc ].
+			aPCRE2Match count: rc.
+			^ rc ].
 
 	rc == PCRE2 errorPartial ifTrue: [
-		aPCRE2Match count: 1.
-		^ rc ].
+			aPCRE2Match count: 1.
+			^ rc ].
 
 	aPCRE2Match count: 0.
 	rc == PCRE2 errorNoMatch ifTrue: [ ^ rc ].
 
-	rc == 0 ifTrue: [
-		PCRE2Error signal:
-			'Not enough memory in match structure to store results' ].
+	rc == 0 ifTrue: [ PCRE2Error signal: 'Not enough memory in match structure to store results' ].
 
 	self errorCode: rc
 ]
@@ -1072,9 +1025,7 @@ PCRE2Matcher >> search: subject [
 PCRE2Matcher >> search: subject calloutsDo: calloutBlock [
 	"Answer whether the subject contains a match while invoking calloutBlock for runtime PCRE2 callouts."
 
-	^ self
-		  withCallout: calloutBlock
-		  do: [ :callbackMatcher | callbackMatcher search: subject ]
+	^ self withCallout: calloutBlock do: [ :callbackMatcher | callbackMatcher search: subject ]
 ]
 
 { #category : 'persistence' }
@@ -1095,31 +1046,25 @@ PCRE2Matcher >> split: subject indicesDo: aBlock [
 	lastEndCharacterCount := 0.
 	nextStart := 1.
 	subjectEnd := input characterCountUpToCodeUnitOffset: input size.
-	[
-	nextStart <= (input size + 1) and: [
-		(match := self
-			          matchBytes: input bytes
-			          from: nextStart
-			          to: input size) notNil ] ] whileTrue: [
-		| endCharacterCount endOffset offsets startCharacterCount startOffset |
-		offsets := match offsetsAt: 1.
-		startOffset := offsets first.
-		endOffset := offsets second.
-		[ startOffset < endOffset ] assertWithDescription:
-			'Regex cannot match null string'.
-		startCharacterCount := input
-			                       characterCountUpToCodeUnitOffset:
-			                       startOffset
-			                       fromCodeUnitOffset: lastEndOffset
-			                       characterCount: lastEndCharacterCount.
-		aBlock value: lastEndCharacterCount + 1 value: startCharacterCount.
-		endCharacterCount := input
-			                     characterCountUpToCodeUnitOffset: endOffset
-			                     fromCodeUnitOffset: startOffset
-			                     characterCount: startCharacterCount.
-		lastEndOffset := endOffset.
-		lastEndCharacterCount := endCharacterCount.
-		nextStart := endOffset + 1 ].
+	[ nextStart <= (input size + 1) and: [ (match := self matchBytes: input bytes from: nextStart to: input size) notNil ] ]
+		whileTrue: [
+				| endCharacterCount endOffset offsets startCharacterCount startOffset |
+				offsets := match offsetsAt: 1.
+				startOffset := offsets first.
+				endOffset := offsets second.
+				[ startOffset < endOffset ] assertWithDescription: 'Regex cannot match null string'.
+				startCharacterCount := input
+					                       characterCountUpToCodeUnitOffset: startOffset
+					                       fromCodeUnitOffset: lastEndOffset
+					                       characterCount: lastEndCharacterCount.
+				aBlock value: lastEndCharacterCount + 1 value: startCharacterCount.
+				endCharacterCount := input
+					                     characterCountUpToCodeUnitOffset: endOffset
+					                     fromCodeUnitOffset: startOffset
+					                     characterCount: startCharacterCount.
+				lastEndOffset := endOffset.
+				lastEndCharacterCount := endCharacterCount.
+				nextStart := endOffset + 1 ].
 	aBlock value: lastEndCharacterCount + 1 value: subjectEnd
 ]
 
@@ -1127,8 +1072,7 @@ PCRE2Matcher >> split: subject indicesDo: aBlock [
 PCRE2Matcher >> startIndex [
 	"Matchers no longer keep the last match. Query startIndex on the returned PCRE2Match."
 
-	self error:
-		'PCRE2Matcher no longer keeps the last match; query startIndex on the returned PCRE2Match'
+	self error: 'PCRE2Matcher no longer keeps the last match; query startIndex on the returned PCRE2Match'
 ]
 
 { #category : 'private' }
@@ -1136,15 +1080,15 @@ PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptio
 	"Dispatch pcre2_substitute() with or without caller-supplied match data. A nil match data lets PCRE2 perform the match; a non-nil match data is used with PCRE2 substituteMatched."
 
 	aPCRE2Match ifNil: [
-		^ self
-			  substitute: subject
-			  from: start
-			  to: end
-			  options: substituteOptions
-			  replacement: replacement
-			  upTo: rLength
-			  output: buffer
-			  size: outSize ].
+			^ self
+				  substitute: subject
+				  from: start
+				  to: end
+				  options: substituteOptions
+				  replacement: replacement
+				  upTo: rLength
+				  output: buffer
+				  size: outSize ].
 	^ self
 		  substitute: subject
 		  from: start
@@ -1159,11 +1103,13 @@ PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptio
 
 { #category : 'private' }
 PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions matchedData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
+
 	^ self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions replacement: replacement upTo: rLength output: buffer size: outSize [
+
 	^ self subclassResponsibility
 ]
 
@@ -1171,20 +1117,14 @@ PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptio
 PCRE2Matcher >> substitute: subject with: replacement [
 	"Answer subject with the first match substituted by replacement. PCRE2 treats replacement as a substitution expression unless substituteLiteral is set in the matcher options."
 
-	^ self
-		  substitute: subject
-		  with: replacement
-		  options: self substitutionOptions
+	^ self substitute: subject with: replacement options: self substitutionOptions
 ]
 
 { #category : 'matching' }
 PCRE2Matcher >> substitute: subject with: replacement addingOptions: substituteOptions [
 	"Answer subject with substitutions applied using my substitution options plus substituteOptions."
 
-	^ self
-		  substitute: subject
-		  with: replacement
-		  options: (self substitutionOptions bitOr: substituteOptions)
+	^ self substitute: subject with: replacement options: (self substitutionOptions bitOr: substituteOptions)
 ]
 
 { #category : 'callouts' }
@@ -1224,22 +1164,18 @@ PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions
 PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions calloutsDo: calloutBlock [
 	"Answer subject with substitutions applied using substituteOptions while invoking calloutBlock after each processed replacement."
 
-	^ self withSubstituteCallout: calloutBlock do: [ :callbackMatcher |
-		  callbackMatcher
-			  substitute: subject
-			  with: replacement
-			  options: substituteOptions ]
+	^ self
+		  withSubstituteCallout: calloutBlock
+		  do: [ :callbackMatcher | callbackMatcher substitute: subject with: replacement options: substituteOptions ]
 ]
 
 { #category : 'callouts' }
 PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions caseCallout: caseBlock [
 	"Answer subject with substitutions applied using substituteOptions while caseBlock handles replacement case escapes. Case escapes require PCRE2 substituteExtended."
 
-	^ self withSubstituteCaseCallout: caseBlock do: [ :callbackMatcher |
-		  callbackMatcher
-			  substitute: subject
-			  with: replacement
-			  options: substituteOptions ]
+	^ self
+		  withSubstituteCaseCallout: caseBlock
+		  do: [ :callbackMatcher | callbackMatcher substitute: subject with: replacement options: substituteOptions ]
 ]
 
 { #category : 'private' }
@@ -1259,41 +1195,28 @@ PCRE2Matcher >> substitute: subject with: replacement options: substituteOptions
 PCRE2Matcher >> substitute: subject withLiteral: replacement [
 	"Answer subject with the first match substituted by replacement, treating replacement as literal text rather than a PCRE2 substitution expression."
 
-	^ self
-		  substitute: subject
-		  with: replacement
-		  addingOptions: PCRE2 substituteLiteral
+	^ self substitute: subject with: replacement addingOptions: PCRE2 substituteLiteral
 ]
 
 { #category : 'matching' }
 PCRE2Matcher >> substitute: subject withUnknownCapturesEmpty: replacement [
 	"Answer subject with the first match substituted by replacement, treating unknown and unset captures as empty strings. Use with care because typos in replacement group names no longer signal."
 
-	^ self
-		  substitute: subject
-		  with: replacement
-		  addingOptions:
-		  PCRE2 substituteUnknownUnset | PCRE2 substituteUnsetEmpty
+	^ self substitute: subject with: replacement addingOptions: PCRE2 substituteUnknownUnset | PCRE2 substituteUnsetEmpty
 ]
 
 { #category : 'matching' }
 PCRE2Matcher >> substitute: subject withUnsetCapturesEmpty: replacement [
 	"Answer subject with the first match substituted by replacement, treating unset captures referenced by replacement as empty strings."
 
-	^ self
-		  substitute: subject
-		  with: replacement
-		  addingOptions: PCRE2 substituteUnsetEmpty
+	^ self substitute: subject with: replacement addingOptions: PCRE2 substituteUnsetEmpty
 ]
 
 { #category : 'matching' }
 PCRE2Matcher >> substituteAll: subject with: replacement [
 	"Answer subject with every non-overlapping match substituted by replacement."
 
-	^ self
-		  substitute: subject
-		  with: replacement
-		  addingOptions: PCRE2 substituteGlobal
+	^ self substitute: subject with: replacement addingOptions: PCRE2 substituteGlobal
 ]
 
 { #category : 'callouts' }
@@ -1333,10 +1256,7 @@ PCRE2Matcher >> substituteAll: subject with: replacement options: substituteOpti
 PCRE2Matcher >> substituteAll: subject withLiteral: replacement [
 	"Answer subject with every non-overlapping match substituted by replacement, treating replacement as literal text."
 
-	^ self
-		  substitute: subject
-		  with: replacement
-		  addingOptions: PCRE2 substituteGlobal | PCRE2 substituteLiteral
+	^ self substitute: subject with: replacement addingOptions: PCRE2 substituteGlobal | PCRE2 substituteLiteral
 ]
 
 { #category : 'matching' }
@@ -1346,30 +1266,21 @@ PCRE2Matcher >> substituteAll: subject withUnknownCapturesEmpty: replacement [
 	^ self
 		  substitute: subject
 		  with: replacement
-		  addingOptions:
-			  PCRE2 substituteGlobal | PCRE2 substituteUnknownUnset
-			  | PCRE2 substituteUnsetEmpty
+		  addingOptions: PCRE2 substituteGlobal | PCRE2 substituteUnknownUnset | PCRE2 substituteUnsetEmpty
 ]
 
 { #category : 'matching' }
 PCRE2Matcher >> substituteAll: subject withUnsetCapturesEmpty: replacement [
 	"Answer subject with every non-overlapping match substituted by replacement, treating unset captures as empty strings."
 
-	^ self
-		  substitute: subject
-		  with: replacement
-		  addingOptions: PCRE2 substituteGlobal | PCRE2 substituteUnsetEmpty
+	^ self substitute: subject with: replacement addingOptions: PCRE2 substituteGlobal | PCRE2 substituteUnsetEmpty
 ]
 
 { #category : 'matching' }
 PCRE2Matcher >> substituteAllReplacementsOnly: subject with: replacement [
 	"Answer only the replacement text generated for all non-overlapping matches, concatenated in match order."
 
-	^ self
-		  substitute: subject
-		  with: replacement
-		  addingOptions:
-		  PCRE2 substituteGlobal | PCRE2 substituteReplacementOnly
+	^ self substitute: subject with: replacement addingOptions: PCRE2 substituteGlobal | PCRE2 substituteReplacementOnly
 ]
 
 { #category : 'private' }
@@ -1381,25 +1292,23 @@ PCRE2Matcher >> substituteBytes: subjectBytes replacement: replacement options: 
 	bytesPerCodeUnit := self codeUnitByteSize.
 	subjectCodeUnitSize := subjectBytes size // bytesPerCodeUnit.
 	replacementInput := self preparedInputFor: replacement.
-	effectiveOptions := substituteOptions bitOr:
-		                    PCRE2 substituteOverflowLength.
+	effectiveOptions := substituteOptions bitOr: PCRE2 substituteOverflowLength.
 	bufferCodeUnitSize := 4096.
 
 	[
-	holder := SizeTHolder new value: bufferCodeUnitSize.
-	buffer := ByteArray new: bufferCodeUnitSize * bytesPerCodeUnit.
-	rc := self
-		      substitute: subjectBytes
-		      from: 0
-		      to: subjectCodeUnitSize
-		      options: effectiveOptions
-		      matchData: aPCRE2Match
-		      replacement: replacementInput bytes
-		      upTo: replacementInput size
-		      output: buffer
-		      size: holder.
-	rc = PCRE2 errorNoMemory ] whileTrue: [
-		bufferCodeUnitSize := holder value max: bufferCodeUnitSize * 2 ].
+		holder := SizeTHolder new value: bufferCodeUnitSize.
+		buffer := ByteArray new: bufferCodeUnitSize * bytesPerCodeUnit.
+		rc := self
+			      substitute: subjectBytes
+			      from: 0
+			      to: subjectCodeUnitSize
+			      options: effectiveOptions
+			      matchData: aPCRE2Match
+			      replacement: replacementInput bytes
+			      upTo: replacementInput size
+			      output: buffer
+			      size: holder.
+		rc = PCRE2 errorNoMemory ] whileTrue: [ bufferCodeUnitSize := holder value max: bufferCodeUnitSize * 2 ].
 
 	rc < 0 ifTrue: [ self errorCode: rc ].
 	^ self decodeSubstitutionOutput: buffer codeUnits: holder value
@@ -1409,20 +1318,14 @@ PCRE2Matcher >> substituteBytes: subjectBytes replacement: replacement options: 
 PCRE2Matcher >> substituteReplacementsOnly: subject with: replacement [
 	"Answer only the replacement text generated for the first match."
 
-	^ self
-		  substitute: subject
-		  with: replacement
-		  addingOptions: PCRE2 substituteReplacementOnly
+	^ self substitute: subject with: replacement addingOptions: PCRE2 substituteReplacementOnly
 ]
 
 { #category : 'matching' }
 PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement [
 	"Answer the subject remembered by aPCRE2Match after substituting replacement for that already-computed match. The match must have been produced by this matcher over the same subject bytes."
 
-	^ self
-		  substituteUsingMatch: aPCRE2Match
-		  with: replacement
-		  options: self substitutionOptions
+	^ self substituteUsingMatch: aPCRE2Match with: replacement options: self substitutionOptions
 ]
 
 { #category : 'callouts' }
@@ -1464,11 +1367,7 @@ PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement options: sub
 	"Answer the subject remembered by aPCRE2Match after substituting replacement for that already-computed match, while invoking calloutBlock after each processed replacement. This uses the receiver directly because PCRE2_SUBSTITUTE_MATCHED requires the same native compiled-pattern handle that produced the match data."
 
 	self context substituteCalloutBlock: calloutBlock.
-	^ [
-	  self
-		  substituteUsingMatch: aPCRE2Match
-		  with: replacement
-		  options: substituteOptions ] ensure: [
+	^ [ self substituteUsingMatch: aPCRE2Match with: replacement options: substituteOptions ] ensure: [
 		  self context clearSubstituteCallout ]
 ]
 
@@ -1477,11 +1376,7 @@ PCRE2Matcher >> substituteUsingMatch: aPCRE2Match with: replacement options: sub
 	"Answer the subject remembered by aPCRE2Match after substituting replacement for that match, while caseBlock handles replacement case escapes. This uses the receiver directly because PCRE2_SUBSTITUTE_MATCHED requires the same native compiled-pattern handle that produced the match data."
 
 	self context substituteCaseCalloutBlock: caseBlock.
-	^ [
-	  self
-		  substituteUsingMatch: aPCRE2Match
-		  with: replacement
-		  options: substituteOptions ] ensure: [
+	^ [ self substituteUsingMatch: aPCRE2Match with: replacement options: substituteOptions ] ensure: [
 		  self context clearSubstituteCaseCallout ]
 ]
 
@@ -1499,15 +1394,13 @@ PCRE2Matcher >> temporaryMatcherAddingCompileOptions: compileOptions matchOption
 	| sourceCompiler temporaryCompiler temporaryMatcher |
 	sourceCompiler := compiler ifNil: [ self compilerClass new ].
 	temporaryCompiler := self compilerClass new.
-	sourceCompiler copyContextIfPresent ifNotNil: [ :contextCopy |
-		temporaryCompiler context: contextCopy ].
+	sourceCompiler copyContextIfPresent ifNotNil: [ :contextCopy | temporaryCompiler context: contextCopy ].
 	temporaryCompiler
 		options: (sourceCompiler options bitOr: compileOptions);
 		optionsJIT: sourceCompiler optionsJIT.
 	temporaryMatcher := temporaryCompiler compile: pattern.
 	temporaryMatcher options: (options bitOr: matchOptions).
-	context ifNotNil: [
-		temporaryMatcher context: context copy autoRelease ].
+	context ifNotNil: [ temporaryMatcher context: context copy autoRelease ].
 	^ temporaryMatcher
 ]
 
@@ -1518,8 +1411,7 @@ PCRE2Matcher >> temporaryMatcherForCallout [
 	| callbackMatcher |
 	callbackMatcher := self copy.
 	callbackMatcher options: options.
-	context ifNotNil: [
-		callbackMatcher context: context copy autoRelease ].
+	context ifNotNil: [ callbackMatcher context: context copy autoRelease ].
 	^ callbackMatcher
 ]
 
@@ -1533,8 +1425,8 @@ PCRE2Matcher >> traceMatch: aStringOrInput [
 	patternInput := compiler preparedPatternFor: pattern.
 	eventSnapshots := OrderedCollection new.
 	traceMatcher context calloutBlock: [ :event |
-		eventSnapshots add: event.
-		0 ].
+			eventSnapshots add: event.
+			0 ].
 	match := traceMatcher newMatchData.
 	resultCode := traceMatcher
 		              matchBytes: input bytes
@@ -1559,57 +1451,39 @@ PCRE2Matcher >> traceMatch: aStringOrInput [
 PCRE2Matcher >> traceMatcher [
 	"Answer a temporary matcher compiled for tracing. The receiver is not mutated."
 
-	^ self
-		  temporaryMatcherAddingCompileOptions:
-		  (PCRE2 autoCallout bitOr: PCRE2 noStartOptimize)
-		  matchOptions: PCRE2 noJIT
+	^ self temporaryMatcherAddingCompileOptions: (PCRE2 autoCallout bitOr: PCRE2 noStartOptimize) matchOptions: PCRE2 noJIT
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> validateDFAWorkspaceSize: workspaceSize ovectorSize: ovectorSize [
 
 	(workspaceSize isInteger and: [ workspaceSize >= 20 ]) ifFalse: [
-		self error:
-			'DFA workspace size must be an integer greater than or equal to 20' ].
-	(ovectorSize isInteger and: [ ovectorSize >= 1 ]) ifFalse: [
-		self error: 'DFA ovector size must be a positive integer' ]
+		self error: 'DFA workspace size must be an integer greater than or equal to 20' ].
+	(ovectorSize isInteger and: [ ovectorSize >= 1 ]) ifFalse: [ self error: 'DFA ovector size must be a positive integer' ]
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> validatePartialOption: partialOption [
 
-	(partialOption = PCRE2 partialSoft or: [
-		 partialOption = PCRE2 partialHard ]) ifFalse: [
-		self error:
-			'Partial matching option must be PCRE2 partialSoft or PCRE2 partialHard' ]
+	(partialOption = PCRE2 partialSoft or: [ partialOption = PCRE2 partialHard ]) ifFalse: [
+		self error: 'Partial matching option must be PCRE2 partialSoft or PCRE2 partialHard' ]
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> validateSubstitutionMatchData: aPCRE2Match [
 
-	aPCRE2Match ifNil: [
-		PCRE2Error signal:
-			'Substitution match data must hold an external PCRE2 match data block' ].
-	aPCRE2Match isPersistent ifTrue: [
-		PCRE2Error signal:
-			'Persistent match data cannot be passed back to pcre2_substitute' ].
-	aPCRE2Match isNull ifTrue: [
-		PCRE2Error signal:
-			'Substitution match data must hold an external PCRE2 match data block' ].
-	aPCRE2Match subject ifNil: [
-		PCRE2Error signal:
-			'Substitution match data must remember its subject bytes' ].
-	aPCRE2Match isComplete ifFalse: [
-		PCRE2Error signal:
-			'Substitution match data must contain a complete match' ]
+	aPCRE2Match ifNil: [ PCRE2Error signal: 'Substitution match data must hold an external PCRE2 match data block' ].
+	aPCRE2Match isPersistent ifTrue: [ PCRE2Error signal: 'Persistent match data cannot be passed back to pcre2_substitute' ].
+	aPCRE2Match isNull ifTrue: [ PCRE2Error signal: 'Substitution match data must hold an external PCRE2 match data block' ].
+	aPCRE2Match subject ifNil: [ PCRE2Error signal: 'Substitution match data must remember its subject bytes' ].
+	aPCRE2Match isComplete ifFalse: [ PCRE2Error signal: 'Substitution match data must contain a complete match' ]
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> validateUsableMatchData: aPCRE2Match [
 
 	(aPCRE2Match isPersistent or: [ aPCRE2Match isNull ]) ifTrue: [
-		PCRE2Error signal:
-			'Match data must hold an external PCRE2 match data block' ]
+		PCRE2Error signal: 'Match data must hold an external PCRE2 match data block' ]
 ]
 
 { #category : 'callouts' }
@@ -1617,13 +1491,9 @@ PCRE2Matcher >> withAutomaticCallouts: calloutBlock do: aBlock [
 	"Evaluate aBlock with a temporary matcher compiled with automatic callouts. This is intended for tools and diagnostics: it does not mutate the receiver, and it disables start optimization on the temporary matcher so generated callouts expose matching progress."
 
 	| callbackMatcher |
-	callbackMatcher := self
-		                   temporaryMatcherAddingCompileOptions:
-		                   (PCRE2 autoCallout bitOr: PCRE2 noStartOptimize)
-		                   matchOptions: 0.
+	callbackMatcher := self temporaryMatcherAddingCompileOptions: (PCRE2 autoCallout bitOr: PCRE2 noStartOptimize) matchOptions: 0.
 	callbackMatcher context calloutBlock: calloutBlock.
-	^ [ aBlock cull: callbackMatcher ] ensure: [
-		  callbackMatcher context clearCallout ]
+	^ [ aBlock cull: callbackMatcher ] ensure: [ callbackMatcher context clearCallout ]
 ]
 
 { #category : 'callouts' }
@@ -1633,8 +1503,7 @@ PCRE2Matcher >> withCallout: calloutBlock do: aBlock [
 	| callbackMatcher |
 	callbackMatcher := self temporaryMatcherForCallout.
 	callbackMatcher context calloutBlock: calloutBlock.
-	^ [ aBlock cull: callbackMatcher ] ensure: [
-		  callbackMatcher context clearCallout ]
+	^ [ aBlock cull: callbackMatcher ] ensure: [ callbackMatcher context clearCallout ]
 ]
 
 { #category : 'callouts' }
@@ -1644,8 +1513,7 @@ PCRE2Matcher >> withSubstituteCallout: calloutBlock do: aBlock [
 	| callbackMatcher |
 	callbackMatcher := self temporaryMatcherForCallout.
 	callbackMatcher context substituteCalloutBlock: calloutBlock.
-	^ [ aBlock cull: callbackMatcher ] ensure: [
-		  callbackMatcher context clearSubstituteCallout ]
+	^ [ aBlock cull: callbackMatcher ] ensure: [ callbackMatcher context clearSubstituteCallout ]
 ]
 
 { #category : 'callouts' }
@@ -1655,6 +1523,5 @@ PCRE2Matcher >> withSubstituteCaseCallout: caseBlock do: aBlock [
 	| callbackMatcher |
 	callbackMatcher := self temporaryMatcherForCallout.
 	callbackMatcher context substituteCaseCalloutBlock: caseBlock.
-	^ [ aBlock cull: callbackMatcher ] ensure: [
-		  callbackMatcher context clearSubstituteCaseCallout ]
+	^ [ aBlock cull: callbackMatcher ] ensure: [ callbackMatcher context clearSubstituteCaseCallout ]
 ]

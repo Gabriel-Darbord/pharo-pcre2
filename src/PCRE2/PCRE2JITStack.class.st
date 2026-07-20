@@ -56,8 +56,7 @@ PCRE2JITStack class >> startSize: startSize maxSize: maxSize [
 	"Create a JIT stack. Sending this to PCRE2JITStack itself creates the UTF-8 variant, matching the default compiler."
 
 	| stack |
-	self == PCRE2JITStack ifTrue: [
-		^ PCRE2UTF8JITStack startSize: startSize maxSize: maxSize ].
+	self == PCRE2JITStack ifTrue: [ ^ PCRE2UTF8JITStack startSize: startSize maxSize: maxSize ].
 	stack := self basicNew.
 	stack initializeWithStartSize: startSize maxSize: maxSize.
 	^ stack autoRelease

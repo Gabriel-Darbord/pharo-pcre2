@@ -88,8 +88,7 @@ PCRE2LiveDebugRun >> handleCalloutEvent: aPCRE2CalloutEvent [
 	abortRequested ifTrue: [ ^ PCRE2 errorCallout ].
 	recorder appendEvent: aPCRE2CalloutEvent.
 	stateSemaphore signal.
-	(controlMode = #step and: [ recorder events size >= targetEventCount ])
-		ifTrue: [ ^ PCRE2 errorCallout ].
+	(controlMode = #step and: [ recorder events size >= targetEventCount ]) ifTrue: [ ^ PCRE2 errorCallout ].
 	^ 0
 ]
 
@@ -97,17 +96,16 @@ PCRE2LiveDebugRun >> handleCalloutEvent: aPCRE2CalloutEvent [
 PCRE2LiveDebugRun >> handleMatchResult: resultCode match: matchData [
 
 	(resultCode = PCRE2 errorCallout and: [ abortRequested ]) ifTrue: [
-		recorder abortWithResultCode: resultCode.
-		self runState: #aborted.
-		^ self ].
-	(resultCode = PCRE2 errorCallout and: [ controlMode = #step ])
-		ifTrue: [
+			recorder abortWithResultCode: resultCode.
+			self runState: #aborted.
+			^ self ].
+	(resultCode = PCRE2 errorCallout and: [ controlMode = #step ]) ifTrue: [
 			self runState: #paused.
 			^ self ].
 	resultCode = PCRE2 errorNoMatch ifTrue: [
-		recorder finishWithMatch: nil resultCode: resultCode.
-		self runState: #completed.
-		^ self ].
+			recorder finishWithMatch: nil resultCode: resultCode.
+			self runState: #completed.
+			^ self ].
 	input recordOn: matchData.
 	matchData bePersistent.
 	recorder finishWithMatch: matchData resultCode: resultCode.
@@ -242,8 +240,8 @@ PCRE2LiveDebugRun >> recordRawResult: resultCode in: matchData [
 
 	matchData resultCode: resultCode.
 	resultCode > 0 ifTrue: [
-		matchData count: resultCode.
-		^ self ].
+			matchData count: resultCode.
+			^ self ].
 	resultCode = PCRE2 errorPartial
 		ifTrue: [ matchData count: 1 ]
 		ifFalse: [ matchData count: 0 ]
@@ -261,8 +259,7 @@ PCRE2LiveDebugRun >> resetRecorder [
 
 	recorder := PCRE2TraceRecorder
 		            pattern: pattern
-		            patternInput:
-		            (matcher compiler preparedPatternFor: pattern)
+		            patternInput: (matcher compiler preparedPatternFor: pattern)
 		            subject: subject
 		            input: input
 		            calloutSites: matcher calloutSites.
@@ -274,23 +271,21 @@ PCRE2LiveDebugRun >> runPreparedMatch [
 
 	| match rc |
 	[
-	[
-	matcher context calloutBlock: [ :event |
-		self handleCalloutEvent: event ].
-	match := matcher newMatchData.
-	rc := self rawMatchInto: match.
-	self handleMatchResult: rc match: match ]
-		on: Error
-		do: [ :error |
-			abortRequested
-				ifTrue: [
-					recorder abortWithResultCode: PCRE2 errorCallout.
-					self runState: #aborted ]
-				ifFalse: [
-					lastError := error messageText ifNil: [ error printString ].
-					recorder ifNotNil: [ recorder failWithError: lastError ].
-					self runState: #failed ] ] ] ensure: [
-		matcher ifNotNil: [ matcher context clearCallout ] ]
+		[
+			matcher context calloutBlock: [ :event | self handleCalloutEvent: event ].
+			match := matcher newMatchData.
+			rc := self rawMatchInto: match.
+			self handleMatchResult: rc match: match ]
+			on: Error
+			do: [ :error |
+					abortRequested
+						ifTrue: [
+								recorder abortWithResultCode: PCRE2 errorCallout.
+								self runState: #aborted ]
+						ifFalse: [
+								lastError := error messageText ifNil: [ error printString ].
+								recorder ifNotNil: [ recorder failWithError: lastError ].
+								self runState: #failed ] ] ] ensure: [ matcher ifNotNil: [ matcher context clearCallout ] ]
 ]
 
 { #category : 'accessing' }
@@ -354,17 +349,13 @@ PCRE2LiveDebugRun >> subject: aString [
 { #category : 'waiting' }
 PCRE2LiveDebugRun >> waitForCompletionMilliseconds: timeoutMilliseconds [
 
-	^ self
-		  waitUntil: [ self isFinished ]
-		  timeoutMilliseconds: timeoutMilliseconds
+	^ self waitUntil: [ self isFinished ] timeoutMilliseconds: timeoutMilliseconds
 ]
 
 { #category : 'waiting' }
 PCRE2LiveDebugRun >> waitForPauseOrFinishMilliseconds: timeoutMilliseconds [
 
-	^ self
-		  waitUntil: [ self isPaused or: [ self isFinished ] ]
-		  timeoutMilliseconds: timeoutMilliseconds
+	^ self waitUntil: [ self isPaused or: [ self isFinished ] ] timeoutMilliseconds: timeoutMilliseconds
 ]
 
 { #category : 'waiting' }
@@ -373,9 +364,9 @@ PCRE2LiveDebugRun >> waitUntil: conditionBlock timeoutMilliseconds: timeoutMilli
 	| deadline remaining |
 	deadline := Time millisecondClockValue + timeoutMilliseconds.
 	[ conditionBlock value ] whileFalse: [
-		remaining := deadline - Time millisecondClockValue.
-		remaining <= 0 ifTrue: [ ^ false ].
-		stateSemaphore waitTimeoutMilliseconds: (remaining min: 20) ].
+			remaining := deadline - Time millisecondClockValue.
+			remaining <= 0 ifTrue: [ ^ false ].
+			stateSemaphore waitTimeoutMilliseconds: (remaining min: 20) ].
 	^ true
 ]
 

@@ -50,10 +50,7 @@ LibPCRE2 class >> convertGlob: globPattern [
 LibPCRE2 class >> convertGlob: globPattern context: convertContext [
 	"Convert a glob pattern into a PCRE2 pattern string with the supplied convert context."
 
-	^ self
-		  convertGlob: globPattern
-		  options: PCRE2 convertGlob
-		  context: convertContext
+	^ self convertGlob: globPattern options: PCRE2 convertGlob context: convertContext
 ]
 
 { #category : 'converting' }
@@ -67,68 +64,49 @@ LibPCRE2 class >> convertGlob: globPattern options: convertOptions [
 LibPCRE2 class >> convertGlob: globPattern options: convertOptions context: convertContext [
 	"Convert a glob pattern into a PCRE2 pattern string for the receiver's code-unit width."
 
-	^ self
-		  convertPattern: globPattern
-		  options: (convertOptions bitOr: PCRE2 convertUTF)
-		  context: convertContext
+	^ self convertPattern: globPattern options: (convertOptions bitOr: PCRE2 convertUTF) context: convertContext
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPOSIXBasic: posixPattern [
 	"Convert a POSIX basic regular expression into a PCRE2 pattern string for the receiver's code-unit width."
 
-	^ self
-		  convertPattern: posixPattern
-		  options: PCRE2 convertPOSIXBasic | PCRE2 convertUTF
+	^ self convertPattern: posixPattern options: PCRE2 convertPOSIXBasic | PCRE2 convertUTF
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPOSIXBasic: posixPattern context: convertContext [
 	"Convert a POSIX basic regular expression into a PCRE2 pattern string with the supplied convert context."
 
-	^ self
-		  convertPattern: posixPattern
-		  options: PCRE2 convertPOSIXBasic | PCRE2 convertUTF
-		  context: convertContext
+	^ self convertPattern: posixPattern options: PCRE2 convertPOSIXBasic | PCRE2 convertUTF context: convertContext
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPOSIXExtended: posixPattern [
 	"Convert a POSIX extended regular expression into a PCRE2 pattern string for the receiver's code-unit width."
 
-	^ self
-		  convertPattern: posixPattern
-		  options: PCRE2 convertPOSIXExtended | PCRE2 convertUTF
+	^ self convertPattern: posixPattern options: PCRE2 convertPOSIXExtended | PCRE2 convertUTF
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPOSIXExtended: posixPattern context: convertContext [
 	"Convert a POSIX extended regular expression into a PCRE2 pattern string with the supplied convert context."
 
-	^ self
-		  convertPattern: posixPattern
-		  options: PCRE2 convertPOSIXExtended | PCRE2 convertUTF
-		  context: convertContext
+	^ self convertPattern: posixPattern options: PCRE2 convertPOSIXExtended | PCRE2 convertUTF context: convertContext
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPattern: pattern options: convertOptions [
 	"Convert a foreign pattern into a PCRE2 pattern string with explicit PCRE2_CONVERT_* option bits."
 
-	^ self uniqueInstance
-		  convertPattern: pattern
-		  options: convertOptions
-		  context: nil
+	^ self uniqueInstance convertPattern: pattern options: convertOptions context: nil
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPattern: pattern options: convertOptions context: convertContext [
 	"Convert a foreign pattern into a PCRE2 pattern string with an optional convert context."
 
-	^ self uniqueInstance
-		  convertPattern: pattern
-		  options: convertOptions
-		  context: convertContext
+	^ self uniqueInstance convertPattern: pattern options: convertOptions context: convertContext
 ]
 
 { #category : 'persistence' }
@@ -209,22 +187,19 @@ LibPCRE2 class >> serialize: matchers [
 { #category : 'version management' }
 LibPCRE2 class >> supports16BitCodeUnitWidth [
 
-	^ self runtimeConfigurationLibrary uniqueInstance
-		  supports16BitCodeUnitWidth
+	^ self runtimeConfigurationLibrary uniqueInstance supports16BitCodeUnitWidth
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supports32BitCodeUnitWidth [
 
-	^ self runtimeConfigurationLibrary uniqueInstance
-		  supports32BitCodeUnitWidth
+	^ self runtimeConfigurationLibrary uniqueInstance supports32BitCodeUnitWidth
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supports8BitCodeUnitWidth [
 
-	^ self runtimeConfigurationLibrary uniqueInstance
-		  supports8BitCodeUnitWidth
+	^ self runtimeConfigurationLibrary uniqueInstance supports8BitCodeUnitWidth
 ]
 
 { #category : 'version management' }
@@ -243,56 +218,49 @@ LibPCRE2 class >> supportsJIT [
 LibPCRE2 class >> supportsMatchDataHeapframesSize [
 	"PCRE2 10.43 added pcre2_get_match_data_heapframes_size()."
 
-	^ self runtimeConfigurationLibrary uniqueInstance
-		  supportsMatchDataHeapframesSize
+	^ self runtimeConfigurationLibrary uniqueInstance supportsMatchDataHeapframesSize
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsMaxPatternCompiledLength [
 	"PCRE2 10.44 added pcre2_set_max_pattern_compiled_length()."
 
-	^ self runtimeConfigurationLibrary uniqueInstance
-		  supportsMaxPatternCompiledLength
+	^ self runtimeConfigurationLibrary uniqueInstance supportsMaxPatternCompiledLength
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsMaxVarLookbehind [
 	"PCRE2 10.43 added bounded variable-length lookbehind support and its compile-context limit."
 
-	^ self runtimeConfigurationLibrary uniqueInstance
-		  supportsMaxVarLookbehind
+	^ self runtimeConfigurationLibrary uniqueInstance supportsMaxVarLookbehind
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsOptimizationDirectives [
 	"PCRE2 10.45 added pcre2_set_optimize()."
 
-	^ self runtimeConfigurationLibrary uniqueInstance
-		  supportsOptimizationDirectives
+	^ self runtimeConfigurationLibrary uniqueInstance supportsOptimizationDirectives
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsPatternConversion [
 	"PCRE2 10.30 added the experimental pattern conversion API."
 
-	^ self runtimeConfigurationLibrary uniqueInstance
-		  supportsPatternConversion
+	^ self runtimeConfigurationLibrary uniqueInstance supportsPatternConversion
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsSubstitutionCallouts [
 	"PCRE2 10.33 added pcre2_set_substitute_callout()."
 
-	^ self runtimeConfigurationLibrary uniqueInstance
-		  supportsSubstitutionCallouts
+	^ self runtimeConfigurationLibrary uniqueInstance supportsSubstitutionCallouts
 ]
 
 { #category : 'version management' }
 LibPCRE2 class >> supportsSubstitutionCaseCallouts [
 	"PCRE2 10.45 added pcre2_set_substitute_case_callout()."
 
-	^ self runtimeConfigurationLibrary uniqueInstance
-		  supportsSubstitutionCaseCallouts
+	^ self runtimeConfigurationLibrary uniqueInstance supportsSubstitutionCaseCallouts
 ]
 
 { #category : 'version management' }
@@ -305,9 +273,7 @@ LibPCRE2 class >> supportsUnicode [
 LibPCRE2 class >> uniqueInstance [
 	"LibPCRE2 is abstract. Use LibPCRE2UTF8, LibPCRE2UTF16, or LibPCRE2UTF32 for runtime calls."
 
-	self isAbstract ifTrue: [
-		PCRE2Error signal:
-			'LibPCRE2 is abstract; use a concrete PCRE2 library binding' ].
+	self isAbstract ifTrue: [ PCRE2Error signal: 'LibPCRE2 is abstract; use a concrete PCRE2 library binding' ].
 	^ super uniqueInstance
 ]
 
@@ -389,13 +355,11 @@ LibPCRE2 >> config: option [
 	See class-side methods of PCRE2 starting with 'config' to find valid arguments."
 
 	| buffer rc |
-	(option = PCRE2 configJITTarget or: [
-		 option = PCRE2 configUnicodeVersion or: [
-			 option = PCRE2 configVersion ] ]) ifFalse: [ "requesting a number"
-		buffer := UInt32Holder new.
-		rc := self config: option output: buffer.
-		rc < 0 ifTrue: [ self errorCode: rc ].
-		^ buffer value ].
+	(option = PCRE2 configJITTarget or: [ option = PCRE2 configUnicodeVersion or: [ option = PCRE2 configVersion ] ]) ifFalse: [ "requesting a number"
+			buffer := UInt32Holder new.
+			rc := self config: option output: buffer.
+			rc < 0 ifTrue: [ self errorCode: rc ].
+			^ buffer value ].
 
 	"requesting a string"
 	buffer := ByteArray new: 64 * self codeUnitByteSize. "PCRE2 currently reports short configuration strings; 64 code units leaves room for the terminating zero."
@@ -415,10 +379,7 @@ LibPCRE2 >> config: what output: where [
 LibPCRE2 >> conversionErrorCode: errorCode in: input at: codeUnitOffset [
 	"Signal a conversion error reported for prepared PCRE2 input at a zero-based code-unit offset."
 
-	PCRE2CompileError
-		signal: (PCRE2 translateErrorCode: errorCode)
-		in: input
-		at: codeUnitOffset
+	PCRE2CompileError signal: (PCRE2 translateErrorCode: errorCode) in: input at: codeUnitOffset
 ]
 
 { #category : 'converting' }
@@ -446,16 +407,11 @@ LibPCRE2 >> convertPattern: pattern options: convertOptions context: convertCont
 		      context: convertContext.
 	outputAddress := buffer pointerAtOffset: 0.
 	rc = 0 ifFalse: [
-		outputAddress isNull ifFalse: [
-			self convertedPatternFree: outputAddress ].
-		self conversionErrorCode: rc in: input at: outputLength value ].
+			outputAddress isNull ifFalse: [ self convertedPatternFree: outputAddress ].
+			self conversionErrorCode: rc in: input at: outputLength value ].
 	[
-	convertedBytes := self
-		                  copyExternalBytes: outputAddress
-		                  size: outputLength value * self codeUnitByteSize.
-	^ self
-		  decodeConvertedPatternBytes: convertedBytes
-		  codeUnitCount: outputLength value ] ensure: [
+		convertedBytes := self copyExternalBytes: outputAddress size: outputLength value * self codeUnitByteSize.
+		^ self decodeConvertedPatternBytes: convertedBytes codeUnitCount: outputLength value ] ensure: [
 		self convertedPatternFree: outputAddress ]
 ]
 
@@ -472,8 +428,7 @@ LibPCRE2 >> copyExternalBytes: externalBytes size: byteSize [
 
 	| bytes |
 	bytes := ByteArray new: byteSize.
-	1 to: byteSize do: [ :index |
-		bytes at: index put: (externalBytes uint8AtOffset: index - 1) ].
+	1 to: byteSize do: [ :index | bytes at: index put: (externalBytes uint8AtOffset: index - 1) ].
 	^ bytes
 ]
 
@@ -544,8 +499,7 @@ LibPCRE2 >> jitFreeUnusedMemory [
 LibPCRE2 >> macLibraryName [
 	"Can be installed with homebrew"
 
-	^ FFIMacLibraryFinder findLibrary:
-		  self class libraryBasename , '.dylib'
+	^ FFIMacLibraryFinder findLibrary: self class libraryBasename , '.dylib'
 ]
 
 { #category : 'private' }
@@ -593,9 +547,7 @@ LibPCRE2 >> newCharacterTables [
 
 	| tables |
 	tables := self makeCharacterTables.
-	tables isNull ifTrue: [
-		PCRE2Error signal:
-			'Failed to obtain memory to create character tables' ].
+	tables isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create character tables' ].
 	^ tables autoRelease
 ]
 
@@ -606,9 +558,7 @@ LibPCRE2 >> newConvertContext [
 	| context |
 	self requirePatternConversionSupport.
 	context := self createConvertContext.
-	context isNull ifTrue: [
-		PCRE2Error signal:
-			'Failed to obtain memory to create convert context' ].
+	context isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create convert context' ].
 	^ context autoRelease
 ]
 
@@ -617,8 +567,7 @@ LibPCRE2 >> newMatchContext [
 
 	| context |
 	context := self createMatchContext.
-	context isNull ifTrue: [
-		PCRE2Error signal: 'Failed to obtain memory to create match context' ].
+	context isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create match context' ].
 	^ context autoRelease
 ]
 
@@ -641,9 +590,7 @@ LibPCRE2 >> requirePatternConversionSupport [
 	"Fail before calling pattern-conversion entry points that do not exist in older runtimes."
 
 	self supportsPatternConversion ifTrue: [ ^ self ].
-	PCRE2Error signal:
-		'Pattern conversion requires PCRE2 10.30 or newer; loaded '
-		, self versionString
+	PCRE2Error signal: 'Pattern conversion requires PCRE2 10.30 or newer; loaded ' , self versionString
 ]
 
 { #category : 'serializing' }
@@ -659,10 +606,9 @@ LibPCRE2 >> restore: matchers from: bytes [
 	rc < 0 ifTrue: [ self errorCode: rc ].
 
 	1 to: count do: [ :i |
-		| matcher |
-		(matcher := matchers at: i) setHandle:
-			(pointers pointerAtOffset: wordSize * (i - 1)).
-		matcher restoreJITIfNeeded ]
+			| matcher |
+			(matcher := matchers at: i) setHandle: (pointers pointerAtOffset: wordSize * (i - 1)).
+			matcher restoreJITIfNeeded ]
 ]
 
 { #category : 'accessing' }
@@ -679,10 +625,7 @@ LibPCRE2 >> serialize: matchers [
 	| buffer bufferSize externBytes pointers rc wordSize |
 	wordSize := ExternalAddress wordSize.
 	pointers := ByteArray new: matchers size * wordSize.
-	1 to: matchers size do: [ :index |
-		pointers
-			pointerAtOffset: wordSize * (index - 1)
-			put: (matchers at: index) getHandle ].
+	1 to: matchers size do: [ :index | pointers pointerAtOffset: wordSize * (index - 1) put: (matchers at: index) getHandle ].
 	buffer := ByteArray new: wordSize.
 
 	"bufferSize is updated with the size of the allocated memory."
@@ -693,12 +636,11 @@ LibPCRE2 >> serialize: matchers [
 		      size: (bufferSize := SizeTHolder new).
 	externBytes := buffer pointerAtOffset: 0.
 	rc < 0 ifTrue: [
-		externBytes isNull ifFalse: [ self serializeFree: externBytes ].
-		self errorCode: rc ].
+			externBytes isNull ifFalse: [ self serializeFree: externBytes ].
+			self errorCode: rc ].
 
 	"Copy the encoded bytes into the image and free the memory allocated by PCRE2."
-	[ ^ self copyExternalBytes: externBytes size: bufferSize value ]
-		ensure: [ self serializeFree: externBytes ]
+	[ ^ self copyExternalBytes: externBytes size: bufferSize value ] ensure: [ self serializeFree: externBytes ]
 ]
 
 { #category : 'private' }
@@ -729,12 +671,9 @@ LibPCRE2 >> stringFromConfigBytes: buffer codeUnits: codeUnitCount [
 	| bytes |
 	codeUnitCount = 0 ifTrue: [ ^ String new ].
 	bytes := buffer copyFrom: 1 to: codeUnitCount * self codeUnitByteSize.
-	self codeUnitWidth = 8 ifTrue: [
-		^ ZnUTF8Encoder default decodeBytes: bytes ].
-	self codeUnitWidth = 16 ifTrue: [
-		^ (PCRE2UTF16Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
-	self codeUnitWidth = 32 ifTrue: [
-		^ (PCRE2UTF32Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
+	self codeUnitWidth = 8 ifTrue: [ ^ ZnUTF8Encoder default decodeBytes: bytes ].
+	self codeUnitWidth = 16 ifTrue: [ ^ (PCRE2UTF16Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
+	self codeUnitWidth = 32 ifTrue: [ ^ (PCRE2UTF32Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
 	PCRE2Error signal: 'Unsupported PCRE2 config string code-unit width'
 ]
 
@@ -763,8 +702,7 @@ LibPCRE2 >> supports8BitCodeUnitWidth [
 LibPCRE2 >> supportsCodeUnitWidth [
 	"Answer whether the loaded PCRE2 runtime reports support for this binding's code-unit width."
 
-	^ ((self config: PCRE2 configCompiledWidths) bitAnd:
-		   self codeUnitWidthMask) = self codeUnitWidthMask
+	^ ((self config: PCRE2 configCompiledWidths) bitAnd: self codeUnitWidthMask) = self codeUnitWidthMask
 ]
 
 { #category : 'version management' }
@@ -824,15 +762,13 @@ LibPCRE2 >> supportsUnicode [
 { #category : 'accessing - platform' }
 LibPCRE2 >> unix32LibraryName [
 
-	^ FFIUnix32LibraryFinder findLibrary:
-		  self class libraryBasename , '.so'
+	^ FFIUnix32LibraryFinder findLibrary: self class libraryBasename , '.so'
 ]
 
 { #category : 'accessing - platform' }
 LibPCRE2 >> unix64LibraryName [
 
-	^ FFIUnix64LibraryFinder findLibrary:
-		  self class libraryBasename , '.so'
+	^ FFIUnix64LibraryFinder findLibrary: self class libraryBasename , '.so'
 ]
 
 { #category : 'accessing - platform' }
@@ -891,6 +827,5 @@ LibPCRE2 >> versionString [
 { #category : 'accessing - platform' }
 LibPCRE2 >> win32LibraryName [
 
-	^ FFIWindowsLibraryFinder findLibrary:
-		  self class libraryBasename , '.dll'
+	^ FFIWindowsLibraryFinder findLibrary: self class libraryBasename , '.dll'
 ]

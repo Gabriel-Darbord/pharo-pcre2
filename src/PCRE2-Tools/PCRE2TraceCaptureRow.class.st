@@ -19,10 +19,7 @@ Class {
 { #category : 'instance creation' }
 PCRE2TraceCaptureRow class >> index: captureIndex range: anIntervalOrNil text: aString [
 
-	^ self new
-		  initializeIndex: captureIndex
-		  range: anIntervalOrNil
-		  text: aString
+	^ self new initializeIndex: captureIndex range: anIntervalOrNil text: aString
 ]
 
 { #category : 'display' }

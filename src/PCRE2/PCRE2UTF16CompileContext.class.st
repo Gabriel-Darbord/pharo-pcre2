@@ -12,6 +12,7 @@ Class {
 
 { #category : 'library path' }
 PCRE2UTF16CompileContext >> ffiLibraryName [
+
 	^ LibPCRE2UTF16
 ]
 

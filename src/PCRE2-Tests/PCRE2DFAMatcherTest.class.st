@@ -18,9 +18,7 @@ PCRE2DFAMatcherTest >> testDFAMatchAnswersStandaloneMatchData [
 	match := regex dfaMatch: subject workspaceSize: 40 ovectorSize: 3.
 
 	self assert: match count equals: 3.
-	self
-		assert: match readMatches
-		equals: #( 'caterpillar' 'cater' 'cat' )
+	self assert: match readMatches equals: #( 'caterpillar' 'cater' 'cat' )
 ]
 
 { #category : 'tests' }
@@ -29,14 +27,8 @@ PCRE2DFAMatcherTest >> testDFAMatchConvenienceSelectors [
 	| regex |
 	regex := 'cat(er(pillar)?)?' asPerlCompatibleRegex.
 
-	self
-		assert: (regex dfaMatch: 'the caterpillar catchment') readMatches
-		equals: #( 'caterpillar' 'cater' 'cat' ).
-	self
-		assert:
-			(regex dfaMatch: 'the caterpillar catchment' workspaceSize: 40)
-				readMatches
-		equals: #( 'caterpillar' 'cater' 'cat' )
+	self assert: (regex dfaMatch: 'the caterpillar catchment') readMatches equals: #( 'caterpillar' 'cater' 'cat' ).
+	self assert: (regex dfaMatch: 'the caterpillar catchment' workspaceSize: 40) readMatches equals: #( 'caterpillar' 'cater' 'cat' )
 ]
 
 { #category : 'tests' }
@@ -48,16 +40,11 @@ PCRE2DFAMatcherTest >> testDFAMatchValidatesWorkspaceAndOvectorSizes [
 	self
 		should: [ regex dfaMatches: 'a' workspaceSize: 19 ]
 		raise: Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring:
-					 'greater than or equal to 20') ].
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'greater than or equal to 20') ].
 	self
 		should: [ regex dfaMatch: 'a' workspaceSize: 20 ovectorSize: 0 ]
 		raise: Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring: 'positive integer') ]
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'positive integer') ]
 ]
 
 { #category : 'tests' }
@@ -79,10 +66,7 @@ PCRE2DFAMatcherTest >> testDFAMatchesReturnsAllAlternativesAtFirstStart [
 	| matches regex |
 	regex := 'cat(er(pillar)?)?' asPerlCompatibleRegex.
 
-	matches := regex
-		           dfaMatches: 'the caterpillar catchment'
-		           workspaceSize: 40
-		           ovectorSize: 3.
+	matches := regex dfaMatches: 'the caterpillar catchment' workspaceSize: 40 ovectorSize: 3.
 
 	self assert: matches equals: #( 'caterpillar' 'cater' 'cat' )
 ]
@@ -90,9 +74,7 @@ PCRE2DFAMatcherTest >> testDFAMatchesReturnsAllAlternativesAtFirstStart [
 { #category : 'tests' }
 PCRE2DFAMatcherTest >> testDFAMatchesReturnsEmptyArrayWhenThereIsNoMatch [
 
-	self
-		assert: ('dog' asPerlCompatibleRegex dfaMatches: 'the caterpillar catchment')
-		equals: #(  )
+	self assert: ('dog' asPerlCompatibleRegex dfaMatches: 'the caterpillar catchment') equals: #(  )
 ]
 
 { #category : 'tests' }

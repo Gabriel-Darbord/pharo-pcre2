@@ -27,10 +27,7 @@ PCRE2UTF32Input class >> bytes: bytesObject string: aString [
 PCRE2UTF32Input class >> fromBigEndianBytes: aByteCollection [
 	"Answer input from UTF-32 big-endian bytes, normalizing to native endianness when needed."
 
-	^ self fromNativeEndianBytes:
-		  (PCRE2WideInputBytes
-			   normalizeBigEndianBytes: aByteCollection
-			   width: 4)
+	^ self fromNativeEndianBytes: (PCRE2WideInputBytes normalizeBigEndianBytes: aByteCollection width: 4)
 ]
 
 { #category : 'instance creation' }
@@ -44,14 +41,10 @@ PCRE2UTF32Input class >> fromBytes: aByteCollection [
 PCRE2UTF32Input class >> fromBytesDetectingBOM: aByteCollection [
 	"Answer input from UTF-32 bytes, using and stripping a byte-order mark when present. Bytes without a BOM are treated as native-endian."
 
-	(PCRE2WideInputBytes hasBigEndianBOM: aByteCollection width: 4)
-		ifTrue: [
-			^ self fromBigEndianBytes:
-				  (PCRE2WideInputBytes bytesAfterBOM: aByteCollection byteCount: 4) ].
-	(PCRE2WideInputBytes hasLittleEndianBOM: aByteCollection width: 4)
-		ifTrue: [
-			^ self fromLittleEndianBytes:
-				  (PCRE2WideInputBytes bytesAfterBOM: aByteCollection byteCount: 4) ].
+	(PCRE2WideInputBytes hasBigEndianBOM: aByteCollection width: 4) ifTrue: [
+		^ self fromBigEndianBytes: (PCRE2WideInputBytes bytesAfterBOM: aByteCollection byteCount: 4) ].
+	(PCRE2WideInputBytes hasLittleEndianBOM: aByteCollection width: 4) ifTrue: [
+		^ self fromLittleEndianBytes: (PCRE2WideInputBytes bytesAfterBOM: aByteCollection byteCount: 4) ].
 	^ self fromNativeEndianBytes: aByteCollection
 ]
 
@@ -60,8 +53,7 @@ PCRE2UTF32Input class >> fromBytesWithBOM: aByteCollection [
 	"Answer input from UTF-32 bytes that must start with a byte-order mark. The BOM is stripped before matching."
 
 	((PCRE2WideInputBytes hasBigEndianBOM: aByteCollection width: 4) or: [
-		 PCRE2WideInputBytes hasLittleEndianBOM: aByteCollection width: 4 ])
-		ifFalse: [
+		 PCRE2WideInputBytes hasLittleEndianBOM: aByteCollection width: 4 ]) ifFalse: [
 		PCRE2Error signal: 'UTF-32 input bytes do not start with a BOM' ].
 	^ self fromBytesDetectingBOM: aByteCollection
 ]
@@ -70,9 +62,7 @@ PCRE2UTF32Input class >> fromBytesWithBOM: aByteCollection [
 PCRE2UTF32Input class >> fromLittleEndianBytes: aByteCollection [
 	"Answer input from UTF-32 little-endian bytes, normalizing to native endianness when needed."
 
-	^ self fromNativeEndianBytes: (PCRE2WideInputBytes
-			   normalizeLittleEndianBytes: aByteCollection
-			   width: 4)
+	^ self fromNativeEndianBytes: (PCRE2WideInputBytes normalizeLittleEndianBytes: aByteCollection width: 4)
 ]
 
 { #category : 'instance creation' }
@@ -82,8 +72,7 @@ PCRE2UTF32Input class >> fromNativeEndianBytes: aByteCollection [
 	PCRE2WideInputBytes
 		validateByteSize: aByteCollection
 		multipleOf: 4
-		message:
-		'UTF-32 input bytes must have a byte size divisible by four'.
+		message: 'UTF-32 input bytes must have a byte size divisible by four'.
 	^ self bytes: aByteCollection copy string: nil
 ]
 
@@ -94,10 +83,7 @@ PCRE2UTF32Input class >> fromString: aString [
 	| bytes copy |
 	copy := aString copy.
 	bytes := ByteArray new: copy size * 4.
-	1 to: copy size do: [ :index |
-		bytes
-			uint32AtOffset: 4 * (index - 1)
-			put: (copy at: index) asInteger ].
+	1 to: copy size do: [ :index | bytes uint32AtOffset: 4 * (index - 1) put: (copy at: index) asInteger ].
 	^ self bytes: bytes string: copy
 ]
 
@@ -148,9 +134,7 @@ PCRE2UTF32Input >> decodeBytes: aByteCollection from: byteStart to: byteEnd [
 	"Decode a 1-based inclusive byte range from native-endian UTF-32 storage."
 
 	^ String streamContents: [ :stream |
-		  byteStart to: byteEnd by: 4 do: [ :index |
-			  stream nextPut:
-				  (Character value: (aByteCollection uint32AtOffset: index - 1)) ] ]
+		  byteStart to: byteEnd by: 4 do: [ :index | stream nextPut: (Character value: (aByteCollection uint32AtOffset: index - 1)) ] ]
 ]
 
 { #category : 'decoding' }

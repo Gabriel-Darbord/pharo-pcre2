@@ -34,9 +34,7 @@ Class {
 { #category : 'opening' }
 PCRE2DebuggerPresenter class >> openOnPattern: patternString subject: subjectString [
 
-	^ (self on:
-		   (PCRE2DebugSession pattern: patternString subject: subjectString))
-		  open
+	^ (self on: (PCRE2DebugSession pattern: patternString subject: subjectString)) open
 ]
 
 { #category : 'specs' }
@@ -71,10 +69,10 @@ PCRE2DebuggerPresenter >> connectPresenters [
 	nextButton action: [ self goNextStep ].
 	lastButton action: [ self goLastStep ].
 	tracePresenter stepsTable whenSelectedItemChangedDo: [ :row |
-		refreshingTrace ifFalse: [
-			row ifNotNil: [
-				session selectStep: row representativeStep.
-				self refreshStepStatus ] ] ]
+			refreshingTrace ifFalse: [
+					row ifNotNil: [
+							session selectStep: row representativeStep.
+							self refreshStepStatus ] ] ]
 ]
 
 { #category : 'accessing' }
@@ -92,9 +90,7 @@ PCRE2DebuggerPresenter >> continueLiveRun [
 	session continueLiveRun.
 	run := session liveRun.
 	run ifNotNil: [
-		run whenCompletedDo: [ :completedRun |
-			completedRun == session liveRun ifTrue: [
-				self defer: [ self refreshFromSession ] ] ] ].
+		run whenCompletedDo: [ :completedRun | completedRun == session liveRun ifTrue: [ self defer: [ self refreshFromSession ] ] ] ].
 	self refreshFromSession
 ]
 
@@ -203,18 +199,15 @@ PCRE2DebuggerPresenter >> initializePresenters [
 	runButton := self newButton
 		             label: 'Trace all';
 		             icon: (self iconNamed: #smallDoIt);
-		             help:
-			             'Compile the pattern and record a complete instrumented trace.';
+		             help: 'Compile the pattern and record a complete instrumented trace.';
 		             yourself.
 	stepButton := self newButton
 		              label: 'Step';
-		              help:
-			              'Start or advance live execution to the next callout.';
+		              help: 'Start or advance live execution to the next callout.';
 		              yourself.
 	continueButton := self newButton
 		                  label: 'Continue';
-		                  help:
-			                  'Resume live execution without stopping at later callouts.';
+		                  help: 'Resume live execution without stopping at later callouts.';
 		                  yourself.
 	pauseButton := self newButton
 		               label: 'Pause';
@@ -286,14 +279,11 @@ PCRE2DebuggerPresenter >> refreshFromSession [
 	session executionMode = #stepLive ifTrue: [ session refreshLiveTrace ].
 	refreshingTrace := true.
 	[
-	tracePresenter trace: session trace.
-	session hasError ifTrue: [
-		tracePresenter statusLabel label: session statusString ].
-	session trace ifNotNil: [
-		session selectedStep ifNil: [ session firstStep ].
-		session selectedStep ifNotNil: [ :step |
-			tracePresenter selectedStep: step ] ] ] ensure: [
-		refreshingTrace := false ].
+		tracePresenter trace: session trace.
+		session hasError ifTrue: [ tracePresenter statusLabel label: session statusString ].
+		session trace ifNotNil: [
+				session selectedStep ifNil: [ session firstStep ].
+				session selectedStep ifNotNil: [ :step | tracePresenter selectedStep: step ] ] ] ensure: [ refreshingTrace := false ].
 	self refreshStepStatus.
 	self refreshModeControls
 ]
@@ -332,9 +322,8 @@ PCRE2DebuggerPresenter >> runTrace [
 PCRE2DebuggerPresenter >> selectSessionStepInTracePresenter [
 
 	session selectedStep ifNotNil: [ :step |
-		refreshingTrace := true.
-		[ tracePresenter selectedStep: step ] ensure: [
-			refreshingTrace := false ] ].
+			refreshingTrace := true.
+			[ tracePresenter selectedStep: step ] ensure: [ refreshingTrace := false ] ].
 	self refreshStepStatus
 ]
 

@@ -31,8 +31,7 @@ PCRE2MatchTest >> testCount [
 PCRE2MatchTest >> testDuplicateNamedGroups [
 
 	| match regex |
-	regex := '(?<part>cat)|(?<part>dog)'
-		         asPerlCompatibleRegexWithOptions: PCRE2 dupNames.
+	regex := '(?<part>cat)|(?<part>dog)' asPerlCompatibleRegexWithOptions: PCRE2 dupNames.
 	match := regex findMatch: 'dog'.
 
 	self assert: regex namedGroups equals: #( 'part' 'part' ).
@@ -51,9 +50,7 @@ PCRE2MatchTest >> testGroupAccessEdgeCases [
 	self assert: (match groupAt: 99) isNil.
 	self assert: (match groupNamed: 'optional') isNil.
 	self assert: (match groupsByName at: 'optional') isNil.
-	self
-		assert: (match groupNamed: 'missing' ifAbsent: [ 'absent' ])
-		equals: 'absent'.
+	self assert: (match groupNamed: 'missing' ifAbsent: [ 'absent' ]) equals: 'absent'.
 
 	self should: [ match groupAt: -1 ] raise: Error.
 	self should: [ match groupAt: '1' ] raise: Error
@@ -85,8 +82,8 @@ PCRE2MatchTest >> testMatchDataDiagnosticsSurvivePersistence [
 	self assert: matchDataSize > 0.
 	LibPCRE2 supportsMatchDataHeapframesSize
 		ifTrue: [
-			self assert: heapframesSize isInteger.
-			self assert: heapframesSize >= 0 ]
+				self assert: heapframesSize isInteger.
+				self assert: heapframesSize >= 0 ]
 		ifFalse: [ self assert: heapframesSize isNil ].
 
 	match bePersistent.
@@ -109,9 +106,7 @@ PCRE2MatchTest >> testNamedGroups [
 	self assert: (match groupAt: 1) equals: 'café'.
 	self assert: (match groupNamed: 'word') equals: 'café'.
 	self assert: (match groupNamed: 'digits') equals: '123'.
-	self
-		assert: (match groupNamed: 'missing' ifAbsent: [ 'absent' ])
-		equals: 'absent'.
+	self assert: (match groupNamed: 'missing' ifAbsent: [ 'absent' ]) equals: 'absent'.
 
 	groups := match groupsByName.
 	self assert: (groups at: 'word') equals: 'café'.
@@ -172,17 +167,11 @@ PCRE2MatchTest >> testRememberedSubjectRequiredForLateQueries [
 	self
 		should: [ match readMatch ]
 		raise: Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring:
-					 'does not remember a subject') ].
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'does not remember a subject') ].
 	self
 		should: [ match groupAt: 0 ]
 		raise: Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring:
-					 'does not remember a subject') ]
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'does not remember a subject') ]
 ]
 
 { #category : 'tests' }

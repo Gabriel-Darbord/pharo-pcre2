@@ -50,15 +50,13 @@ PCRE2CompileError >> signal: anErrorMessage in: input at: codeUnitOffset [
 	pattern := input size = 0
 		           ifTrue: [ '' ]
 		           ifFalse: [ input readFrom: 1 to: input size ].
-	characterOffset := input characterCountUpToCodeUnitOffset:
-		                   codeUnitOffset.
+	characterOffset := input characterCountUpToCodeUnitOffset: codeUnitOffset.
 	head := characterOffset = 0
 		        ifTrue: [ '' ]
 		        ifFalse: [ pattern copyFrom: 1 to: characterOffset ].
 	tail := characterOffset >= pattern size
 		        ifTrue: [ '' ]
-		        ifFalse: [
-		        pattern copyFrom: characterOffset + 1 to: pattern size ].
+		        ifFalse: [ pattern copyFrom: characterOffset + 1 to: pattern size ].
 	self messageText: errorMessage , ': ' , head , '(*ERROR)' , tail.
 	self signal
 ]

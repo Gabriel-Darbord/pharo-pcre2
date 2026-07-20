@@ -147,9 +147,9 @@ PCRE2TraceStep >> printOn: aStream [
 		nextPutAll: ', subject ';
 		print: subjectPosition.
 	site ifNotNil: [
-		aStream
-			nextPutAll: ', callout ';
-			print: site number ].
+			aStream
+				nextPutAll: ', callout ';
+				print: site number ].
 	aStream nextPut: $)
 ]
 

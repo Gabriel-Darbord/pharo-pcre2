@@ -4,7 +4,5 @@ Extension { #name : 'PCRE2Matcher' }
 PCRE2Matcher >> openDebuggerOn: subjectString [
 	"Open a standalone debugger for this pattern and subject."
 
-	^ PCRE2DebuggerPresenter
-		  openOnPattern: self pattern
-		  subject: subjectString
+	^ PCRE2DebuggerPresenter openOnPattern: self pattern subject: subjectString
 ]

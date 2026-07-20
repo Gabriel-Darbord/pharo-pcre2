@@ -69,22 +69,13 @@ PCRE2MatcherTest >> testAllInfo [
 { #category : 'tests' }
 PCRE2MatcherTest >> testBePersistent [
 
-	self
-		assertRegex: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}'
-		matchPersists: 'user@example.com'.
+	self assertRegex: '[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' matchPersists: 'user@example.com'.
 
-	self
-		assertRegex: '[\x{20AC}\x{00A3}\x{00A5}]'
-		matchPersists: '€ $ £ ¥'.
+	self assertRegex: '[\x{20AC}\x{00A3}\x{00A5}]' matchPersists: '€ $ £ ¥'.
 
-	self
-		assertRegex: '\b\w+?(?=\d)'
-		matchPersists: 'not test123 this example456 another789'.
+	self assertRegex: '\b\w+?(?=\d)' matchPersists: 'not test123 this example456 another789'.
 
-	self
-		assert:
-		('\d' asPerlCompatibleRegex findMatch: 'glib jocks quiz nymph to vex dwarf')
-		equals: nil
+	self assert: ('\d' asPerlCompatibleRegex findMatch: 'glib jocks quiz nymph to vex dwarf') equals: nil
 ]
 
 { #category : 'tests' }
@@ -159,9 +150,7 @@ PCRE2MatcherTest >> testCopyMatchesDoAcceptsReusableUTF8Input [
 	| bytesSeen input output regex |
 	regex := '\p{L}+' asPerlCompatibleRegex.
 	input := '1 café' asPCRE2UTF8Input.
-	output := regex
-		          copy: input
-		          matchesDo: [ :ws :utfSubject :start :end |
+	output := regex copy: input matchesDo: [ :ws :utfSubject :start :end |
 			          bytesSeen := utfSubject.
 			          ws nextPutAll: 'X' ].
 
@@ -176,18 +165,12 @@ PCRE2MatcherTest >> testCopyReplacingMatchesWith [
 	regex := 'a' asPerlCompatibleRegex.
 	self assert: (regex copy: '' replacingMatchesWith: '') equals: ''.
 	self assert: (regex copy: 'aaa' replacingMatchesWith: '') equals: ''.
-	self
-		assert: (regex copy: 'aaa' replacingMatchesWith: 'b')
-		equals: 'bbb'.
-	self
-		assert: (regex copy: 'babab' replacingMatchesWith: '_a_')
-		equals: 'b_a_b_a_b'.
+	self assert: (regex copy: 'aaa' replacingMatchesWith: 'b') equals: 'bbb'.
+	self assert: (regex copy: 'babab' replacingMatchesWith: '_a_') equals: 'b_a_b_a_b'.
 
 	"unicode"
 	regex := '\p{L}+' asPerlCompatibleRegex.
-	self
-		assert: (regex copy: '1 café' replacingMatchesWith: 'eñe')
-		equals: '1 eñe'
+	self assert: (regex copy: '1 café' replacingMatchesWith: 'eñe') equals: '1 eñe'
 ]
 
 { #category : 'tests' }
@@ -197,9 +180,7 @@ PCRE2MatcherTest >> testCopyReplacingMatchesWithReusableUTF8Input [
 	regex := '\p{L}+' asPerlCompatibleRegex.
 	input := '1 café' asPCRE2UTF8Input.
 
-	self
-		assert: (regex copy: input replacingMatchesWith: 'eñe')
-		equals: '1 eñe'
+	self assert: (regex copy: input replacingMatchesWith: 'eñe') equals: '1 eñe'
 ]
 
 { #category : 'tests' }
@@ -207,29 +188,14 @@ PCRE2MatcherTest >> testCopyTranslatingMatchesUsing [
 
 	| regex |
 	regex := 'a' asPerlCompatibleRegex.
-	self
-		assert: (regex copy: '' translatingMatchesUsing: [ :match | '' ])
-		equals: ''.
-	self
-		assert: (regex copy: 'aaa' translatingMatchesUsing: [ :match | '' ])
-		equals: ''.
-	self
-		assert:
-		(regex copy: 'aaa' translatingMatchesUsing: [ :match | 'b' ])
-		equals: 'bbb'.
-	self
-		assert: (regex
-				 copy: 'babab'
-				 translatingMatchesUsing: [ :match | '_' , match , '_' ])
-		equals: 'b_a_b_a_b'.
+	self assert: (regex copy: '' translatingMatchesUsing: [ :match | '' ]) equals: ''.
+	self assert: (regex copy: 'aaa' translatingMatchesUsing: [ :match | '' ]) equals: ''.
+	self assert: (regex copy: 'aaa' translatingMatchesUsing: [ :match | 'b' ]) equals: 'bbb'.
+	self assert: (regex copy: 'babab' translatingMatchesUsing: [ :match | '_' , match , '_' ]) equals: 'b_a_b_a_b'.
 
 	"unicode"
 	regex := '\p{L}+' asPerlCompatibleRegex.
-	self
-		assert: (regex
-				 copy: '1 café'
-				 translatingMatchesUsing: [ :match | match repeat: 2 ])
-		equals: '1 cafécafé'
+	self assert: (regex copy: '1 café' translatingMatchesUsing: [ :match | match repeat: 2 ]) equals: '1 cafécafé'
 ]
 
 { #category : 'tests' }
@@ -239,11 +205,7 @@ PCRE2MatcherTest >> testCopyTranslatingMatchesUsingReusableUTF8Input [
 	regex := '\p{L}+' asPerlCompatibleRegex.
 	input := '1 café' asPCRE2UTF8Input.
 
-	self
-		assert: (regex
-				 copy: input
-				 translatingMatchesUsing: [ :match | match repeat: 2 ])
-		equals: '1 cafécafé'
+	self assert: (regex copy: input translatingMatchesUsing: [ :match | match repeat: 2 ]) equals: '1 cafécafé'
 ]
 
 { #category : 'tests' }
@@ -252,133 +214,73 @@ PCRE2MatcherTest >> testFind [
 	self assert: ('\d+' asPerlCompatibleRegex find: '123') equals: '123'.
 	self assert: ('\w+' asPerlCompatibleRegex find: 'hello') equals: 'hello'.
 	self
-		assert:
-			('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' asPerlCompatibleRegex find:
-				 'user@example.com')
+		assert: ('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' asPerlCompatibleRegex find: 'user@example.com')
 		equals: 'user@example.com'.
-	self
-		assert: ('\(\d{3}\) \d{3}-\d{4}' asPerlCompatibleRegex find: '(123) 456-7890')
-		equals: '(123) 456-7890'.
+	self assert: ('\(\d{3}\) \d{3}-\d{4}' asPerlCompatibleRegex find: '(123) 456-7890') equals: '(123) 456-7890'.
 
 	"no match"
-	self
-		assert:
-		('\d' asPerlCompatibleRegex find: 'the quick brown fox jumps over the lazy dog')
-		equals: nil.
+	self assert: ('\d' asPerlCompatibleRegex find: 'the quick brown fox jumps over the lazy dog') equals: nil.
 
 	"variable-length encoding"
 	self assert: ('[éèêë]' asPerlCompatibleRegex find: 'café') equals: 'é'.
 	self assert: ('\p{L}+' asPerlCompatibleRegex find: 'naïve') equals: 'naïve'.
+	self assert: ('[\x{20AC}\x{00A3}\x{00A5}]' asPerlCompatibleRegex find: '€ $ £ ¥') equals: '€'.
+	self assert: ('[\x{0391}-\x{03C9}]+' asPerlCompatibleRegex find: 'Αλφα Βήτα Γάμμα') equals: 'Αλφα'.
+	self assert: ('[\x{0400}-\x{04FF}]+' asPerlCompatibleRegex find: 'Привет мир') equals: 'Привет'.
+	self assert: ('[\x{1F600}-\x{1F64F}]' asPerlCompatibleRegex find: '😀😃😄😁') equals: '😀'.
+	self assert: ('[\x{0600}-\x{06FF}]+' asPerlCompatibleRegex find: 'مرحبا بالعالم') equals: 'مرحبا'.
 	self
-		assert: ('[\x{20AC}\x{00A3}\x{00A5}]' asPerlCompatibleRegex find: '€ $ £ ¥')
-		equals: '€'.
-	self
-		assert: ('[\x{0391}-\x{03C9}]+' asPerlCompatibleRegex find: 'Αλφα Βήτα Γάμμα')
-		equals: 'Αλφα'.
-	self
-		assert: ('[\x{0400}-\x{04FF}]+' asPerlCompatibleRegex find: 'Привет мир')
-		equals: 'Привет'.
-	self
-		assert: ('[\x{1F600}-\x{1F64F}]' asPerlCompatibleRegex find: '😀😃😄😁')
-		equals: '😀'.
-	self
-		assert: ('[\x{0600}-\x{06FF}]+' asPerlCompatibleRegex find: 'مرحبا بالعالم')
-		equals: 'مرحبا'.
-	self
-		assert:
-			('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+'
-				 asPerlCompatibleRegex find: 'Hello, Привет, 你好, مرحبا')
+		assert: ('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+' asPerlCompatibleRegex find: 'Hello, Привет, 你好, مرحبا')
 		equals: 'Hello'.
 
 	"lookaround and named capture groups"
+	self assert: ('\b\w+?(?=\d)' asPerlCompatibleRegex find: 'not test123 this example456 another789') equals: 'test'.
+	self assert: ('(?<=\d)(?:[^\d]\w+)' asPerlCompatibleRegex find: 'not 123test this 456example 789another') equals: 'test'.
 	self
-		assert: ('\b\w+?(?=\d)' asPerlCompatibleRegex find:
-				 'not test123 this example456 another789')
-		equals: 'test'.
-	self
-		assert: ('(?<=\d)(?:[^\d]\w+)' asPerlCompatibleRegex find:
-				 'not 123test this 456example 789another')
-		equals: 'test'.
-	self
-		assert:
-			('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
-				 asPerlCompatibleRegex find: 'user@example.com admin@domain.org')
+		assert: ('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})' asPerlCompatibleRegex find:
+				 'user@example.com admin@domain.org')
 		equals: 'user@example.com'
 ]
 
 { #category : 'tests' }
 PCRE2MatcherTest >> testFindAll [
 
+	self assert: ('\d+' asPerlCompatibleRegex findAll: '123') asArray equals: { '123' }.
+	self assert: ('\w+' asPerlCompatibleRegex findAll: 'hello') asArray equals: { 'hello' }.
 	self
-		assert: ('\d+' asPerlCompatibleRegex findAll: '123') asArray
-		equals: { '123' }.
-	self
-		assert: ('\w+' asPerlCompatibleRegex findAll: 'hello') asArray
-		equals: { 'hello' }.
-	self
-		assert:
-			('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' asPerlCompatibleRegex
-				 findAll: 'user@example.com') asArray
+		assert: ('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' asPerlCompatibleRegex findAll: 'user@example.com') asArray
 		equals: { 'user@example.com' }.
-	self
-		assert:
-		('\(\d{3}\) \d{3}-\d{4}' asPerlCompatibleRegex findAll: '(123) 456-7890')
-			asArray
-		equals: { '(123) 456-7890' }.
+	self assert: ('\(\d{3}\) \d{3}-\d{4}' asPerlCompatibleRegex findAll: '(123) 456-7890') asArray equals: { '(123) 456-7890' }.
 
 	"no match"
-	self
-		assert:
-			('\d' asPerlCompatibleRegex findAll:
-				 'the quick brown fox jumps over the lazy dog') asArray
-		equals: {  }.
+	self assert: ('\d' asPerlCompatibleRegex findAll: 'the quick brown fox jumps over the lazy dog') asArray equals: {  }.
 
 	"variable-length encoding"
+	self assert: ('[éèêë]' asPerlCompatibleRegex findAll: 'café') asArray equals: { 'é' }.
+	self assert: ('\p{L}+' asPerlCompatibleRegex findAll: 'naïve') asArray equals: { 'naïve' }.
+	self assert: ('[\x{20AC}\x{00A3}\x{00A5}]' asPerlCompatibleRegex findAll: '€ $ £ ¥') asArray equals: { '€'. '£'. '¥' }.
 	self
-		assert: ('[éèêë]' asPerlCompatibleRegex findAll: 'café') asArray
-		equals: { 'é' }.
-	self
-		assert: ('\p{L}+' asPerlCompatibleRegex findAll: 'naïve') asArray
-		equals: { 'naïve' }.
-	self
-		assert:
-		('[\x{20AC}\x{00A3}\x{00A5}]' asPerlCompatibleRegex findAll: '€ $ £ ¥') asArray
-		equals: { '€'. '£'. '¥' }.
-	self
-		assert:
-		('[\x{0391}-\x{03C9}]+' asPerlCompatibleRegex findAll: 'Αλφα Βήτα Γάμμα')
-			asArray
+		assert: ('[\x{0391}-\x{03C9}]+' asPerlCompatibleRegex findAll: 'Αλφα Βήτα Γάμμα') asArray
 		equals: { 'Αλφα'. 'Βήτα'. 'Γάμμα' }.
+	self assert: ('[\x{0400}-\x{04FF}]+' asPerlCompatibleRegex findAll: 'Привет мир') asArray equals: { 'Привет'. 'мир' }.
+	self assert: ('[\x{1F600}-\x{1F64F}]' asPerlCompatibleRegex findAll: '😀😃😄😁') asArray equals: { '😀'. '😃'. '😄'. '😁' }.
+	self assert: ('[\x{0600}-\x{06FF}]+' asPerlCompatibleRegex findAll: 'مرحبا بالعالم') asArray equals: { 'مرحبا'. 'بالعالم' }.
 	self
 		assert:
-		('[\x{0400}-\x{04FF}]+' asPerlCompatibleRegex findAll: 'Привет мир') asArray
-		equals: { 'Привет'. 'мир' }.
-	self
-		assert: ('[\x{1F600}-\x{1F64F}]' asPerlCompatibleRegex findAll: '😀😃😄😁') asArray
-		equals: { '😀'. '😃'. '😄'. '😁' }.
-	self
-		assert:
-		('[\x{0600}-\x{06FF}]+' asPerlCompatibleRegex findAll: 'مرحبا بالعالم') asArray
-		equals: { 'مرحبا'. 'بالعالم' }.
-	self
-		assert:
-			('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+'
-				 asPerlCompatibleRegex findAll: 'Hello, Привет, 你好, مرحبا') asArray
+		('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+' asPerlCompatibleRegex findAll: 'Hello, Привет, 你好, مرحبا')
+			asArray
 		equals: { 'Hello'. 'Привет'. '你好'. 'مرحبا' }.
 
 	"lookaround and named capture groups"
 	self
-		assert: ('\b\w+?(?=\d)' asPerlCompatibleRegex findAll:
-				 'not test123 this example456 another789') asArray
+		assert: ('\b\w+?(?=\d)' asPerlCompatibleRegex findAll: 'not test123 this example456 another789') asArray
 		equals: { 'test'. 'example'. 'another' }.
 	self
-		assert: ('(?<=\d)(?:[^\d]\w+)' asPerlCompatibleRegex findAll:
-				 'not 123test this 456example 789another') asArray
+		assert: ('(?<=\d)(?:[^\d]\w+)' asPerlCompatibleRegex findAll: 'not 123test this 456example 789another') asArray
 		equals: { 'test'. 'example'. 'another' }.
 	self
-		assert:
-			('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
-				 asPerlCompatibleRegex findAll: 'user@example.com admin@domain.org') asArray
+		assert: ('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})' asPerlCompatibleRegex findAll:
+				 'user@example.com admin@domain.org') asArray
 		equals: { 'user@example.com'. 'admin@domain.org' }
 ]
 
@@ -395,29 +297,17 @@ PCRE2MatcherTest >> testFindAllAcceptsReusableUTF8Input [
 { #category : 'tests' }
 PCRE2MatcherTest >> testFindAllHandlesEmptyGlobalMatches [
 
-	self
-		assert: ('a*' asPerlCompatibleRegex findAll: 'aaa') asArray
-		equals: #( 'aaa' '' ).
-	self
-		assert: ('a*?' asPerlCompatibleRegex findAll: 'aaa') asArray
-		equals: #( '' 'a' '' 'a' '' 'a' '' ).
-	self
-		assert: ('(?=a)|a' asPerlCompatibleRegex findAll: 'a') asArray
-		equals: #( '' 'a' ).
-	self
-		assert: ('\b' asPerlCompatibleRegex findAll: 'abc') asArray
-		equals: #( '' '' )
+	self assert: ('a*' asPerlCompatibleRegex findAll: 'aaa') asArray equals: #( 'aaa' '' ).
+	self assert: ('a*?' asPerlCompatibleRegex findAll: 'aaa') asArray equals: #( '' 'a' '' 'a' '' 'a' '' ).
+	self assert: ('(?=a)|a' asPerlCompatibleRegex findAll: 'a') asArray equals: #( '' 'a' ).
+	self assert: ('\b' asPerlCompatibleRegex findAll: 'abc') asArray equals: #( '' '' )
 ]
 
 { #category : 'tests' }
 PCRE2MatcherTest >> testFindAllHandlesEmptyMatchBeforeUTF8Character [
 
-	self
-		assert: ('^' asPerlCompatibleRegex findAll: 'éa') asArray
-		equals: #( '' ).
-	self
-		assert: ('.*?' asPerlCompatibleRegex findAll: 'éa') asArray
-		equals: #( '' 'é' '' 'a' '' )
+	self assert: ('^' asPerlCompatibleRegex findAll: 'éa') asArray equals: #( '' ).
+	self assert: ('.*?' asPerlCompatibleRegex findAll: 'éa') asArray equals: #( '' 'é' '' 'a' '' )
 ]
 
 { #category : 'tests' }
@@ -427,34 +317,23 @@ PCRE2MatcherTest >> testFindAllWithGroups [
 		assert: ('(\w)+' asPerlCompatibleRegex findAllWithGroups: 'hello world') asArray
 		equals: #( #( 'hello' 'o' ) #( 'world' 'd' ) ).
 	self
-		assert:
-			('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
-				 asPerlCompatibleRegex findAllWithGroups: 'user@example.com admin@domain.org')
-				asArray
-		equals: #( #( 'user@example.com' 'user' 'example.com' )
-			   #( 'admin@domain.org' 'admin' 'domain.org' ) ).
+		assert: ('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})' asPerlCompatibleRegex findAllWithGroups:
+				 'user@example.com admin@domain.org') asArray
+		equals: #( #( 'user@example.com' 'user' 'example.com' ) #( 'admin@domain.org' 'admin' 'domain.org' ) ).
 	self
-		assert:
-			('([\x{0391}-\x{03C9}])+' asPerlCompatibleRegex findAllWithGroups: 'a-Αλφ-α')
-				asArray
+		assert: ('([\x{0391}-\x{03C9}])+' asPerlCompatibleRegex findAllWithGroups: 'a-Αλφ-α') asArray
 		equals: #( #( 'Αλφ' 'φ' ) #( 'α' 'α' ) )
 ]
 
 { #category : 'tests' }
 PCRE2MatcherTest >> testFindWithGroups [
 
+	self assert: ('(\w)+' asPerlCompatibleRegex findWithGroups: 'hello') equals: #( 'hello' 'o' ).
 	self
-		assert: ('(\w)+' asPerlCompatibleRegex findWithGroups: 'hello')
-		equals: #( 'hello' 'o' ).
-	self
-		assert:
-			('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
-				 asPerlCompatibleRegex findWithGroups: 'user@example.com admin@domain.org')
+		assert: ('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})' asPerlCompatibleRegex findWithGroups:
+				 'user@example.com admin@domain.org')
 		equals: #( 'user@example.com' 'user' 'example.com' ).
-	self
-		assert:
-		('([\x{0391}-\x{03C9}])+' asPerlCompatibleRegex findWithGroups: 'a-Αλφ-α')
-		equals: #( 'Αλφ' 'φ' )
+	self assert: ('([\x{0391}-\x{03C9}])+' asPerlCompatibleRegex findWithGroups: 'a-Αλφ-α') equals: #( 'Αλφ' 'φ' )
 ]
 
 { #category : 'tests' }
@@ -525,12 +404,11 @@ PCRE2MatcherTest >> testMatchContextLimitsAndCopy [
 
 	copy := context copy.
 	[
-	self deny: copy identicalTo: context.
-	self assert: copy depthLimit equals: context depthLimit.
-	self assert: copy heapLimit equals: context heapLimit.
-	self assert: copy matchLimit equals: context matchLimit.
-	self assert: copy offsetLimit equals: context offsetLimit ] ensure: [
-		copy free ]
+		self deny: copy identicalTo: context.
+		self assert: copy depthLimit equals: context depthLimit.
+		self assert: copy heapLimit equals: context heapLimit.
+		self assert: copy matchLimit equals: context matchLimit.
+		self assert: copy offsetLimit equals: context offsetLimit ] ensure: [ copy free ]
 ]
 
 { #category : 'tests' }
@@ -543,8 +421,7 @@ PCRE2MatcherTest >> testMatchLimit [
 	self
 		should: [ regex matches: 'aa' ]
 		raise: PCRE2MatchError
-		withExceptionDo: [ :e |
-		self assert: e messageText equals: 'match limit exceeded' ]
+		withExceptionDo: [ :e | self assert: e messageText equals: 'match limit exceeded' ]
 ]
 
 { #category : 'tests' }
@@ -556,26 +433,19 @@ PCRE2MatcherTest >> testMatcherNoLongerStoresMatchData [
 	self
 		should: [ regex matchData ]
 		raise: Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring: 'no longer keeps match data') ].
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'no longer keeps match data') ].
 	self
 		should: [ regex matchData: regex newMatchData ]
 		raise: Error
-		withExceptionDo: [ :error |
-			self assert: (error messageText includesSubstring:
-					 'no longer accepts stored match data') ].
-	self should: [ regex mark ] raise: Error withExceptionDo: [ :error |
-		self assert:
-			(error messageText includesSubstring:
-				 'no longer keeps the last match') ].
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'no longer accepts stored match data') ].
+	self
+		should: [ regex mark ]
+		raise: Error
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'no longer keeps the last match') ].
 	self
 		should: [ regex startIndex ]
 		raise: Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring:
-					 'no longer keeps the last match') ]
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'no longer keeps the last match') ]
 ]
 
 { #category : 'tests' }
@@ -597,79 +467,54 @@ PCRE2MatcherTest >> testMatches [
 
 	self assert: ('\d+' asPerlCompatibleRegex matches: '123').
 	self assert: ('\w+' asPerlCompatibleRegex matches: 'hello').
-	self assert:
-		('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' asPerlCompatibleRegex
-			 matches: 'user@example.com').
-	self assert:
-		('\(\d{3}\) \d{3}-\d{4}' asPerlCompatibleRegex matches: '(123) 456-7890').
+	self assert: ('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' asPerlCompatibleRegex matches: 'user@example.com').
+	self assert: ('\(\d{3}\) \d{3}-\d{4}' asPerlCompatibleRegex matches: '(123) 456-7890').
 
 	"no match"
-	self deny:
-		('\d' asPerlCompatibleRegex matches:
-			 'the quick brown fox jumps over the lazy dog').
+	self deny: ('\d' asPerlCompatibleRegex matches: 'the quick brown fox jumps over the lazy dog').
 
 	"variable-length encoding"
 	self deny: ('[éèêë]' asPerlCompatibleRegex matches: 'café').
 	self assert: ('\p{L}+' asPerlCompatibleRegex matches: 'naïve').
-	self deny:
-		('[\x{20AC}\x{00A3}\x{00A5}]' asPerlCompatibleRegex matches: '€ $ £ ¥').
-	self deny:
-		('[\x{0391}-\x{03C9}]+' asPerlCompatibleRegex matches: 'Αλφα Βήτα Γάμμα').
+	self deny: ('[\x{20AC}\x{00A3}\x{00A5}]' asPerlCompatibleRegex matches: '€ $ £ ¥').
+	self deny: ('[\x{0391}-\x{03C9}]+' asPerlCompatibleRegex matches: 'Αλφα Βήτα Γάμμα').
 	self deny: ('[\x{0400}-\x{04FF}]+' asPerlCompatibleRegex matches: 'Привет мир').
 	self deny: ('[\x{1F600}-\x{1F64F}]' asPerlCompatibleRegex matches: '😀😃😄😁').
+	self deny: ('[\x{0600}-\x{06FF}]+' asPerlCompatibleRegex matches: 'مرحبا بالعالم').
 	self deny:
-		('[\x{0600}-\x{06FF}]+' asPerlCompatibleRegex matches: 'مرحبا بالعالم').
-	self deny:
-		('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+'
-			 asPerlCompatibleRegex matches: 'Hello, Привет, 你好, مرحبا').
+		('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+' asPerlCompatibleRegex matches: 'Hello, Привет, 你好, مرحبا').
 
 	"lookaround and named capture groups"
-	self deny: ('\b\w+?(?=\d)' asPerlCompatibleRegex matches:
-			 'not test123 this example456 another789').
-	self deny: ('(?<=\d)(?:[^\d]\w+)' asPerlCompatibleRegex matches:
-			 'not 123test this 456example 789another').
-	self deny:
-		('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
-			 asPerlCompatibleRegex matches: 'user@example.com admin@domain.org')
+	self deny: ('\b\w+?(?=\d)' asPerlCompatibleRegex matches: 'not test123 this example456 another789').
+	self deny: ('(?<=\d)(?:[^\d]\w+)' asPerlCompatibleRegex matches: 'not 123test this 456example 789another').
+	self deny: ('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})' asPerlCompatibleRegex matches:
+			 'user@example.com admin@domain.org')
 ]
 
 { #category : 'tests' }
 PCRE2MatcherTest >> testMatchesInCollect [
 
-	self
-		assert: ('\d' asPerlCompatibleRegex
-				 matchesIn: '123'
-				 collect: [ :match | match asInteger + 1 ]) asArray
-		equals: #( 2 3 4 ).
+	self assert: ('\d' asPerlCompatibleRegex matchesIn: '123' collect: [ :match | match asInteger + 1 ]) asArray equals: #( 2 3 4 ).
 
 	self
-		assert: ('\w' asPerlCompatibleRegex
-				 matchesIn: 'hello'
-				 collect: [ :match | match first asciiValue ]) asArray
+		assert: ('\w' asPerlCompatibleRegex matchesIn: 'hello' collect: [ :match | match first asciiValue ]) asArray
 		equals: #( 104 101 108 108 111 ).
 
 	"no match"
-	self assert: ('\d' asPerlCompatibleRegex
-			 matchesIn: 'the quick brown fox jumps over the lazy dog'
-			 collect: [ :match | match ]) isEmpty.
+	self assert:
+		('\d' asPerlCompatibleRegex matchesIn: 'the quick brown fox jumps over the lazy dog' collect: [ :match | match ]) isEmpty.
 
 	"variable-length encoding"
 	self
-		assert: ('[\x{0391}-\x{03C9}]+' asPerlCompatibleRegex
-				 matchesIn: 'Αλφα Βήτα Γάμμα'
-				 collect: [ :match | match size ]) asArray
+		assert: ('[\x{0391}-\x{03C9}]+' asPerlCompatibleRegex matchesIn: 'Αλφα Βήτα Γάμμα' collect: [ :match | match size ]) asArray
 		equals: #( 4 4 5 ).
 
 	self
-		assert: ('[\x{0400}-\x{04FF}]+' asPerlCompatibleRegex
-				 matchesIn: 'Привет мир'
-				 collect: [ :match | match size ]) asArray
+		assert: ('[\x{0400}-\x{04FF}]+' asPerlCompatibleRegex matchesIn: 'Привет мир' collect: [ :match | match size ]) asArray
 		equals: #( 6 3 ).
 
 	self
-		assert:
-			('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+'
-				 asPerlCompatibleRegex
+		assert: ('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+' asPerlCompatibleRegex
 				 matchesIn: 'Hello, Привет, 你好, مرحبا'
 				 collect: [ :match | match size ]) asArray
 		equals: #( 5 6 2 5 )
@@ -680,41 +525,28 @@ PCRE2MatcherTest >> testMatchesPrefix [
 
 	self assert: ('\d+' asPerlCompatibleRegex matchesPrefix: '123').
 	self assert: ('\w+' asPerlCompatibleRegex matchesPrefix: 'hello').
-	self assert:
-		('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' asPerlCompatibleRegex
-			 matchesPrefix: 'user@example.com').
-	self assert:
-		('\(\d{3}\) \d{3}-\d{4}' asPerlCompatibleRegex matchesPrefix: '(123) 456-7890').
+	self assert: ('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' asPerlCompatibleRegex matchesPrefix: 'user@example.com').
+	self assert: ('\(\d{3}\) \d{3}-\d{4}' asPerlCompatibleRegex matchesPrefix: '(123) 456-7890').
 
 	"no match"
-	self deny: ('\d' asPerlCompatibleRegex matchesPrefix:
-			 'the quick brown fox jumps over the lazy dog').
+	self deny: ('\d' asPerlCompatibleRegex matchesPrefix: 'the quick brown fox jumps over the lazy dog').
 
 	"variable-length encoding"
 	self deny: ('[éèêë]' asPerlCompatibleRegex matchesPrefix: 'café').
 	self assert: ('\p{L}+' asPerlCompatibleRegex matchesPrefix: 'naïve').
+	self assert: ('[\x{20AC}\x{00A3}\x{00A5}]' asPerlCompatibleRegex matchesPrefix: '€ $ £ ¥').
+	self assert: ('[\x{0391}-\x{03C9}]+' asPerlCompatibleRegex matchesPrefix: 'Αλφα Βήτα Γάμμα').
+	self assert: ('[\x{0400}-\x{04FF}]+' asPerlCompatibleRegex matchesPrefix: 'Привет мир').
+	self assert: ('[\x{1F600}-\x{1F64F}]' asPerlCompatibleRegex matchesPrefix: '😀😃😄😁').
+	self assert: ('[\x{0600}-\x{06FF}]+' asPerlCompatibleRegex matchesPrefix: 'مرحبا بالعالم').
 	self assert:
-		('[\x{20AC}\x{00A3}\x{00A5}]' asPerlCompatibleRegex matchesPrefix: '€ $ £ ¥').
-	self assert:
-		('[\x{0391}-\x{03C9}]+' asPerlCompatibleRegex matchesPrefix: 'Αλφα Βήτα Γάμμα').
-	self assert:
-		('[\x{0400}-\x{04FF}]+' asPerlCompatibleRegex matchesPrefix: 'Привет мир').
-	self assert:
-		('[\x{1F600}-\x{1F64F}]' asPerlCompatibleRegex matchesPrefix: '😀😃😄😁').
-	self assert:
-		('[\x{0600}-\x{06FF}]+' asPerlCompatibleRegex matchesPrefix: 'مرحبا بالعالم').
-	self assert:
-		('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+'
-			 asPerlCompatibleRegex matchesPrefix: 'Hello, Привет, 你好, مرحبا').
+		('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+' asPerlCompatibleRegex matchesPrefix: 'Hello, Привет, 你好, مرحبا').
 
 	"lookaround and named capture groups"
-	self deny: ('\b\w+?(?=\d)' asPerlCompatibleRegex matchesPrefix:
-			 'not test123 this example456 another789').
-	self deny: ('(?<=\d)(?:[^\d]\w+)' asPerlCompatibleRegex matchesPrefix:
-			 'not 123test this 456example 789another').
-	self assert:
-		('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
-			 asPerlCompatibleRegex matchesPrefix: 'user@example.com admin@domain.org')
+	self deny: ('\b\w+?(?=\d)' asPerlCompatibleRegex matchesPrefix: 'not test123 this example456 another789').
+	self deny: ('(?<=\d)(?:[^\d]\w+)' asPerlCompatibleRegex matchesPrefix: 'not 123test this 456example 789another').
+	self assert: ('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})' asPerlCompatibleRegex matchesPrefix:
+			 'user@example.com admin@domain.org')
 ]
 
 { #category : 'tests' }
@@ -757,9 +589,7 @@ PCRE2MatcherTest >> testNonASCIIByteStringSubjectIsEncoded [
 	match := 'é' asPerlCompatibleRegex findMatch: subject.
 
 	self deny: match subject identicalTo: subject.
-	self
-		assert: match subject
-		equals: (ZnUTF8Encoder default encodeString: subject).
+	self assert: match subject equals: (ZnUTF8Encoder default encodeString: subject).
 	self assert: match decoder class equals: ZnUTF8Encoder.
 	self assert: match readMatch equals: 'é'
 ]
@@ -790,15 +620,11 @@ PCRE2MatcherTest >> testRegexAPIMatchEnumerationCompatibility [
 	| collected regex seen |
 	regex := '\w+' asPerlCompatibleRegex.
 
-	self
-		assert: (regex matchesIn: 'one two') asArray
-		equals: #( 'one' 'two' ).
+	self assert: (regex matchesIn: 'one two') asArray equals: #( 'one' 'two' ).
 	seen := OrderedCollection new.
 	regex matchesIn: 'one two' do: [ :match | seen add: match ].
 	self assert: seen asArray equals: #( 'one' 'two' ).
-	collected := regex
-		             matchesIn: 'one two'
-		             collect: [ :match | match asUppercase ].
+	collected := regex matchesIn: 'one two' collect: [ :match | match asUppercase ].
 	self assert: collected asArray equals: #( 'ONE' 'TWO' )
 ]
 
@@ -827,28 +653,24 @@ PCRE2MatcherTest >> testReusableMatchDataRejectsPersistentMatchData [
 
 	self
 		should: [
-			regex
-				matchBytes: input bytes
-				from: 1
-				to: input size
-				into: match ]
+				regex
+					matchBytes: input bytes
+					from: 1
+					to: input size
+					into: match ]
 		raise: PCRE2Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring: 'external PCRE2 match data') ].
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'external PCRE2 match data') ].
 	self
 		should: [
-			regex
-				dfaMatchBytes: input bytes
-				from: 1
-				to: input size
-				workspaceSize: 20
-				ovectorSize: 1
-				into: match ]
+				regex
+					dfaMatchBytes: input bytes
+					from: 1
+					to: input size
+					workspaceSize: 20
+					ovectorSize: 1
+					into: match ]
 		raise: PCRE2Error
-		withExceptionDo: [ :error |
-			self assert:
-				(error messageText includesSubstring: 'external PCRE2 match data') ]
+		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'external PCRE2 match data') ]
 ]
 
 { #category : 'tests' }
@@ -872,40 +694,28 @@ PCRE2MatcherTest >> testSearch [
 
 	self assert: ('\d+' asPerlCompatibleRegex search: '123').
 	self assert: ('\w+' asPerlCompatibleRegex search: 'hello').
-	self assert:
-		('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' asPerlCompatibleRegex search:
-			 'user@example.com').
-	self assert:
-		('\(\d{3}\) \d{3}-\d{4}' asPerlCompatibleRegex search: '(123) 456-7890').
+	self assert: ('[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}' asPerlCompatibleRegex search: 'user@example.com').
+	self assert: ('\(\d{3}\) \d{3}-\d{4}' asPerlCompatibleRegex search: '(123) 456-7890').
 
 	"no match"
-	self deny:
-		('\d' asPerlCompatibleRegex search:
-			 'the quick brown fox jumps over the lazy dog').
+	self deny: ('\d' asPerlCompatibleRegex search: 'the quick brown fox jumps over the lazy dog').
 
 	"variable-length encoding"
 	self assert: ('[éèêë]' asPerlCompatibleRegex search: 'café').
 	self assert: ('\p{L}+' asPerlCompatibleRegex search: 'naïve').
-	self assert:
-		('[\x{20AC}\x{00A3}\x{00A5}]' asPerlCompatibleRegex search: '€ $ £ ¥').
-	self assert:
-		('[\x{0391}-\x{03C9}]+' asPerlCompatibleRegex search: 'Αλφα Βήτα Γάμμα').
+	self assert: ('[\x{20AC}\x{00A3}\x{00A5}]' asPerlCompatibleRegex search: '€ $ £ ¥').
+	self assert: ('[\x{0391}-\x{03C9}]+' asPerlCompatibleRegex search: 'Αλφα Βήτα Γάμμα').
 	self assert: ('[\x{0400}-\x{04FF}]+' asPerlCompatibleRegex search: 'Привет мир').
 	self assert: ('[\x{1F600}-\x{1F64F}]' asPerlCompatibleRegex search: '😀😃😄😁').
+	self assert: ('[\x{0600}-\x{06FF}]+' asPerlCompatibleRegex search: 'مرحبا بالعالم').
 	self assert:
-		('[\x{0600}-\x{06FF}]+' asPerlCompatibleRegex search: 'مرحبا بالعالم').
-	self assert:
-		('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+'
-			 asPerlCompatibleRegex search: 'Hello, Привет, 你好, مرحبا').
+		('[a-zA-Z\x{0400}-\x{04FF}\x{4E00}-\x{9FAF}\x{0600}-\x{06FF}]+' asPerlCompatibleRegex search: 'Hello, Привет, 你好, مرحبا').
 
 	"lookaround and named capture groups"
-	self assert: ('\b\w+?(?=\d)' asPerlCompatibleRegex search:
-			 'not test123 this example456 another789').
-	self assert: ('(?<=\d)(?:[^\d]\w+)' asPerlCompatibleRegex search:
-			 'not 123test this 456example 789another').
-	self assert:
-		('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})'
-			 asPerlCompatibleRegex search: 'user@example.com admin@domain.org')
+	self assert: ('\b\w+?(?=\d)' asPerlCompatibleRegex search: 'not test123 this example456 another789').
+	self assert: ('(?<=\d)(?:[^\d]\w+)' asPerlCompatibleRegex search: 'not 123test this 456example 789another').
+	self assert: ('(?<username>[a-zA-Z0-9._%+-]+)@(?<domain>[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})' asPerlCompatibleRegex search:
+			 'user@example.com admin@domain.org')
 ]
 
 { #category : 'tests' }
@@ -915,9 +725,9 @@ PCRE2MatcherTest >> testSplitIndicesDoAcceptsReusableUTF8Input [
 	indices := OrderedCollection new.
 	input := 'café déjà' asPCRE2UTF8Input.
 	'é' asPerlCompatibleRegex split: input indicesDo: [ :start :end |
-		indices add: {
-				start.
-				end } ].
+			indices add: {
+					start.
+					end } ].
 
 	self assert: indices asArray equals: {
 			{ 1. 3 }.
@@ -931,40 +741,27 @@ PCRE2MatcherTest >> testSplitRejectsEmptyRegex [
 	self
 		should: [ '' asPerlCompatibleRegex split: 'abc' ]
 		raise: AssertionFailure
-		withExceptionDo: [ :error |
-			self
-				assert: error messageText
-				equals: 'Regex cannot match null string' ]
+		withExceptionDo: [ :error | self assert: error messageText equals: 'Regex cannot match null string' ]
 ]
 
 { #category : 'tests' }
 PCRE2MatcherTest >> testSplitStringOnPerlCompatibleRegex [
 
-	self
-		assert: ('foobar' splitOn: '[aeiou]+' asPerlCompatibleRegex)
-		equals: #( 'f' 'b' 'r' ) asOrderedCollection
+	self assert: ('foobar' splitOn: '[aeiou]+' asPerlCompatibleRegex) equals: #( 'f' 'b' 'r' ) asOrderedCollection
 ]
 
 { #category : 'tests' }
 PCRE2MatcherTest >> testSplitStringOnPerlCompatibleRegexBoundaryCases [
 
-	self
-		assert: (',a,b' splitOn: ',' asPerlCompatibleRegex)
-		equals: #( '' 'a' 'b' ) asOrderedCollection.
-	self
-		assert: ('a,b,' splitOn: ',' asPerlCompatibleRegex)
-		equals: #( 'a' 'b' '' ) asOrderedCollection.
-	self
-		assert: ('a,,b' splitOn: ',' asPerlCompatibleRegex)
-		equals: #( 'a' '' 'b' ) asOrderedCollection
+	self assert: (',a,b' splitOn: ',' asPerlCompatibleRegex) equals: #( '' 'a' 'b' ) asOrderedCollection.
+	self assert: ('a,b,' splitOn: ',' asPerlCompatibleRegex) equals: #( 'a' 'b' '' ) asOrderedCollection.
+	self assert: ('a,,b' splitOn: ',' asPerlCompatibleRegex) equals: #( 'a' '' 'b' ) asOrderedCollection
 ]
 
 { #category : 'tests' }
 PCRE2MatcherTest >> testSplitStringOnPerlCompatibleRegexUnicode [
 
-	self
-		assert: ('café déjà' splitOn: 'é' asPerlCompatibleRegex)
-		equals: #( 'caf' ' d' 'jà' ) asOrderedCollection
+	self assert: ('café déjà' splitOn: 'é' asPerlCompatibleRegex) equals: #( 'caf' ' d' 'jà' ) asOrderedCollection
 ]
 
 { #category : 'tests' }
@@ -994,9 +791,7 @@ PCRE2MatcherTest >> testSubstituteCanAnswerEmptyString [
 	regex addOptions: PCRE2 substituteGlobal.
 
 	self assert: (regex substitute: 'aaa' with: '') equals: ''.
-	self
-		assert: (regex substitute: 'aaa' asPCRE2UTF8Input with: '')
-		equals: ''
+	self assert: (regex substitute: 'aaa' asPCRE2UTF8Input with: '') equals: ''
 ]
 
 { #category : 'tests' }
@@ -1007,10 +802,7 @@ PCRE2MatcherTest >> testSubstituteDecodesUTF8Output [
 	regex addOptions: PCRE2 substituteGlobal.
 
 	self assert: (regex substitute: 'aaa' with: 'é') equals: 'ééé'.
-	self
-		assert:
-		(regex substitute: 'aaa' asPCRE2UTF8Input with: 'é' asPCRE2UTF8Input)
-		equals: 'ééé'
+	self assert: (regex substitute: 'aaa' asPCRE2UTF8Input with: 'é' asPCRE2UTF8Input) equals: 'ééé'
 ]
 
 { #category : 'tests' }
@@ -1021,9 +813,7 @@ PCRE2MatcherTest >> testWithOffsetLimit [
 	regex addOptions: PCRE2 substituteGlobal.
 	regex context offsetLimit: 6.
 
-	self
-		assert: (regex substitute: 'ABC ABC ABC ABC' with: '!')
-		equals: 'A!C A!C ABC ABC'
+	self assert: (regex substitute: 'ABC ABC ABC ABC' with: '!') equals: 'A!C A!C ABC ABC'
 ]
 
 { #category : 'tests' }
@@ -1038,10 +828,7 @@ PCRE2MatcherTest >> testZeroTerminated [
 	"jit_match() does not support null-terminated string subjects; disable the fast path for support."
 	regex isJIT: false.
 
-	match := regex
-		         matchBytes: utfSubject
-		         from: 1
-		         to: PCRE2 zeroTerminated.
+	match := regex matchBytes: utfSubject from: 1 to: PCRE2 zeroTerminated.
 	self assert: match count equals: 1.
 	self assert: (encoder decodeBytes: match readMatch) equals: 'abc'
 ]

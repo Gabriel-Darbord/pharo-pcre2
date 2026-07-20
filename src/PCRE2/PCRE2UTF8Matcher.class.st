@@ -23,8 +23,7 @@ PCRE2UTF8Matcher >> compileJIT: anInteger [
 
 	| newCompiler |
 	newCompiler := PCRE2UTF8Compiler new.
-	compiler copyContextIfPresent ifNotNil: [ :contextCopy |
-		newCompiler context: contextCopy ].
+	compiler copyContextIfPresent ifNotNil: [ :contextCopy | newCompiler context: contextCopy ].
 	newCompiler
 		options: compiler options;
 		optionsJIT: anInteger;
@@ -70,8 +69,7 @@ PCRE2UTF8Matcher >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
 	"Decode a PCRE2-8 substitution output buffer. For this width, code units are bytes."
 
 	codeUnitCount = 0 ifTrue: [ ^ String new ].
-	^ ZnUTF8Encoder default decodeBytes:
-		  (buffer copyFrom: 1 to: codeUnitCount)
+	^ ZnUTF8Encoder default decodeBytes: (buffer copyFrom: 1 to: codeUnitCount)
 ]
 
 { #category : 'private' }

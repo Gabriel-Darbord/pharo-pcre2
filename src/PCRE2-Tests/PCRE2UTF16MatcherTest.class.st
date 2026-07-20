@@ -46,10 +46,7 @@ PCRE2UTF16MatcherTest >> testCompileErrorFromBytePatternDecodesPattern [
 	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
 
 	patternInput := #[ 40 0 97 0 ] asPCRE2UTF16LittleEndianInput.
-	self
-		should: [ PCRE2UTF16Compiler new compile: patternInput ]
-		raise: PCRE2CompileError
-		withExceptionDo: [ :error |
+	self should: [ PCRE2UTF16Compiler new compile: patternInput ] raise: PCRE2CompileError withExceptionDo: [ :error |
 			self assert: error pattern equals: '(a'.
 			self assert: error offset isInteger.
 			self assert: (error messageText includesSubstring: '(*ERROR)') ]
@@ -75,8 +72,7 @@ PCRE2UTF16MatcherTest >> testCompilePatternFromLittleEndianBytes [
 	| regex |
 	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
 
-	regex := PCRE2UTF16Compiler new compile:
-		         #[ 97 0 43 0 ] asPCRE2UTF16LittleEndianInput.
+	regex := PCRE2UTF16Compiler new compile: #[ 97 0 43 0 ] asPCRE2UTF16LittleEndianInput.
 
 	self assert: regex pattern equals: 'a+'.
 	self assert: (regex matches: 'aaa')

@@ -37,9 +37,7 @@ PCRE2SubstitutionCalloutEvent class >> fromCalloutBlock: anExternalAddress [
 { #category : 'instance creation' }
 PCRE2SubstitutionCalloutEvent class >> fromCalloutBlock: anExternalAddress codeUnitWidth: codeUnitWidth [
 
-	^ self new
-		  initializeFromCalloutBlock: anExternalAddress
-		  codeUnitWidth: codeUnitWidth
+	^ self new initializeFromCalloutBlock: anExternalAddress codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'private' }
@@ -52,9 +50,7 @@ PCRE2SubstitutionCalloutEvent class >> offsetsFrom: anExternalAddress count: cou
 PCRE2SubstitutionCalloutEvent class >> sizeTFrom: anExternalAddress atOffset: structOffsetInBytes [
 	"Read a PCRE2_SIZE field from a native substitution-callout struct. The ExternalAddress offset is measured in bytes."
 
-	^ PCRE2CalloutEvent
-		  sizeTFrom: anExternalAddress
-		  atOffset: structOffsetInBytes
+	^ PCRE2CalloutEvent sizeTFrom: anExternalAddress atOffset: structOffsetInBytes
 ]
 
 { #category : 'private' }
@@ -72,23 +68,16 @@ PCRE2SubstitutionCalloutEvent class >> stringFrom: anExternalAddress startOffset
 	"Decode a substring addressed by PCRE2_SIZE code-unit offsets."
 
 	| bytes byteStart byteSize length unitSize |
-	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [
-		^ nil ].
-	(startOffset = PCRE2 unsetOffset or: [ endOffset = PCRE2 unsetOffset ])
-		ifTrue: [ ^ nil ].
+	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [ ^ nil ].
+	(startOffset = PCRE2 unsetOffset or: [ endOffset = PCRE2 unsetOffset ]) ifTrue: [ ^ nil ].
 	length := endOffset - startOffset.
 	length <= 0 ifTrue: [ ^ '' ].
 	unitSize := codeUnitWidth // 8.
 	byteStart := startOffset * unitSize.
 	byteSize := length * unitSize.
 	bytes := ByteArray new: byteSize.
-	1 to: byteSize do: [ :index |
-		bytes
-			at: index
-			put: (anExternalAddress uint8AtOffset: byteStart + index - 1) ].
-	^ PCRE2CalloutSite
-		  stringFromBytes: bytes
-		  codeUnitWidth: codeUnitWidth
+	1 to: byteSize do: [ :index | bytes at: index put: (anExternalAddress uint8AtOffset: byteStart + index - 1) ].
+	^ PCRE2CalloutSite stringFromBytes: bytes codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'initialization' }

@@ -16,8 +16,7 @@ PCRE2CompilerTest >> assertCompileErrorFrom: aBlock includes: expectedText [
 	self
 		should: aBlock
 		raise: PCRE2CompileError
-		withExceptionDo: [ :ex |
-			self assert: (ex errorMessage includesSubstring: expectedText) ]
+		withExceptionDo: [ :ex | self assert: (ex errorMessage includesSubstring: expectedText) ]
 ]
 
 { #category : 'asserting' }
@@ -25,10 +24,7 @@ PCRE2CompilerTest >> assertInvalidPattern: aString [
 
 	| utf8 |
 	utf8 := ZnUTF8Encoder default encodeString: aString.
-	self
-		should: [ aString asPerlCompatibleRegex ]
-		raise: PCRE2CompileError
-		withExceptionDo: [ :ex |
+	self should: [ aString asPerlCompatibleRegex ] raise: PCRE2CompileError withExceptionDo: [ :ex |
 			self assert: ex errorMessage notEmpty.
 			self assert: ex pattern equals: aString.
 			self assert: ex offset >= 0.
@@ -85,9 +81,7 @@ PCRE2CompilerTest >> testCompileContextLimitsCompiledPatternLength [
 	compiler := PCRE2Compiler new.
 	compiler context maxPatternCompiledLength: 1.
 
-	self
-		assertCompileErrorFrom: [ compiler compile: 'a' ]
-		includes: 'compiled pattern would be longer'
+	self assertCompileErrorFrom: [ compiler compile: 'a' ] includes: 'compiled pattern would be longer'
 ]
 
 { #category : 'tests' }
@@ -97,9 +91,7 @@ PCRE2CompilerTest >> testCompileContextLimitsPatternLength [
 	compiler := PCRE2Compiler new.
 	compiler context maxPatternLength: 3.
 
-	self
-		assertCompileErrorFrom: [ compiler compile: 'abcd' ]
-		includes: 'pattern string is longer'
+	self assertCompileErrorFrom: [ compiler compile: 'abcd' ] includes: 'pattern string is longer'
 ]
 
 { #category : 'tests' }
@@ -133,12 +125,8 @@ PCRE2CompilerTest >> testCompileContextNewlineAffectsMultilineMatching [
 	subject := 'a' , String cr , 'b'.
 	self assert: (crRegex find: subject) equals: 'b'.
 	self assert: (lfRegex find: subject) isNil.
-	self
-		assert: (crRegex info: PCRE2 infoNewline)
-		equals: PCRE2 newlineCR.
-	self
-		assert: (lfRegex info: PCRE2 infoNewline)
-		equals: PCRE2 newlineLF
+	self assert: (crRegex info: PCRE2 infoNewline) equals: PCRE2 newlineCR.
+	self assert: (lfRegex info: PCRE2 infoNewline) equals: PCRE2 newlineLF
 ]
 
 { #category : 'tests' }
@@ -166,8 +154,7 @@ PCRE2CompilerTest >> testCompileContextOptimizationDirectivesAndValidation [
 	self
 		should: [ context optimize: 999 ]
 		raise: PCRE2Error
-		withExceptionDo: [ :ex |
-		self assert: (ex messageText includesSubstring: 'bad option') ]
+		withExceptionDo: [ :ex | self assert: (ex messageText includesSubstring: 'bad option') ]
 ]
 
 { #category : 'tests' }
@@ -179,11 +166,9 @@ PCRE2CompilerTest >> testCompileContextOptionsBSRAndCopy [
 
 	context options: 0.
 	context addOptions: PCRE2 extraBadEscapeIsLiteral.
-	self assert:
-		(context options bitAnd: PCRE2 extraBadEscapeIsLiteral) ~~ 0.
+	self assert: (context options bitAnd: PCRE2 extraBadEscapeIsLiteral) ~~ 0.
 	context removeOptions: PCRE2 extraBadEscapeIsLiteral.
-	self assert:
-		(context options bitAnd: PCRE2 extraBadEscapeIsLiteral) = 0.
+	self assert: (context options bitAnd: PCRE2 extraBadEscapeIsLiteral) = 0.
 
 	context useBSRAnyCRLF.
 	self assert: context bsr equals: PCRE2 bsrAnyCRLF.
@@ -195,12 +180,9 @@ PCRE2CompilerTest >> testCompileContextOptionsBSRAndCopy [
 		useNewlineCRLF;
 		maxPatternLength: 64;
 		parensNestLimit: 12.
-	LibPCRE2 supportsMaxPatternCompiledLength ifTrue: [
-		context maxPatternCompiledLength: 4096 ].
-	LibPCRE2 supportsMaxVarLookbehind ifTrue: [
-		context maxVarLookbehind: 300 ].
-	LibPCRE2 supportsOptimizationDirectives ifTrue: [
-		context disableStartOptimization ].
+	LibPCRE2 supportsMaxPatternCompiledLength ifTrue: [ context maxPatternCompiledLength: 4096 ].
+	LibPCRE2 supportsMaxVarLookbehind ifTrue: [ context maxVarLookbehind: 300 ].
+	LibPCRE2 supportsOptimizationDirectives ifTrue: [ context disableStartOptimization ].
 
 	copy := context copy.
 	self deny: copy identicalTo: context.
@@ -210,15 +192,10 @@ PCRE2CompilerTest >> testCompileContextOptionsBSRAndCopy [
 	self assert: copy maxPatternLength equals: context maxPatternLength.
 	self assert: copy parensNestLimit equals: context parensNestLimit.
 	LibPCRE2 supportsMaxPatternCompiledLength ifTrue: [
-		self
-			assert: copy maxPatternCompiledLength
-			equals: context maxPatternCompiledLength ].
-	LibPCRE2 supportsMaxVarLookbehind ifTrue: [
-		self assert: copy maxVarLookbehind equals: context maxVarLookbehind ].
+		self assert: copy maxPatternCompiledLength equals: context maxPatternCompiledLength ].
+	LibPCRE2 supportsMaxVarLookbehind ifTrue: [ self assert: copy maxVarLookbehind equals: context maxVarLookbehind ].
 	LibPCRE2 supportsOptimizationDirectives ifTrue: [
-		self
-			assert: copy optimizationDirectives
-			equals: context optimizationDirectives ]
+		self assert: copy optimizationDirectives equals: context optimizationDirectives ]
 ]
 
 { #category : 'tests' }
@@ -228,9 +205,7 @@ PCRE2CompilerTest >> testCompileContextParensNestLimit [
 	compiler := PCRE2Compiler new.
 	compiler context parensNestLimit: 1.
 
-	self
-		assertCompileErrorFrom: [ compiler compile: '((a))' ]
-		includes: 'parentheses are too deeply nested'
+	self assertCompileErrorFrom: [ compiler compile: '((a))' ] includes: 'parentheses are too deeply nested'
 ]
 
 { #category : 'tests' }
@@ -244,9 +219,7 @@ PCRE2CompilerTest >> testCompileContextRejectsCharacterTablesFromDifferentWidth 
 	self
 		should: [ context characterTables: tables ]
 		raise: PCRE2Error
-		withExceptionDo: [ :ex |
-			self assert:
-				(ex messageText includesSubstring: 'same PCRE2 library width') ].
+		withExceptionDo: [ :ex | self assert: (ex messageText includesSubstring: 'same PCRE2 library width') ].
 	self assert: context characterTables isNil
 ]
 
@@ -255,10 +228,7 @@ PCRE2CompilerTest >> testCompileContextVariableLookbehindLimit [
 
 	| compiler matcher |
 	LibPCRE2 supportsMaxVarLookbehind ifFalse: [ ^ self ].
-	self
-		assertCompileErrorFrom: [
-		PCRE2Compiler new compile: '(?<=a{0,300})b' ]
-		includes: 'lookbehind'.
+	self assertCompileErrorFrom: [ PCRE2Compiler new compile: '(?<=a{0,300})b' ] includes: 'lookbehind'.
 
 	compiler := PCRE2Compiler new.
 	compiler context maxVarLookbehind: 300.
@@ -274,11 +244,10 @@ PCRE2CompilerTest >> testCompilerClassConveniencesAndEagerJITToggle [
 	original := PCRE2Compiler eagerJIT.
 
 	[
-	PCRE2Compiler eagerJIT: false.
-	self deny: PCRE2Compiler eagerJIT.
-	PCRE2Compiler eagerJIT: true.
-	self assert: PCRE2Compiler eagerJIT ] ensure: [
-		PCRE2Compiler eagerJIT: original ].
+		PCRE2Compiler eagerJIT: false.
+		self deny: PCRE2Compiler eagerJIT.
+		PCRE2Compiler eagerJIT: true.
+		self assert: PCRE2Compiler eagerJIT ] ensure: [ PCRE2Compiler eagerJIT: original ].
 
 	regex := PCRE2Compiler pattern: 'a+'.
 	self assert: (regex matches: 'aaa').
@@ -322,9 +291,7 @@ PCRE2CompilerTest >> testDefaultCompilerAnswersUTF8Family [
 PCRE2CompilerTest >> testDefaultContextFamiliesAreUTF8Concrete [
 
 	| regex |
-	self
-		assert: PCRE2Compiler new context class
-		equals: PCRE2UTF8CompileContext.
+	self assert: PCRE2Compiler new context class equals: PCRE2UTF8CompileContext.
 	regex := 'a' asPerlCompatibleRegex.
 	self assert: regex context class equals: PCRE2UTF8MatchContext
 ]
@@ -333,8 +300,7 @@ PCRE2CompilerTest >> testDefaultContextFamiliesAreUTF8Concrete [
 PCRE2CompilerTest >> testErrorCode [
 	"PCRE2 minor versions may report slightly different diagnostic offsets, so keep this test focused on binding-level error handling."
 
-	#( '*' '(' '(??)' 'λ*φ(*)α' ) do: [ :pattern |
-		self assertInvalidPattern: pattern ]
+	#( '*' '(' '(??)' 'λ*φ(*)α' ) do: [ :pattern | self assertInvalidPattern: pattern ]
 ]
 
 { #category : 'tests' }

@@ -66,9 +66,7 @@ LibPCRE2UTF32 >> createMatchContext [
 { #category : 'private' }
 LibPCRE2UTF32 >> decodeConvertedPatternBytes: convertedBytes codeUnitCount: codeUnitCount [
 
-	^ (PCRE2UTF32Input fromNativeEndianBytes: convertedBytes)
-		  readFrom: 1
-		  to: codeUnitCount
+	^ (PCRE2UTF32Input fromNativeEndianBytes: convertedBytes) readFrom: 1 to: codeUnitCount
 ]
 
 { #category : 'private' }
