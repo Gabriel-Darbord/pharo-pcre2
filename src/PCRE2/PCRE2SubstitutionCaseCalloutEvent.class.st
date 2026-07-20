@@ -38,9 +38,7 @@ PCRE2SubstitutionCaseCalloutEvent class >> copyBytes: bytes to: outputPointer [
 	"Copy bytes into PCRE2's output buffer. The caller has already checked capacity."
 
 	(outputPointer isNil or: [ outputPointer isNull ]) ifTrue: [ ^ self ].
-	1 to: bytes size do: [ :index |
-		outputPointer uint8AtOffset: index - 1 put: (bytes at: index) ].
-	^ self
+	1 to: bytes size do: [ :index | outputPointer uint8AtOffset: index - 1 put: (bytes at: index) ]
 ]
 
 { #category : 'instance creation' }
@@ -104,11 +102,7 @@ PCRE2SubstitutionCaseCalloutEvent >> initializeFromInput: inputPointer length: a
 	outputCapacity := anOutputCapacity.
 	caseType := aCaseType.
 	codeUnitWidth := aCodeUnitWidth.
-	inputText := self class
-		             stringFrom: inputPointer
-		             length: inputLength
-		             codeUnitWidth: codeUnitWidth.
-	^ self
+	inputText := self class stringFrom: inputPointer length: inputLength codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'accessing' }

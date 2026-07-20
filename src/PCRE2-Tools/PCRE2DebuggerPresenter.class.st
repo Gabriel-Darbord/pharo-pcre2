@@ -310,9 +310,7 @@ PCRE2DebuggerPresenter >> refreshModeControls [
 		firstButton.
 		previousButton.
 		nextButton.
-		lastButton } do: [ :button |
-		button ifNotNil: [ button enabled: true ] ].
-	^ self
+		lastButton } do: [ :button | button ifNotNil: [ button enabled: true ] ]
 ]
 
 { #category : 'updating' }
@@ -382,11 +380,7 @@ PCRE2DebuggerPresenter >> subjectText [
 { #category : 'actions' }
 PCRE2DebuggerPresenter >> syncSessionInputs [
 
-	session
-		pattern: patternInput text
-		subject: subjectText text
-		maximumSteps: maximumStepsInput number.
-	^ self
+	session pattern: patternInput text subject: subjectText text maximumSteps: maximumStepsInput number
 ]
 
 { #category : 'accessing' }

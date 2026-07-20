@@ -51,8 +51,7 @@ PCRE2TraceCaptureRow >> initializeIndex: captureIndex range: anIntervalOrNil tex
 
 	index := captureIndex.
 	range := anIntervalOrNil.
-	text := aString ifNil: [ '' ].
-	^ self
+	text := aString ifNil: [ '' ]
 ]
 
 { #category : 'accessing' }

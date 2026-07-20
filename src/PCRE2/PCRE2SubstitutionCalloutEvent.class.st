@@ -102,45 +102,33 @@ PCRE2SubstitutionCalloutEvent >> initializeFromCalloutBlock: anExternalAddress c
 
 	| inputPointer outputPointer ovectorPointer outputOffsetsOffset ovectorPointerOffset pointerOffset wordSize |
 	wordSize := ExternalAddress wordSize.
-	pointerOffset := self class alignedOffsetAfterUInt32ForWordSize:
-		                 wordSize.
+	pointerOffset := self class alignedOffsetAfterUInt32ForWordSize: wordSize.
 	outputOffsetsOffset := pointerOffset + (2 * wordSize).
 	ovectorPointerOffset := outputOffsetsOffset + (2 * wordSize).
 
 	version := anExternalAddress uint32AtOffset: 0.
 	inputPointer := anExternalAddress pointerAtOffset: pointerOffset.
-	outputPointer := anExternalAddress pointerAtOffset:
-		                 pointerOffset + wordSize.
+	outputPointer := anExternalAddress pointerAtOffset: pointerOffset + wordSize.
 	outputOffsets := {
-		                 (self class
-			                  sizeTFrom: anExternalAddress
-			                  atOffset: outputOffsetsOffset).
-		                 (self class
-			                  sizeTFrom: anExternalAddress
-			                  atOffset: outputOffsetsOffset + wordSize) }.
-	ovectorPointer := anExternalAddress pointerAtOffset:
-		                  ovectorPointerOffset.
-	ovectorCount := anExternalAddress uint32AtOffset:
-		                ovectorPointerOffset + wordSize.
-	substitutionCount := anExternalAddress uint32AtOffset:
-		                     ovectorPointerOffset + wordSize + 4.
-	offsets := self class
-		           offsetsFrom: ovectorPointer
-		           count: ovectorCount * 2.
+		                 (self class sizeTFrom: anExternalAddress atOffset: outputOffsetsOffset).
+		                 (self class sizeTFrom: anExternalAddress atOffset: outputOffsetsOffset + wordSize) }.
+	ovectorPointer := anExternalAddress pointerAtOffset: ovectorPointerOffset.
+	ovectorCount := anExternalAddress uint32AtOffset: ovectorPointerOffset + wordSize.
+	substitutionCount := anExternalAddress uint32AtOffset: ovectorPointerOffset + wordSize + 4.
+	offsets := self class offsetsFrom: ovectorPointer count: ovectorCount * 2.
 	matchedText := offsets isEmpty
 		               ifTrue: [ nil ]
 		               ifFalse: [
-			               self class
-				               stringFrom: inputPointer
-				               startOffset: offsets first
-				               endOffset: offsets second
-				               codeUnitWidth: codeUnitWidth ].
+				               self class
+					               stringFrom: inputPointer
+					               startOffset: offsets first
+					               endOffset: offsets second
+					               codeUnitWidth: codeUnitWidth ].
 	replacementText := self class
 		                   stringFrom: outputPointer
 		                   startOffset: outputOffsets first
 		                   endOffset: outputOffsets second
-		                   codeUnitWidth: codeUnitWidth.
-	^ self
+		                   codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'accessing' }

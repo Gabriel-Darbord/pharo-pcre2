@@ -109,8 +109,7 @@ PCRE2MatchTrace >> initializePattern: patternString patternInput: patternInputOb
 	calloutSites := calloutSiteArray.
 	events := eventArray.
 	match := aMatchOrNil.
-	resultCode := anInteger.
-	^ self
+	resultCode := anInteger
 ]
 
 { #category : 'accessing' }

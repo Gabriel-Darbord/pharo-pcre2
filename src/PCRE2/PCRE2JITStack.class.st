@@ -79,17 +79,13 @@ PCRE2JITStack >> createWithStartSize: anInitialSize maxSize: aMaximumSize [
 PCRE2JITStack >> initializeWithStartSize: anInitialSize maxSize: aMaximumSize [
 	"Allocate the native JIT stack and remember the requested bounds for inspection."
 
-	(anInitialSize isInteger and: [ aMaximumSize isInteger ]) ifFalse: [
-		PCRE2Error signal: 'JIT stack sizes must be integers' ].
+	(anInitialSize isInteger and: [ aMaximumSize isInteger ]) ifFalse: [ PCRE2Error signal: 'JIT stack sizes must be integers' ].
 	(anInitialSize < 0 or: [ aMaximumSize < anInitialSize ]) ifTrue: [
-		PCRE2Error signal:
-			'JIT stack sizes must be non-negative and ordered' ].
+		PCRE2Error signal: 'JIT stack sizes must be non-negative and ordered' ].
 	startSize := anInitialSize.
 	maxSize := aMaximumSize.
 	handle := self createWithStartSize: startSize maxSize: maxSize.
-	handle isNull ifTrue: [
-		PCRE2Error signal: 'Failed to obtain memory to create JIT stack' ].
-	^ self
+	handle isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create JIT stack' ]
 ]
 
 { #category : 'accessing' }

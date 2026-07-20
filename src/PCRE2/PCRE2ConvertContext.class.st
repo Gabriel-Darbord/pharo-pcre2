@@ -57,8 +57,7 @@ PCRE2ConvertContext >> globEscape: aCharacterOrCodePoint [
 	| codePoint |
 	codePoint := self codePointFor: aCharacterOrCodePoint.
 	self checkSettingResult: (self setGlobEscape: codePoint).
-	globEscape := codePoint.
-	^ self
+	globEscape := codePoint
 ]
 
 { #category : 'accessing' }
@@ -75,8 +74,7 @@ PCRE2ConvertContext >> globSeparator: aCharacterOrCodePoint [
 	| codePoint |
 	codePoint := self codePointFor: aCharacterOrCodePoint.
 	self checkSettingResult: (self setGlobSeparator: codePoint).
-	globSeparator := codePoint.
-	^ self
+	globSeparator := codePoint
 ]
 
 { #category : 'copying' }

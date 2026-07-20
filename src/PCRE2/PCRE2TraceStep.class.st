@@ -92,8 +92,7 @@ PCRE2TraceStep >> initializeIndex: stepIndex event: aPCRE2CalloutEvent site: aPC
 	subjectPosition := subjectCharacterPosition.
 	subjectRange := subjectInterval.
 	captureRanges := captureRangeArray.
-	mark := markStringOrNil.
-	^ self
+	mark := markStringOrNil
 ]
 
 { #category : 'testing' }

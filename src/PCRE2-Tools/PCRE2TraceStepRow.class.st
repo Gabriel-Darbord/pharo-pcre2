@@ -43,8 +43,7 @@ PCRE2TraceStepRow >> indexLabel [
 PCRE2TraceStepRow >> initializeSteps: traceSteps [
 
 	steps := traceSteps asArray.
-	steps ifEmpty: [ self error: 'A trace row needs at least one step' ].
-	^ self
+	steps ifEmpty: [ self error: 'A trace row needs at least one step' ]
 ]
 
 { #category : 'testing' }

@@ -126,27 +126,16 @@ PCRE2CalloutSite >> initializeFromEnumerationBlock: anExternalAddress codeUnitWi
 	sizeOffset := wordSize.
 
 	version := anExternalAddress uint32AtOffset: 0.
-	patternPosition := self class
-		                   sizeTFrom: anExternalAddress
-		                   atOffset: sizeOffset.
-	nextItemLength := self class
-		                  sizeTFrom: anExternalAddress
-		                  atOffset: sizeOffset + wordSize.
-	number := anExternalAddress uint32AtOffset:
-		          sizeOffset + (2 * wordSize).
-	stringOffset := self class
-		                sizeTFrom: anExternalAddress
-		                atOffset: sizeOffset + (3 * wordSize).
-	stringLength := self class
-		                sizeTFrom: anExternalAddress
-		                atOffset: sizeOffset + (4 * wordSize).
+	patternPosition := self class sizeTFrom: anExternalAddress atOffset: sizeOffset.
+	nextItemLength := self class sizeTFrom: anExternalAddress atOffset: sizeOffset + wordSize.
+	number := anExternalAddress uint32AtOffset: sizeOffset + (2 * wordSize).
+	stringOffset := self class sizeTFrom: anExternalAddress atOffset: sizeOffset + (3 * wordSize).
+	stringLength := self class sizeTFrom: anExternalAddress atOffset: sizeOffset + (4 * wordSize).
 	pointerOffset := sizeOffset + (5 * wordSize).
 	string := self class
-		          stringFrom:
-		          (anExternalAddress pointerAtOffset: pointerOffset)
+		          stringFrom: (anExternalAddress pointerAtOffset: pointerOffset)
 		          length: stringLength
-		          codeUnitWidth: codeUnitWidth.
-	^ self
+		          codeUnitWidth: codeUnitWidth
 ]
 
 { #category : 'testing' }

@@ -54,11 +54,9 @@ PCRE2LiveDebugRun >> abort [
 
 	abortRequested := true.
 	self hasActiveProcess ifFalse: [
-		(runState = #paused or: [ runState = #idle ]) ifTrue: [
-			recorder ifNotNil: [
-				recorder abortWithResultCode: PCRE2 errorCallout ].
-			self runState: #aborted ] ].
-	^ self
+			(runState = #paused or: [ runState = #idle ]) ifTrue: [
+					recorder ifNotNil: [ recorder abortWithResultCode: PCRE2 errorCallout ].
+					self runState: #aborted ] ]
 ]
 
 { #category : 'accessing' }
@@ -184,14 +182,12 @@ PCRE2LiveDebugRun >> notifyCompletionCallbacks [
 
 	| callbacks |
 	callbackMutex critical: [
-		callbacks := completionCallbacks asArray.
-		completionCallbacks removeAll ].
+			callbacks := completionCallbacks asArray.
+			completionCallbacks removeAll ].
 	callbacks do: [ :callback |
-		[ callback cull: self ]
-			on: Error
-			do: [ :error | "Completion callbacks are observers; they must not change the recorded run result."
-				 ] ].
-	^ self
+			[ callback cull: self ]
+				on: Error
+				do: [ :error | "Completion callbacks are observers; they must not change the recorded run result." ] ]
 ]
 
 { #category : 'accessing' }
@@ -210,9 +206,8 @@ PCRE2LiveDebugRun >> pattern: aString [
 PCRE2LiveDebugRun >> pause [
 
 	self hasActiveProcess ifTrue: [
-		controlMode := #step.
-		targetEventCount := recorder events size + 1 max: 1 ].
-	^ self
+			controlMode := #step.
+			targetEventCount := recorder events size + 1 max: 1 ]
 ]
 
 { #category : 'preparing' }
@@ -221,8 +216,7 @@ PCRE2LiveDebugRun >> prepare [
 	matcher ifNotNil: [ ^ self ].
 	matcher := (self compiler compile: pattern) traceMatcher.
 	input := matcher preparedInputFor: subject.
-	self resetRecorder.
-	^ self
+	self resetRecorder
 ]
 
 { #category : 'running' }
@@ -325,9 +319,7 @@ PCRE2LiveDebugRun >> start [
 	lastError := nil.
 	self resetRecorder.
 	self runState: #running.
-	process := [ self runPreparedMatch ] forkNamed:
-		           'PCRE2 live debug run'.
-	^ self
+	process := [ self runPreparedMatch ] forkNamed: 'PCRE2 live debug run'
 ]
 
 { #category : 'running' }
@@ -393,8 +385,7 @@ PCRE2LiveDebugRun >> whenCompletedDo: aBlock [
 
 	| shouldRunNow |
 	callbackMutex critical: [
-		shouldRunNow := self isFinished.
-		shouldRunNow ifFalse: [ completionCallbacks add: aBlock ] ].
-	shouldRunNow ifTrue: [ aBlock cull: self ].
-	^ self
+			shouldRunNow := self isFinished.
+			shouldRunNow ifFalse: [ completionCallbacks add: aBlock ] ].
+	shouldRunNow ifTrue: [ aBlock cull: self ]
 ]

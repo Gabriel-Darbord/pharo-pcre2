@@ -44,8 +44,7 @@ PCRE2CompileContext >> bsr: anInteger [
 	"Set what \R matches. Prefer `useBSRAnyCRLF` and `useBSRUnicode` for named values."
 
 	self checkSettingResult: (self setBSR: anInteger).
-	bsr := anInteger.
-	^ self
+	bsr := anInteger
 ]
 
 { #category : 'accessing' }
@@ -60,17 +59,11 @@ PCRE2CompileContext >> characterTables: aPCRE2CharacterTables [
 	"Use low-character tables for subsequent compilations through this context. Keep the tables alive while compiled patterns may reference them."
 
 	aPCRE2CharacterTables ifNotNil: [
-		aPCRE2CharacterTables isNull ifTrue: [
-			PCRE2Error signal:
-				'Character tables must hold a native table pointer' ].
-		aPCRE2CharacterTables ffiLibraryName == self ffiLibraryName
-			ifFalse: [
-				PCRE2Error signal:
-					'Character tables must come from the same PCRE2 library width as the compile context' ] ].
-	self checkSettingResult:
-		(self setCharacterTables: aPCRE2CharacterTables).
-	characterTables := aPCRE2CharacterTables.
-	^ self
+			aPCRE2CharacterTables isNull ifTrue: [ PCRE2Error signal: 'Character tables must hold a native table pointer' ].
+			aPCRE2CharacterTables ffiLibraryName == self ffiLibraryName ifFalse: [
+				PCRE2Error signal: 'Character tables must come from the same PCRE2 library width as the compile context' ] ].
+	self checkSettingResult: (self setCharacterTables: aPCRE2CharacterTables).
+	characterTables := aPCRE2CharacterTables
 ]
 
 { #category : 'private' }
@@ -150,10 +143,8 @@ PCRE2CompileContext >> maxPatternCompiledLength: anInteger [
 		requireSupportedFeature: 'Maximum compiled pattern length'
 		since: '10.44'
 		when: self ffiLibraryName supportsMaxPatternCompiledLength.
-	self checkSettingResult:
-		(self setMaxPatternCompiledLength: anInteger).
-	maxPatternCompiledLength := anInteger.
-	^ self
+	self checkSettingResult: (self setMaxPatternCompiledLength: anInteger).
+	maxPatternCompiledLength := anInteger
 ]
 
 { #category : 'accessing' }
@@ -168,8 +159,7 @@ PCRE2CompileContext >> maxPatternLength: anInteger [
 	"Set the maximum pattern length in code units accepted by pcre2_compile()."
 
 	self checkSettingResult: (self setMaxPatternLength: anInteger).
-	maxPatternLength := anInteger.
-	^ self
+	maxPatternLength := anInteger
 ]
 
 { #category : 'accessing' }
@@ -183,13 +173,9 @@ PCRE2CompileContext >> maxVarLookbehind [
 PCRE2CompileContext >> maxVarLookbehind: anInteger [
 	"Set the maximum length for bounded variable-length lookbehind assertions."
 
-	self
-		requireSupportedFeature: 'Variable lookbehind limit'
-		since: '10.43'
-		when: self ffiLibraryName supportsMaxVarLookbehind.
+	self requireSupportedFeature: 'Variable lookbehind limit' since: '10.43' when: self ffiLibraryName supportsMaxVarLookbehind.
 	self checkSettingResult: (self setMaxVarLookbehind: anInteger).
-	maxVarLookbehind := anInteger.
-	^ self
+	maxVarLookbehind := anInteger
 ]
 
 { #category : 'accessing' }
@@ -204,8 +190,7 @@ PCRE2CompileContext >> newline: anInteger [
 	"Set which character sequence PCRE2 recognizes as a newline for compiled patterns."
 
 	self checkSettingResult: (self setNewline: anInteger).
-	newline := anInteger.
-	^ self
+	newline := anInteger
 ]
 
 { #category : 'accessing' }
@@ -219,14 +204,9 @@ PCRE2CompileContext >> optimizationDirectives [
 PCRE2CompileContext >> optimize: directive [
 	"Apply one PCRE2 optimization directive. Directives are cumulative; later directives may override earlier ones."
 
-	self
-		requireSupportedFeature: 'Optimization directives'
-		since: '10.45'
-		when: self ffiLibraryName supportsOptimizationDirectives.
+	self requireSupportedFeature: 'Optimization directives' since: '10.45' when: self ffiLibraryName supportsOptimizationDirectives.
 	self checkSettingResult: (self setOptimize: directive).
-	optimizationDirectives := self optimizationDirectives copyWith:
-		                          directive.
-	^ self
+	optimizationDirectives := self optimizationDirectives copyWith: directive
 ]
 
 { #category : 'accessing' }
@@ -241,8 +221,7 @@ PCRE2CompileContext >> options: anInteger [
 	"Set PCRE2 extra compile options. See PCRE2 class-side methods beginning with 'extra' for known values."
 
 	self checkSettingResult: (self setOptions: anInteger).
-	options := anInteger.
-	^ self
+	options := anInteger
 ]
 
 { #category : 'accessing' }
@@ -257,8 +236,7 @@ PCRE2CompileContext >> parensNestLimit: anInteger [
 	"Set the maximum parenthesis nesting depth accepted by pcre2_compile()."
 
 	self checkSettingResult: (self setParensNestLimit: anInteger).
-	parensNestLimit := anInteger.
-	^ self
+	parensNestLimit := anInteger
 ]
 
 { #category : 'copying' }

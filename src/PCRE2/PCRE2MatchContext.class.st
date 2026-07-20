@@ -33,21 +33,15 @@ PCRE2MatchContext >> calloutBlock: aBlock [
 	"Install a runtime callout. aBlock receives a PCRE2CalloutEvent and may answer an integer PCRE2 return code; non-integer answers continue matching."
 
 	| callback rc |
-	callback := FFICallback
-		            signature:
-		            #( int #( void #* calloutBlock #, void #* userData ) )
-		            block: [ :calloutBlock :userData |
+	callback := FFICallback signature: #( int #( void #* calloutBlock #, void #* userData ) ) block: [ :calloutBlock :userData |
 			            | answer |
-			            answer := aBlock value: (PCRE2CalloutEvent
-					                       fromCalloutBlock: calloutBlock
-					                       codeUnitWidth: self codeUnitWidth).
+			            answer := aBlock value: (PCRE2CalloutEvent fromCalloutBlock: calloutBlock codeUnitWidth: self codeUnitWidth).
 			            answer isInteger
 				            ifTrue: [ answer ]
 				            ifFalse: [ 0 ] ].
 	rc := self setCalloutCallback: callback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
-	calloutCallback := callback.
-	^ self
+	calloutCallback := callback
 ]
 
 { #category : 'callouts' }
@@ -57,8 +51,7 @@ PCRE2MatchContext >> clearCallout [
 	| rc |
 	rc := self unsetCalloutCallback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
-	calloutCallback := nil.
-	^ self
+	calloutCallback := nil
 ]
 
 { #category : 'accessing' }
@@ -66,8 +59,7 @@ PCRE2MatchContext >> clearJITStack [
 	"Remove the explicit JIT stack assignment so PCRE2 uses its default stack."
 
 	self unsetJITStack.
-	jitStack := nil.
-	^ self
+	jitStack := nil
 ]
 
 { #category : 'callouts' }
@@ -77,8 +69,7 @@ PCRE2MatchContext >> clearSubstituteCallout [
 	| rc |
 	rc := self unsetSubstituteCalloutCallback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
-	substituteCalloutCallback := nil.
-	^ self
+	substituteCalloutCallback := nil
 ]
 
 { #category : 'callouts' }
@@ -88,8 +79,7 @@ PCRE2MatchContext >> clearSubstituteCaseCallout [
 	| rc |
 	rc := self unsetSubstituteCaseCalloutCallback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
-	substituteCaseCalloutCallback := nil.
-	^ self
+	substituteCaseCalloutCallback := nil
 ]
 
 { #category : 'private' }
@@ -143,11 +133,9 @@ PCRE2MatchContext >> jitStack: aJITStack [
 
 	aJITStack ifNil: [ ^ self clearJITStack ].
 	aJITStack codeUnitWidth = self codeUnitWidth ifFalse: [
-		PCRE2Error signal:
-			'JIT stack code-unit width does not match this match context' ].
+		PCRE2Error signal: 'JIT stack code-unit width does not match this match context' ].
 	self setJITStack: aJITStack.
-	jitStack := aJITStack.
-	^ self
+	jitStack := aJITStack
 ]
 
 { #category : 'accessing' }
@@ -238,24 +226,17 @@ PCRE2MatchContext >> substituteCalloutBlock: aBlock [
 
 	| callback rc |
 	self ffiLibraryName supportsSubstitutionCallouts ifFalse: [
-		PCRE2Error signal:
-			'Substitution callouts require PCRE2 10.33 or newer; loaded '
-			, self ffiLibraryName versionString ].
-	callback := FFICallback
-		            signature:
-		            #( int #( void #* calloutBlock #, void #* userData ) )
-		            block: [ :calloutBlock :userData |
+		PCRE2Error signal: 'Substitution callouts require PCRE2 10.33 or newer; loaded ' , self ffiLibraryName versionString ].
+	callback := FFICallback signature: #( int #( void #* calloutBlock #, void #* userData ) ) block: [ :calloutBlock :userData |
 			            | answer |
-			            answer := aBlock value: (PCRE2SubstitutionCalloutEvent
-					                       fromCalloutBlock: calloutBlock
-					                       codeUnitWidth: self codeUnitWidth).
+			            answer := aBlock value:
+				                      (PCRE2SubstitutionCalloutEvent fromCalloutBlock: calloutBlock codeUnitWidth: self codeUnitWidth).
 			            answer isInteger
 				            ifTrue: [ answer ]
 				            ifFalse: [ PCRE2 substituteCalloutAccept ] ].
 	rc := self setSubstituteCalloutCallback: callback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
-	substituteCalloutCallback := callback.
-	^ self
+	substituteCalloutCallback := callback
 ]
 
 { #category : 'callouts' }
@@ -264,36 +245,23 @@ PCRE2MatchContext >> substituteCaseCalloutBlock: aBlock [
 
 	| callback rc |
 	self ffiLibraryName supportsSubstitutionCaseCallouts ifFalse: [
-		PCRE2Error signal:
-			'Substitution case callouts require PCRE2 10.45 or newer; loaded '
-			, self ffiLibraryName versionString ].
+		PCRE2Error signal: 'Substitution case callouts require PCRE2 10.45 or newer; loaded ' , self ffiLibraryName versionString ].
 	callback := FFICallback
 		            signature:
-			            #( size_t #( void #* input #, size_t inputLength
-			                  #, void #* output #, size_t outputCapacity
-			                  #, int caseType #, void #* userData ) )
-		            block: [
-			            :input
-			            :inputLength
-			            :output
-			            :outputCapacity
-			            :caseType
-			            :userData |
-			            | event |
-			            event := PCRE2SubstitutionCaseCalloutEvent
-				                     fromInput: input
-				                     length: inputLength
-				                     outputCapacity: outputCapacity
-				                     caseType: caseType
-				                     codeUnitWidth: self codeUnitWidth.
-			            self
-				            substituteCaseCalloutResultFor: event
-				            output: output
-				            block: aBlock ].
+		            #( size_t #( void #* input #, size_t inputLength #, void #* output #, size_t outputCapacity #, int caseType #, void
+		                  #* userData ) )
+		            block: [ :input :inputLength :output :outputCapacity :caseType :userData |
+				            | event |
+				            event := PCRE2SubstitutionCaseCalloutEvent
+					                     fromInput: input
+					                     length: inputLength
+					                     outputCapacity: outputCapacity
+					                     caseType: caseType
+					                     codeUnitWidth: self codeUnitWidth.
+				            self substituteCaseCalloutResultFor: event output: output block: aBlock ].
 	rc := self setSubstituteCaseCalloutCallback: callback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
-	substituteCaseCalloutCallback := callback.
-	^ self
+	substituteCaseCalloutCallback := callback
 ]
 
 { #category : 'private' }

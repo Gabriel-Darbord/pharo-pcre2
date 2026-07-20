@@ -52,8 +52,7 @@ PCRE2DebugSession >> abortLiveRun [
 	liveRun ifNil: [ ^ self ].
 	liveRun abort.
 	liveRun waitForCompletionMilliseconds: 1000.
-	self refreshLiveTrace.
-	^ self
+	self refreshLiveTrace
 ]
 
 { #category : 'accessing' }
@@ -76,8 +75,7 @@ PCRE2DebugSession >> compiler: aPCRE2CompilerOrClass [
 	matcher := nil.
 	trace := nil.
 	selectedStepIndex := 0.
-	lastError := nil.
-	^ self
+	lastError := nil
 ]
 
 { #category : 'live debugging' }
@@ -236,21 +234,16 @@ PCRE2DebugSession >> pattern: patternString subject: subjectString maximumSteps:
 	"Update debugger inputs. A changed pattern or subject invalidates an in-progress live run."
 
 	| newPattern newSubject |
-	newPattern := patternString
-		              ifNil: [ '' ]
-		              ifNotNil: [ patternString asString ].
-	newSubject := subjectString
-		              ifNil: [ '' ]
-		              ifNotNil: [ subjectString asString ].
+	newPattern := patternString ifNil: [ '' ] ifNotNil: [ patternString asString ].
+	newSubject := subjectString ifNil: [ '' ] ifNotNil: [ subjectString asString ].
 	(pattern ~= newPattern or: [ subject ~= newSubject ]) ifTrue: [
-		self stopLiveRun.
-		trace := nil.
-		selectedStepIndex := 0.
-		lastError := nil ].
+			self stopLiveRun.
+			trace := nil.
+			selectedStepIndex := 0.
+			lastError := nil ].
 	pattern := newPattern.
 	subject := newSubject.
-	self maximumSteps: stepLimit.
-	^ self
+	self maximumSteps: stepLimit
 ]
 
 { #category : 'live debugging' }
@@ -258,8 +251,7 @@ PCRE2DebugSession >> pauseLiveRun [
 
 	liveRun ifNil: [ ^ self ].
 	liveRun pause.
-	self refreshLiveTrace.
-	^ self
+	self refreshLiveTrace
 ]
 
 { #category : 'private' }
@@ -357,10 +349,9 @@ PCRE2DebugSession >> selectStep: aTraceStep [
 PCRE2DebugSession >> selectStepIndex: anInteger [
 
 	self stepCount = 0 ifTrue: [
-		selectedStepIndex := 0.
-		^ self ].
-	selectedStepIndex := (anInteger asInteger max: 1) min: self stepCount.
-	^ self
+			selectedStepIndex := 0.
+			^ self ].
+	selectedStepIndex := (anInteger asInteger max: 1) min: self stepCount
 ]
 
 { #category : 'stepping' }
@@ -448,10 +439,9 @@ PCRE2DebugSession >> stopLiveRun [
 
 	liveRun ifNil: [ ^ self ].
 	liveRun isFinished ifFalse: [
-		liveRun abort.
-		liveRun waitForCompletionMilliseconds: 250 ].
-	liveRun := nil.
-	^ self
+			liveRun abort.
+			liveRun waitForCompletionMilliseconds: 250 ].
+	liveRun := nil
 ]
 
 { #category : 'accessing' }

@@ -113,8 +113,7 @@ PCRE2TraceRecorder >> eventsWithSitesDo: aBlock [
 PCRE2TraceRecorder >> failWithError: errorString [
 
 	lastError := errorString.
-	finished := true.
-	^ self
+	finished := true
 ]
 
 { #category : 'recording' }
@@ -122,8 +121,7 @@ PCRE2TraceRecorder >> finishWithMatch: aPCRE2MatchOrNil resultCode: anInteger [
 
 	match := aPCRE2MatchOrNil.
 	resultCode := anInteger.
-	finished := true.
-	^ self
+	finished := true
 ]
 
 { #category : 'initialization' }
@@ -145,8 +143,7 @@ PCRE2TraceRecorder >> initializePattern: patternString patternInput: patternInpu
 	calloutSites := calloutSiteArray ifNil: [ #(  ) ].
 	events := OrderedCollection new.
 	finished := false.
-	aborted := false.
-	^ self
+	aborted := false
 ]
 
 { #category : 'accessing' }

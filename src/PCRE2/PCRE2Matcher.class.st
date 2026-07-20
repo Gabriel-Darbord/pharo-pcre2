@@ -66,16 +66,11 @@ PCRE2Matcher >> calloutSitesDo: aBlock [
 	"Evaluate aBlock with each static callout site in this compiled pattern. This is passive metadata: it does not install a runtime callout or affect matching."
 
 	| callback rc |
-	callback := FFICallback
-		            signature:
-		            #( int #( void #* calloutBlock #, void #* userData ) )
-		            block: [ :calloutBlock :userData |
-			            aBlock value:
-				            (self calloutSiteFromEnumerationBlock: calloutBlock).
+	callback := FFICallback signature: #( int #( void #* calloutBlock #, void #* userData ) ) block: [ :calloutBlock :userData |
+			            aBlock value: (self calloutSiteFromEnumerationBlock: calloutBlock).
 			            0 ].
 	rc := self enumerateCalloutsWith: callback.
-	rc < 0 ifTrue: [ self errorCode: rc ].
-	^ self
+	rc < 0 ifTrue: [ self errorCode: rc ]
 ]
 
 { #category : 'private' }
@@ -1063,8 +1058,7 @@ PCRE2Matcher >> restoreJITIfNeeded [
 	self isJIT == true ifFalse: [ ^ self ].
 	[ compiler compileJIT: self ]
 		on: PCRE2Error
-		do: [ :ex | self isJIT: false ].
-	^ self
+		do: [ :ex | self isJIT: false ]
 ]
 
 { #category : 'matching' }
