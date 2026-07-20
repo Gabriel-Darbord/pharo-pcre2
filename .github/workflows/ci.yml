@@ -18,7 +18,7 @@ jobs:
         smalltalk: [ Pharo64-12, Pharo64-13, Pharo64-14 ]
     name: ${{ matrix.smalltalk }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Install PCRE2
         run: sudo apt-get update && sudo apt-get install -y libpcre2-dev
       - uses: hpi-swa/setup-smalltalkCI@v1
