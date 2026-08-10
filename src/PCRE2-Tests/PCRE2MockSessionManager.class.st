@@ -16,13 +16,7 @@ PCRE2MockSessionManager class >> useSerialization: aBoolean [
 	useSerialization := aBoolean
 ]
 
-{ #category : 'accessing' }
-PCRE2MockSessionManager >> MatchersToRestore [
-
-	^ matchersToRestore
-]
-
-{ #category : 'system startup' }
+{ #category : 'enumerating' }
 PCRE2MockSessionManager >> findMatchersToRestore [
 	"Codes are given with the setter.
 	Mock the behavior of the super method that makes the codes persistent."
