@@ -26,31 +26,28 @@ PCRE2UTF8Match >> free [
 PCRE2UTF8Match >> getCount [
 	"Return the number of PCRE2 code-unit offset pairs in this 8-bit match data block."
 
-	self ffiCall: #( int pcre2_get_ovector_count_8
-	   #( self ) )
+	self ffiCall: #(int pcre2_get_ovector_count_8(self))
 ]
 
 { #category : 'private' }
 PCRE2UTF8Match >> getHeapframesSize [
 	"Answer the native heap-frame memory retained by this libpcre2-8 match-data block, in bytes."
 
-	self ffiCall: #( size_t pcre2_get_match_data_heapframes_size_8
-		   #( self ) )
+	self ffiCall: #(size_t pcre2_get_match_data_heapframes_size_8(self))
 ]
 
 { #category : 'private' }
 PCRE2UTF8Match >> getMarkPointer [
 	"Answer PCRE2's native pointer to the last 8-bit MARK/PRUNE/THEN name, or NULL when no mark is available."
 
-	self ffiCall: #( void #* pcre2_get_mark_8 #( self ) )
+	self ffiCall: #(void *pcre2_get_mark_8(self))
 ]
 
 { #category : 'private' }
 PCRE2UTF8Match >> getMatchDataSize [
 	"Answer the native memory used by this libpcre2-8 match-data block, in bytes."
 
-	self ffiCall: #( size_t pcre2_get_match_data_size_8
-	   #( self ) )
+	self ffiCall: #(size_t pcre2_get_match_data_size_8(self))
 ]
 
 { #category : 'private' }
