@@ -33,8 +33,7 @@ LibPCRE2UTF8 >> config: what output: where [
 	"This function makes it possible for a client program to find out which optional features are available in the version of the PCRE2 library it is using.
 	int pcre2_config(uint32_t what, void *where)"
 
-	self ffiCall:
-		#( int pcre2_config_8 #( uint32 what #, void #* where ) )
+	self ffiCall: #(int pcre2_config_8(uint32 what, void *where))
 ]
 
 { #category : 'private' }
