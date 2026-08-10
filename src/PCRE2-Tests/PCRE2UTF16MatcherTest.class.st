@@ -15,17 +15,16 @@ PCRE2UTF16MatcherTest >> emojiString [
 ]
 
 { #category : 'private' }
-PCRE2UTF16MatcherTest >> skipUnlessUTF16Supported [
+PCRE2UTF16MatcherTest >> skipIfUTF16Unsupported [
 
-	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ true ].
-	^ false
+	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ self skip ]
 ]
 
 { #category : 'tests' }
 PCRE2UTF16MatcherTest >> testByteBackedInputMatchesAndReportsCharacterRanges [
 
 	| emoji input match ranges regex subject |
-	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
+	self skipIfUTF16Unsupported.
 
 	emoji := self emojiString.
 	subject := 'a' , emoji , 'b'.
@@ -43,7 +42,7 @@ PCRE2UTF16MatcherTest >> testByteBackedInputMatchesAndReportsCharacterRanges [
 PCRE2UTF16MatcherTest >> testCompileErrorFromBytePatternDecodesPattern [
 
 	| patternInput |
-	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
+	self skipIfUTF16Unsupported.
 
 	patternInput := #[ 40 0 97 0 ] asPCRE2UTF16LittleEndianInput.
 	self should: [ PCRE2UTF16Compiler new compile: patternInput ] raise: PCRE2CompileError withExceptionDo: [ :error |
@@ -56,7 +55,7 @@ PCRE2UTF16MatcherTest >> testCompileErrorFromBytePatternDecodesPattern [
 PCRE2UTF16MatcherTest >> testCompilePatternFromBytesDetectingBOM [
 
 	| patternInput regex |
-	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
+	self skipIfUTF16Unsupported.
 
 	patternInput := #[ 255 254 97 0 43 0 ] asPCRE2UTF16InputDetectingBOM.
 	regex := PCRE2UTF16Compiler new compile: patternInput.
@@ -70,7 +69,7 @@ PCRE2UTF16MatcherTest >> testCompilePatternFromBytesDetectingBOM [
 PCRE2UTF16MatcherTest >> testCompilePatternFromLittleEndianBytes [
 
 	| regex |
-	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
+	self skipIfUTF16Unsupported.
 
 	regex := PCRE2UTF16Compiler new compile: #[ 97 0 43 0 ] asPCRE2UTF16LittleEndianInput.
 
@@ -82,7 +81,7 @@ PCRE2UTF16MatcherTest >> testCompilePatternFromLittleEndianBytes [
 PCRE2UTF16MatcherTest >> testSupplementaryCharacterOffsetsUseUTF16CodeUnits [
 
 	| emoji match ranges regex subject |
-	self skipUnlessUTF16Supported ifTrue: [ ^ self ].
+	self skipIfUTF16Unsupported.
 
 	emoji := self emojiString.
 	subject := 'a' , emoji , 'b'.

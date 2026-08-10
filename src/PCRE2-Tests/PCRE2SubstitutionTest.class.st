@@ -11,17 +11,15 @@ Class {
 }
 
 { #category : 'private' }
-PCRE2SubstitutionTest >> skipUnlessSubstitutionCalloutsSupported [
+PCRE2SubstitutionTest >> skipIfSubstitutionCalloutsUnsupported [
 
-	LibPCRE2 supportsSubstitutionCallouts ifFalse: [ ^ true ].
-	^ false
+	LibPCRE2 supportsSubstitutionCallouts ifFalse: [ self skip ]
 ]
 
 { #category : 'private' }
-PCRE2SubstitutionTest >> skipUnlessSubstitutionCaseCalloutsSupported [
+PCRE2SubstitutionTest >> skipIfSubstitutionCaseCalloutsUnsupported [
 
-	LibPCRE2 supportsSubstitutionCaseCallouts ifFalse: [ ^ true ].
-	^ false
+	LibPCRE2 supportsSubstitutionCaseCallouts ifFalse: [ self skip ]
 ]
 
 { #category : 'tests' }
@@ -93,7 +91,7 @@ PCRE2SubstitutionTest >> testSubstituteAutomaticallyHandlesLargeOutput [
 PCRE2SubstitutionTest >> testSubstituteCalloutCanRejectAndContinue [
 
 	| events regex result |
-	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	self skipIfSubstitutionCalloutsUnsupported.
 	regex := '(\w+)' asPerlCompatibleRegex.
 	events := OrderedCollection new.
 
@@ -113,7 +111,7 @@ PCRE2SubstitutionTest >> testSubstituteCalloutCanRejectAndContinue [
 PCRE2SubstitutionTest >> testSubstituteCalloutCanRejectAndStop [
 
 	| events regex result |
-	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	self skipIfSubstitutionCalloutsUnsupported.
 	regex := '(\w+)' asPerlCompatibleRegex.
 	events := OrderedCollection new.
 
@@ -131,7 +129,7 @@ PCRE2SubstitutionTest >> testSubstituteCalloutCanRejectAndStop [
 PCRE2SubstitutionTest >> testSubstituteCalloutDecodesUTF8Text [
 
 	| events regex result |
-	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	self skipIfSubstitutionCalloutsUnsupported.
 	regex := 'é' asPerlCompatibleRegex.
 	events := OrderedCollection new.
 
@@ -153,7 +151,7 @@ PCRE2SubstitutionTest >> testSubstituteCalloutDecodesUTF8Text [
 PCRE2SubstitutionTest >> testSubstituteCalloutDoesNotMutateReceiver [
 
 	| calls regex |
-	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	self skipIfSubstitutionCalloutsUnsupported.
 	regex := 'a' asPerlCompatibleRegex.
 	calls := 0.
 
@@ -171,7 +169,7 @@ PCRE2SubstitutionTest >> testSubstituteCalloutDoesNotMutateReceiver [
 PCRE2SubstitutionTest >> testSubstituteCalloutHandlesLargeOutputRetry [
 
 	| count regex replacement result |
-	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	self skipIfSubstitutionCalloutsUnsupported.
 	regex := 'a' asPerlCompatibleRegex.
 	replacement := String new: 5000 withAll: $x.
 	count := 0.
@@ -189,7 +187,7 @@ PCRE2SubstitutionTest >> testSubstituteCalloutHandlesLargeOutputRetry [
 PCRE2SubstitutionTest >> testSubstituteCalloutReceivesProcessedReplacement [
 
 	| events regex result |
-	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	self skipIfSubstitutionCalloutsUnsupported.
 	regex := '(\w+)' asPerlCompatibleRegex.
 	events := OrderedCollection new.
 
@@ -213,7 +211,7 @@ PCRE2SubstitutionTest >> testSubstituteCalloutReceivesProcessedReplacement [
 PCRE2SubstitutionTest >> testSubstituteCaseCalloutCanGrowOutputAndRetry [
 
 	| calls regex replacement result |
-	self skipUnlessSubstitutionCaseCalloutsSupported ifTrue: [ ^ self ].
+	self skipIfSubstitutionCaseCalloutsUnsupported.
 	regex := 'a' asPerlCompatibleRegex.
 	replacement := String new: 5000 withAll: $x.
 	calls := 0.
@@ -234,7 +232,7 @@ PCRE2SubstitutionTest >> testSubstituteCaseCalloutCanGrowOutputAndRetry [
 PCRE2SubstitutionTest >> testSubstituteCaseCalloutCanUseDefaultTransform [
 
 	| events regex result |
-	self skipUnlessSubstitutionCaseCalloutsSupported ifTrue: [ ^ self ].
+	self skipIfSubstitutionCaseCalloutsUnsupported.
 	regex := '(\w+)' asPerlCompatibleRegex.
 	events := OrderedCollection new.
 
@@ -253,7 +251,7 @@ PCRE2SubstitutionTest >> testSubstituteCaseCalloutCanUseDefaultTransform [
 PCRE2SubstitutionTest >> testSubstituteCaseCalloutControlsExtendedCaseConversion [
 
 	| events regex result |
-	self skipUnlessSubstitutionCaseCalloutsSupported ifTrue: [ ^ self ].
+	self skipIfSubstitutionCaseCalloutsUnsupported.
 	regex := '(\w+)' asPerlCompatibleRegex.
 	events := OrderedCollection new.
 
@@ -276,7 +274,7 @@ PCRE2SubstitutionTest >> testSubstituteCaseCalloutControlsExtendedCaseConversion
 PCRE2SubstitutionTest >> testSubstituteCaseCalloutNilSignalsReplaceCaseError [
 
 	| regex |
-	self skipUnlessSubstitutionCaseCalloutsSupported ifTrue: [ ^ self ].
+	self skipIfSubstitutionCaseCalloutsUnsupported.
 	regex := 'a' asPerlCompatibleRegex.
 
 	self
@@ -343,7 +341,7 @@ PCRE2SubstitutionTest >> testSubstituteUsingMatchRejectsUnsuitableMatchData [
 PCRE2SubstitutionTest >> testSubstituteUsingMatchSupportsCallouts [
 
 	| events input match regex result |
-	self skipUnlessSubstitutionCalloutsSupported ifTrue: [ ^ self ].
+	self skipIfSubstitutionCalloutsUnsupported.
 	regex := '(\w+)' asPerlCompatibleRegex.
 	input := 'one two' asPCRE2UTF8Input.
 	match := regex findMatch: input.
@@ -363,7 +361,7 @@ PCRE2SubstitutionTest >> testSubstituteUsingMatchSupportsCallouts [
 PCRE2SubstitutionTest >> testSubstituteUsingMatchSupportsCaseCallout [
 
 	| input match regex result |
-	self skipUnlessSubstitutionCaseCalloutsSupported ifTrue: [ ^ self ].
+	self skipIfSubstitutionCaseCalloutsUnsupported.
 	regex := '(\w+)' asPerlCompatibleRegex.
 	input := 'one two' asPCRE2UTF8Input.
 	match := regex findMatch: input.

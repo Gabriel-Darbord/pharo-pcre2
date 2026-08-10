@@ -102,7 +102,7 @@ PCRE2SessionManagerTest >> testStartUpWithInvalidSerializationFallsBackToRecompi
 PCRE2SessionManagerTest >> testStartUpWithMixedWidthSerialization [
 
 	| manager utf8 utf16 utf32 |
-	(LibPCRE2 supports16BitCodeUnitWidth and: [ LibPCRE2 supports32BitCodeUnitWidth ]) ifFalse: [ ^ self ].
+	(LibPCRE2 supports16BitCodeUnitWidth and: [ LibPCRE2 supports32BitCodeUnitWidth ]) ifFalse: [ self skip ].
 
 	PCRE2MockSessionManager useSerialization: true.
 	manager := PCRE2MockSessionManager new.
