@@ -56,10 +56,7 @@ PCRE2WideInputBytes class >> littleEndianBOMForWidth: width [
 PCRE2WideInputBytes class >> nativeEndianIsLittle [
 	"Answer whether the host stores multi-byte integer values in little-endian order."
 
-	| bytes |
-	bytes := ByteArray new: 2.
-	bytes uint16AtOffset: 0 put: 16r0102.
-	^ (bytes at: 1) = 16r02
+	^ EndianDetector isLittleEndian
 ]
 
 { #category : 'converting' }
