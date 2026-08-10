@@ -24,13 +24,13 @@ LibPCRE2 class >> assertCompatibleLibrary [
 { #category : 'code-unit width' }
 LibPCRE2 class >> codeUnitWidth [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'code-unit width' }
 LibPCRE2 class >> codeUnitWidthMask [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'documentation' }
@@ -136,7 +136,7 @@ LibPCRE2 class >> jitFreeUnusedMemory [
 { #category : 'library path' }
 LibPCRE2 class >> libraryBasename [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'instance creation' }
@@ -372,7 +372,7 @@ LibPCRE2 >> config: option [
 LibPCRE2 >> config: what output: where [
 	"Width-specific primitive for pcre2_config_*()."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
@@ -419,7 +419,7 @@ LibPCRE2 >> convertPattern: pattern options: convertOptions context: convertCont
 LibPCRE2 >> convertedPatternFree: convertedPattern [
 	"Width-specific primitive for pcre2_converted_pattern_free_*()."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
@@ -436,21 +436,21 @@ LibPCRE2 >> copyExternalBytes: externalBytes size: byteSize [
 LibPCRE2 >> createConvertContext [
 	"Width-specific primitive for pcre2_convert_context_create_*()."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> createMatchContext [
 	"Width-specific primitive for pcre2_match_context_create_*()."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> decodeConvertedPatternBytes: convertedBytes codeUnitCount: codeUnitCount [
 	"Decode bytes returned by pcre2_pattern_convert_*() for this binding's code-unit width."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'serializing' }
@@ -471,7 +471,7 @@ LibPCRE2 >> deserialize: bytes [
 LibPCRE2 >> deserialize: bytes count: count output: buffer [
 	"Width-specific primitive for pcre2_serialize_decode_*()."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'error handling' }
@@ -485,14 +485,14 @@ LibPCRE2 >> errorCode: errorCode [
 LibPCRE2 >> freeCharacterTables: characterTables [
 	"Width-specific primitive for pcre2_maketables_free_*()."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'JIT' }
 LibPCRE2 >> jitFreeUnusedMemory [
 	"Width-specific primitive for pcre2_jit_free_unused_memory_*()."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'accessing - platform' }
@@ -506,7 +506,7 @@ LibPCRE2 >> macLibraryName [
 LibPCRE2 >> makeCharacterTables [
 	"Width-specific primitive for pcre2_maketables_*()."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'library path' }
@@ -575,14 +575,14 @@ LibPCRE2 >> newMatchContext [
 LibPCRE2 >> patternConvert: pattern upTo: length options: convertOptions output: outputBuffer size: outputLength context: convertContext [
 	"Width-specific primitive for pcre2_pattern_convert_*()."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> preparedConversionInputFor: pattern [
 	"Prepare a String or width-specific input object for pcre2_pattern_convert_*()."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
@@ -647,21 +647,21 @@ LibPCRE2 >> serialize: matchers [
 LibPCRE2 >> serialize: matchers count: count output: bytes size: bufferSize [
 	"Width-specific primitive for pcre2_serialize_encode_*()."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> serializeFree: bytes [
 	"Width-specific primitive for pcre2_serialize_free_*()."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> serializedNumberOfCodes: bytes [
 	"Width-specific primitive for pcre2_serialize_get_number_of_codes_*()."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }

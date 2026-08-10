@@ -130,7 +130,7 @@ PCRE2Compiler >> compile: pattern [
 { #category : 'private' }
 PCRE2Compiler >> compile: pattern upTo: length errorCode: errorCode errorOffset: errorOffset [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'compiling' }
@@ -203,7 +203,7 @@ PCRE2Compiler >> copyContextIfPresent [
 { #category : 'private' }
 PCRE2Compiler >> createCompileContext [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'error handling' }
@@ -224,7 +224,7 @@ PCRE2Compiler >> errorCode: errorCode in: input at: codeUnitOffset [
 { #category : 'library path' }
 PCRE2Compiler >> ffiLibraryName [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'initialization' }
@@ -240,13 +240,13 @@ PCRE2Compiler >> initialize [
 { #category : 'private' }
 PCRE2Compiler >> inputClass [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Compiler >> matcherClass [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -273,11 +273,11 @@ PCRE2Compiler >> patternStringFromInput: input [
 PCRE2Compiler >> preparedPatternFor: aStringOrInput [
 	"Prepare a pattern object for this compiler's PCRE2 code-unit width. Concrete compilers accept Strings and may also accept width-specific prepared input objects or byte storage."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Compiler >> privateJITCompile: matcher [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]

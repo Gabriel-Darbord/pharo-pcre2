@@ -92,7 +92,7 @@ PCRE2Matcher >> codeUnitByteSize [
 { #category : 'documentation' }
 PCRE2Matcher >> codeUnitWidth [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'compiling' }
@@ -106,7 +106,7 @@ PCRE2Matcher >> compileJIT [
 { #category : 'compiling' }
 PCRE2Matcher >> compileJIT: anInteger [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -126,7 +126,7 @@ PCRE2Matcher >> compiler: aPCRE2Compiler [
 { #category : 'private' }
 PCRE2Matcher >> compilerClass [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -216,25 +216,25 @@ PCRE2Matcher >> copyWithCharacterTables [
 { #category : 'private' }
 PCRE2Matcher >> createMatchContext [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> createMatchDataFromPattern [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> createMatchDataWithOvectorSize: ovectorSize [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'matching' }
@@ -247,7 +247,7 @@ PCRE2Matcher >> dfaMatch: subject [
 { #category : 'private' }
 PCRE2Matcher >> dfaMatch: subject from: start to: end matchData: aMatchData workspace: workspace size: workspaceSize [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'matching' }
@@ -336,7 +336,7 @@ PCRE2Matcher >> dfaMatches: subject workspaceSize: workspaceSize ovectorSize: ov
 { #category : 'private' }
 PCRE2Matcher >> enumerateCalloutsWith: callback [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'error handling' }
@@ -475,12 +475,6 @@ PCRE2Matcher >> findWithGroups: subject [
 	^ (self findMatch: subject) ifNil: [ #(  ) ] ifNotNil: [ :match | match readMatches ]
 ]
 
-{ #category : 'external resource management' }
-PCRE2Matcher >> free [
-
-	^ self subclassResponsibility
-]
-
 { #category : 'documentation' }
 PCRE2Matcher >> info: option [
 	"Returns some information about the compiled pattern.
@@ -512,7 +506,7 @@ PCRE2Matcher >> info: option [
 { #category : 'private' }
 PCRE2Matcher >> info: what output: where [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'initialization' }
@@ -542,7 +536,7 @@ PCRE2Matcher >> isJIT: aBoolean [
 { #category : 'private' }
 PCRE2Matcher >> jitMatch: subject from: start to: end options: matchOptions matchData: aMatchData [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'querying' }
@@ -555,7 +549,7 @@ PCRE2Matcher >> mark [
 { #category : 'private' }
 PCRE2Matcher >> match: subject from: start to: end options: matchOptions matchData: aMatchData [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
@@ -699,7 +693,7 @@ PCRE2Matcher >> matchBytes: subject from: start to: end options: matchOptions in
 { #category : 'private' }
 PCRE2Matcher >> matchClass [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -902,19 +896,19 @@ PCRE2Matcher >> postCopy [
 { #category : 'private' }
 PCRE2Matcher >> preparedInputFor: aStringOrInput [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> privateCopy [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> privateCopyWithCharacterTables [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
@@ -1104,13 +1098,13 @@ PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptio
 { #category : 'private' }
 PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions matchedData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions replacement: replacement upTo: rLength output: buffer size: outSize [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'matching' }

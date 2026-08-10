@@ -41,8 +41,7 @@ PCRE2JITStack class >> defaultStartSize [
 PCRE2JITStack class >> freeUnusedMemory [
 	"Ask the PCRE2 JIT allocator to release speculative executable memory for this code-unit library."
 
-	self == PCRE2JITStack ifTrue: [ ^ PCRE2UTF8JITStack freeUnusedMemory ].
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'testing' }
@@ -65,13 +64,13 @@ PCRE2JITStack class >> startSize: startSize maxSize: maxSize [
 { #category : 'private' }
 PCRE2JITStack >> codeUnitWidth [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2JITStack >> createWithStartSize: anInitialSize maxSize: aMaximumSize [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'initialization' }

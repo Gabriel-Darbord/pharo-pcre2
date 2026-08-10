@@ -97,22 +97,16 @@ PCRE2Match >> ensureSubjectAvailable [
 		self error: 'This match does not remember a subject; use readMatch: or readMatches: with an explicit subject' ]
 ]
 
-{ #category : 'external resource management' }
-PCRE2Match >> free [
-
-	^ self subclassResponsibility
-]
-
 { #category : 'private' }
 PCRE2Match >> getCount [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getHeapframesSize [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
@@ -125,25 +119,25 @@ PCRE2Match >> getMark [
 { #category : 'private' }
 PCRE2Match >> getMarkPointer [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getMatchDataSize [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getOffsets [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getStartIndex [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'group access' }

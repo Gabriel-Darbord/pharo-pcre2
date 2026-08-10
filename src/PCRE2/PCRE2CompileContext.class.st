@@ -123,12 +123,6 @@ PCRE2CompileContext >> enableStartOptimization [
 	^ self optimize: PCRE2 optimizeStart
 ]
 
-{ #category : 'external resource management' }
-PCRE2CompileContext >> free [
-
-	^ self subclassResponsibility
-]
-
 { #category : 'accessing' }
 PCRE2CompileContext >> maxPatternCompiledLength [
 	"Maximum compiled pattern size in bytes, or nil when PCRE2 uses its default."
@@ -252,7 +246,7 @@ PCRE2CompileContext >> postCopy [
 { #category : 'private' }
 PCRE2CompileContext >> privateCopy [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -272,55 +266,55 @@ PCRE2CompileContext >> requireSupportedFeature: featureName since: versionString
 { #category : 'private' }
 PCRE2CompileContext >> setBSR: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setCharacterTables: characterTablesOrNil [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setMaxPatternCompiledLength: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setMaxPatternLength: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setMaxVarLookbehind: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setNewline: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setOptimize: directive [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setOptions: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2CompileContext >> setParensNestLimit: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'accessing' }

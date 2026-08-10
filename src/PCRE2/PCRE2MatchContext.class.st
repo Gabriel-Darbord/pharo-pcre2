@@ -86,7 +86,7 @@ PCRE2MatchContext >> clearSubstituteCaseCallout [
 PCRE2MatchContext >> codeUnitWidth [
 	"Answer the PCRE2 code-unit width used to decode callback payloads."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -100,12 +100,6 @@ PCRE2MatchContext >> depthLimit: anInteger [
 	"Set the backtracking depth limit"
 
 	self setDepthLimit: (depthLimit := anInteger)
-]
-
-{ #category : 'external resource management' }
-PCRE2MatchContext >> free [
-
-	^ self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -176,55 +170,55 @@ PCRE2MatchContext >> postCopy [
 { #category : 'private' }
 PCRE2MatchContext >> privateCopy [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setCalloutCallback: callback [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setDepthLimit: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setHeapLimit: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setJITStack: aJITStack [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setMatchLimit: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setOffsetLimit: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setSubstituteCalloutCallback: callback [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setSubstituteCaseCalloutCallback: callback [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'callouts' }
@@ -290,23 +284,23 @@ PCRE2MatchContext >> substituteCaseCalloutResultFor: event output: outputPointer
 { #category : 'private' }
 PCRE2MatchContext >> unsetCalloutCallback [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> unsetJITStack [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> unsetSubstituteCalloutCallback [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> unsetSubstituteCaseCalloutCallback [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
