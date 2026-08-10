@@ -73,7 +73,5 @@ PCRE2Object >> free [
 
 { #category : 'initialization' }
 PCRE2Object >> initialize [
-	"do nothing (prevent initialize to set the handle)"
-
-	
+	"Do nothing (prevent initialize to set the handle)"
 ]

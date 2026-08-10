@@ -519,8 +519,7 @@ PCRE2Matcher >> info: what output: where [
 PCRE2Matcher >> initialize [
 	"Initialize matcher-local options and lazily-computed metadata. Match data is created per match operation."
 
-	options := 0.
-	nameTable := nil
+	options := 0
 ]
 
 { #category : 'accessing' }
