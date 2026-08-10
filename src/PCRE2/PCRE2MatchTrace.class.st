@@ -67,9 +67,8 @@ PCRE2MatchTrace >> captureRangesAtEvent: aPCRE2CalloutEvent [
 	1 to: aPCRE2CalloutEvent captureTop do: [ :pairIndex |
 			| offsetPair |
 			offsetPair := aPCRE2CalloutEvent offsetsAt: pairIndex.
-			ranges at: pairIndex put: ((self offsetPairIsUnset: offsetPair)
-					 ifTrue: [ nil ]
-					 ifFalse: [ self subjectCharacterRangeFromStartOffset: offsetPair first endOffset: offsetPair second ]) ].
+			ranges at: pairIndex put: ((self offsetPairIsUnset: offsetPair) ifFalse: [
+					 self subjectCharacterRangeFromStartOffset: offsetPair first endOffset: offsetPair second ]) ].
 	^ ranges
 ]
 

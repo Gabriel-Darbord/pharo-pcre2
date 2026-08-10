@@ -496,9 +496,7 @@ PCRE2Matcher >> info: option [
 				  ifTrue: [ buffer uint64AtOffset: 0 ]
 				  ifFalse: [ "assume size == 4, make an issue if it crashes!" buffer uint32AtOffset: 0 ] ].
 	(option == PCRE2 infoFirstBitmap or: [ option == PCRE2 infoNameTable ]) ifTrue: [ "a pointer to external data"
-			^ (buffer allSatisfy: [ :byte | byte == 0 ])
-				  ifTrue: [ nil ]
-				  ifFalse: [ buffer ] ].
+		^ (buffer allSatisfy: [ :byte | byte == 0 ]) ifFalse: [ buffer ] ].
 	"info is a uint32 in all other cases"
 	^ buffer uint32AtOffset: 0
 ]
