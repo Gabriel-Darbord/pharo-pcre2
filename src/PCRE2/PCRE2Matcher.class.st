@@ -105,8 +105,16 @@ PCRE2Matcher >> compileJIT [
 
 { #category : 'compiling' }
 PCRE2Matcher >> compileJIT: anInteger [
+	"Request JIT (re-)compilation for this compiled pattern."
 
-	self subclassResponsibility
+	| newCompiler |
+	newCompiler := self compilerClass new.
+	compiler copyContextIfPresent ifNotNil: [ :contextCopy | newCompiler context: contextCopy ].
+	newCompiler
+		options: compiler options;
+		optionsJIT: anInteger;
+		compileJIT: self.
+	compiler := newCompiler
 ]
 
 { #category : 'accessing' }

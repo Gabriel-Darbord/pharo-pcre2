@@ -17,20 +17,6 @@ PCRE2UTF8Matcher >> codeUnitWidth [
 	^ 8
 ]
 
-{ #category : 'compiling' }
-PCRE2UTF8Matcher >> compileJIT: anInteger [
-	"Request JIT (re-)compilation for this 8-bit compiled pattern."
-
-	| newCompiler |
-	newCompiler := PCRE2UTF8Compiler new.
-	compiler copyContextIfPresent ifNotNil: [ :contextCopy | newCompiler context: contextCopy ].
-	newCompiler
-		options: compiler options;
-		optionsJIT: anInteger;
-		compileJIT: self.
-	compiler := newCompiler
-]
-
 { #category : 'private' }
 PCRE2UTF8Matcher >> compilerClass [
 

@@ -16,20 +16,6 @@ PCRE2UTF32Matcher >> codeUnitWidth [
 	^ 32
 ]
 
-{ #category : 'compiling' }
-PCRE2UTF32Matcher >> compileJIT: anInteger [
-	"Request JIT (re-)compilation for this 32-bit compiled pattern."
-
-	| newCompiler |
-	newCompiler := PCRE2UTF32Compiler new.
-	compiler copyContextIfPresent ifNotNil: [ :contextCopy | newCompiler context: contextCopy ].
-	newCompiler
-		options: compiler options;
-		optionsJIT: anInteger;
-		compileJIT: self.
-	compiler := newCompiler
-]
-
 { #category : 'private' }
 PCRE2UTF32Matcher >> compilerClass [
 
