@@ -1071,38 +1071,6 @@ PCRE2Matcher >> startIndex [
 
 { #category : 'private' }
 PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions matchData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
-	"Dispatch pcre2_substitute() with or without caller-supplied match data. A nil match data lets PCRE2 perform the match; a non-nil match data is used with PCRE2 substituteMatched."
-
-	aPCRE2Match ifNil: [
-			^ self
-				  substitute: subject
-				  from: start
-				  to: end
-				  options: substituteOptions
-				  replacement: replacement
-				  upTo: rLength
-				  output: buffer
-				  size: outSize ].
-	^ self
-		  substitute: subject
-		  from: start
-		  to: end
-		  options: substituteOptions
-		  matchedData: aPCRE2Match
-		  replacement: replacement
-		  upTo: rLength
-		  output: buffer
-		  size: outSize
-]
-
-{ #category : 'private' }
-PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions matchedData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
-
-	self subclassResponsibility
-]
-
-{ #category : 'private' }
-PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions replacement: replacement upTo: rLength output: buffer size: outSize [
 
 	self subclassResponsibility
 ]

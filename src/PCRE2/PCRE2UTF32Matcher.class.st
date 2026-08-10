@@ -145,17 +145,9 @@ PCRE2UTF32Matcher >> privateCopyWithCharacterTables [
 ]
 
 { #category : 'private' }
-PCRE2UTF32Matcher >> substitute: subject from: start to: end options: substituteOptions matchedData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
-	"Apply substitutions into caller-provided UTF-32 output storage using precomputed match data for the first match."
-
-	self ffiCall: #(int pcre2_substitute_32(self, void *subject, size_t end, size_t start, uint32 substituteOptions, PCRE2UTF32Match *aPCRE2Match, void *context, void *replacement, size_t rLength, void *buffer, SizeTHolder outSize))
-]
-
-{ #category : 'private' }
-PCRE2UTF32Matcher >> substitute: subject from: start to: end options: substituteOptions replacement: replacement upTo: rLength output: buffer size: outSize [
-	"Apply substitutions into caller-provided UTF-32 output storage without precomputed match data.
-	Subject, replacement, and output are prepared native-endian code-unit buffers, so use void* to keep UFFI string conversion out of the call.
+PCRE2UTF32Matcher >> substitute: subject from: start to: end options: substituteOptions matchData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
+	"Apply substitutions into caller-provided UTF-32 output storage. Subject, replacement, and output are prepared native-endian code-unit buffers, so use void* to keep UFFI string conversion out of the call.
 	int pcre2_substitute_32(const pcre2_code_32 *code, PCRE2_SPTR32 subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data_32 *match_data, pcre2_match_context_32 *mcontext, PCRE2_SPTR32 replacement, PCRE2_SIZE rlength, PCRE2_UCHAR32 *outputbuffer, PCRE2_SIZE *outlengthptr)"
 
-	self ffiCall: #(int pcre2_substitute_32(self, void *subject, size_t end, size_t start, uint32 substituteOptions, nil, void *context, void *replacement, size_t rLength, void *buffer, SizeTHolder outSize))
+	self ffiCall: #(int pcre2_substitute_32(self, void *subject, size_t end, size_t start, uint32 substituteOptions, void *aPCRE2Match, void *context, void *replacement, size_t rLength, void *buffer, SizeTHolder outSize))
 ]

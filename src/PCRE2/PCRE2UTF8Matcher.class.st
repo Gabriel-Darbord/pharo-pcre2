@@ -146,17 +146,9 @@ PCRE2UTF8Matcher >> privateCopyWithCharacterTables [
 ]
 
 { #category : 'private' }
-PCRE2UTF8Matcher >> substitute: subject from: start to: end options: substituteOptions matchedData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
-	"Apply substitutions into caller-provided output storage using precomputed match data for the first match. Subject, replacement, and output are prepared byte buffers, so use void* for them and let PCRE2 handle the bytes exactly as supplied.
+PCRE2UTF8Matcher >> substitute: subject from: start to: end options: substituteOptions matchData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
+	"Apply substitutions into caller-provided output storage. Subject, replacement, and output are prepared byte buffers, so use void* for them and let PCRE2 handle the bytes exactly as supplied.
 	int pcre2_substitute_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, PCRE2_SPTR replacement, PCRE2_SIZE rlength, PCRE2_UCHAR *outputbuffer, PCRE2_SIZE *outlengthptr)"
 
-	self ffiCall: #(int pcre2_substitute_8(self, void *subject, size_t end, size_t start, uint32 substituteOptions, PCRE2Match *aPCRE2Match, void *context, void *replacement, size_t rLength, void *buffer, SizeTHolder outSize))
-]
-
-{ #category : 'private' }
-PCRE2UTF8Matcher >> substitute: subject from: start to: end options: substituteOptions replacement: replacement upTo: rLength output: buffer size: outSize [
-	"Apply substitutions into caller-provided output storage without precomputed match data. Subject, replacement, and output are prepared byte buffers, so use void* for them and let PCRE2 handle the bytes exactly as supplied.
-	int pcre2_substitute_8(const pcre2_code *code, PCRE2_SPTR subject, PCRE2_SIZE length, PCRE2_SIZE startoffset, uint32_t options, pcre2_match_data *match_data, pcre2_match_context *mcontext, PCRE2_SPTR replacement, PCRE2_SIZE rlength, PCRE2_UCHAR *outputbuffer, PCRE2_SIZE *outlengthptr)"
-
-	self ffiCall: #(int pcre2_substitute_8(self, void *subject, size_t end, size_t start, uint32 substituteOptions, nil, void *context, void *replacement, size_t rLength, void *buffer, SizeTHolder outSize))
+	self ffiCall: #(int pcre2_substitute_8(self, void *subject, size_t end, size_t start, uint32 substituteOptions, void *aPCRE2Match, void *context, void *replacement, size_t rLength, void *buffer, SizeTHolder outSize))
 ]
