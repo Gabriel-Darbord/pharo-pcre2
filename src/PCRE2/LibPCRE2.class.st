@@ -409,10 +409,10 @@ LibPCRE2 >> convertPattern: pattern options: convertOptions context: convertCont
 	rc = 0 ifFalse: [
 			outputAddress isNull ifFalse: [ self convertedPatternFree: outputAddress ].
 			self conversionErrorCode: rc in: input at: outputLength value ].
-	[
-		convertedBytes := self copyExternalBytes: outputAddress size: outputLength value * self codeUnitByteSize.
-		^ self decodeConvertedPatternBytes: convertedBytes codeUnitCount: outputLength value ] ensure: [
-		self convertedPatternFree: outputAddress ]
+	^ [
+		  convertedBytes := self copyExternalBytes: outputAddress size: outputLength value * self codeUnitByteSize.
+		  self decodeConvertedPatternBytes: convertedBytes codeUnitCount: outputLength value ] ensure: [
+		  self convertedPatternFree: outputAddress ]
 ]
 
 { #category : 'private' }
@@ -640,7 +640,7 @@ LibPCRE2 >> serialize: matchers [
 			self errorCode: rc ].
 
 	"Copy the encoded bytes into the image and free the memory allocated by PCRE2."
-	[ ^ self copyExternalBytes: externBytes size: bufferSize value ] ensure: [ self serializeFree: externBytes ]
+	^ [ self copyExternalBytes: externBytes size: bufferSize value ] ensure: [ self serializeFree: externBytes ]
 ]
 
 { #category : 'private' }
