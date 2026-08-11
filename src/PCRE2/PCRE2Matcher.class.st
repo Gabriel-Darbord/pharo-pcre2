@@ -406,6 +406,34 @@ PCRE2Matcher >> findAll: subject do: aBlock [
 ]
 
 { #category : 'match enumeration' }
+PCRE2Matcher >> findAllMatches: subject [
+	"Answer all PCRE2Match objects within the subject."
+
+	| input result |
+	result := OrderedCollection new.
+	input := self preparedInputFor: subject.
+	self
+		matchAll: input
+		from: 1
+		to: input size
+		do: [ :match | result add: match ].
+	^ result
+]
+
+{ #category : 'match enumeration' }
+PCRE2Matcher >> findAllMatches: subject do: aBlock [
+	"Evaluate aBlock with each PCRE2Match object within the subject."
+
+	| input |
+	input := self preparedInputFor: subject.
+	self
+		matchAll: input
+		from: 1
+		to: input size
+		do: aBlock
+]
+
+{ #category : 'match enumeration' }
 PCRE2Matcher >> findAllWithGroups: subject [
 	"Returns all matching substrings and groups within the subject."
 
