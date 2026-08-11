@@ -93,12 +93,6 @@ PCRE2Input >> readFrom: start to: end [
 	self subclassResponsibility
 ]
 
-{ #category : 'matching' }
-PCRE2Input >> recordOn: aPCRE2Match [
-
-	aPCRE2Match input: self
-]
-
 { #category : 'accessing' }
 PCRE2Input >> size [
 	"Answer the input size in PCRE2 code units."

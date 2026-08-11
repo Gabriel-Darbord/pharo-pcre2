@@ -106,7 +106,7 @@ PCRE2LiveDebugRun >> handleMatchResult: resultCode match: matchData [
 			recorder finishWithMatch: nil resultCode: resultCode.
 			self runState: #completed.
 			^ self ].
-	input recordOn: matchData.
+	matchData input: input.
 	matchData bePersistent.
 	recorder finishWithMatch: matchData resultCode: resultCode.
 	self runState: #completed

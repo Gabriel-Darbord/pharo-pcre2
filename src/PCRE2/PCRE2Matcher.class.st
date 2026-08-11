@@ -279,7 +279,7 @@ PCRE2Matcher >> dfaMatch: subject workspaceSize: workspaceSize ovectorSize: ovec
 		         to: input size
 		         workspaceSize: workspaceSize
 		         ovectorSize: ovectorSize.
-	match ifNotNil: [ input recordOn: match ].
+	match ifNotNil: [ match input: input ].
 	^ match
 ]
 
@@ -434,7 +434,7 @@ PCRE2Matcher >> findMatch: subject [
 	| input match |
 	input := self preparedInputFor: subject.
 	match := self matchBytes: input bytes from: 1 to: input size.
-	match ifNotNil: [ input recordOn: match ].
+	match ifNotNil: [ match input: input ].
 	^ match
 ]
 
@@ -467,7 +467,7 @@ PCRE2Matcher >> findPartialMatch: subject option: partialOption [
 		      options: matchOptions
 		      into: match.
 	rc == PCRE2 errorNoMatch ifTrue: [ ^ nil ].
-	input recordOn: match.
+	match input: input.
 	^ match
 ]
 
@@ -630,7 +630,7 @@ PCRE2Matcher >> matchAllIn: input from: start to: end do: aBlock [
 		to: end
 		advancingEmptyMatchesWith: [ :offset | input nextMatchStartOffsetAfter: offset ]
 		do: [ :match |
-				input recordOn: match.
+				match input: input.
 				aBlock cull: match ]
 ]
 
@@ -922,7 +922,7 @@ PCRE2Matcher >> privateCopyWithCharacterTables [
 PCRE2Matcher >> readNamedGroups [
 	"Read PCRE2's native name table into a sparse Array keyed by capture group number."
 
-	| buffer captureCount entrySize nameCount rc table |
+	| buffer rc nameCount captureCount entrySize table |
 	buffer := ByteArray new: 4.
 
 	rc := self info: PCRE2 infoNameCount output: buffer.
@@ -1402,7 +1402,7 @@ PCRE2Matcher >> traceMatch: aStringOrInput [
 		              into: match.
 	resultCode = PCRE2 errorNoMatch
 		ifTrue: [ match := nil ]
-		ifFalse: [ input recordOn: match ].
+		ifFalse: [ match input: input ].
 	^ PCRE2MatchTrace
 		  pattern: pattern
 		  patternInput: patternInput

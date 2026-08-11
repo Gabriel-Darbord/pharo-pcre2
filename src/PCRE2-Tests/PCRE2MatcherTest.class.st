@@ -91,7 +91,7 @@ PCRE2MatcherTest >> testCallerManagedMatchDataCanBeReused [
 		from: 1
 		to: input size
 		into: match.
-	input recordOn: match.
+	match input: input.
 	self assert: match isComplete.
 	self assert: match readMatch equals: 'one'.
 	self assert: (match groupNamed: 'word') equals: 'one'.
@@ -101,7 +101,7 @@ PCRE2MatcherTest >> testCallerManagedMatchDataCanBeReused [
 		from: 5
 		to: input size
 		into: match.
-	input recordOn: match.
+	match input: input.
 	self assert: match isComplete.
 	self assert: match readMatch equals: 'two'.
 	self assert: (match groupNamed: 'word') equals: 'two'
