@@ -929,7 +929,9 @@ PCRE2Matcher >> readNamedGroups [
 	rc < 0 ifTrue: [ self errorCode: rc ].
 	(nameCount := buffer uint32AtOffset: 0) = 0 ifTrue: [ ^ #(  ) ].
 
-	captureCount := self info: PCRE2 infoCaptureCount.
+	rc := self info: PCRE2 infoCaptureCount output: buffer.
+	rc < 0 ifTrue: [ self errorCode: rc ].
+	captureCount := buffer uint32AtOffset: 0.
 	table := Array new: captureCount.
 
 	rc := self info: PCRE2 infoNameEntrySize output: buffer.
