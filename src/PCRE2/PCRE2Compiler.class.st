@@ -150,9 +150,15 @@ PCRE2Compiler >> compileJIT: matcher [
 	If no options are set (=0), JIT compilation does nothing and always succeeds.
 	Available options are jitComplete, jitPartialSoft and jitPartialHard."
 
+	^ self compileJIT: matcher onError: [ :rc | self errorCode: rc ]
+]
+
+{ #category : 'compiling' }
+PCRE2Compiler >> compileJIT: matcher onError: aBlock [
+
 	| rc |
 	rc := self privateJITCompile: matcher.
-	rc == 0 ifFalse: [ self errorCode: rc ].
+	rc == 0 ifFalse: [ aBlock value: rc ].
 	^ matcher isJIT: true
 ]
 

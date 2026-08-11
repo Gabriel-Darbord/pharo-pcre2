@@ -950,10 +950,8 @@ PCRE2Matcher >> readNamedGroups [
 PCRE2Matcher >> recompile [
 	"Recreate the external compiled pattern from the Smalltalk-side source of truth."
 
-	| wantsJIT |
-	wantsJIT := self isJIT.
 	self setHandle: (compiler compileBasic: pattern).
-	wantsJIT == true ifTrue: [ self restoreJITIfNeeded ]
+	self restoreJITIfNeeded
 ]
 
 { #category : 'private' }
@@ -1008,9 +1006,7 @@ PCRE2Matcher >> restoreJITIfNeeded [
 	"Serialized and copied PCRE2 code does not include JIT data. Rebuild it when requested, but keep the pattern usable without JIT if the platform cannot provide it now."
 
 	self isJIT == true ifFalse: [ ^ self ].
-	[ compiler compileJIT: self ]
-		on: PCRE2Error
-		do: [ :ex | self isJIT: false ]
+	compiler compileJIT: self onError: [ :rc | self isJIT: false ]
 ]
 
 { #category : 'matching' }
