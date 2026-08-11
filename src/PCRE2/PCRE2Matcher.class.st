@@ -1279,13 +1279,13 @@ PCRE2Matcher >> substituteAllReplacementsOnly: subject with: replacement [
 ]
 
 { #category : 'private' }
-PCRE2Matcher >> substituteBytes: subjectBytes replacement: replacement options: substituteOptions matchData: aPCRE2Match [
+PCRE2Matcher >> substituteBytes: subject replacement: replacement options: substituteOptions matchData: aPCRE2Match [
 	"Apply pcre2_substitute() to prepared subject bytes.
 	The SizeTHolder values are PCRE2 code-unit counts, while ByteArray storage is sized in bytes. Case callouts can make PCRE2 underestimate output size, so retry until the native call succeeds or fails for a reason other than output capacity."
 
 	| buffer bufferCodeUnitSize bytesPerCodeUnit effectiveOptions holder rc replacementInput subjectCodeUnitSize |
 	bytesPerCodeUnit := self codeUnitByteSize.
-	subjectCodeUnitSize := subjectBytes size // bytesPerCodeUnit.
+	subjectCodeUnitSize := subject size // bytesPerCodeUnit.
 	replacementInput := self preparedInputFor: replacement.
 	effectiveOptions := substituteOptions bitOr: PCRE2 substituteOverflowLength.
 	bufferCodeUnitSize := 4096.
@@ -1294,7 +1294,7 @@ PCRE2Matcher >> substituteBytes: subjectBytes replacement: replacement options: 
 		holder := SizeTHolder new value: bufferCodeUnitSize.
 		buffer := ByteArray new: bufferCodeUnitSize * bytesPerCodeUnit.
 		rc := self
-			      substitute: subjectBytes
+			      substitute: subject
 			      from: 0
 			      to: subjectCodeUnitSize
 			      options: effectiveOptions
