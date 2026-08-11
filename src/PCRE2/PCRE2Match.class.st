@@ -150,7 +150,7 @@ PCRE2Match >> groupAt: groupNumber [
 
 	self ensureSubjectAvailable.
 	pair := self offsetsAt: groupNumber + 1.
-	(self isUnsetOffset: pair first) ifTrue: [ ^ nil ].
+	pair first = PCRE2 unsetOffset ifTrue: [ ^ nil ].
 	^ self readSubjectFrom: pair first + 1 to: pair second
 ]
 
@@ -241,13 +241,6 @@ PCRE2Match >> isPartial [
 PCRE2Match >> isPersistent [
 
 	^ isPersistent
-]
-
-{ #category : 'private' }
-PCRE2Match >> isUnsetOffset: anInteger [
-	"Answer whether anInteger is PCRE2_UNSET."
-
-	^ anInteger = self unsetOffset
 ]
 
 { #category : 'enumerating' }
@@ -511,11 +504,4 @@ PCRE2Match >> subject: aByteArray decoder: aDecoder [
 	input := nil.
 	subject := aByteArray.
 	decoder := aDecoder
-]
-
-{ #category : 'private' }
-PCRE2Match >> unsetOffset [
-	"Answer PCRE2_UNSET for the current platform's PCRE2_SIZE width."
-
-	^ (1 bitShift: 8 * ExternalAddress wordSize) - 1
 ]
