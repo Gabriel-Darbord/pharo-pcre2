@@ -57,7 +57,7 @@ PCRE2UTF8Matcher >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
 PCRE2UTF8Matcher >> dfaMatch: subject from: start to: end matchData: aMatchData workspace: workspace size: workspaceSize [
 	"Run pcre2_dfa_match_8 with caller-managed match data and workspace storage. start is a zero-based code-unit offset, end is the subject length in code units, and PCRE2 writes code-unit offsets into the match data."
 
-	self ffiCall: #(int pcre2_dfa_match_8(self, void *subject, size_t end, size_t start, uint32 options, PCRE2Match *aMatchData, void *context, void *workspace, size_t workspaceSize))
+	self ffiCall: #(int pcre2_dfa_match_8(self, void *subject, size_t end, size_t start, uint32 options, PCRE2UTF8Match *aMatchData, void *context, void *workspace, size_t workspaceSize))
 ]
 
 { #category : 'private' }
@@ -91,14 +91,14 @@ PCRE2UTF8Matcher >> info: what output: where [
 PCRE2UTF8Matcher >> jitMatch: subject from: start to: end options: matchOptions matchData: aMatchData [
 	"Run pcre2_jit_match_8 on a prepared PCRE2-8 subject buffer. start is a zero-based code-unit offset, end is the subject length in code units, and PCRE2 writes code-unit offsets into the match data."
 
-	self ffiCall: #(int pcre2_jit_match_8(self, void *subject, size_t end, size_t start, uint32 matchOptions, PCRE2Match *aMatchData, void *context))
+	self ffiCall: #(int pcre2_jit_match_8(self, void *subject, size_t end, size_t start, uint32 matchOptions, PCRE2UTF8Match *aMatchData, void *context))
 ]
 
 { #category : 'private' }
 PCRE2UTF8Matcher >> match: subject from: start to: end options: matchOptions matchData: aMatchData [
 	"Run pcre2_match_8 on a prepared PCRE2-8 subject buffer. start is a zero-based code-unit offset, end is the subject length in code units, and PCRE2 writes code-unit offsets into the match data."
 
-	self ffiCall: #(int pcre2_match_8(self, void *subject, size_t end, size_t start, uint32 matchOptions, PCRE2Match *aMatchData, void *context))
+	self ffiCall: #(int pcre2_match_8(self, void *subject, size_t end, size_t start, uint32 matchOptions, PCRE2UTF8Match *aMatchData, void *context))
 ]
 
 { #category : 'private' }

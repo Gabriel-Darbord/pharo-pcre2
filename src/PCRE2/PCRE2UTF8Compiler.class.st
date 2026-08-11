@@ -54,5 +54,5 @@ PCRE2UTF8Compiler >> preparedPatternFor: aStringOrInput [
 PCRE2UTF8Compiler >> privateJITCompile: matcher [
 	"int pcre2_jit_compile(pcre2_code *code, uint32_t options)"
 
-	self ffiCall: #(int pcre2_jit_compile_8(PCRE2Matcher *matcher, uint32 optionsJIT))
+	self ffiCall: #(int pcre2_jit_compile_8(PCRE2UTF8Matcher *matcher, uint32 optionsJIT))
 ]
