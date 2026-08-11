@@ -11,3 +11,10 @@ ManifestPCRE2 class >> formatter [
 
 	^ ManifestBaselineOfPCRE2 formatter
 ]
+
+{ #category : 'code-critics' }
+ManifestPCRE2 class >> ruleLiteralArrayContainsCommaRuleV1FalsePositive [
+
+	<ignoreForCoverage>
+	^ #(#(#(#RGPackageDefinition #(#PCRE2)) #'2026-08-11T00:00:00.0+00:00') )
+]

@@ -33,7 +33,9 @@ PCRE2MatchContext >> calloutBlock: aBlock [
 	"Install a runtime callout. aBlock receives a PCRE2CalloutEvent and may answer an integer PCRE2 return code; non-integer answers continue matching."
 
 	| callback rc |
-	callback := FFICallback signature: #( int #( void #* calloutBlock #, void #* userData ) ) block: [ :calloutBlock :userData |
+	callback := FFICallback
+		            signature: #(int (void *calloutBlock, void *userData))
+		            block: [ :calloutBlock :userData |
 			            | answer |
 			            answer := aBlock value: (PCRE2CalloutEvent fromCalloutBlock: calloutBlock codeUnitWidth: self codeUnitWidth).
 			            answer isInteger
@@ -228,7 +230,9 @@ PCRE2MatchContext >> substituteCalloutBlock: aBlock [
 	| callback rc |
 	self ffiLibraryName supportsSubstitutionCallouts ifFalse: [
 		PCRE2Error signal: 'Substitution callouts require PCRE2 10.33 or newer; loaded ' , self ffiLibraryName versionString ].
-	callback := FFICallback signature: #( int #( void #* calloutBlock #, void #* userData ) ) block: [ :calloutBlock :userData |
+	callback := FFICallback
+		            signature: #(int (void *calloutBlock, void *userData))
+		            block: [ :calloutBlock :userData |
 			            | answer |
 			            answer := aBlock value:
 				                      (PCRE2SubstitutionCalloutEvent fromCalloutBlock: calloutBlock codeUnitWidth: self codeUnitWidth).
@@ -248,18 +252,16 @@ PCRE2MatchContext >> substituteCaseCalloutBlock: aBlock [
 	self ffiLibraryName supportsSubstitutionCaseCallouts ifFalse: [
 		PCRE2Error signal: 'Substitution case callouts require PCRE2 10.45 or newer; loaded ' , self ffiLibraryName versionString ].
 	callback := FFICallback
-		            signature:
-		            #( size_t #( void #* input #, size_t inputLength #, void #* output #, size_t outputCapacity #, int caseType #, void
-		                  #* userData ) )
+		            signature: #(size_t (void *input, size_t inputLength, void *output, size_t outputCapacity, int caseType, void *userData))
 		            block: [ :input :inputLength :output :outputCapacity :caseType :userData |
-				            | event |
-				            event := PCRE2SubstitutionCaseCalloutEvent
-					                     fromInput: input
-					                     length: inputLength
-					                     outputCapacity: outputCapacity
-					                     caseType: caseType
-					                     codeUnitWidth: self codeUnitWidth.
-				            self substituteCaseCalloutResultFor: event output: output block: aBlock ].
+			            | event |
+			            event := PCRE2SubstitutionCaseCalloutEvent
+				                     fromInput: input
+				                     length: inputLength
+				                     outputCapacity: outputCapacity
+				                     caseType: caseType
+				                     codeUnitWidth: self codeUnitWidth.
+			            self substituteCaseCalloutResultFor: event output: output block: aBlock ].
 	rc := self setSubstituteCaseCalloutCallback: callback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
 	substituteCaseCalloutCallback := callback
