@@ -366,7 +366,7 @@ PCRE2MatcherTest >> testMark [
 ]
 
 { #category : 'tests' }
-PCRE2MatcherTest >> testMatchAllOffsetsDo [
+PCRE2MatcherTest >> testMatchAllBytesFromToOffsetsDo [
 
 	| input offsets regex |
 	regex := 'ab' asPerlCompatibleRegex.
@@ -374,7 +374,7 @@ PCRE2MatcherTest >> testMatchAllOffsetsDo [
 	offsets := OrderedCollection new.
 
 	regex
-		matchAll: input bytes
+		matchAllBytes: input bytes
 		from: 1
 		to: input size
 		offsetsDo: [ :each | offsets add: each ].
@@ -382,6 +382,20 @@ PCRE2MatcherTest >> testMatchAllOffsetsDo [
 	self assert: offsets asArray equals: {
 			#( 0 2 ).
 			#( 3 5 ) }
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testMatchAllBytesHandlesEmptyGlobalMatches [
+
+	| matches |
+	matches := OrderedCollection new.
+	'a*?' asPerlCompatibleRegex
+		matchAllBytes: 'aaa'
+		from: 1
+		to: 3
+		do: [ :match | matches add: match readMatch ].
+
+	self assert: matches asArray equals: #( '' 'a' '' 'a' '' 'a' '' )
 ]
 
 { #category : 'tests' }
@@ -592,20 +606,6 @@ PCRE2MatcherTest >> testNonASCIIByteStringSubjectIsEncoded [
 	self assert: match subject equals: (ZnUTF8Encoder default encodeString: subject).
 	self assert: match decoder class equals: ZnUTF8Encoder.
 	self assert: match readMatch equals: 'é'
-]
-
-{ #category : 'tests' }
-PCRE2MatcherTest >> testRawMatchAllHandlesEmptyGlobalMatches [
-
-	| matches |
-	matches := OrderedCollection new.
-	'a*?' asPerlCompatibleRegex
-		matchAll: 'aaa'
-		from: 1
-		to: 3
-		do: [ :match | matches add: match readMatch ].
-
-	self assert: matches asArray equals: #( '' 'a' '' 'a' '' 'a' '' )
 ]
 
 { #category : 'tests' }
