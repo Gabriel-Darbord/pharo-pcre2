@@ -1015,7 +1015,7 @@ PCRE2Matcher >> restoreJITIfNeeded [
 
 { #category : 'matching' }
 PCRE2Matcher >> search: subject [
-	"Returns whether the regex partially matches the subject."
+	"Returns whether the regex matches anywhere in the subject."
 
 	^ (self findMatch: subject) notNil
 ]
