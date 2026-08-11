@@ -168,7 +168,7 @@ PCRE2Matcher >> copy: subject matchesDo: aBlock [
 	rs := ReadStream on: input bytes.
 	ws := WriteStream on: (String new: 100).
 	self
-		matchAllIn: input
+		matchAll: input
 		from: 1
 		to: input size
 		do: [ :match |
@@ -378,7 +378,7 @@ PCRE2Matcher >> findAll: subject [
 	result := OrderedCollection new.
 	input := self preparedInputFor: subject.
 	self
-		matchAllIn: input
+		matchAll: input
 		from: 1
 		to: input size
 		do: [ :match | result add: match readMatch ].
@@ -399,7 +399,7 @@ PCRE2Matcher >> findAll: subject do: aBlock [
 	| input |
 	input := self preparedInputFor: subject.
 	self
-		matchAllIn: input
+		matchAll: input
 		from: 1
 		to: input size
 		do: [ :match | aBlock value: match readMatch ]
@@ -413,7 +413,7 @@ PCRE2Matcher >> findAllWithGroups: subject [
 	result := OrderedCollection new.
 	input := self preparedInputFor: subject.
 	self
-		matchAllIn: input
+		matchAll: input
 		from: 1
 		to: input size
 		do: [ :match | result add: match readMatches ].
@@ -473,7 +473,7 @@ PCRE2Matcher >> findPartialMatch: subject option: partialOption [
 
 { #category : 'matching' }
 PCRE2Matcher >> findSoftPartialMatch: subject [
-	"Answer the first complete or soft-partial match in subject, or nil. Soft partial matching prefers a complete match when one exists."
+	"Answer the first complete or soft-partial match in subject, or nil. Soft partial matching prefers a complete match when one exists. Ask the returned PCRE2Match whether it isPartial."
 
 	^ self findPartialMatch: subject option: PCRE2 partialSoft
 ]
@@ -559,8 +559,22 @@ PCRE2Matcher >> match: subject from: start to: end options: matchOptions matchDa
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
-PCRE2Matcher >> matchAll: subject from: start to: end advancingEmptyMatchesWith: nextStartBlock do: aBlock [
+{ #category : 'match enumeration' }
+PCRE2Matcher >> matchAll: input from: start to: end do: aBlock [
+	"Iteratively match over a prepared input and execute aBlock with each standalone match. Empty-match fallback advances by the input's character boundary protocol."
+
+	self
+		matchAllBytes: input bytes
+		from: start
+		to: end
+		advancingEmptyMatchesWith: [ :offset | input nextMatchStartOffsetAfter: offset ]
+		do: [ :match |
+				match input: input.
+				aBlock cull: match ]
+]
+
+{ #category : 'prepared matching' }
+PCRE2Matcher >> matchAllBytes: subject from: start to: end advancingEmptyMatchesWith: nextStartBlock do: aBlock [
 	"Iterate like pcre2_next_match(), using nextStartBlock to advance after an empty match that has no consuming alternative."
 
 	| extraOptions match offset retryingEmpty subjectEnd |
@@ -596,11 +610,11 @@ PCRE2Matcher >> matchAll: subject from: start to: end advancingEmptyMatchesWith:
 ]
 
 { #category : 'prepared matching' }
-PCRE2Matcher >> matchAll: subject from: start to: end do: aBlock [
+PCRE2Matcher >> matchAllBytes: subject from: start to: end do: aBlock [
 	"Iteratively match over raw code-unit storage and execute aBlock with each standalone match. Empty matches retry with PCRE2_NOTEMPTY_ATSTART before advancing by one code unit."
 
 	self
-		matchAll: subject
+		matchAllBytes: subject
 		from: start
 		to: end
 		advancingEmptyMatchesWith: [ :offset | offset + 1 ]
@@ -610,28 +624,14 @@ PCRE2Matcher >> matchAll: subject from: start to: end do: aBlock [
 ]
 
 { #category : 'prepared matching' }
-PCRE2Matcher >> matchAll: subject from: start to: end offsetsDo: aBlock [
+PCRE2Matcher >> matchAllBytes: subject from: start to: end offsetsDo: aBlock [
 	"Iteratively match over an inclusive 1-based PCRE2 code-unit range of prepared subject storage and evaluate aBlock with each match's raw code-unit offsets."
 
 	self
-		matchAll: subject
+		matchAllBytes: subject
 		from: start
 		to: end
 		do: [ :match | aBlock value: match offsets ]
-]
-
-{ #category : 'match enumeration' }
-PCRE2Matcher >> matchAllIn: input from: start to: end do: aBlock [
-	"Iteratively match over a prepared input and execute aBlock with each standalone match. Empty-match fallback advances by the input's character boundary protocol."
-
-	self
-		matchAll: input bytes
-		from: start
-		to: end
-		advancingEmptyMatchesWith: [ :offset | input nextMatchStartOffsetAfter: offset ]
-		do: [ :match |
-				match input: input.
-				aBlock cull: match ]
 ]
 
 { #category : 'prepared matching' }
@@ -789,7 +789,7 @@ PCRE2Matcher >> matchingRangesIn: subject [
 	input := self preparedInputFor: subject.
 	ranges := OrderedCollection new.
 	self
-		matchAllIn: input
+		matchAll: input
 		from: 1
 		to: input size
 		do: [ :match |
