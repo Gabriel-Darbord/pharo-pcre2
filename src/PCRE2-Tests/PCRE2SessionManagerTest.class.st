@@ -86,7 +86,7 @@ PCRE2SessionManagerTest >> testStartUpWithInvalidSerializationFallsBackToRecompi
 	manager := PCRE2MockSessionManager new.
 	regex := 'a' asPerlCompatibleRegex.
 	manager matchersToRestore: { regex }.
-	manager serializedMatchers: #[ 1 2 3 ].
+	manager serializedMatchers: (Dictionary newFrom: { (regex codeUnitWidth -> #[ 1 2 3 ]) }).
 	manager serializedSignature: PCRE2MockSessionManager serializationSignature.
 
 	regex finalize.

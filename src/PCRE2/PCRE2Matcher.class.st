@@ -37,7 +37,7 @@ PCRE2Matcher >> allInfo [
 
 { #category : 'persistence' }
 PCRE2Matcher >> bePersistent [
-	"Compiled-pattern persistence is handled by PCRE2SessionManager. Match data is standalone."
+	"PCRE2SessionManager restores the native compiled-pattern handle. Matcher Smalltalk state already survives image save/load, and native-derived metadata such as namedGroups can be recomputed from the restored pattern when needed."
 
 	^ self
 ]
