@@ -186,7 +186,7 @@ PCRE2MatchContext >> privateCopy [
 ]
 
 { #category : 'persistence' }
-PCRE2MatchContext >> restore [
+PCRE2MatchContext >> restoreAfterStartup [
 	"Recreate my native match context and reapply remembered limits, JIT stack, and callbacks."
 
 	self setHandle: self ffiLibraryName uniqueInstance createMatchContext.
@@ -196,7 +196,7 @@ PCRE2MatchContext >> restore [
 	matchLimit ifNotNil: [ self matchLimit: matchLimit ].
 	offsetLimit ifNotNil: [ self offsetLimit: offsetLimit ].
 	jitStack ifNotNil: [
-			jitStack isNull ifTrue: [ jitStack restore ].
+			jitStack isNull ifTrue: [ jitStack restoreAfterStartup ].
 			self jitStack: jitStack ].
 	calloutBlock ifNotNil: [ self calloutBlock: calloutBlock ].
 	substituteCalloutBlock ifNotNil: [ self substituteCalloutBlock: substituteCalloutBlock ].

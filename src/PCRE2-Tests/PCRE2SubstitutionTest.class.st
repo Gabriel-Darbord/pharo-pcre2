@@ -312,7 +312,7 @@ PCRE2SubstitutionTest >> testSubstituteUsingMatchRejectsUnsuitableMatchData [
 		withExceptionDo: [ :error | self assert: (error messageText includesSubstring: 'external PCRE2 match data') ].
 
 	match := regex findMatch: 'a'.
-	match bePersistent.
+	match prepareForShutdown.
 	self
 		should: [ regex substituteUsingMatch: match with: 'x' ]
 		raise: PCRE2Error

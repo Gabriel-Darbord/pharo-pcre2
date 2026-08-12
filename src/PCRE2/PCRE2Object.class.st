@@ -45,13 +45,6 @@ PCRE2Object >> autoRelease [
 	FinalizationRegistry default add: self
 ]
 
-{ #category : 'persistence' }
-PCRE2Object >> bePersistent [
-	"Prepare this wrapper to survive image save/load. Subclasses with native-derived Pharo-side state should materialize it before session shutdown."
-
-	^ self
-]
-
 { #category : 'error handling' }
 PCRE2Object >> errorCode: errorCode [
 
@@ -84,7 +77,14 @@ PCRE2Object >> initialize [
 ]
 
 { #category : 'persistence' }
-PCRE2Object >> restore [
+PCRE2Object >> prepareForShutdown [
+	"Prepare this wrapper to survive image save/load. Subclasses with native-derived Pharo-side state should materialize it before session shutdown."
+
+	^ self
+]
+
+{ #category : 'persistence' }
+PCRE2Object >> restoreAfterStartup [
 	"Restore the native handle after image startup."
 
 	self subclassResponsibility

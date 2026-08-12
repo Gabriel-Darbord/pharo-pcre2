@@ -128,7 +128,7 @@ PCRE2SessionManager >> findMatchersToRestore [
 		PCRE2UTF32Matcher } do: [ :matcherClass |
 			matcherClass allInstancesDo: [ :matcher |
 					matcher isNull ifFalse: [
-						(matchersToRestore at: matcher codeUnitWidth ifAbsentPut: [ OrderedCollection new ]) add: matcher bePersistent ] ] ]
+						(matchersToRestore at: matcher codeUnitWidth ifAbsentPut: [ OrderedCollection new ]) add: matcher prepareForShutdown ] ] ]
 ]
 
 { #category : 'enumerating' }
@@ -137,7 +137,7 @@ PCRE2SessionManager >> findObjectsToRestore [
 
 	objectsToRestore := OrderedCollection new.
 	self restorableObjectClasses do: [ :objectClass |
-		objectClass allInstancesDo: [ :object | object isNull ifFalse: [ objectsToRestore add: object bePersistent ] ] ]
+		objectClass allInstancesDo: [ :object | object isNull ifFalse: [ objectsToRestore add: object prepareForShutdown ] ] ]
 ]
 
 { #category : 'testing' }
@@ -156,13 +156,13 @@ PCRE2SessionManager >> matcherGroupsDo: aBlock [
 
 { #category : 'enumerating' }
 PCRE2SessionManager >> persistMatches [
-	"Make live match data independent from native match-data handles before shutdown. Matches are Pharo-side snapshots after bePersistent and need no startup restore work."
+	"Make live match data independent from native match-data handles before shutdown. Matches are Pharo-side snapshots after prepareForShutdown and need no startup restore work."
 
 	{
 		PCRE2UTF8Match.
 		PCRE2UTF16Match.
 		PCRE2UTF32Match } do: [ :matchClass |
-		matchClass allInstancesDo: [ :match | (match isPersistent or: [ match isNull ]) ifFalse: [ match bePersistent ] ] ]
+		matchClass allInstancesDo: [ :match | (match isPersistent or: [ match isNull ]) ifFalse: [ match prepareForShutdown ] ] ]
 ]
 
 { #category : 'persistence' }
@@ -198,7 +198,7 @@ PCRE2SessionManager >> restorableObjectClasses [
 PCRE2SessionManager >> restoreObjects [
 	"Rebuild native handles for non-matcher PCRE2Object wrappers captured during shutdown."
 
-	objectsToRestore ifNotNil: [ objectsToRestore do: [ :object | object restore ] ]
+	objectsToRestore ifNotNil: [ objectsToRestore do: [ :object | object restoreAfterStartup ] ]
 ]
 
 { #category : 'persistence' }

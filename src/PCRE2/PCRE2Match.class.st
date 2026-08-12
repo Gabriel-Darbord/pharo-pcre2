@@ -32,19 +32,6 @@ PCRE2Match class >> isAbstract [
 	^ self == PCRE2Match
 ]
 
-{ #category : 'persistence' }
-PCRE2Match >> bePersistent [
-	"Copy native code-unit offset data and diagnostics into Pharo memory, then release my external match-data handle. Named-group metadata is already Pharo-side state."
-
-	self count.
-	self matchDataSize.
-	self heapframesSize.
-	offsets isArray ifFalse: [ "copy external data into local memory" self offsets ].
-	self free.
-	handle beNull.
-	isPersistent := true
-]
-
 { #category : 'private' }
 PCRE2Match >> captureIndexesNamed: groupName [
 	"Answer all capture group numbers associated with groupName. Duplicate names are preserved in capture order."
@@ -370,6 +357,19 @@ PCRE2Match >> ovectorCount [
 	"Return the number of PCRE2 code-unit offset pairs available in this match data block."
 
 	^ self getCount
+]
+
+{ #category : 'persistence' }
+PCRE2Match >> prepareForShutdown [
+	"Copy native code-unit offset data and diagnostics into Pharo memory, then release my external match-data handle. Named-group metadata is already Pharo-side state."
+
+	self count.
+	self matchDataSize.
+	self heapframesSize.
+	offsets isArray ifFalse: [ "copy external data into local memory" self offsets ].
+	self free.
+	handle beNull.
+	isPersistent := true
 ]
 
 { #category : 'match enumeration' }

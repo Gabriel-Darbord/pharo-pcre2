@@ -35,13 +35,6 @@ PCRE2Matcher >> allInfo [
 	^ (0 to: 26) collect: [ :i | self info: i ]
 ]
 
-{ #category : 'persistence' }
-PCRE2Matcher >> bePersistent [
-	"PCRE2SessionManager restores the native compiled-pattern handle. Matcher Smalltalk state already survives image save/load, and native-derived metadata such as namedGroups can be recomputed from the restored pattern when needed."
-
-	^ self
-]
-
 { #category : 'private' }
 PCRE2Matcher >> calloutSiteFromEnumerationBlock: anExternalAddress [
 	"Answer a static callout site decoded for this matcher's code-unit width."
@@ -915,6 +908,13 @@ PCRE2Matcher >> postCopy [
 	handle isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to copy matcher' ].
 	self autoRelease initialize.
 	self restoreJITIfNeeded
+]
+
+{ #category : 'persistence' }
+PCRE2Matcher >> prepareForShutdown [
+	"PCRE2SessionManager restores the native compiled-pattern handle. Matcher Smalltalk state already survives image save/load, and native-derived metadata such as namedGroups can be recomputed from the restored pattern when needed."
+
+	^ self
 ]
 
 { #category : 'private' }

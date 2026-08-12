@@ -19,7 +19,7 @@ PCRE2MatcherTest >> assertRegex: pattern matchPersists: subject [
 	self deny: match isPersistent.
 	expected := match readMatch.
 
-	match bePersistent.
+	match prepareForShutdown.
 
 	self assert: match isPersistent.
 	self assert: match readMatch equals: expected
@@ -649,7 +649,7 @@ PCRE2MatcherTest >> testReusableMatchDataRejectsPersistentMatchData [
 	regex := 'a' asPerlCompatibleRegex.
 	input := 'a' asPCRE2UTF8Input.
 	match := regex findMatch: input.
-	match bePersistent.
+	match prepareForShutdown.
 
 	self
 		should: [

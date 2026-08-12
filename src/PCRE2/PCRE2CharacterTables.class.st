@@ -3,7 +3,7 @@ Abstract superclass for PCRE2 low-character table wrappers.
 
 PCRE2 builds these tables from the process locale with pcre2_maketables(). A compile context can use them to define locale-sensitive behavior for character codes below 256, such as \w, \d, POSIX classes, and caseless matching. Keep the wrapper alive for as long as any compiled pattern may still reference its native table pointer.
 
-Before image shutdown, bePersistent snapshots the native table bytes. On restore, the wrapper rebuilds native memory from that snapshot so behavior does not depend on the locale of the restarted process.
+Before image shutdown, prepareForShutdown snapshots the native table bytes. On restoreAfterStartup, the wrapper rebuilds native memory from that snapshot so behavior does not depend on the locale of the restarted process.
 "
 Class {
 	#name : 'PCRE2CharacterTables',
@@ -27,13 +27,6 @@ PCRE2CharacterTables class >> tableByteSize [
 	"PCRE2 serializes one copy of low-character tables as 1088 bytes."
 
 	^ 1088
-]
-
-{ #category : 'persistence' }
-PCRE2CharacterTables >> bePersistent [
-	"Snapshot my native table bytes so restore does not depend on the current process locale."
-
-	self isNull ifFalse: [ persistedBytes := self copyBytesFromNativeTable ]
 ]
 
 { #category : 'documentation' }
@@ -82,7 +75,14 @@ PCRE2CharacterTables >> initialize [
 ]
 
 { #category : 'persistence' }
-PCRE2CharacterTables >> restore [
+PCRE2CharacterTables >> prepareForShutdown [
+	"Snapshot my native table bytes so restore does not depend on the current process locale."
+
+	self isNull ifFalse: [ persistedBytes := self copyBytesFromNativeTable ]
+]
+
+{ #category : 'persistence' }
+PCRE2CharacterTables >> restoreAfterStartup [
 	"Recreate low-character tables from persisted bytes when available, otherwise from the current process locale."
 
 	persistedBytes

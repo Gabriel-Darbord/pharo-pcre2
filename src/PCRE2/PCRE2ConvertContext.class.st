@@ -85,7 +85,7 @@ PCRE2ConvertContext >> privateCopy [
 ]
 
 { #category : 'persistence' }
-PCRE2ConvertContext >> restore [
+PCRE2ConvertContext >> restoreAfterStartup [
 	"Recreate my native convert context and reapply remembered conversion settings."
 
 	self setHandle: self ffiLibraryName uniqueInstance createConvertContext.

@@ -62,7 +62,7 @@ PCRE2MatchTest >> testLastMatchIndex [
 	| match |
 	match := 'bc' asPerlCompatibleRegex findMatch: 'abcde'.
 	self assert: match lastMatchIndex equals: 3.
-	match bePersistent.
+	match prepareForShutdown.
 	self assert: match lastMatchIndex equals: 3.
 
 	match := 'é' asPerlCompatibleRegex findMatch: 'éé'.
@@ -86,7 +86,7 @@ PCRE2MatchTest >> testMatchDataDiagnosticsSurvivePersistence [
 				self assert: heapframesSize >= 0 ]
 		ifFalse: [ self assert: heapframesSize isNil ].
 
-	match bePersistent.
+	match prepareForShutdown.
 
 	self assert: match isPersistent.
 	self assert: match matchDataSize equals: matchDataSize.
@@ -131,7 +131,7 @@ PCRE2MatchTest >> testNamedGroupsSurvivePersistence [
 
 	| match |
 	match := '(?<word>\w+)' asPerlCompatibleRegex findMatch: 'hello'.
-	match bePersistent.
+	match prepareForShutdown.
 
 	self assert: match isPersistent.
 	self assert: (match groupNamed: 'word') equals: 'hello'.

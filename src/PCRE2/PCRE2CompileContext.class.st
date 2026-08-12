@@ -270,7 +270,7 @@ PCRE2CompileContext >> requireSupportedFeature: featureName since: versionString
 ]
 
 { #category : 'persistence' }
-PCRE2CompileContext >> restore [
+PCRE2CompileContext >> restoreAfterStartup [
 	"Recreate my native compile context and reapply remembered compile settings."
 
 	| directives |
@@ -284,7 +284,7 @@ PCRE2CompileContext >> restore [
 	maxVarLookbehind ifNotNil: [ self maxVarLookbehind: maxVarLookbehind ].
 	parensNestLimit ifNotNil: [ self parensNestLimit: parensNestLimit ].
 	characterTables ifNotNil: [
-			characterTables isNull ifTrue: [ characterTables restore ].
+			characterTables isNull ifTrue: [ characterTables restoreAfterStartup ].
 			self characterTables: characterTables ].
 	directives := optimizationDirectives.
 	optimizationDirectives := nil.

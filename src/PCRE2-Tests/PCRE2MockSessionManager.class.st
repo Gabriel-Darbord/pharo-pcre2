@@ -27,7 +27,7 @@ PCRE2MockSessionManager >> findMatchersToRestore [
 	matchersToRestore := Dictionary new.
 	injectedMatchersToRestore ifNotNil: [ :matchers |
 			matchers do: [ :matcher |
-				(matchersToRestore at: matcher codeUnitWidth ifAbsentPut: [ OrderedCollection new ]) add: matcher bePersistent ] ]
+				(matchersToRestore at: matcher codeUnitWidth ifAbsentPut: [ OrderedCollection new ]) add: matcher prepareForShutdown ] ]
 ]
 
 { #category : 'enumerating' }
@@ -36,7 +36,7 @@ PCRE2MockSessionManager >> findObjectsToRestore [
 
 	objectsToRestore := OrderedCollection new.
 	injectedObjectsToRestore ifNotNil: [ :objects |
-		objects do: [ :object | object isNull ifFalse: [ objectsToRestore add: object bePersistent ] ] ]
+		objects do: [ :object | object isNull ifFalse: [ objectsToRestore add: object prepareForShutdown ] ] ]
 ]
 
 { #category : 'accessing' }
