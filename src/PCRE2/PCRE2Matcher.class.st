@@ -174,14 +174,14 @@ PCRE2Matcher >> copy: subject matchesDo: aBlock [
 		do: [ :match |
 				| byteEnd byteStart startOffset |
 				startOffset := match startOffsetAt: 1.
-				byteStart := startOffset * bytesPerCodeUnit + 1.
+				byteStart := startOffset * bytesPerCodeUnit.
 				byteEnd := (match endOffsetAt: 1) * bytesPerCodeUnit.
 				rs position: lastByteIndex.
-				[ rs position < (byteStart - 1) ] whileTrue: [ ws nextPut: (input nextFromStream: rs) ].
+				[ rs position < byteStart ] whileTrue: [ ws nextPut: (input nextFromStream: rs) ].
 				aBlock
 					value: ws
 					value: input bytes
-					value: byteStart
+					value: byteStart + 1
 					value: byteEnd.
 				lastByteIndex := byteEnd ].
 
