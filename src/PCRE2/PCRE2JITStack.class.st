@@ -92,6 +92,14 @@ PCRE2JITStack >> maxSize [
 	^ maxSize
 ]
 
+{ #category : 'persistence' }
+PCRE2JITStack >> restoreAfterStartup [
+	"Recreate my native JIT stack from the remembered size bounds."
+
+	self setHandle: (self createWithStartSize: startSize maxSize: maxSize).
+	self isNull ifTrue: [ PCRE2Error signal: 'Failed to restore JIT stack' ]
+]
+
 { #category : 'accessing' }
 PCRE2JITStack >> startSize [
 

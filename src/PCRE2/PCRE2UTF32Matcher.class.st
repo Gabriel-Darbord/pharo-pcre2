@@ -23,14 +23,6 @@ PCRE2UTF32Matcher >> compilerClass [
 ]
 
 { #category : 'private' }
-PCRE2UTF32Matcher >> createMatchContext [
-	"Create and initialize a new UTF-32 match context.
-	The result is NULL if memory could not be obtained."
-
-	self ffiCall: #(PCRE2UTF32MatchContext *pcre2_match_context_create_32(nil))
-]
-
-{ #category : 'private' }
 PCRE2UTF32Matcher >> createMatchDataFromPattern [
 	"Create match data sized for this 32-bit compiled pattern."
 

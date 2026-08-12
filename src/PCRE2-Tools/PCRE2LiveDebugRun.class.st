@@ -107,7 +107,7 @@ PCRE2LiveDebugRun >> handleMatchResult: resultCode match: matchData [
 			self runState: #completed.
 			^ self ].
 	matchData input: input.
-	matchData bePersistent.
+	matchData prepareForShutdown.
 	recorder finishWithMatch: matchData resultCode: resultCode.
 	self runState: #completed
 ]

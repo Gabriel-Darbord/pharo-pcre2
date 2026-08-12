@@ -35,13 +35,6 @@ PCRE2Matcher >> allInfo [
 	^ (0 to: 26) collect: [ :i | self info: i ]
 ]
 
-{ #category : 'persistence' }
-PCRE2Matcher >> bePersistent [
-	"Compiled-pattern persistence is handled by PCRE2SessionManager. Match data is standalone."
-
-	^ self
-]
-
 { #category : 'private' }
 PCRE2Matcher >> calloutSiteFromEnumerationBlock: anExternalAddress [
 	"Answer a static callout site decoded for this matcher's code-unit width."
@@ -142,12 +135,7 @@ PCRE2Matcher >> compilerClass [
 { #category : 'accessing' }
 PCRE2Matcher >> context [
 
-	^ context ifNil: [
-			  context := self createMatchContext.
-			  context isNull ifTrue: [
-					  context := nil.
-					  PCRE2Error signal: 'Failed to obtain memory to create match context' ].
-			  context autoRelease ]
+	^ context ifNil: [ context := self ffiLibraryName uniqueInstance newMatchContext ]
 ]
 
 { #category : 'accessing' }
@@ -221,12 +209,6 @@ PCRE2Matcher >> copyWithCharacterTables [
 	copy autoRelease initialize.
 	copy options: self options.
 	^ copy restoreJITIfNeeded
-]
-
-{ #category : 'private' }
-PCRE2Matcher >> createMatchContext [
-
-	self subclassResponsibility
 ]
 
 { #category : 'private' }
@@ -928,6 +910,13 @@ PCRE2Matcher >> postCopy [
 	self restoreJITIfNeeded
 ]
 
+{ #category : 'persistence' }
+PCRE2Matcher >> prepareForShutdown [
+	"PCRE2SessionManager restores the native compiled-pattern handle. Matcher Smalltalk state already survives image save/load, and native-derived metadata such as namedGroups can be recomputed from the restored pattern when needed."
+
+	^ self
+]
+
 { #category : 'private' }
 PCRE2Matcher >> preparedInputFor: aStringOrInput [
 
@@ -1037,7 +1026,7 @@ PCRE2Matcher >> restoreFrom: bytes [
 PCRE2Matcher >> restoreJITIfNeeded [
 	"Serialized and copied PCRE2 code does not include JIT data. Rebuild it when requested, but keep the pattern usable without JIT if the platform cannot provide it now."
 
-	self isJIT == true ifFalse: [ ^ self ].
+	self isJIT ifFalse: [ ^ self ].
 	compiler compileJIT: self onError: [ :rc | self isJIT: false ]
 ]
 

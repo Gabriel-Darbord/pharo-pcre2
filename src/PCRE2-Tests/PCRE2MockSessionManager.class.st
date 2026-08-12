@@ -6,6 +6,10 @@ It exposes lifecycle state and failure modes without requiring real image shutdo
 Class {
 	#name : 'PCRE2MockSessionManager',
 	#superclass : 'PCRE2SessionManager',
+	#instVars : [
+		'injectedMatchersToRestore',
+		'injectedObjectsToRestore'
+	],
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }
@@ -18,16 +22,35 @@ PCRE2MockSessionManager class >> useSerialization: aBoolean [
 
 { #category : 'enumerating' }
 PCRE2MockSessionManager >> findMatchersToRestore [
-	"Codes are given with the setter.
-	Mock the behavior of the super method that makes the codes persistent."
+	"Tests inject matchers directly with matchersToRestore:."
 
-	matchersToRestore do: [ :code | code bePersistent ]
+	matchersToRestore := Dictionary new.
+	injectedMatchersToRestore ifNotNil: [ :matchers |
+			matchers do: [ :matcher |
+				(matchersToRestore at: matcher codeUnitWidth ifAbsentPut: [ OrderedCollection new ]) add: matcher prepareForShutdown ] ]
+]
+
+{ #category : 'enumerating' }
+PCRE2MockSessionManager >> findObjectsToRestore [
+	"Tests inject restorable objects directly with objectsToRestore:."
+
+	objectsToRestore := OrderedCollection new.
+	injectedObjectsToRestore ifNotNil: [ :objects |
+		objects do: [ :object | object isNull ifFalse: [ objectsToRestore add: object prepareForShutdown ] ] ]
 ]
 
 { #category : 'accessing' }
 PCRE2MockSessionManager >> matchersToRestore: aCollection [
 
-	matchersToRestore := aCollection
+	injectedMatchersToRestore := aCollection.
+	self findMatchersToRestore
+]
+
+{ #category : 'accessing' }
+PCRE2MockSessionManager >> objectsToRestore: aCollection [
+
+	injectedObjectsToRestore := aCollection.
+	self findObjectsToRestore
 ]
 
 { #category : 'accessing' }

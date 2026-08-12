@@ -258,7 +258,7 @@ PCRE2DebugSession >> persistTraceMatch [
 	"Keep the final match queryable after native match-data lifetime changes."
 
 	trace ifNil: [ ^ self ].
-	trace match ifNotNil: [ :match | match bePersistent ]
+	trace match ifNotNil: [ :match | match prepareForShutdown ]
 ]
 
 { #category : 'live debugging' }

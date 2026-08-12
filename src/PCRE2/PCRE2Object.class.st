@@ -75,3 +75,17 @@ PCRE2Object >> free [
 PCRE2Object >> initialize [
 	"Do nothing (prevent initialize to set the handle)"
 ]
+
+{ #category : 'persistence' }
+PCRE2Object >> prepareForShutdown [
+	"Prepare this wrapper to survive image save/load. Subclasses with native-derived Pharo-side state should materialize it before session shutdown."
+
+	^ self
+]
+
+{ #category : 'persistence' }
+PCRE2Object >> restoreAfterStartup [
+	"Restore the native handle after image startup."
+
+	self subclassResponsibility
+]
