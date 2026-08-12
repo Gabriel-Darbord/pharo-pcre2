@@ -24,14 +24,6 @@ PCRE2UTF8Matcher >> compilerClass [
 ]
 
 { #category : 'private' }
-PCRE2UTF8Matcher >> createMatchContext [
-	"Create and initialize a new UTF-8 match context.
-	The result is NULL if memory could not be obtained."
-
-	self ffiCall: #(PCRE2UTF8MatchContext *pcre2_match_context_create_8(nil))
-]
-
-{ #category : 'private' }
 PCRE2UTF8Matcher >> createMatchDataFromPattern [
 	"Create match data with enough room for the full match and capture-group code-unit offset pairs."
 

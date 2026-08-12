@@ -81,6 +81,12 @@ PCRE2CompileContext >> clearCharacterTables [
 	^ self characterTables: nil
 ]
 
+{ #category : 'private' }
+PCRE2CompileContext >> compilerClass [
+
+	self subclassResponsibility
+]
+
 { #category : 'accessing' }
 PCRE2CompileContext >> disableAutoPossessification [
 	"Disable PCRE2's auto-possessification optimization."
@@ -261,6 +267,28 @@ PCRE2CompileContext >> requireSupportedFeature: featureName since: versionString
 
 	aBoolean ifTrue: [ ^ self ].
 	PCRE2Error signal: featureName , ' requires PCRE2 ' , versionString , ' or newer; loaded ' , self ffiLibraryName versionString
+]
+
+{ #category : 'persistence' }
+PCRE2CompileContext >> restore [
+	"Recreate my native compile context and reapply remembered compile settings."
+
+	| directives |
+	self setHandle: self compilerClass new createCompileContext.
+	self isNull ifTrue: [ PCRE2Error signal: 'Failed to restore compile context' ].
+	bsr ifNotNil: [ self bsr: bsr ].
+	options ifNotNil: [ self options: options ].
+	newline ifNotNil: [ self newline: newline ].
+	maxPatternLength ifNotNil: [ self maxPatternLength: maxPatternLength ].
+	maxPatternCompiledLength ifNotNil: [ self maxPatternCompiledLength: maxPatternCompiledLength ].
+	maxVarLookbehind ifNotNil: [ self maxVarLookbehind: maxVarLookbehind ].
+	parensNestLimit ifNotNil: [ self parensNestLimit: parensNestLimit ].
+	characterTables ifNotNil: [
+			characterTables isNull ifTrue: [ characterTables restore ].
+			self characterTables: characterTables ].
+	directives := optimizationDirectives.
+	optimizationDirectives := nil.
+	directives ifNotNil: [ directives do: [ :directive | self optimize: directive ] ]
 ]
 
 { #category : 'private' }

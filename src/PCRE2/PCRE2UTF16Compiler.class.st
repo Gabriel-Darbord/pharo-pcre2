@@ -18,12 +18,18 @@ PCRE2UTF16Compiler >> compile: pattern upTo: length errorCode: errorCode errorOf
 ]
 
 { #category : 'private' }
+PCRE2UTF16Compiler >> compileContextClass [
+
+	^ PCRE2UTF16CompileContext
+]
+
+{ #category : 'private' }
 PCRE2UTF16Compiler >> createCompileContext [
 	"Create and initialize a new UTF-16 compile context.
 	The result is NULL if memory could not be obtained.
 	pcre2_compile_context_16 *pcre2_compile_context_create_16(pcre2_general_context *gcontext)"
 
-	self ffiCall: #(PCRE2UTF16CompileContext *pcre2_compile_context_create_16(nil))
+	self ffiCall: #(void *pcre2_compile_context_create_16(nil))
 ]
 
 { #category : 'library path' }

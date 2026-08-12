@@ -84,6 +84,16 @@ PCRE2ConvertContext >> privateCopy [
 	self subclassResponsibility
 ]
 
+{ #category : 'persistence' }
+PCRE2ConvertContext >> restore [
+	"Recreate my native convert context and reapply remembered conversion settings."
+
+	self setHandle: self ffiLibraryName uniqueInstance createConvertContext.
+	self isNull ifTrue: [ PCRE2Error signal: 'Failed to restore convert context' ].
+	globEscape ifNotNil: [ self globEscape: globEscape ].
+	globSeparator ifNotNil: [ self globSeparator: globSeparator ]
+]
+
 { #category : 'private' }
 PCRE2ConvertContext >> setGlobEscape: codePoint [
 

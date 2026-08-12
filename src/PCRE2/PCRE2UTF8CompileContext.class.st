@@ -10,6 +10,12 @@ Class {
 	#package : 'PCRE2'
 }
 
+{ #category : 'private' }
+PCRE2UTF8CompileContext >> compilerClass [
+
+	^ PCRE2UTF8Compiler
+]
+
 { #category : 'library path' }
 PCRE2UTF8CompileContext >> ffiLibraryName [
 

@@ -99,6 +99,135 @@ PCRE2SessionManagerTest >> testShutDownWithSerialization [
 ]
 
 { #category : 'tests' }
+PCRE2SessionManagerTest >> testStartUpRestoresCompileContext [
+
+	| manager context |
+	manager := PCRE2MockSessionManager new.
+	context := PCRE2Compiler new context.
+	context newline: PCRE2 newlineCR.
+	context parensNestLimit: 20.
+	context maxPatternLength: 100.
+	manager objectsToRestore: { context }.
+	context finalize.
+	self assert: context isNull.
+
+	manager startUp.
+
+	self deny: context isNull.
+	self assert: context newline equals: PCRE2 newlineCR.
+	self assert: context parensNestLimit equals: 20.
+	self assert: context maxPatternLength equals: 100
+]
+
+{ #category : 'tests' }
+PCRE2SessionManagerTest >> testStartUpRestoresConvertContext [
+
+	| manager context |
+	LibPCRE2 supportsPatternConversion ifFalse: [ self skip ].
+	manager := PCRE2MockSessionManager new.
+	context := LibPCRE2UTF8 newConvertContext.
+	context globEscape: $!.
+	context globSeparator: $/.
+	manager objectsToRestore: { context }.
+	context finalize.
+	self assert: context isNull.
+
+	manager startUp.
+
+	self deny: context isNull.
+	self assert: context globEscape equals: $! asciiValue.
+	self assert: context globSeparator equals: $/ asciiValue
+]
+
+{ #category : 'tests' }
+PCRE2SessionManagerTest >> testStartUpRestoresJITStack [
+
+	| manager stack |
+	LibPCRE2 supportsJIT ifFalse: [ self skip ].
+	manager := PCRE2MockSessionManager new.
+	stack := PCRE2JITStack startSize: 1024 maxSize: 2048.
+	manager objectsToRestore: { stack }.
+	stack finalize.
+	self assert: stack isNull.
+
+	manager startUp.
+
+	self deny: stack isNull.
+	self assert: stack startSize equals: 1024.
+	self assert: stack maxSize equals: 2048
+]
+
+{ #category : 'tests' }
+PCRE2SessionManagerTest >> testStartUpRestoresMatchContextCallout [
+
+	| manager regex context count |
+	manager := PCRE2MockSessionManager new.
+	regex := '(?C1)a' asPerlCompatibleRegex.
+	context := regex context.
+	count := 0.
+	context calloutBlock: [ :event |
+			count := count + 1.
+			0 ].
+	manager objectsToRestore: { context }.
+	context finalize.
+	self assert: context isNull.
+
+	manager startUp.
+
+	self deny: context isNull.
+	self assert: (regex matches: 'a').
+	self assert: count equals: 1
+]
+
+{ #category : 'tests' }
+PCRE2SessionManagerTest >> testStartUpRestoresMatchContextSubstituteCallout [
+
+	| manager regex context count result |
+	LibPCRE2 supportsSubstitutionCallouts ifFalse: [ self skip ].
+	manager := PCRE2MockSessionManager new.
+	regex := '\w+' asPerlCompatibleRegex.
+	context := regex context.
+	count := 0.
+	context substituteCalloutBlock: [ :event |
+			count := count + 1.
+			PCRE2 substituteCalloutAccept ].
+	manager objectsToRestore: { context }.
+	context finalize.
+	self assert: context isNull.
+
+	manager startUp.
+
+	self deny: context isNull.
+	result := regex substituteAll: 'one two' with: '[$0]'.
+	self assert: result equals: '[one] [two]'.
+	self assert: count > 0
+]
+
+{ #category : 'tests' }
+PCRE2SessionManagerTest >> testStartUpRestoresMatchContextSubstituteCaseCallout [
+
+	| manager regex context count result |
+	LibPCRE2 supportsSubstitutionCaseCallouts ifFalse: [ self skip ].
+	manager := PCRE2MockSessionManager new.
+	regex := '(\w+)' asPerlCompatibleRegex.
+	context := regex context.
+	count := 0.
+	context substituteCaseCalloutBlock: [ :event |
+			count := count + 1.
+			event inputText reversed ].
+	manager objectsToRestore: { context }.
+	context finalize.
+	self assert: context isNull.
+
+	manager startUp.
+
+	self deny: context isNull.
+	result := regex substitute: 'one two' with: '\U$0' options: PCRE2 substituteExtended | PCRE2 substituteGlobal.
+	self assert: result equals: 'eno owt'.
+	self assert: count equals: 2
+]
+
+{ #category : 'tests' }
 PCRE2SessionManagerTest >> testStartUpWithInvalidSerializationFallsBackToRecompilation [
 
 	| manager regex |

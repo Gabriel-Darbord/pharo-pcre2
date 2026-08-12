@@ -140,6 +140,12 @@ PCRE2Compiler >> compileBasic: pattern [
 	^ self compilePreparedInput: (self preparedPatternFor: pattern)
 ]
 
+{ #category : 'private' }
+PCRE2Compiler >> compileContextClass [
+
+	self subclassResponsibility
+]
+
 { #category : 'compiling' }
 PCRE2Compiler >> compileJIT: matcher [
 	"Request JIT compilation, which, if the just-in-time compiler is available,
@@ -181,12 +187,7 @@ PCRE2Compiler >> compilePreparedInput: input [
 { #category : 'accessing' }
 PCRE2Compiler >> context [
 
-	^ context ifNil: [
-			  context := self createCompileContext.
-			  context isNull ifTrue: [
-					  context := nil.
-					  PCRE2Error signal: 'Failed to obtain memory to create compile context' ].
-			  context autoRelease ]
+	^ context ifNil: [ context := self newCompileContext ]
 ]
 
 { #category : 'accessing' }
@@ -253,6 +254,16 @@ PCRE2Compiler >> inputClass [
 PCRE2Compiler >> matcherClass [
 
 	self subclassResponsibility
+]
+
+{ #category : 'instance creation' }
+PCRE2Compiler >> newCompileContext [
+	"Create a width-specific compile context for this compiler."
+
+	| pointer |
+	pointer := self createCompileContext.
+	pointer isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create compile context' ].
+	^ (self compileContextClass fromHandle: pointer) initialize autoRelease
 ]
 
 { #category : 'accessing' }

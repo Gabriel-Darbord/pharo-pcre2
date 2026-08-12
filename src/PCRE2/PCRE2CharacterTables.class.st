@@ -29,3 +29,11 @@ PCRE2CharacterTables >> free [
 
 	^ self ffiLibraryName uniqueInstance freeCharacterTables: self
 ]
+
+{ #category : 'persistence' }
+PCRE2CharacterTables >> restore [
+	"Recreate low-character tables from the current process locale."
+
+	self setHandle: self ffiLibraryName uniqueInstance makeCharacterTables.
+	self isNull ifTrue: [ PCRE2Error signal: 'Failed to restore character tables' ]
+]

@@ -142,12 +142,7 @@ PCRE2Matcher >> compilerClass [
 { #category : 'accessing' }
 PCRE2Matcher >> context [
 
-	^ context ifNil: [
-			  context := self createMatchContext.
-			  context isNull ifTrue: [
-					  context := nil.
-					  PCRE2Error signal: 'Failed to obtain memory to create match context' ].
-			  context autoRelease ]
+	^ context ifNil: [ context := self ffiLibraryName uniqueInstance newMatchContext ]
 ]
 
 { #category : 'accessing' }
@@ -221,12 +216,6 @@ PCRE2Matcher >> copyWithCharacterTables [
 	copy autoRelease initialize.
 	copy options: self options.
 	^ copy restoreJITIfNeeded
-]
-
-{ #category : 'private' }
-PCRE2Matcher >> createMatchContext [
-
-	self subclassResponsibility
 ]
 
 { #category : 'private' }

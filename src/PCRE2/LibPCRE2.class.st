@@ -331,6 +331,12 @@ LibPCRE2 >> assertCompatibleLibrary [
 ]
 
 { #category : 'private' }
+LibPCRE2 >> characterTablesClass [
+
+	self subclassResponsibility
+]
+
+{ #category : 'private' }
 LibPCRE2 >> codeUnitByteSize [
 	"Answer the native byte size of one PCRE2 code unit for this library binding."
 
@@ -380,6 +386,12 @@ LibPCRE2 >> conversionErrorCode: errorCode in: input at: codeUnitOffset [
 	"Signal a conversion error reported for prepared PCRE2 input at a zero-based code-unit offset."
 
 	PCRE2CompileError signal: (PCRE2 translateErrorCode: errorCode) in: input at: codeUnitOffset
+]
+
+{ #category : 'private' }
+LibPCRE2 >> convertContextClass [
+
+	self subclassResponsibility
 ]
 
 { #category : 'converting' }
@@ -509,6 +521,12 @@ LibPCRE2 >> makeCharacterTables [
 	self subclassResponsibility
 ]
 
+{ #category : 'private' }
+LibPCRE2 >> matchContextClass [
+
+	self subclassResponsibility
+]
+
 { #category : 'library path' }
 LibPCRE2 >> nativeLibraryFilename [
 
@@ -545,30 +563,30 @@ LibPCRE2 >> nativeLibraryPath [
 LibPCRE2 >> newCharacterTables [
 	"Build low-character tables from the current process locale."
 
-	| tables |
-	tables := self makeCharacterTables.
-	tables isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create character tables' ].
-	^ tables autoRelease
+	| pointer |
+	pointer := self makeCharacterTables.
+	pointer isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create character tables' ].
+	^ (self characterTablesClass fromHandle: pointer) initialize autoRelease
 ]
 
 { #category : 'instance creation' }
 LibPCRE2 >> newConvertContext [
 	"Create a width-specific convert context for pattern conversion."
 
-	| context |
+	| pointer |
 	self requirePatternConversionSupport.
-	context := self createConvertContext.
-	context isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create convert context' ].
-	^ context autoRelease
+	pointer := self createConvertContext.
+	pointer isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create convert context' ].
+	^ (self convertContextClass fromHandle: pointer) initialize autoRelease
 ]
 
 { #category : 'instance creation' }
 LibPCRE2 >> newMatchContext [
 
-	| context |
-	context := self createMatchContext.
-	context isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create match context' ].
-	^ context autoRelease
+	| pointer |
+	pointer := self createMatchContext.
+	pointer isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create match context' ].
+	^ (self matchContextClass fromHandle: pointer) initialize autoRelease
 ]
 
 { #category : 'private' }

@@ -10,6 +10,7 @@ Class {
 	#superclass : 'Object',
 	#instVars : [
 		'matchersToRestore',
+		'objectsToRestore',
 		'serializedMatchers',
 		'serializedSignature'
 	],
@@ -130,6 +131,15 @@ PCRE2SessionManager >> findMatchersToRestore [
 						(matchersToRestore at: matcher codeUnitWidth ifAbsentPut: [ OrderedCollection new ]) add: matcher bePersistent ] ] ]
 ]
 
+{ #category : 'enumerating' }
+PCRE2SessionManager >> findObjectsToRestore [
+	"Register live external wrappers that can rebuild their native handles after image startup."
+
+	objectsToRestore := OrderedCollection new.
+	self restorableObjectClasses do: [ :objectClass |
+		objectClass allInstancesDo: [ :object | object isNull ifFalse: [ objectsToRestore add: object bePersistent ] ] ]
+]
+
 { #category : 'testing' }
 PCRE2SessionManager >> hasMatchersToRestore [
 	"Answer whether at least one matcher must be restored at startup."
@@ -160,6 +170,35 @@ PCRE2SessionManager >> recompileMatchers [
 	"Portable restore path: rebuild compiled patterns from their Smalltalk-side source of truth."
 
 	self matcherGroupsDo: [ :width :matchers | matchers do: [ :matcher | matcher recompile ] ]
+]
+
+{ #category : 'enumerating' }
+PCRE2SessionManager >> restorableObjectClasses [
+	"Answer concrete PCRE2Object classes whose native handles can be rebuilt from Pharo-side state."
+
+	^ {
+		  PCRE2UTF8CharacterTables.
+		  PCRE2UTF16CharacterTables.
+		  PCRE2UTF32CharacterTables.
+		  PCRE2UTF8JITStack.
+		  PCRE2UTF16JITStack.
+		  PCRE2UTF32JITStack.
+		  PCRE2UTF8ConvertContext.
+		  PCRE2UTF16ConvertContext.
+		  PCRE2UTF32ConvertContext.
+		  PCRE2UTF8CompileContext.
+		  PCRE2UTF16CompileContext.
+		  PCRE2UTF32CompileContext.
+		  PCRE2UTF8MatchContext.
+		  PCRE2UTF16MatchContext.
+		  PCRE2UTF32MatchContext }
+]
+
+{ #category : 'persistence' }
+PCRE2SessionManager >> restoreObjects [
+	"Rebuild native handles for non-matcher PCRE2Object wrappers captured during shutdown."
+
+	objectsToRestore ifNotNil: [ objectsToRestore do: [ :object | object restore ] ]
 ]
 
 { #category : 'persistence' }
@@ -203,6 +242,7 @@ PCRE2SessionManager >> serializedSignature: aDictionary [
 { #category : 'system startup' }
 PCRE2SessionManager >> shutDown [
 
+	self findObjectsToRestore.
 	self persistMatches.
 	self findMatchersToRestore.
 	(self class shouldUseSerialization and: [ self hasMatchersToRestore ]) ifFalse: [ ^ self ].
@@ -212,8 +252,9 @@ PCRE2SessionManager >> shutDown [
 
 { #category : 'system startup' }
 PCRE2SessionManager >> startUp [
-	"Restore patterns by trying the serialized bytecode cache first, then recompiling when the cache is missing, stale, or rejected by PCRE2."
+	"Restore native object wrappers, then restore patterns by trying the serialized bytecode cache first and recompiling when the cache is missing, stale, or rejected by PCRE2."
 
+	self restoreObjects.
 	self hasMatchersToRestore ifFalse: [ ^ self ].
 
 	(self class shouldUseSerialization and: [ self restoreSerializedMatchers ]) ifFalse: [ self recompileMatchers ]

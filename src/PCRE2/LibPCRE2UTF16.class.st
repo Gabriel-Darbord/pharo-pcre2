@@ -29,10 +29,22 @@ LibPCRE2UTF16 class >> libraryBasename [
 ]
 
 { #category : 'private' }
+LibPCRE2UTF16 >> characterTablesClass [
+
+	^ PCRE2UTF16CharacterTables
+]
+
+{ #category : 'private' }
 LibPCRE2UTF16 >> config: what output: where [
 	"Return configuration information from libpcre2-16."
 
 	self ffiCall: #(int pcre2_config_16(uint32 what, void *where))
+]
+
+{ #category : 'private' }
+LibPCRE2UTF16 >> convertContextClass [
+
+	^ PCRE2UTF16ConvertContext
 ]
 
 { #category : 'private' }
@@ -47,14 +59,14 @@ LibPCRE2UTF16 >> createConvertContext [
 	"Create a native UTF-16 conversion context.
 	pcre2_convert_context *pcre2_convert_context_create_16(pcre2_general_context *gcontext)"
 
-	self ffiCall: #(PCRE2UTF16ConvertContext *pcre2_convert_context_create_16(nil))
+	self ffiCall: #(void *pcre2_convert_context_create_16(nil))
 ]
 
 { #category : 'private' }
 LibPCRE2UTF16 >> createMatchContext [
 	"Create and initialize a new UTF-16 match context."
 
-	self ffiCall: #(PCRE2UTF16MatchContext *pcre2_match_context_create_16(nil))
+	self ffiCall: #(void *pcre2_match_context_create_16(nil))
 ]
 
 { #category : 'private' }
@@ -89,7 +101,13 @@ LibPCRE2UTF16 >> makeCharacterTables [
 	"Build low-character tables from the current process locale.
 	const uint8_t *pcre2_maketables_16(pcre2_general_context *gcontext)"
 
-	self ffiCall: #(PCRE2UTF16CharacterTables *pcre2_maketables_16(nil))
+	self ffiCall: #(void *pcre2_maketables_16(nil))
+]
+
+{ #category : 'private' }
+LibPCRE2UTF16 >> matchContextClass [
+
+	^ PCRE2UTF16MatchContext
 ]
 
 { #category : 'private' }

@@ -7,7 +7,8 @@ Class {
 	#name : 'PCRE2MockSessionManager',
 	#superclass : 'PCRE2SessionManager',
 	#instVars : [
-		'injectedMatchersToRestore'
+		'injectedMatchersToRestore',
+		'injectedObjectsToRestore'
 	],
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
@@ -29,11 +30,27 @@ PCRE2MockSessionManager >> findMatchersToRestore [
 				(matchersToRestore at: matcher codeUnitWidth ifAbsentPut: [ OrderedCollection new ]) add: matcher bePersistent ] ]
 ]
 
+{ #category : 'enumerating' }
+PCRE2MockSessionManager >> findObjectsToRestore [
+	"Tests inject restorable objects directly with objectsToRestore:."
+
+	objectsToRestore := OrderedCollection new.
+	injectedObjectsToRestore ifNotNil: [ :objects |
+		objects do: [ :object | object isNull ifFalse: [ objectsToRestore add: object bePersistent ] ] ]
+]
+
 { #category : 'accessing' }
 PCRE2MockSessionManager >> matchersToRestore: aCollection [
 
 	injectedMatchersToRestore := aCollection.
 	self findMatchersToRestore
+]
+
+{ #category : 'accessing' }
+PCRE2MockSessionManager >> objectsToRestore: aCollection [
+
+	injectedObjectsToRestore := aCollection.
+	self findObjectsToRestore
 ]
 
 { #category : 'accessing' }
