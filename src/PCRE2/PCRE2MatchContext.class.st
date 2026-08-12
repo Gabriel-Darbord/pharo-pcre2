@@ -4,6 +4,8 @@ Abstract superclass for PCRE2 match contexts.
 Concrete subclasses bind PCRE2's width-specific native setters and lifetime functions: PCRE2UTF8MatchContext, PCRE2UTF16MatchContext, and PCRE2UTF32MatchContext. This class keeps the shared Pharo-side runtime limit accessors, callback installation protocol, and explicit JIT stack assignment.
 
 A non-nil JIT stack is an advanced ownership-sensitive resource. Use it only when large or complex JIT-compiled patterns need more runtime stack than PCRE2's default.
+
+Callback blocks are Pharo objects and are reinstalled during restoreAfterStartup. Any objects captured by those blocks must themselves remain valid after image startup.
 "
 Class {
 	#name : 'PCRE2MatchContext',
@@ -187,7 +189,7 @@ PCRE2MatchContext >> privateCopy [
 
 { #category : 'persistence' }
 PCRE2MatchContext >> restoreAfterStartup [
-	"Recreate my native match context and reapply remembered limits, JIT stack, and callbacks."
+	"Recreate my native match context and reapply remembered limits, JIT stack, and callbacks. Callback blocks are preserved as Pharo objects; their captured objects must also survive startup correctly."
 
 	self setHandle: self ffiLibraryName uniqueInstance createMatchContext.
 	self isNull ifTrue: [ PCRE2Error signal: 'Failed to restore match context' ].
