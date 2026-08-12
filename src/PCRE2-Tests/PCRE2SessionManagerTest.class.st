@@ -42,6 +42,26 @@ PCRE2SessionManagerTest >> testMatcherSerializationConvenienceRoundTrip [
 ]
 
 { #category : 'tests' }
+PCRE2SessionManagerTest >> testShutDownPersistsMatches [
+
+	| manager match regex |
+	PCRE2MockSessionManager useSerialization: false.
+	manager := PCRE2MockSessionManager new.
+	regex := '(?<word>\w+)' asPerlCompatibleRegex.
+	match := regex findMatch: 'hello'.
+
+	self deny: match isPersistent.
+	self deny: match isNull.
+
+	manager shutDown.
+
+	self assert: match isPersistent.
+	self assert: match isNull.
+	self assert: match readMatch equals: 'hello'.
+	self assert: (match groupNamed: 'word') equals: 'hello'
+]
+
+{ #category : 'tests' }
 PCRE2SessionManagerTest >> testShutDownWithRecompilation [
 
 	| manager regex |

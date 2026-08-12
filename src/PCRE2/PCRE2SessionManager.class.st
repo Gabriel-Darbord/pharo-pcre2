@@ -144,6 +144,17 @@ PCRE2SessionManager >> matcherGroupsDo: aBlock [
 	matchersToRestore ifNotNil: [ matchersToRestore keysAndValuesDo: aBlock ]
 ]
 
+{ #category : 'enumerating' }
+PCRE2SessionManager >> persistMatches [
+	"Make live match data independent from native match-data handles before shutdown. Matches are Pharo-side snapshots after bePersistent and need no startup restore work."
+
+	{
+		PCRE2UTF8Match.
+		PCRE2UTF16Match.
+		PCRE2UTF32Match } do: [ :matchClass |
+		matchClass allInstancesDo: [ :match | (match isPersistent or: [ match isNull ]) ifFalse: [ match bePersistent ] ] ]
+]
+
 { #category : 'persistence' }
 PCRE2SessionManager >> recompileMatchers [
 	"Portable restore path: rebuild compiled patterns from their Smalltalk-side source of truth."
@@ -192,6 +203,7 @@ PCRE2SessionManager >> serializedSignature: aDictionary [
 { #category : 'system startup' }
 PCRE2SessionManager >> shutDown [
 
+	self persistMatches.
 	self findMatchersToRestore.
 	(self class shouldUseSerialization and: [ self hasMatchersToRestore ]) ifFalse: [ ^ self ].
 	serializedSignature := self class serializationSignature.
