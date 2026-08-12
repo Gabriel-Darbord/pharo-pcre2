@@ -36,8 +36,7 @@ PCRE2UTF8MatchContext >> privateCopy [
 	The result is NULL if the memory cannot be obtained.
 	pcre2_match_context *pcre2_match_context_copy_8(pcre2_match_context *mcontext)"
 
-	self ffiCall: #( void #* pcre2_match_context_copy_8
-	   #( self ) )
+	self ffiCall: #(void *pcre2_match_context_copy_8(self))
 ]
 
 { #category : 'private' }
@@ -45,8 +44,7 @@ PCRE2UTF8MatchContext >> setCalloutCallback: callback [
 	"Set the runtime match callout function for this context.
 	int pcre2_set_callout_8(pcre2_match_context *mcontext, int (*callout_function)(pcre2_callout_block *, void *), void *callout_data)"
 
-	self ffiCall:
-		#( int pcre2_set_callout_8 #( self #, FFICallback callback #, nil ) )
+	self ffiCall: #(int pcre2_set_callout_8(self, FFICallback callback, nil))
 ]
 
 { #category : 'private' }
@@ -69,8 +67,7 @@ PCRE2UTF8MatchContext >> setHeapLimit: value [
 PCRE2UTF8MatchContext >> setJITStack: aJITStack [
 	"Assign a libpcre2-8 JIT stack to this match context. Passing NULL as callback tells PCRE2 that callback data is the stack pointer."
 
-	self ffiCall:
-		#( void pcre2_jit_stack_assign_8 #( self #, nil #, void #* aJITStack ) )
+	self ffiCall: #(void pcre2_jit_stack_assign_8(self, nil, void *aJITStack))
 ]
 
 { #category : 'private' }
@@ -85,8 +82,7 @@ PCRE2UTF8MatchContext >> setMatchLimit: value [
 PCRE2UTF8MatchContext >> setOffsetLimit: value [
 	"Set the match-context offset limit as a zero-based PCRE2-8 code-unit offset."
 
-	self ffiCall:
-		#( int pcre2_set_offset_limit_8 #( self #, size_t value ) )
+	self ffiCall: #(int pcre2_set_offset_limit_8(self, size_t value))
 ]
 
 { #category : 'private' }
@@ -94,9 +90,7 @@ PCRE2UTF8MatchContext >> setSubstituteCalloutCallback: callback [
 	"Set the runtime substitution callout function for this context.
 	int pcre2_set_substitute_callout_8(pcre2_match_context *mcontext, int (*callout_function)(pcre2_substitute_callout_block *, void *), void *callout_data)"
 
-	self ffiCall:
-		#( int pcre2_set_substitute_callout_8 #( self #, FFICallback
-		      callback #, nil ) )
+	self ffiCall: #(int pcre2_set_substitute_callout_8(self, FFICallback callback, nil))
 ]
 
 { #category : 'private' }
@@ -104,8 +98,7 @@ PCRE2UTF8MatchContext >> setSubstituteCaseCalloutCallback: callback [
 	"Set the runtime substitution case callout function for this context.
 	int pcre2_set_substitute_case_callout_8(pcre2_match_context *mcontext, PCRE2_SIZE (*callout_function)(PCRE2_SPTR, PCRE2_SIZE, PCRE2_UCHAR *, PCRE2_SIZE, int, void *), void *callout_data)"
 
-	self ffiCall: #( int pcre2_set_substitute_case_callout_8
-		   #( self #, FFICallback callback #, nil ) )
+	self ffiCall: #(int pcre2_set_substitute_case_callout_8(self, FFICallback callback, nil))
 ]
 
 { #category : 'private' }
@@ -113,15 +106,14 @@ PCRE2UTF8MatchContext >> unsetCalloutCallback [
 	"Clear the runtime match callout function for this context.
 	int pcre2_set_callout_8(pcre2_match_context *mcontext, NULL, NULL)"
 
-	self ffiCall: #( int pcre2_set_callout_8 #( self #, nil #, nil ) )
+	self ffiCall: #(int pcre2_set_callout_8(self, nil, nil))
 ]
 
 { #category : 'private' }
 PCRE2UTF8MatchContext >> unsetJITStack [
 	"Clear the explicit libpcre2-8 JIT stack assignment."
 
-	self ffiCall:
-		#( void pcre2_jit_stack_assign_8 #( self #, nil #, nil ) )
+	self ffiCall: #(void pcre2_jit_stack_assign_8(self, nil, nil))
 ]
 
 { #category : 'private' }
@@ -129,8 +121,7 @@ PCRE2UTF8MatchContext >> unsetSubstituteCalloutCallback [
 	"Clear the runtime substitution callout function for this context.
 	int pcre2_set_substitute_callout_8(pcre2_match_context *mcontext, NULL, NULL)"
 
-	self ffiCall:
-		#( int pcre2_set_substitute_callout_8 #( self #, nil #, nil ) )
+	self ffiCall: #(int pcre2_set_substitute_callout_8(self, nil, nil))
 ]
 
 { #category : 'private' }
@@ -138,6 +129,5 @@ PCRE2UTF8MatchContext >> unsetSubstituteCaseCalloutCallback [
 	"Clear the runtime substitution case callout function for this context.
 	int pcre2_set_substitute_case_callout_8(pcre2_match_context *mcontext, NULL, NULL)"
 
-	self ffiCall: #( int pcre2_set_substitute_case_callout_8
-		   #( self #, nil #, nil ) )
+	self ffiCall: #(int pcre2_set_substitute_case_callout_8(self, nil, nil))
 ]

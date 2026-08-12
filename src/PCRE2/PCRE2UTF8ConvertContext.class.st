@@ -20,8 +20,7 @@ PCRE2UTF8ConvertContext >> ffiLibraryName [
 PCRE2UTF8ConvertContext >> free [
 	"Free the native convert context. PCRE2 ignores NULL."
 
-	self ffiCall: #( void pcre2_convert_context_free_8
-	   #( self ) )
+	self ffiCall: #(void pcre2_convert_context_free_8(self))
 ]
 
 { #category : 'private' }
@@ -29,8 +28,7 @@ PCRE2UTF8ConvertContext >> privateCopy [
 	"Create a native copy of this UTF-8 convert context.
 	pcre2_convert_context *pcre2_convert_context_copy_8(pcre2_convert_context *cvcontext)"
 
-	self ffiCall: #( void #* pcre2_convert_context_copy_8
-	   #( self ) )
+	self ffiCall: #(void *pcre2_convert_context_copy_8(self))
 ]
 
 { #category : 'private' }
@@ -38,8 +36,7 @@ PCRE2UTF8ConvertContext >> setGlobEscape: codePoint [
 	"Set the native glob escape character.
 	int pcre2_set_glob_escape_8(pcre2_convert_context *cvcontext, uint32_t escape_char)"
 
-	self ffiCall:
-		#( int pcre2_set_glob_escape_8 #( self #, uint32 codePoint ) )
+	self ffiCall: #(int pcre2_set_glob_escape_8(self, uint32 codePoint))
 ]
 
 { #category : 'private' }
@@ -47,6 +44,5 @@ PCRE2UTF8ConvertContext >> setGlobSeparator: codePoint [
 	"Set the native glob path separator.
 	int pcre2_set_glob_separator_8(pcre2_convert_context *cvcontext, uint32_t separator_char)"
 
-	self ffiCall:
-		#( int pcre2_set_glob_separator_8 #( self #, uint32 codePoint ) )
+	self ffiCall: #(int pcre2_set_glob_separator_8(self, uint32 codePoint))
 ]

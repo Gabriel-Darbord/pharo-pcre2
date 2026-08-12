@@ -37,7 +37,7 @@ PCRE2Input >> bytes: bytesObject [
 PCRE2Input >> characterCountUpToCodeUnitOffset: codeUnitOffset [
 	"Answer how many Pharo characters appear before the zero-based PCRE2 code-unit offset."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'decoding' }
@@ -64,7 +64,7 @@ PCRE2Input >> characterRangeFromStartOffset: zeroBasedStartOffset endOffset: exc
 PCRE2Input >> decodeBytes: aByteCollection [
 	"Decode encoded input storage into a Pharo string according to the receiver's PCRE2 code-unit width."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -76,32 +76,26 @@ PCRE2Input >> decoder [
 { #category : 'decoding' }
 PCRE2Input >> nextFromStream: aStream [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'matching' }
 PCRE2Input >> nextMatchStartOffsetAfter: zeroBasedOffset [
 	"Answer the next zero-based PCRE2 code-unit offset after one Pharo character. Used to advance safely after an empty match."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'decoding' }
 PCRE2Input >> readFrom: start to: end [
 	"Answer decoded text between the inclusive 1-based PCRE2 code-unit indexes."
 
-	^ self subclassResponsibility
-]
-
-{ #category : 'matching' }
-PCRE2Input >> recordOn: aPCRE2Match [
-
-	aPCRE2Match input: self
+	self subclassResponsibility
 ]
 
 { #category : 'accessing' }
 PCRE2Input >> size [
 	"Answer the input size in PCRE2 code units."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]

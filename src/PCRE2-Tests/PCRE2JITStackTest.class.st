@@ -9,17 +9,16 @@ Class {
 }
 
 { #category : 'private' }
-PCRE2JITStackTest >> skipUnlessJITSupported [
+PCRE2JITStackTest >> skipIfJITUnsupported [
 
-	LibPCRE2 supportsJIT ifFalse: [ ^ true ].
-	^ false
+	LibPCRE2 supportsJIT ifFalse: [ self skip ]
 ]
 
 { #category : 'tests' }
 PCRE2JITStackTest >> testDefaultStackUsesUTF8Defaults [
 
 	| stack |
-	self skipUnlessJITSupported ifTrue: [ ^ self ].
+	self skipIfJITUnsupported.
 
 	stack := PCRE2JITStack default.
 
@@ -32,7 +31,7 @@ PCRE2JITStackTest >> testDefaultStackUsesUTF8Defaults [
 PCRE2JITStackTest >> testMatchContextCopyKeepsJITStackReference [
 
 	| context copy stack |
-	self skipUnlessJITSupported ifTrue: [ ^ self ].
+	self skipIfJITUnsupported.
 
 	stack := PCRE2JITStack default.
 	context := 'a' asPerlCompatibleRegex context.
@@ -49,8 +48,8 @@ PCRE2JITStackTest >> testMatchContextCopyKeepsJITStackReference [
 PCRE2JITStackTest >> testRejectsMismatchedCodeUnitWidth [
 
 	| stack regex |
-	self skipUnlessJITSupported ifTrue: [ ^ self ].
-	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
+	self skipIfJITUnsupported.
+	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ self skip ].
 
 	regex := 'a' asPerlCompatibleRegex.
 	stack := PCRE2UTF16JITStack default.
@@ -63,7 +62,7 @@ PCRE2JITStackTest >> testRejectsMismatchedCodeUnitWidth [
 PCRE2JITStackTest >> testStackCanBeAssignedToJITMatchContext [
 
 	| regex stack |
-	self skipUnlessJITSupported ifTrue: [ ^ self ].
+	self skipIfJITUnsupported.
 
 	stack := PCRE2JITStack default.
 	regex := 'a+' asPerlCompatibleRegex.

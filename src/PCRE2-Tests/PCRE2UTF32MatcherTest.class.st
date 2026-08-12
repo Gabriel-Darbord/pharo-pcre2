@@ -9,17 +9,16 @@ Class {
 }
 
 { #category : 'private' }
-PCRE2UTF32MatcherTest >> skipUnlessUTF32Supported [
+PCRE2UTF32MatcherTest >> skipIfUTF32Unsupported [
 
-	LibPCRE2 supports32BitCodeUnitWidth ifFalse: [ ^ true ].
-	^ false
+	LibPCRE2 supports32BitCodeUnitWidth ifFalse: [ self skip ]
 ]
 
 { #category : 'tests' }
 PCRE2UTF32MatcherTest >> testCompileErrorFromBytePatternDecodesPattern [
 
 	| patternInput |
-	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+	self skipIfUTF32Unsupported.
 
 	patternInput := #[ 40 0 0 0 97 0 0 0 ] asPCRE2UTF32LittleEndianInput.
 	self should: [ PCRE2UTF32Compiler new compile: patternInput ] raise: PCRE2CompileError withExceptionDo: [ :error |
@@ -32,7 +31,7 @@ PCRE2UTF32MatcherTest >> testCompileErrorFromBytePatternDecodesPattern [
 PCRE2UTF32MatcherTest >> testCompilePatternFromBytesDetectingBOM [
 
 	| patternInput regex |
-	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+	self skipIfUTF32Unsupported.
 
 	patternInput := #[ 255 254 0 0 97 0 0 0 43 0 0 0 ] asPCRE2UTF32InputDetectingBOM.
 	regex := PCRE2UTF32Compiler new compile: patternInput.
@@ -46,7 +45,7 @@ PCRE2UTF32MatcherTest >> testCompilePatternFromBytesDetectingBOM [
 PCRE2UTF32MatcherTest >> testCompilePatternFromLittleEndianBytes [
 
 	| regex |
-	self skipUnlessUTF32Supported ifTrue: [ ^ self ].
+	self skipIfUTF32Unsupported.
 
 	regex := PCRE2UTF32Compiler new compile: #[ 97 0 0 0 43 0 0 0 ] asPCRE2UTF32LittleEndianInput.
 

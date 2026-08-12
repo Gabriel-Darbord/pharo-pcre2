@@ -186,12 +186,11 @@ PCRE2SessionManager >> serializedSignature: aDictionary [
 
 { #category : 'system startup' }
 PCRE2SessionManager >> shutDown [
-	"Make all compiled patterns persistent between sessions. Serialized bytecode is saved as a fast cache; the matchers keep enough state to be recompiled if the cache is incompatible."
 
 	self findMatchersToRestore.
-	(self class shouldUseSerialization and: [ matchersToRestore isNotEmpty ]) ifTrue: [
-			serializedSignature := self class serializationSignature.
-			serializedMatchers := self serializeMatchersByCodeUnitWidth ]
+	(self class shouldUseSerialization and: [ matchersToRestore isNotEmpty ]) ifFalse: [ ^ self ].
+	serializedSignature := self class serializationSignature.
+	serializedMatchers := self serializeMatchersByCodeUnitWidth
 ]
 
 { #category : 'system startup' }

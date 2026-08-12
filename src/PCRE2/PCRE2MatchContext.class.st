@@ -33,7 +33,9 @@ PCRE2MatchContext >> calloutBlock: aBlock [
 	"Install a runtime callout. aBlock receives a PCRE2CalloutEvent and may answer an integer PCRE2 return code; non-integer answers continue matching."
 
 	| callback rc |
-	callback := FFICallback signature: #( int #( void #* calloutBlock #, void #* userData ) ) block: [ :calloutBlock :userData |
+	callback := FFICallback
+		            signature: #(int (void *calloutBlock, void *userData))
+		            block: [ :calloutBlock :userData |
 			            | answer |
 			            answer := aBlock value: (PCRE2CalloutEvent fromCalloutBlock: calloutBlock codeUnitWidth: self codeUnitWidth).
 			            answer isInteger
@@ -86,7 +88,7 @@ PCRE2MatchContext >> clearSubstituteCaseCallout [
 PCRE2MatchContext >> codeUnitWidth [
 	"Answer the PCRE2 code-unit width used to decode callback payloads."
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -100,12 +102,6 @@ PCRE2MatchContext >> depthLimit: anInteger [
 	"Set the backtracking depth limit"
 
 	self setDepthLimit: (depthLimit := anInteger)
-]
-
-{ #category : 'external resource management' }
-PCRE2MatchContext >> free [
-
-	^ self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -176,55 +172,55 @@ PCRE2MatchContext >> postCopy [
 { #category : 'private' }
 PCRE2MatchContext >> privateCopy [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setCalloutCallback: callback [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setDepthLimit: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setHeapLimit: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setJITStack: aJITStack [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setMatchLimit: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setOffsetLimit: value [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setSubstituteCalloutCallback: callback [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> setSubstituteCaseCalloutCallback: callback [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'callouts' }
@@ -234,7 +230,9 @@ PCRE2MatchContext >> substituteCalloutBlock: aBlock [
 	| callback rc |
 	self ffiLibraryName supportsSubstitutionCallouts ifFalse: [
 		PCRE2Error signal: 'Substitution callouts require PCRE2 10.33 or newer; loaded ' , self ffiLibraryName versionString ].
-	callback := FFICallback signature: #( int #( void #* calloutBlock #, void #* userData ) ) block: [ :calloutBlock :userData |
+	callback := FFICallback
+		            signature: #(int (void *calloutBlock, void *userData))
+		            block: [ :calloutBlock :userData |
 			            | answer |
 			            answer := aBlock value:
 				                      (PCRE2SubstitutionCalloutEvent fromCalloutBlock: calloutBlock codeUnitWidth: self codeUnitWidth).
@@ -254,18 +252,16 @@ PCRE2MatchContext >> substituteCaseCalloutBlock: aBlock [
 	self ffiLibraryName supportsSubstitutionCaseCallouts ifFalse: [
 		PCRE2Error signal: 'Substitution case callouts require PCRE2 10.45 or newer; loaded ' , self ffiLibraryName versionString ].
 	callback := FFICallback
-		            signature:
-		            #( size_t #( void #* input #, size_t inputLength #, void #* output #, size_t outputCapacity #, int caseType #, void
-		                  #* userData ) )
+		            signature: #(size_t (void *input, size_t inputLength, void *output, size_t outputCapacity, int caseType, void *userData))
 		            block: [ :input :inputLength :output :outputCapacity :caseType :userData |
-				            | event |
-				            event := PCRE2SubstitutionCaseCalloutEvent
-					                     fromInput: input
-					                     length: inputLength
-					                     outputCapacity: outputCapacity
-					                     caseType: caseType
-					                     codeUnitWidth: self codeUnitWidth.
-				            self substituteCaseCalloutResultFor: event output: output block: aBlock ].
+			            | event |
+			            event := PCRE2SubstitutionCaseCalloutEvent
+				                     fromInput: input
+				                     length: inputLength
+				                     outputCapacity: outputCapacity
+				                     caseType: caseType
+				                     codeUnitWidth: self codeUnitWidth.
+			            self substituteCaseCalloutResultFor: event output: output block: aBlock ].
 	rc := self setSubstituteCaseCalloutCallback: callback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
 	substituteCaseCalloutCallback := callback
@@ -290,23 +286,23 @@ PCRE2MatchContext >> substituteCaseCalloutResultFor: event output: outputPointer
 { #category : 'private' }
 PCRE2MatchContext >> unsetCalloutCallback [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> unsetJITStack [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> unsetSubstituteCalloutCallback [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchContext >> unsetSubstituteCaseCalloutCallback [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]

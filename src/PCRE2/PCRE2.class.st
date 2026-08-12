@@ -742,6 +742,7 @@ PCRE2 class >> infoSize [
 
 { #category : 'class initialization' }
 PCRE2 class >> initialize [
+	"Match errors (-1 -> NOMATCH) and (-2 -> PARTIAL) are handled, so excluded here"
 
 	errorCodeTable := Dictionary newFrom: {
 			                  (-67 -> 'INTERNAL ERROR: invalid substring offset').
@@ -912,7 +913,6 @@ PCRE2 class >> initialize [
 			                  (199 -> '\K is not allowed in lookarounds (but see PCRE2_EXTRA_ALLOW_LOOKAROUND_BSK)').
 			                  (200 -> 'branch too long in variable-length lookbehind assertion').
 			                  (201 -> 'compiled pattern would be longer than the limit set by the application') }
-	"match errors; (-1 -> NOMATCH) and (-2 -> PARTIAL) are handled, so excluded here"
 ]
 
 { #category : 'options' }
@@ -963,6 +963,17 @@ PCRE2 class >> matchUnsetBackref [
 
 	<pcre2Option: #( compile )>
 	^ 16r00000200
+]
+
+{ #category : 'constants' }
+PCRE2 class >> maximumSizeT [
+	"The value corresponds to the C code: `~(size_t)0`, which represents the largest fixed-size integer."
+
+	| wordSize |
+	wordSize := ExternalAddress wordSize.
+	wordSize == 8 ifTrue: [ ^ 16rFFFFFFFFFFFFFFFF ].
+	wordSize == 4 ifTrue: [ ^ 16rFFFFFFFF ].
+	^ (1 bitShift: wordSize * 8) - 1
 ]
 
 { #category : 'options' }
@@ -1369,9 +1380,7 @@ PCRE2 class >> ungreedy [
 PCRE2 class >> unsetOffset [
 	"PCRE2_UNSET is the maximum PCRE2_SIZE value for the active native word size."
 
-	ExternalAddress wordSize == 8 ifTrue: [ ^ 16rFFFFFFFFFFFFFFFF ].
-	ExternalAddress wordSize == 4 ifTrue: [ ^ 16rFFFFFFFF ].
-	^ -1
+	^ self maximumSizeT
 ]
 
 { #category : 'options' }
@@ -1394,9 +1403,8 @@ PCRE2 class >> utf [
 { #category : 'constants' }
 PCRE2 class >> zeroTerminated [
 	"Some methods can use this value as a string upper bound argument to use a terminating null character instead of an index.
-	The value corresponds to the C code: `~(size_t)0`, which represents the largest fixed-size integer.
 	Supported by match() and substitute().
 	Not supported by jit_match()."
 
-	^ (1 bitShift: ExternalAddress wordSize * 8) - 1
+	^ self maximumSizeT
 ]

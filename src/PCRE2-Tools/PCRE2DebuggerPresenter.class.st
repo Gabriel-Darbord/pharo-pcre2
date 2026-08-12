@@ -172,8 +172,8 @@ PCRE2DebuggerPresenter >> goPreviousStep [
 { #category : 'initialization' }
 PCRE2DebuggerPresenter >> initialize [
 
-	refreshingTrace := false.
-	super initialize
+	super initialize.
+	refreshingTrace := false
 ]
 
 { #category : 'initialization' }

@@ -468,17 +468,13 @@ PCRE2DebugSession >> traceWasLimited [
 { #category : 'live debugging' }
 PCRE2DebugSession >> waitForLiveCompletionMilliseconds: timeoutMilliseconds [
 
-	| completed |
 	liveRun ifNil: [ ^ false ].
-	[ completed := liveRun waitForCompletionMilliseconds: timeoutMilliseconds ] ensure: [ self refreshLiveTrace ].
-	^ completed
+	^ [ liveRun waitForCompletionMilliseconds: timeoutMilliseconds ] ensure: [ self refreshLiveTrace ]
 ]
 
 { #category : 'live debugging' }
 PCRE2DebugSession >> waitForLivePauseOrFinishMilliseconds: timeoutMilliseconds [
 
-	| completed |
 	liveRun ifNil: [ ^ false ].
-	[ completed := liveRun waitForPauseOrFinishMilliseconds: timeoutMilliseconds ] ensure: [ self refreshLiveTrace ].
-	^ completed
+	^ [ liveRun waitForPauseOrFinishMilliseconds: timeoutMilliseconds ] ensure: [ self refreshLiveTrace ]
 ]

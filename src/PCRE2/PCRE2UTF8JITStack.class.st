@@ -26,9 +26,7 @@ PCRE2UTF8JITStack >> codeUnitWidth [
 PCRE2UTF8JITStack >> createWithStartSize: anInitialSize maxSize: aMaximumSize [
 	"Create a JIT stack for libpcre2-8."
 
-	self ffiCall:
-		#( void #* pcre2_jit_stack_create_8 #( size_t anInitialSize
-		      #, size_t aMaximumSize #, nil ) )
+	self ffiCall: #(void *pcre2_jit_stack_create_8(size_t anInitialSize, size_t aMaximumSize, nil))
 ]
 
 { #category : 'library path' }
@@ -41,5 +39,5 @@ PCRE2UTF8JITStack >> ffiLibraryName [
 PCRE2UTF8JITStack >> free [
 	"Free this libpcre2-8 JIT stack. The caller must ensure no active or future match context still points to it."
 
-	self ffiCall: #( void pcre2_jit_stack_free_8 #( self ) )
+	self ffiCall: #(void pcre2_jit_stack_free_8(self))
 ]

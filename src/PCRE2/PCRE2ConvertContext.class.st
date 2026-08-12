@@ -36,12 +36,6 @@ PCRE2ConvertContext >> codePointFor: aCharacterOrCodePoint [
 	^ aCharacterOrCodePoint
 ]
 
-{ #category : 'external resource management' }
-PCRE2ConvertContext >> free [
-
-	^ self subclassResponsibility
-]
-
 { #category : 'accessing' }
 PCRE2ConvertContext >> globEscape [
 	"Escape character code used by glob conversion, or nil when PCRE2 uses its default."
@@ -87,17 +81,17 @@ PCRE2ConvertContext >> postCopy [
 { #category : 'private' }
 PCRE2ConvertContext >> privateCopy [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2ConvertContext >> setGlobEscape: codePoint [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2ConvertContext >> setGlobSeparator: codePoint [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]

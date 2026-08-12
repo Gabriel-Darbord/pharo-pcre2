@@ -9,17 +9,16 @@ Class {
 }
 
 { #category : 'private' }
-PCRE2PatternConversionTest >> skipUnlessPatternConversionSupported [
+PCRE2PatternConversionTest >> skipIfPatternConversionUnsupported [
 
-	LibPCRE2 supportsPatternConversion ifFalse: [ ^ true ].
-	^ false
+	LibPCRE2 supportsPatternConversion ifFalse: [ self skip ]
 ]
 
 { #category : 'tests' }
 PCRE2PatternConversionTest >> testConvertGlobCanCompileAndMatch [
 
 	| regex |
-	self skipUnlessPatternConversionSupported ifTrue: [ ^ self ].
+	self skipIfPatternConversionUnsupported.
 
 	regex := (LibPCRE2UTF8 convertGlob: '*.st') asPerlCompatibleRegex.
 
@@ -32,7 +31,7 @@ PCRE2PatternConversionTest >> testConvertGlobCanCompileAndMatch [
 PCRE2PatternConversionTest >> testConvertGlobCanUseCustomEscape [
 
 	| context regex |
-	self skipUnlessPatternConversionSupported ifTrue: [ ^ self ].
+	self skipIfPatternConversionUnsupported.
 	context := LibPCRE2UTF8 newConvertContext.
 	context globEscape: $!.
 
@@ -46,7 +45,7 @@ PCRE2PatternConversionTest >> testConvertGlobCanUseCustomEscape [
 PCRE2PatternConversionTest >> testConvertGlobPreservesUTF8Text [
 
 	| regex |
-	self skipUnlessPatternConversionSupported ifTrue: [ ^ self ].
+	self skipIfPatternConversionUnsupported.
 
 	regex := (LibPCRE2UTF8 convertGlob: '*é') asPerlCompatibleRegex.
 
@@ -57,7 +56,7 @@ PCRE2PatternConversionTest >> testConvertGlobPreservesUTF8Text [
 { #category : 'tests' }
 PCRE2PatternConversionTest >> testConvertGlobSignalsConversionErrors [
 
-	self skipUnlessPatternConversionSupported ifTrue: [ ^ self ].
+	self skipIfPatternConversionUnsupported.
 
 	self should: [ LibPCRE2UTF8 convertGlob: '[abc' ] raise: PCRE2CompileError
 ]
@@ -66,7 +65,7 @@ PCRE2PatternConversionTest >> testConvertGlobSignalsConversionErrors [
 PCRE2PatternConversionTest >> testConvertPOSIXBasicCanCompileAndMatch [
 
 	| regex |
-	self skipUnlessPatternConversionSupported ifTrue: [ ^ self ].
+	self skipIfPatternConversionUnsupported.
 
 	regex := (LibPCRE2UTF8 convertPOSIXBasic: 'a\{2\}') asPerlCompatibleRegex.
 
@@ -78,7 +77,7 @@ PCRE2PatternConversionTest >> testConvertPOSIXBasicCanCompileAndMatch [
 PCRE2PatternConversionTest >> testConvertPOSIXExtendedCanCompileAndMatch [
 
 	| regex |
-	self skipUnlessPatternConversionSupported ifTrue: [ ^ self ].
+	self skipIfPatternConversionUnsupported.
 
 	regex := (LibPCRE2UTF8 convertPOSIXExtended: 'a(b|c)+') asPerlCompatibleRegex.
 

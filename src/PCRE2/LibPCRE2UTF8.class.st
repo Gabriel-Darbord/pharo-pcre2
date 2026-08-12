@@ -33,17 +33,14 @@ LibPCRE2UTF8 >> config: what output: where [
 	"This function makes it possible for a client program to find out which optional features are available in the version of the PCRE2 library it is using.
 	int pcre2_config(uint32_t what, void *where)"
 
-	self ffiCall:
-		#( int pcre2_config_8 #( uint32 what #, void #* where ) )
+	self ffiCall: #(int pcre2_config_8(uint32 what, void *where))
 ]
 
 { #category : 'private' }
 LibPCRE2UTF8 >> convertedPatternFree: convertedPattern [
 	"Free a converted pattern allocated by PCRE2."
 
-	self ffiCall:
-		#( void pcre2_converted_pattern_free_8
-		   #( void #* convertedPattern ) )
+	self ffiCall: #(void pcre2_converted_pattern_free_8(void *convertedPattern))
 ]
 
 { #category : 'private' }
@@ -51,18 +48,14 @@ LibPCRE2UTF8 >> createConvertContext [
 	"Create a native UTF-8 conversion context.
 	pcre2_convert_context *pcre2_convert_context_create_8(pcre2_general_context *gcontext)"
 
-	self ffiCall:
-		#( #PCRE2UTF8ConvertContext #* pcre2_convert_context_create_8
-		   #( nil ) )
+	self ffiCall: #(PCRE2UTF8ConvertContext *pcre2_convert_context_create_8(nil))
 ]
 
 { #category : 'private' }
 LibPCRE2UTF8 >> createMatchContext [
 	"Create and initialize a new UTF-8 match context."
 
-	self ffiCall:
-		#( #PCRE2UTF8MatchContext #* pcre2_match_context_create_8
-		   #( nil ) )
+	self ffiCall: #(PCRE2UTF8MatchContext *pcre2_match_context_create_8(nil))
 ]
 
 { #category : 'private' }
@@ -76,25 +69,21 @@ LibPCRE2UTF8 >> deserialize: bytes count: count output: buffer [
 	"Decode a serialized byte stream into compiled-pattern pointers. Both arguments are raw byte/pointer buffers prepared by the caller, so keep UFFI out of their contents with void*.
 	int32_t pcre2_serialize_decode_8(pcre2_code **codes, int32_t number_of_codes, const uint8_t *bytes, pcre2_general_context *gcontext)"
 
-	self ffiCall:
-		#( int32 pcre2_serialize_decode_8 #( void #* buffer #, int32 count
-		      #, void #* bytes #, nil ) )
+	self ffiCall: #(int32 pcre2_serialize_decode_8(void *buffer, int32 count, void *bytes, nil))
 ]
 
 { #category : 'private' }
 LibPCRE2UTF8 >> freeCharacterTables: characterTables [
 	"Free low-character tables allocated by libpcre2-8."
 
-	self ffiCall:
-		#( void pcre2_maketables_free_8 #( nil #, void #* characterTables ) )
+	self ffiCall: #(void pcre2_maketables_free_8(nil, void *characterTables))
 ]
 
 { #category : 'JIT' }
 LibPCRE2UTF8 >> jitFreeUnusedMemory [
 	"Release unused executable memory retained by PCRE2's JIT allocator for libpcre2-8."
 
-	self ffiCall: #( void pcre2_jit_free_unused_memory_8
-	   #( nil ) )
+	self ffiCall: #(void pcre2_jit_free_unused_memory_8(nil))
 ]
 
 { #category : 'private' }
@@ -102,9 +91,7 @@ LibPCRE2UTF8 >> makeCharacterTables [
 	"Build low-character tables from the current process locale.
 	const uint8_t *pcre2_maketables_8(pcre2_general_context *gcontext)"
 
-	self ffiCall:
-		#( #PCRE2UTF8CharacterTables #* pcre2_maketables_8
-		   #( nil ) )
+	self ffiCall: #(PCRE2UTF8CharacterTables *pcre2_maketables_8(nil))
 ]
 
 { #category : 'private' }
@@ -112,10 +99,7 @@ LibPCRE2UTF8 >> patternConvert: pattern upTo: length options: convertOptions out
 	"Convert a foreign UTF-8 pattern buffer. The input and output pointer slot are raw buffers, so keep UFFI string conversion out with void*.
 	int pcre2_pattern_convert_8(PCRE2_SPTR pattern, PCRE2_SIZE length, uint32_t options, PCRE2_UCHAR **buffer, PCRE2_SIZE *blength, pcre2_convert_context *cvcontext)"
 
-	self ffiCall:
-		#( int pcre2_pattern_convert_8 #( void #* pattern #, size_t length
-		      #, uint32 convertOptions #, void #* outputBuffer #, SizeTHolder
-		      #* outputLength #, void #* convertContext ) )
+	self ffiCall: #(int pcre2_pattern_convert_8(void *pattern, size_t length, uint32 convertOptions, void *outputBuffer, SizeTHolder *outputLength, void *convertContext))
 ]
 
 { #category : 'private' }
@@ -129,16 +113,14 @@ LibPCRE2UTF8 >> serialize: matchers count: count output: bytes size: bufferSize 
 	"Encode compiled-pattern pointers into a PCRE2-owned serialized byte stream. The pointers table and output pointer slot are raw memory buffers, so pass them as void*.
 	int32_t pcre2_serialize_encode_8(const pcre2_code **codes, int32_t number_of_codes, uint8_t **serialized_bytes, PCRE2_SIZE *serialized_size, pcre2_general_context *gcontext)"
 
-	self ffiCall:
-		#( int32 pcre2_serialize_encode_8 #( void #* matchers #, int32 count
-		      #, void #* bytes #, SizeTHolder #* bufferSize #, nil ) )
+	self ffiCall: #(int32 pcre2_serialize_encode_8(void *matchers, int32 count, void *bytes, SizeTHolder *bufferSize, nil))
 ]
 
 { #category : 'private' }
 LibPCRE2UTF8 >> serializeFree: bytes [
 	"Free a serialized byte stream allocated by PCRE2."
 
-	self ffiCall: #( void pcre2_serialize_free_8 #( void #* bytes ) )
+	self ffiCall: #(void pcre2_serialize_free_8(void *bytes))
 ]
 
 { #category : 'private' }
@@ -146,6 +128,5 @@ LibPCRE2UTF8 >> serializedNumberOfCodes: bytes [
 	"Return the number of compiled patterns in a serialized byte stream. The byte stream is already materialized, so pass it as an opaque buffer.
 	int32_t pcre2_serialize_get_number_of_codes_8(const uint8_t *bytes)"
 
-	self ffiCall: #( int32 pcre2_serialize_get_number_of_codes_8
-		   #( void #* bytes ) )
+	self ffiCall: #(int32 pcre2_serialize_get_number_of_codes_8(void *bytes))
 ]

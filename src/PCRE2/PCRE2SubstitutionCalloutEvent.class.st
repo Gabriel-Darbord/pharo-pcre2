@@ -105,14 +105,12 @@ PCRE2SubstitutionCalloutEvent >> initializeFromCalloutBlock: anExternalAddress c
 	ovectorCount := anExternalAddress uint32AtOffset: ovectorPointerOffset + wordSize.
 	substitutionCount := anExternalAddress uint32AtOffset: ovectorPointerOffset + wordSize + 4.
 	offsets := self class offsetsFrom: ovectorPointer count: ovectorCount * 2.
-	matchedText := offsets isEmpty
-		               ifTrue: [ nil ]
-		               ifFalse: [
-				               self class
-					               stringFrom: inputPointer
-					               startOffset: offsets first
-					               endOffset: offsets second
-					               codeUnitWidth: codeUnitWidth ].
+	matchedText := offsets isEmpty ifFalse: [
+			               self class
+				               stringFrom: inputPointer
+				               startOffset: offsets first
+				               endOffset: offsets second
+				               codeUnitWidth: codeUnitWidth ].
 	replacementText := self class
 		                   stringFrom: outputPointer
 		                   startOffset: outputOffsets first

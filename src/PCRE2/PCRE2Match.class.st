@@ -97,22 +97,16 @@ PCRE2Match >> ensureSubjectAvailable [
 		self error: 'This match does not remember a subject; use readMatch: or readMatches: with an explicit subject' ]
 ]
 
-{ #category : 'external resource management' }
-PCRE2Match >> free [
-
-	^ self subclassResponsibility
-]
-
 { #category : 'private' }
 PCRE2Match >> getCount [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getHeapframesSize [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
@@ -125,25 +119,25 @@ PCRE2Match >> getMark [
 { #category : 'private' }
 PCRE2Match >> getMarkPointer [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getMatchDataSize [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getOffsets [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2Match >> getStartIndex [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'group access' }
@@ -156,7 +150,7 @@ PCRE2Match >> groupAt: groupNumber [
 
 	self ensureSubjectAvailable.
 	pair := self offsetsAt: groupNumber + 1.
-	(self isUnsetOffset: pair first) ifTrue: [ ^ nil ].
+	pair first = PCRE2 unsetOffset ifTrue: [ ^ nil ].
 	^ self readSubjectFrom: pair first + 1 to: pair second
 ]
 
@@ -247,13 +241,6 @@ PCRE2Match >> isPartial [
 PCRE2Match >> isPersistent [
 
 	^ isPersistent
-]
-
-{ #category : 'private' }
-PCRE2Match >> isUnsetOffset: anInteger [
-	"Answer whether anInteger is PCRE2_UNSET."
-
-	^ anInteger = self unsetOffset
 ]
 
 { #category : 'enumerating' }
@@ -517,11 +504,4 @@ PCRE2Match >> subject: aByteArray decoder: aDecoder [
 	input := nil.
 	subject := aByteArray.
 	decoder := aDecoder
-]
-
-{ #category : 'private' }
-PCRE2Match >> unsetOffset [
-	"Answer PCRE2_UNSET for the current platform's PCRE2_SIZE width."
-
-	^ (1 bitShift: 8 * ExternalAddress wordSize) - 1
 ]

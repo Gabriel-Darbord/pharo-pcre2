@@ -204,17 +204,16 @@ PCRE2CodeUnitWidthTest >> regexFor: aString [
 ]
 
 { #category : 'private' }
-PCRE2CodeUnitWidthTest >> skipUnlessSupported [
+PCRE2CodeUnitWidthTest >> skipIfUnsupported [
 
-	isSupported ifFalse: [ ^ true ].
-	^ false
+	isSupported ifFalse: [ self skip ]
 ]
 
 { #category : 'tests' }
 PCRE2CodeUnitWidthTest >> testByteBackedInputMatchesAndReportsCharacterRanges [
 
 	| input match ranges regex subject |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	subject := '1 café 2'.
 	input := self nativeBytesInputFor: subject.
@@ -231,7 +230,7 @@ PCRE2CodeUnitWidthTest >> testByteBackedInputMatchesAndReportsCharacterRanges [
 PCRE2CodeUnitWidthTest >> testCalloutSitesDoEnumeratesInPatternOrder [
 
 	| regex visited |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	regex := self regexFor: '(?C2)a(?C3)b'.
 	visited := OrderedCollection new.
@@ -245,7 +244,7 @@ PCRE2CodeUnitWidthTest >> testCalloutSitesDoEnumeratesInPatternOrder [
 PCRE2CodeUnitWidthTest >> testCalloutSitesDoNotAffectMatching [
 
 	| regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	regex := self regexFor: '(?C1)a(?C"déjà")b'.
 
@@ -258,7 +257,7 @@ PCRE2CodeUnitWidthTest >> testCalloutSitesDoNotAffectMatching [
 PCRE2CodeUnitWidthTest >> testCalloutSitesExposeNumberedAndStringCallouts [
 
 	| first regex second sites |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	regex := self regexFor: '(?C1)a(?C"déjà")b'.
 	sites := regex calloutSites.
@@ -279,7 +278,7 @@ PCRE2CodeUnitWidthTest >> testCalloutSitesExposeNumberedAndStringCallouts [
 PCRE2CodeUnitWidthTest >> testCapturesAndNamedGroupsReadFromInput [
 
 	| match regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	regex := self regexFor: '(?<word>\p{L}+)-(\d+)'.
 	match := regex findMatch: 'café-42'.
@@ -293,7 +292,7 @@ PCRE2CodeUnitWidthTest >> testCapturesAndNamedGroupsReadFromInput [
 PCRE2CodeUnitWidthTest >> testCharacterTablesAndCopyWithTables [
 
 	| compiler copy regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	compiler := self compiler.
 	compiler context useCharacterTablesFromCurrentLocale.
@@ -313,7 +312,7 @@ PCRE2CodeUnitWidthTest >> testCharacterTablesAndCopyWithTables [
 PCRE2CodeUnitWidthTest >> testCompileAndMatchContextsUseNativeAPI [
 
 	| crCompiler crRegex lfCompiler lfRegex limitRegex subject |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	crCompiler := self compiler.
 	self assert: crCompiler context class equals: compileContextClass.
@@ -343,7 +342,7 @@ PCRE2CodeUnitWidthTest >> testCompileAndMatchContextsUseNativeAPI [
 PCRE2CodeUnitWidthTest >> testCompileErrorFromNativeBytePatternDecodesPattern [
 
 	| patternInput |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	patternInput := self nativeBytesInputFor: '(a'.
 	self should: [ self compiler compile: patternInput ] raise: PCRE2CompileError withExceptionDo: [ :error |
@@ -356,7 +355,7 @@ PCRE2CodeUnitWidthTest >> testCompileErrorFromNativeBytePatternDecodesPattern [
 PCRE2CodeUnitWidthTest >> testCompilePatternFromNativeEndianBytes [
 
 	| patternInput regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	patternInput := self nativeBytesInputFor: 'a+'.
 	regex := self compiler compile: patternInput.
@@ -371,7 +370,7 @@ PCRE2CodeUnitWidthTest >> testCompilePatternFromNativeEndianBytes [
 PCRE2CodeUnitWidthTest >> testCompileReturnsWidthSpecificMatcher [
 
 	| regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	regex := self regexFor: '\p{L}+'.
 
@@ -383,7 +382,7 @@ PCRE2CodeUnitWidthTest >> testCompileReturnsWidthSpecificMatcher [
 PCRE2CodeUnitWidthTest >> testCompilerAcceptsPreparedPatternInput [
 
 	| bytes prepared regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	prepared := self preparedInputFor: 'é+'.
 	regex := compilerClass new compile: prepared.
@@ -405,7 +404,7 @@ PCRE2CodeUnitWidthTest >> testCompilerAcceptsPreparedPatternInput [
 { #category : 'tests' }
 PCRE2CodeUnitWidthTest >> testConcreteLibraryWidth [
 
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	self assert: libraryClass codeUnitWidth equals: codeUnitWidth.
 	self assert: libraryClass supportsCodeUnitWidth
@@ -414,7 +413,7 @@ PCRE2CodeUnitWidthTest >> testConcreteLibraryWidth [
 { #category : 'tests' }
 PCRE2CodeUnitWidthTest >> testConcreteWidthClassesAreNotAbstract [
 
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	{
 		characterTablesClass.
@@ -431,8 +430,8 @@ PCRE2CodeUnitWidthTest >> testConcreteWidthClassesAreNotAbstract [
 { #category : 'tests' }
 PCRE2CodeUnitWidthTest >> testConvertContextIsWidthSpecific [
 
-	self skipUnlessSupported ifTrue: [ ^ self ].
-	LibPCRE2 supportsPatternConversion ifFalse: [ ^ self ].
+	self skipIfUnsupported.
+	LibPCRE2 supportsPatternConversion ifFalse: [ self skip ].
 
 	self assert: libraryClass newConvertContext class equals: convertContextClass
 ]
@@ -441,7 +440,7 @@ PCRE2CodeUnitWidthTest >> testConvertContextIsWidthSpecific [
 PCRE2CodeUnitWidthTest >> testDFAMatchReturnsAllAlternatives [
 
 	| match regex subject |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	subject := 'the caterpillar catchment'.
 	regex := self regexFor: 'cat(er(pillar)?)?'.
@@ -457,7 +456,7 @@ PCRE2CodeUnitWidthTest >> testDFAMatchReturnsAllAlternatives [
 PCRE2CodeUnitWidthTest >> testFindAllAndSplitReuseHighLevelFlow [
 
 	| regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	regex := self regexFor: '\p{L}+'.
 	self assert: (regex findAll: 'aa 123 éé') asArray equals: #( 'aa' 'éé' ).
@@ -468,7 +467,7 @@ PCRE2CodeUnitWidthTest >> testFindAllAndSplitReuseHighLevelFlow [
 PCRE2CodeUnitWidthTest >> testFindAllHandlesEmptyGlobalMatches [
 
 	| regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	regex := self regexFor: 'a*?'.
 	self assert: (regex findAll: 'aaa') asArray equals: #( '' 'a' '' 'a' '' 'a' '' )
@@ -478,7 +477,7 @@ PCRE2CodeUnitWidthTest >> testFindAllHandlesEmptyGlobalMatches [
 PCRE2CodeUnitWidthTest >> testFindMatchReadsUnicodeText [
 
 	| match regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	regex := self regexFor: '\p{L}+'.
 	match := regex findMatch: 'café 123'.
@@ -492,7 +491,7 @@ PCRE2CodeUnitWidthTest >> testFindMatchReadsUnicodeText [
 PCRE2CodeUnitWidthTest >> testInputDecodesLeadingByteSlice [
 
 	| input |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	input := self preparedInputFor: 'éclair'.
 
@@ -503,8 +502,8 @@ PCRE2CodeUnitWidthTest >> testInputDecodesLeadingByteSlice [
 PCRE2CodeUnitWidthTest >> testJITStackCanBeAssignedToMatchContext [
 
 	| regex stack |
-	self skipUnlessSupported ifTrue: [ ^ self ].
-	LibPCRE2 supportsJIT ifFalse: [ ^ self ].
+	self skipIfUnsupported.
+	LibPCRE2 supportsJIT ifFalse: [ self skip ].
 
 	stack := jitStackClass default.
 	regex := self regexFor: 'a+'.
@@ -523,8 +522,8 @@ PCRE2CodeUnitWidthTest >> testJITStackCanBeAssignedToMatchContext [
 PCRE2CodeUnitWidthTest >> testLibraryCanConvertGlobAndMatch [
 
 	| regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
-	LibPCRE2 supportsPatternConversion ifFalse: [ ^ self ].
+	self skipIfUnsupported.
+	LibPCRE2 supportsPatternConversion ifFalse: [ self skip ].
 
 	regex := self compiler compile: (libraryClass convertGlob: '*é').
 
@@ -537,8 +536,8 @@ PCRE2CodeUnitWidthTest >> testLibraryCanConvertGlobAndMatch [
 PCRE2CodeUnitWidthTest >> testLibraryCanConvertPreparedGlobBytes [
 
 	| patternBytes regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
-	LibPCRE2 supportsPatternConversion ifFalse: [ ^ self ].
+	self skipIfUnsupported.
+	LibPCRE2 supportsPatternConversion ifFalse: [ self skip ].
 
 	patternBytes := (self preparedInputFor: '*é') bytes.
 	regex := compilerClass new compile: (libraryClass convertGlob: patternBytes).
@@ -552,8 +551,8 @@ PCRE2CodeUnitWidthTest >> testLibraryCanConvertPreparedGlobBytes [
 PCRE2CodeUnitWidthTest >> testLibraryCanUseConvertContext [
 
 	| context regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
-	LibPCRE2 supportsPatternConversion ifFalse: [ ^ self ].
+	self skipIfUnsupported.
+	LibPCRE2 supportsPatternConversion ifFalse: [ self skip ].
 
 	context := libraryClass newConvertContext.
 	context globEscape: $!.
@@ -568,7 +567,7 @@ PCRE2CodeUnitWidthTest >> testLibraryCanUseConvertContext [
 PCRE2CodeUnitWidthTest >> testMark [
 
 	| regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	regex := self regexFor: ''.
 	self assert: (regex findMatch: '') mark equals: nil.
@@ -582,7 +581,7 @@ PCRE2CodeUnitWidthTest >> testMark [
 PCRE2CodeUnitWidthTest >> testMatchDataDiagnosticsUseNativeAPI [
 
 	| heapframesSize match |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	match := (self regexFor: '(a)(b)') findMatch: 'zab'.
 	heapframesSize := match heapframesSize.
@@ -601,7 +600,7 @@ PCRE2CodeUnitWidthTest >> testMatchDataDiagnosticsUseNativeAPI [
 PCRE2CodeUnitWidthTest >> testMatcherSerializationConvenienceRoundTrip [
 
 	| bytes regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	regex := self regexFor: 'é+'.
 	bytes := regex serialize.
@@ -619,7 +618,7 @@ PCRE2CodeUnitWidthTest >> testMatcherSerializationConvenienceRoundTrip [
 PCRE2CodeUnitWidthTest >> testMatchingRangesUseCharacterOffsets [
 
 	| ranges regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	regex := self regexFor: '\p{L}+'.
 	ranges := regex matchingRangesIn: '1 café 2'.
@@ -631,7 +630,7 @@ PCRE2CodeUnitWidthTest >> testMatchingRangesUseCharacterOffsets [
 PCRE2CodeUnitWidthTest >> testNativeEndianBytesCanCreateReusableInput [
 
 	| input subject |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	subject := 'café'.
 	input := self nativeBytesInputFor: subject.
@@ -646,7 +645,7 @@ PCRE2CodeUnitWidthTest >> testNativeEndianBytesCanCreateReusableInput [
 PCRE2CodeUnitWidthTest >> testNewCharacterTables [
 
 	| tables |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	tables := libraryClass newCharacterTables.
 
@@ -659,7 +658,7 @@ PCRE2CodeUnitWidthTest >> testNewCharacterTables [
 PCRE2CodeUnitWidthTest >> testRuntimeCalloutDecodesPayloadsAndMarks [
 
 	| event events regex |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	regex := self regexFor: '(*MARK:café)(?C"cœur")x'.
 	regex addOptions: PCRE2 noJIT.
@@ -677,7 +676,7 @@ PCRE2CodeUnitWidthTest >> testRuntimeCalloutDecodesPayloadsAndMarks [
 PCRE2CodeUnitWidthTest >> testStringCanCreateReusableInput [
 
 	| input subject |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	subject := 'café'.
 	input := self preparedInputFor: subject.
@@ -692,8 +691,8 @@ PCRE2CodeUnitWidthTest >> testStringCanCreateReusableInput [
 PCRE2CodeUnitWidthTest >> testSubstituteCalloutDecodesText [
 
 	| events regex result |
-	self skipUnlessSupported ifTrue: [ ^ self ].
-	LibPCRE2 supportsSubstitutionCallouts ifFalse: [ ^ self ].
+	self skipIfUnsupported.
+	LibPCRE2 supportsSubstitutionCallouts ifFalse: [ self skip ].
 
 	regex := self regexFor: 'é'.
 	events := OrderedCollection new.
@@ -713,8 +712,8 @@ PCRE2CodeUnitWidthTest >> testSubstituteCalloutDecodesText [
 PCRE2CodeUnitWidthTest >> testSubstituteCaseCalloutDecodesText [
 
 	| events regex result |
-	self skipUnlessSupported ifTrue: [ ^ self ].
-	LibPCRE2 supportsSubstitutionCaseCallouts ifFalse: [ ^ self ].
+	self skipIfUnsupported.
+	LibPCRE2 supportsSubstitutionCaseCallouts ifFalse: [ self skip ].
 
 	regex := self regexFor: '(\p{L}+)'.
 	events := OrderedCollection new.
@@ -737,7 +736,7 @@ PCRE2CodeUnitWidthTest >> testSubstituteCaseCalloutDecodesText [
 PCRE2CodeUnitWidthTest >> testSubstitutionAndCopyReuseHighLevelFlow [
 
 	| input match regex replacement |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	regex := self regexFor: 'é'.
 	self assert: (regex substituteAll: 'café café' with: 'e') equals: 'cafe cafe'.
@@ -759,7 +758,7 @@ PCRE2CodeUnitWidthTest >> testSubstitutionAndCopyReuseHighLevelFlow [
 PCRE2CodeUnitWidthTest >> testTraceMatchDecodesCalloutEvents [
 
 	| event trace |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	trace := (self regexFor: '(?C"cœur")é') traceMatch: 'é'.
 	event := trace events detect: [ :each | each hasString ].
@@ -774,7 +773,7 @@ PCRE2CodeUnitWidthTest >> testTraceMatchDecodesCalloutEvents [
 PCRE2CodeUnitWidthTest >> testTraceMatchTranslatesPatternRanges [
 
 	| emoji event trace |
-	self skipUnlessSupported ifTrue: [ ^ self ].
+	self skipIfUnsupported.
 
 	emoji := self emojiString.
 	trace := (self regexFor: emoji , '(?C2)a') traceMatch: emoji , 'a'.

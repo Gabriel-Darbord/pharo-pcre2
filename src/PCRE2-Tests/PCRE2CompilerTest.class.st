@@ -57,7 +57,7 @@ PCRE2CompilerTest >> testCompileContextCharacterTables [
 PCRE2CompilerTest >> testCompileContextEnableOptimizationDirectives [
 
 	| context |
-	LibPCRE2 supportsOptimizationDirectives ifFalse: [ ^ self ].
+	LibPCRE2 supportsOptimizationDirectives ifFalse: [ self skip ].
 	context := PCRE2Compiler new context.
 
 	context
@@ -77,7 +77,7 @@ PCRE2CompilerTest >> testCompileContextEnableOptimizationDirectives [
 PCRE2CompilerTest >> testCompileContextLimitsCompiledPatternLength [
 
 	| compiler |
-	LibPCRE2 supportsMaxPatternCompiledLength ifFalse: [ ^ self ].
+	LibPCRE2 supportsMaxPatternCompiledLength ifFalse: [ self skip ].
 	compiler := PCRE2Compiler new.
 	compiler context maxPatternCompiledLength: 1.
 
@@ -133,7 +133,7 @@ PCRE2CompilerTest >> testCompileContextNewlineAffectsMultilineMatching [
 PCRE2CompilerTest >> testCompileContextOptimizationDirectivesAndValidation [
 
 	| context matcher |
-	LibPCRE2 supportsOptimizationDirectives ifFalse: [ ^ self ].
+	LibPCRE2 supportsOptimizationDirectives ifFalse: [ self skip ].
 	context := PCRE2Compiler new context.
 	context
 		useNoOptimization;
@@ -212,7 +212,7 @@ PCRE2CompilerTest >> testCompileContextParensNestLimit [
 PCRE2CompilerTest >> testCompileContextRejectsCharacterTablesFromDifferentWidth [
 
 	| context tables |
-	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self ].
+	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ self skip ].
 	context := PCRE2Compiler new context.
 	tables := LibPCRE2UTF16 newCharacterTables.
 
@@ -227,7 +227,7 @@ PCRE2CompilerTest >> testCompileContextRejectsCharacterTablesFromDifferentWidth 
 PCRE2CompilerTest >> testCompileContextVariableLookbehindLimit [
 
 	| compiler matcher |
-	LibPCRE2 supportsMaxVarLookbehind ifFalse: [ ^ self ].
+	LibPCRE2 supportsMaxVarLookbehind ifFalse: [ self skip ].
 	self assertCompileErrorFrom: [ PCRE2Compiler new compile: '(?<=a{0,300})b' ] includes: 'lookbehind'.
 
 	compiler := PCRE2Compiler new.

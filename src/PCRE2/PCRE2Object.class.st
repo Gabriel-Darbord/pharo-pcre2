@@ -55,7 +55,7 @@ PCRE2Object >> errorCode: errorCode [
 { #category : 'library path' }
 PCRE2Object >> ffiLibraryName [
 
-	^ self subclassResponsibility
+	self subclassResponsibility
 ]
 
 { #category : 'finalization' }
@@ -73,7 +73,5 @@ PCRE2Object >> free [
 
 { #category : 'initialization' }
 PCRE2Object >> initialize [
-	"do nothing (prevent initialize to set the handle)"
-
-	
+	"Do nothing (prevent initialize to set the handle)"
 ]

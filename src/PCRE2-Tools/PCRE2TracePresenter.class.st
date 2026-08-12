@@ -487,7 +487,7 @@ PCRE2TracePresenter >> selectedRow [
 PCRE2TracePresenter >> selectedRow: aTraceStepRowOrNil [
 
 	selectedRow := aTraceStepRowOrNil.
-	selectedStep := selectedRow ifNil: [ nil ] ifNotNil: [ selectedRow representativeStep ].
+	selectedStep := selectedRow ifNotNil: [ selectedRow representativeStep ].
 	(stepsTable notNil and: [ selectedRow notNil and: [ stepsTable selectedItem ~~ selectedRow ] ]) ifTrue: [
 		stepsTable selectItem: selectedRow ].
 	self updateSelectedStep
@@ -769,10 +769,8 @@ PCRE2TracePresenter >> updatePresenter [
 					selectedStep := matchingStep.
 					self updateSelectedStep.
 					^ self ] ].
-	selectedRow := rows isEmpty
-		               ifTrue: [ nil ]
-		               ifFalse: [ rows first ].
-	selectedStep := selectedRow ifNil: [ nil ] ifNotNil: [ selectedRow representativeStep ].
+	selectedRow := rows isEmpty ifFalse: [ rows first ].
+	selectedStep := selectedRow ifNotNil: [ selectedRow representativeStep ].
 	selectedRow ifNotNil: [ stepsTable selectItem: selectedRow ].
 	self updateSelectedStep
 ]
