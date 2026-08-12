@@ -1026,7 +1026,7 @@ PCRE2Matcher >> restoreFrom: bytes [
 PCRE2Matcher >> restoreJITIfNeeded [
 	"Serialized and copied PCRE2 code does not include JIT data. Rebuild it when requested, but keep the pattern usable without JIT if the platform cannot provide it now."
 
-	self isJIT == true ifFalse: [ ^ self ].
+	self isJIT ifFalse: [ ^ self ].
 	compiler compileJIT: self onError: [ :rc | self isJIT: false ]
 ]
 

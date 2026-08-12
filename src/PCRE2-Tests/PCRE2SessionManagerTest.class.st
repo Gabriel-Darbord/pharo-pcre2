@@ -99,6 +99,24 @@ PCRE2SessionManagerTest >> testShutDownWithSerialization [
 ]
 
 { #category : 'tests' }
+PCRE2SessionManagerTest >> testStartUpRestoresCharacterTablesFromPersistedBytes [
+
+	| bytes manager restoredBytes tables |
+	manager := PCRE2MockSessionManager new.
+	tables := LibPCRE2UTF8 newCharacterTables.
+	bytes := tables copyBytesFromNativeTable.
+	manager objectsToRestore: { tables }.
+	tables finalize.
+	self assert: tables isNull.
+
+	manager startUp.
+
+	self deny: tables isNull.
+	restoredBytes := tables copyBytesFromNativeTable.
+	self assert: restoredBytes equals: bytes
+]
+
+{ #category : 'tests' }
 PCRE2SessionManagerTest >> testStartUpRestoresCompileContext [
 
 	| manager context |
