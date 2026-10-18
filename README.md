@@ -8,14 +8,12 @@ Perl-compatible regular expressions for Pharo, backed by the native [PCRE2](http
 
 ## Pharo Version Policy
 
-This project is developed on Pharo 13.
+This project is developed on Pharo 14.
 
 Supported versions:
 
-- Pharo 13 is the primary development and reference runtime.
-- Pharo 12 and Pharo 14 are supported through PharoCompatibility using the `Pharo13Surface` group.
-
-New code should target the Pharo 13 API surface. When a Pharo 13 API is not available on a supported runtime, add or use a compatibility shim rather than writing runtime-specific production code.
+- Pharo 14 is the primary development and reference runtime.
+- Pharo 12 and Pharo 13 are supported directly.
 
 ## Installation
 
@@ -27,8 +25,6 @@ Metacello new
   baseline: 'PCRE2';
   load
 ```
-
-The baseline loads the `Pharo13Surface` compatibility group from PharoCompatibility so the project can use the Pharo 13-facing surface while remaining loadable on Pharo 12 and Pharo 14.
 
 The native PCRE2 8-bit library must be available on the host. The UTF-16 and UTF-32 APIs also use `libpcre2-16` and `libpcre2-32` when present.
 
