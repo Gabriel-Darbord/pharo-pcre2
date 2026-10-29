@@ -8,6 +8,12 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
+{ #category : 'parsing' }
+PCRE2CalloutNode >> canBeRepeated [
+
+	^ false
+]
+
 { #category : 'matching' }
 PCRE2CalloutNode >> executeIn: engine state: state [
 

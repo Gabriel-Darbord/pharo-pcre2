@@ -22,6 +22,12 @@ PCRE2ControlNode >> canAccept [
 	^ kind = #accept
 ]
 
+{ #category : 'parsing' }
+PCRE2ControlNode >> canBeRepeated [
+
+	^ kind = #accept
+]
+
 { #category : 'DFA matching' }
 PCRE2ControlNode >> dfaError [
 
@@ -94,13 +100,6 @@ PCRE2ControlNode >> runtimeStorageSize [
 	^ kind = #backtrack
 		  ifTrue: [ self sizeInMemory + boundary sizeInMemory ]
 		  ifFalse: [ 0 ]
-]
-
-{ #category : 'matching' }
-PCRE2ControlNode >> startPredicate [
-
-	kind = #accept ifTrue: [ ^ nil ].
-	^ [ :character | false ]
 ]
 
 { #category : 'matching' }

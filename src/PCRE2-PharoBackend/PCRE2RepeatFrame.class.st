@@ -4,7 +4,8 @@ Class {
 	#instVars : [
 		'repeat',
 		'count',
-		'previousPosition'
+		'previousPosition',
+		'previousCaptures'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
@@ -37,7 +38,8 @@ PCRE2RepeatFrame >> executeIn: anEngine state: aState [
 	| canStop canRepeat next |
 	canStop := count >= repeat minimum.
 	canRepeat := (repeat maximum isNil or: [ count < repeat maximum ]) and: [
-		             previousPosition ~= aState position or: [ canStop not ] ].
+			             previousPosition ~= aState position or: [
+				             (previousCaptures isNotNil and: [ previousCaptures ~= aState captures ]) or: [ canStop not ] ] ].
 	canRepeat ifFalse: [
 			^ canStop
 				  ifTrue: [ aState ]
@@ -46,7 +48,8 @@ PCRE2RepeatFrame >> executeIn: anEngine state: aState [
 	next push: (self class new
 			 repeat: repeat;
 			 count: count + 1;
-			 previousPosition: aState position).
+			 previousPosition: aState position;
+			 previousCaptures: (repeat child maximumLength = 0 ifTrue: [ aState captures copy ])).
 	next push: repeat child.
 	canStop ifFalse: [ ^ next ].
 	repeat greedy
@@ -56,6 +59,12 @@ PCRE2RepeatFrame >> executeIn: anEngine state: aState [
 		ifFalse: [
 				anEngine enqueue: next.
 				^ aState ]
+]
+
+{ #category : 'private' }
+PCRE2RepeatFrame >> previousCaptures: captures [
+
+	previousCaptures := captures
 ]
 
 { #category : 'private' }

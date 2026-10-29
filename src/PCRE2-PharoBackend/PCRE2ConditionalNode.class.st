@@ -6,7 +6,8 @@ Class {
 		'thenBranch',
 		'elseBranch',
 		'definition',
-		'dfaUnsupported'
+		'dfaUnsupported',
+		'prefix'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
@@ -49,6 +50,7 @@ PCRE2ConditionalNode >> dfaUnsupported: boolean [
 { #category : 'matching' }
 PCRE2ConditionalNode >> executeIn: engine state: state [
 
+	(prefix ifNil: [ #(  ) ]) do: [ :node | (node executeIn: engine state: state) ifNil: [ ^ nil ] ].
 	state push: ((condition value: engine value: state)
 			 ifTrue: [ thenBranch ]
 			 ifFalse: [ elseBranch ]).
@@ -82,4 +84,10 @@ PCRE2ConditionalNode >> maximumLength [
 PCRE2ConditionalNode >> minimumLength [
 
 	^ thenBranch minimumLength min: elseBranch minimumLength
+]
+
+{ #category : 'accessing' }
+PCRE2ConditionalNode >> prefix: nodes [
+
+	prefix := nodes
 ]

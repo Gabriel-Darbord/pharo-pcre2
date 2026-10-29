@@ -14,7 +14,9 @@ PCRE2NewlineConvention >> lengthAt: index in: text [
 	| code length |
 	(index between: 1 and: text size) ifFalse: [ ^ 0 ].
 	code := (text at: index) asInteger.
-	length := text pointWidthAtOffset: index - 1.
+	length := (text isKindOf: PCRE2SubjectText)
+		          ifTrue: [ text pointWidthAtOffset: index - 1 ]
+		          ifFalse: [ 1 ].
 	mode = PCRE2 newlineLF ifTrue: [
 			^ code = 10
 				  ifTrue: [ length ]

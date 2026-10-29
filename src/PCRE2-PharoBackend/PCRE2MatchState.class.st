@@ -12,7 +12,8 @@ Class {
 		'marks',
 		'accepted',
 		'lastCapture',
-		'assertions'
+		'assertions',
+		'subjectText'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
@@ -237,6 +238,18 @@ PCRE2MatchState >> restartAfter: size [
 	self tasks: nil.
 	nodes reverseDo: [ :node | self push: node ].
 	position := 0
+]
+
+{ #category : 'accessing' }
+PCRE2MatchState >> subjectText [
+
+	^ subjectText
+]
+
+{ #category : 'accessing' }
+PCRE2MatchState >> subjectText: aSubject [
+
+	subjectText := aSubject
 ]
 
 { #category : 'matching' }

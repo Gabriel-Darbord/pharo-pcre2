@@ -4,7 +4,9 @@ Class {
 	#instVars : [
 		'captures',
 		'subroutines',
-		'lastCapture'
+		'lastCapture',
+		'retainedGroups',
+		'alternations'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
@@ -13,8 +15,15 @@ Class {
 { #category : 'matching' }
 PCRE2SubroutineReturnNode >> acceptIn: engine state: state [
 
+	state subroutines ifNotNil: [ :frame | engine trimChoicesTo: frame third ].
 	self executeIn: engine state: state.
 	^ true
+]
+
+{ #category : 'accessing' }
+PCRE2SubroutineReturnNode >> alternations: aFrame [
+
+	alternations := aFrame
 ]
 
 { #category : 'matching' }
@@ -37,9 +46,15 @@ PCRE2SubroutineReturnNode >> executeIn: anEngine state: aState [
 	| restored |
 	restored := captures copy.
 	restored at: 1 put: aState captures first.
+	(retainedGroups ifNil: [ #(  ) ]) do: [ :index |
+			restored at: index * 2 + 1 put: (aState captures at: index * 2 + 1).
+			restored at: index * 2 + 2 put: (aState captures at: index * 2 + 2) ].
 	aState
 		captures: restored;
-		lastCapture: lastCapture;
+		alternations: alternations;
+		lastCapture: (((retainedGroups ifNil: [ #(  ) ]) includes: aState lastCapture)
+				 ifTrue: [ aState lastCapture ]
+				 ifFalse: [ lastCapture ]);
 		subroutines: subroutines.
 	^ aState
 ]
@@ -48,6 +63,12 @@ PCRE2SubroutineReturnNode >> executeIn: anEngine state: aState [
 PCRE2SubroutineReturnNode >> lastCapture: number [
 
 	lastCapture := number
+]
+
+{ #category : 'accessing' }
+PCRE2SubroutineReturnNode >> retainedGroups: indexes [
+
+	retainedGroups := indexes
 ]
 
 { #category : 'diagnostics' }

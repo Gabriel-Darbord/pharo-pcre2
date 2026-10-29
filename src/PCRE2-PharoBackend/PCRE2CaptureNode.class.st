@@ -43,6 +43,12 @@ PCRE2CaptureNode >> firstLiteral [
 	^ child firstLiteral
 ]
 
+{ #category : 'optimization' }
+PCRE2CaptureNode >> firstLiteralPredicate [
+
+	^ child firstLiteralPredicate
+]
+
 { #category : 'private' }
 PCRE2CaptureNode >> index [
 

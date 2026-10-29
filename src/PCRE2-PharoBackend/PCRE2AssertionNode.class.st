@@ -9,6 +9,12 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
+{ #category : 'parsing' }
+PCRE2AssertionNode >> canBeRepeated [
+
+	^ false
+]
+
 { #category : 'matching' }
 PCRE2AssertionNode >> executeIn: anEngine state: aState [
 
@@ -44,5 +50,5 @@ PCRE2AssertionNode >> predicate: aBlock [
 { #category : 'matching' }
 PCRE2AssertionNode >> startPredicate [
 
-	^ [ :character | false ]
+	^ (#( wordBoundary notWordBoundary ) includes: kind) ifTrue: [ [ :character | false ] ]
 ]

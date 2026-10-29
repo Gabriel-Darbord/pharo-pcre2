@@ -252,7 +252,8 @@ PCRE2MatcherPharoBackend >> match: bytes from: start to: length options: matchOp
 
 	| decoded text mapping initial engine state result anchored lastIndex converted rc allowed offsetLimit candidate startPredicate required |
 	allowed := PCRE2 anchored | PCRE2 endAnchored | PCRE2 notBOL | PCRE2 notEOL | PCRE2 notEmpty | PCRE2 notEmptyAtStart
-	           | PCRE2 noJIT | PCRE2 noUTFCheck | PCRE2 copyMatchedSubject | PCRE2 partialSoft | PCRE2 partialHard.
+	           | PCRE2 noJIT | PCRE2 disableRecurseloopCheck | PCRE2 noUTFCheck | PCRE2 copyMatchedSubject | PCRE2 partialSoft
+	           | PCRE2 partialHard.
 	(matchOptions bitAnd: allowed bitInvert) ~= 0 ifTrue: [
 		PCRE2UnsupportedFeature signal: 'Match options are not yet implemented by the Pharo backend' ].
 	decoded := self textAndOffsetsFor: bytes length: length.
@@ -287,8 +288,8 @@ PCRE2MatcherPharoBackend >> match: bytes from: start to: length options: matchOp
 		             ifFalse: [ text size ].
 	offsetLimit ifNotNil: [ lastIndex := lastIndex min: offsetLimit ].
 	startPredicate := ((compileOptions bitAnd: PCRE2 noStartOptimize) = 0 and: [
-		                   root firstLiteral isNotNil and: [ (matchOptions bitAnd: PCRE2 partialSoft | PCRE2 partialHard) = 0 ] ])
-		                  ifTrue: [ root startPredicate ].
+		                   (matchOptions bitAnd: PCRE2 partialSoft | PCRE2 partialHard) = 0 ]) ifTrue: [
+		                  root firstLiteralPredicate ifNil: [ root startPredicate ] ].
 	(compileOptions bitAnd: PCRE2 firstLine) ~= 0 ifTrue: [ lastIndex := lastIndex min: (self firstLineEndIn: text) ].
 	candidate := initial.
 	[ candidate <= lastIndex ] whileTrue: [

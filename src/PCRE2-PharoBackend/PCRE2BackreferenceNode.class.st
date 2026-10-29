@@ -68,6 +68,8 @@ PCRE2BackreferenceNode >> extraOptions: flags [
 PCRE2BackreferenceNode >> lengthBoundsUsing: groups names: names visited: visited [
 
 	| index target |
+	(options bitAnd: PCRE2 matchUnsetBackref) ~= 0 ifTrue: [ ^ { 0. nil } ].
+	(reference isString and: [ (names values count: [ :name | name = reference ]) > 1 ]) ifTrue: [ ^ { 0. nil } ].
 	index := reference isInteger
 		         ifTrue: [ reference ]
 		         ifFalse: [ names keyAtValue: reference ifAbsent: [ nil ] ].

@@ -13,6 +13,7 @@ Class {
 { #category : 'matching' }
 PCRE2LookaroundEndNode >> acceptIn: engine state: state [
 
+	state assertions ifNotNil: [ :frame | engine trimChoicesTo: frame first ].
 	self executeIn: engine state: state.
 	^ true
 ]

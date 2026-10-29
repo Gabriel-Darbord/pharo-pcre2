@@ -46,6 +46,12 @@ PCRE2RepeatNode >> firstLiteral [
 	^ minimum > 0 ifTrue: [ child firstLiteral ]
 ]
 
+{ #category : 'optimization' }
+PCRE2RepeatNode >> firstLiteralPredicate [
+
+	^ minimum > 0 ifTrue: [ child firstLiteralPredicate ]
+]
+
 { #category : 'private' }
 PCRE2RepeatNode >> greedy [
 

@@ -8,6 +8,12 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
+{ #category : 'accessing' }
+PCRE2CompilerPharoBackend class >> compatibleVersion [
+
+	^ #( 10 49 )
+]
+
 { #category : 'testing' }
 PCRE2CompilerPharoBackend class >> isAvailable [
 
@@ -32,24 +38,37 @@ PCRE2CompilerPharoBackend >> compileContextClass [
 { #category : 'compiling' }
 PCRE2CompilerPharoBackend >> compilePreparedInput: input [
 
-	| parser tree flags allowed context implementation |
+	| parser tree flags allowed context implementation literalOptions |
 	flags := compiler options.
 	allowed := PCRE2 caseless | PCRE2 dotAll | PCRE2 multiline | PCRE2 ungreedy | PCRE2 extended | PCRE2 utf | PCRE2 ucp
 	           | PCRE2 anchored | PCRE2 endAnchored | PCRE2 noAutoCapture | PCRE2 dupNames | PCRE2 literal | PCRE2 dollarEndOnly
 	           | PCRE2 noStartOptimize | PCRE2 useOffsetLimit | PCRE2 noAutoPossess | PCRE2 noDotstarAnchor | PCRE2 matchUnsetBackref
 	           | PCRE2 extendedMore | PCRE2 altCircumflex | PCRE2 autoCallout | PCRE2 neverUTF | PCRE2 neverUCP
-	           | PCRE2 neverBackslashC | PCRE2 firstLine | PCRE2 noUTFCheck | PCRE2 altBSUX | PCRE2 allowEmptyClass.
+	           | PCRE2 neverBackslashC | PCRE2 firstLine | PCRE2 noUTFCheck | PCRE2 altBSUX | PCRE2 allowEmptyClass
+	           | PCRE2 altExtendedClass | PCRE2 altVerbNames.
+	(flags bitAnd: (allowed bitOr: PCRE2 matchInvalidUTF) bitInvert) ~= 0 ifTrue: [
+		PCRE2CompileError signal: (PCRE2 translateErrorCode: 117) in: input at: 0 ].
+	literalOptions := PCRE2 anchored | PCRE2 autoCallout | PCRE2 caseless | PCRE2 endAnchored | PCRE2 firstLine | PCRE2 literal
+	                  | PCRE2 matchInvalidUTF | PCRE2 noStartOptimize | PCRE2 noUTFCheck | PCRE2 useOffsetLimit | PCRE2 utf.
+	((flags bitAnd: PCRE2 literal) ~= 0 and: [ (flags bitAnd: literalOptions bitInvert) ~= 0 ]) ifTrue: [
+		PCRE2CompileError signal: (PCRE2 translateErrorCode: 192) in: input at: 0 ].
 	(flags bitAnd: allowed bitInvert) ~= 0 ifTrue: [
 		PCRE2UnsupportedFeature signal: 'Compile options are not yet implemented by the Pharo backend' ].
 	parser := PCRE2PatternParser new codeUnitWidth: compiler codeUnitWidth.
 	context := compiler existingContext.
 	context ifNotNil: [
+			(context options bitAnd: 16r1FFFF bitInvert) ~= 0 ifTrue: [
+				PCRE2CompileError signal: (PCRE2 translateErrorCode: 117) in: input at: 0 ].
+			((flags bitAnd: PCRE2 literal) ~= 0 and: [
+					 (context options bitAnd:
+						  (PCRE2 extraMatchLine | PCRE2 extraMatchWord | PCRE2 extraCaselessRestrict | PCRE2 extraTurkishCasing) bitInvert) ~= 0 ])
+				ifTrue: [ PCRE2CompileError signal: (PCRE2 translateErrorCode: 192) in: input at: 0 ].
 			context backend startOptimizationEnabled ifFalse: [ flags := flags bitOr: PCRE2 noStartOptimize ].
 			(context options bitAnd:
 				 (PCRE2 extraBadEscapeIsLiteral | PCRE2 extraAltBsux | PCRE2 extraEscapedCrIsLf | PCRE2 extraAllowSurrogateEscapes
 				  | PCRE2 extraAsciiBsd | PCRE2 extraAsciiBss | PCRE2 extraAsciiBsw | PCRE2 extraAsciiPosix | PCRE2 extraAsciiDigit
 				  | PCRE2 extraCaselessRestrict | PCRE2 extraMatchLine | PCRE2 extraMatchWord | PCRE2 extraPythonOctal | PCRE2 extraNoBs0
-				  | PCRE2 extraNeverCallout | PCRE2 extraTurkishCasing) bitInvert) ~= 0 ifTrue: [
+				  | PCRE2 extraNeverCallout | PCRE2 extraTurkishCasing | PCRE2 extraAllowLookaroundBsk) bitInvert) ~= 0 ifTrue: [
 				PCRE2UnsupportedFeature signal: 'Extra compile options are not yet implemented by the Pharo backend' ].
 			parser extraOptions: context options.
 			context maxPatternLength ifNotNil: [ :length |

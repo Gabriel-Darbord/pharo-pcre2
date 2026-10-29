@@ -26,6 +26,26 @@ PCRE2PharoBackendTest >> testAcceptClosesCapturesAndReturnsFromSubroutines [
 ]
 
 { #category : 'tests' }
+PCRE2PharoBackendTest >> testAlternativeVerbNamesAndAcceptanceConstraints [
+
+	| compiler matcher |
+	compiler := PCRE2UTF8Compiler new
+		            backend: PCRE2CompilerPharoBackend;
+		            options: PCRE2 utf | PCRE2 altVerbNames.
+	matcher := compiler compile: '(*MARK:A\Q)x\EB)x'.
+	self assert: (matcher findMatch: 'x') mark equals: 'A)xB'.
+	self should: [ compiler compile: '(*MARK:a\zb)x' ] raise: PCRE2CompileError.
+	compiler options: PCRE2 utf.
+	matcher := compiler compile: 'a*(*ACCEPT)b'.
+	matcher options: PCRE2 notEmptyAtStart.
+	self assert: (matcher findMatch: 'bbb') offsets equals: #( 1 1 ).
+	compiler addOptions: PCRE2 extended.
+	matcher := compiler compile: '^ (?(DEFINE) (..(*ACCEPT)|...) ) (?1)$'.
+	self deny: (matcher matches: 'abc').
+	self assert: ((compiler compile: 'a(*ACCEPT)??bc') matches: 'abc')
+]
+
+{ #category : 'tests' }
 PCRE2PharoBackendTest >> testAnchorsAndWordBoundaries [
 
 	self assert: ((self compile: '\bcat\b') find: 'the cat sat') equals: 'cat'.
@@ -232,6 +252,21 @@ PCRE2PharoBackendTest >> testCompiledObjectsCannotBeRelabelled [
 	self should: [ match backend: match backend copy ] raise: PCRE2Error.
 	self assert: (matcher matches: 'a').
 	self assert: match readMatch equals: 'a'
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testConditionalCalloutPrefixesAndEmptyQuotes [
+
+	| matcher count |
+	count := 0.
+	matcher := self compile: '(?(?C1)(?=a)aa|bb)'.
+	matcher context calloutBlock: [ :event |
+			count := count + 1.
+			0 ].
+	self assert: (matcher matches: 'aa').
+	self assert: (matcher matches: 'bb').
+	self assert: count equals: 2.
+	self assert: ((self compile: '()\Q\E*]') matches: ']')
 ]
 
 { #category : 'tests' }
@@ -557,6 +592,22 @@ PCRE2PharoBackendTest >> testLookaheadCapturesAndRollback [
 	self assert: ((self compile: '(a)b|a(c)') findWithGroups: 'ac') equals: #( 'ac' '' 'c' )
 ]
 
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testLookbehindAndExtendedClassValidation [
+
+	| compiler |
+	#( '(?<=a{65535}a)b' '(a(?<=b(?1)))' '(?|([ab]))(?<=\1)' '(?=a\Kb)' '^\g{0}' ) do: [ :pattern |
+		self should: [ self compile: pattern ] raise: PCRE2CompileError ].
+	compiler := PCRE2UTF8Compiler new
+		            backend: PCRE2CompilerPharoBackend;
+		            options: PCRE2 utf | PCRE2 altExtendedClass.
+	self should: [ compiler compile: ('[' repeat: 16) , 'a' , (']' repeat: 16) ] raise: PCRE2CompileError.
+	self should: [ compiler compile: '[\d-z]' ] raise: PCRE2CompileError.
+	self should: [ compiler compile: '[\Q' ] raise: PCRE2CompileError.
+	compiler options: PCRE2 utf | PCRE2 literal | PCRE2 extended.
+	self should: [ compiler compile: 'a' ] raise: PCRE2CompileError
+]
+
 { #category : 'matching' }
 PCRE2PharoBackendTest >> testLookbehindCaptures [
 
@@ -799,6 +850,29 @@ PCRE2PharoBackendTest >> testRelativeAndOctalReferences [
 ]
 
 { #category : 'tests' }
+PCRE2PharoBackendTest >> testScanSubstringAssertions [
+
+	| matcher match |
+	matcher := self compile: '\b(\w++)(*scs:(1).+rh)'.
+	match := matcher findMatch: 'a myrrh and thyme'.
+	self assert: (match groupAt: 0) equals: 'myrrh'.
+	matcher := self compile: '(?<word>abc)(*scs:(<word>)(a)(bc)$)\2'.
+	match := matcher findMatch: 'abca'.
+	self assert: match offsets equals: #( 0 4 0 3 0 1 1 3 ).
+	self deny: ((self compile: '(a)(*scs:(1)b)') search: 'a').
+	self assert: ((self compile: 'x(a)(*scs:(1)(?<=x)a\z)') matches: 'xa')
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testScanSubstringsBacktrackAndRestoreTheirBounds [
+
+	| match |
+	match := (self compile: '([a-z]{2})[a-z](*scs:(1)(.*?))\2$') findMatch: 'abxab'.
+	self assert: match offsets equals: #( 0 5 0 2 0 2 ).
+	self assert: ((self compile: '(abc)(def)(*scs:(1)(*scs:(2)de)).+') matches: 'abcdefZ')
+]
+
+{ #category : 'tests' }
 PCRE2PharoBackendTest >> testScopedASCIIAndCaselessRestrictions [
 
 	| compiler |
@@ -875,6 +949,23 @@ PCRE2PharoBackendTest >> testSubroutineRestoresCallerCaptures [
 ]
 
 { #category : 'tests' }
+PCRE2PharoBackendTest >> testSubroutineRetainedCapturesAndVersionConditions [
+
+	| match |
+	match := (self compile: '^(?1(2))\2(?(DEFINE)(a(.)b(.)c))') findMatch: 'aXbYcX'.
+	self assert: match offsets equals: {
+			0.
+			6.
+			PCRE2 unsetOffset.
+			PCRE2 unsetOffset.
+			1.
+			2 }.
+	self assert: ((self compile: '(?(VERSION>=10.49)yes|no)') matches: 'yes').
+	self assert: ((self compile: '(?(VERSION=10.0)yes|no)') matches: 'no').
+	self assert: ((self compile: '(?<VERSION>a)(?(VERSION)b|c)') matches: 'ab')
+]
+
+{ #category : 'tests' }
 PCRE2PharoBackendTest >> testSubstitutionAndLiteralReplacement [
 
 	| matcher |
@@ -931,6 +1022,23 @@ PCRE2PharoBackendTest >> testTurkishCaseFoldingAndStartDirectives [
 	self assert: ((compiler compile: '(*UTF8)é') matches: 'é').
 	compiler context options: PCRE2 extraTurkishCasing.
 	self should: [ compiler compile: 'I' ] raise: PCRE2CompileError
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testUTSExtendedClasses [
+
+	| compiler |
+	compiler := PCRE2UTF8Compiler new
+		            backend: PCRE2CompilerPharoBackend;
+		            options: PCRE2 utf | PCRE2 ucp | PCRE2 altExtendedClass.
+	self assert: ((compiler compile: '[a-z&&[^aeiou]]+') matches: 'bcdf').
+	self deny: ((compiler compile: '[a-z&&[^aeiou]]+') matches: 'abc').
+	self assert: ((compiler compile: '[\p{L}&&[\p{Greek}||\p{Thai}]]') matches: 'λ').
+	self deny: ((compiler compile: '[\p{L}&&[\p{Greek}||\p{Thai}]]') matches: 'a').
+	self assert: ((compiler compile: '[[ab]~~[bc]]') matches: 'a').
+	self deny: ((compiler compile: '[[ab]~~[bc]]') matches: 'b').
+	self should: [ compiler compile: '[a&&b--c]' ] raise: PCRE2CompileError.
+	self assert: ((compiler compile: '(?[[a[]])') matches: '[')
 ]
 
 { #category : 'tests' }
@@ -1025,4 +1133,12 @@ PCRE2PharoBackendTest >> testWideUTFValidation [
 	bytes := ByteArray new: 4.
 	bytes uint32AtOffset: 0 put: 16r110000.
 	self should: [ matcher matchBytes: bytes from: 1 to: 1 ] raise: PCRE2MatchError
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testZeroWidthCaptureProgressAndEmptyCapturingRepeats [
+
+	self assert: ((self compile: '\A(?:(?=(\1.|))){1,3}\1\z') matches: 'ab').
+	self assert: ((self compile: '(?<word>\k<word>xxx|)+') find: 'xxx') equals: ''.
+	self deny: ((self compile: '(a|)*\d') search: ('a' repeat: 60))
 ]

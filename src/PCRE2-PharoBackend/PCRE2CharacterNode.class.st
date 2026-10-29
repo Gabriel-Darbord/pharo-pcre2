@@ -78,7 +78,7 @@ PCRE2CharacterNode >> predicate: aValue [
 { #category : 'optimization' }
 PCRE2CharacterNode >> requiredNode [
 
-	^ character ifNotNil: [ self ]
+	^ self
 ]
 
 { #category : 'matching' }

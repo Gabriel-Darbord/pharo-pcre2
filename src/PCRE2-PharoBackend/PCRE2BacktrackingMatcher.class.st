@@ -30,7 +30,9 @@ Class {
 		'queuedStorage',
 		'outerStates',
 		'candidateStart',
-		'earliestConsulted'
+		'earliestConsulted',
+		'originalSubject',
+		'lastInspected'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
@@ -46,6 +48,7 @@ PCRE2BacktrackingMatcher >> abortedCode [
 PCRE2BacktrackingMatcher >> accept: state [
 
 	[ state tasks isNotNil ] whileTrue: [ (state pop acceptIn: self state: state) ifTrue: [ ^ state ] ].
+	self trimChoicesTo: 0.
 	state accepted: true.
 	^ state
 ]
@@ -70,6 +73,9 @@ PCRE2BacktrackingMatcher >> backtrack: kind boundary: frame state: state [
 
 	| depth |
 	kind = #then ifTrue: [
+			(state subroutines isNotNil and: [ state subroutines ~~ callBase and: [ frame second isNil ] ]) ifTrue: [
+					self trimChoicesTo: state subroutines third.
+					^ self ].
 			depth := frame second
 				         ifNil: [ state assertions ifNil: [ 0 ] ifNotNil: [ :assertion | assertion first ] ]
 				         ifNotNil: [ :alternation | alternation first ].
@@ -161,6 +167,13 @@ PCRE2BacktrackingMatcher >> captureIndexFor: reference state: state [
 	^ indexes
 		  detect: [ :index | (state captures at: index * 2 + 2) ~= PCRE2 unsetOffset ]
 		  ifNone: [ indexes ifNotEmpty: [ indexes first ] ]
+]
+
+{ #category : 'matching' }
+PCRE2BacktrackingMatcher >> captureIndexesFor: reference [
+
+	reference isInteger ifTrue: [ ^ { reference } ].
+	^ (names keys select: [ :index | (names at: index) = reference ]) sorted
 ]
 
 { #category : 'matching' }
@@ -267,6 +280,12 @@ PCRE2BacktrackingMatcher >> isRecursing: reference state: state [
 	^ (names at: state subroutines first ifAbsent: [ nil ]) = reference
 ]
 
+{ #category : 'accessing' }
+PCRE2BacktrackingMatcher >> lastInspected [
+
+	^ lastInspected ifNil: [ 0 ]
+]
+
 { #category : 'matching' }
 PCRE2BacktrackingMatcher >> lastMark [
 
@@ -308,7 +327,8 @@ PCRE2BacktrackingMatcher >> matchNode: node state: state propagate: mode [
 		alternations: nil;
 		assertions: nil;
 		push: node.
-	matchOptions := matchOptions bitAnd: PCRE2 notBOL | PCRE2 notEOL | PCRE2 partialSoft | PCRE2 partialHard.
+	matchOptions := matchOptions bitAnd:
+		                PCRE2 notBOL | PCRE2 notEOL | PCRE2 partialSoft | PCRE2 partialHard | PCRE2 disableRecurseloopCheck.
 	[
 		result := self run: nested.
 		failure := failureControl ] ensure: [
@@ -357,13 +377,17 @@ PCRE2BacktrackingMatcher >> nextChoice [
 PCRE2BacktrackingMatcher >> noteInspectionAt: position [
 
 	earliestConsulted ifNil: [ earliestConsulted := position ].
-	earliestConsulted := earliestConsulted min: position
+	earliestConsulted := earliestConsulted min: position.
+	lastInspected := self lastInspected max: position + (position < subject size
+			                  ifTrue: [ subject pointWidthAtOffset: position ]
+			                  ifFalse: [ 0 ])
 ]
 
 { #category : 'matching' }
 PCRE2BacktrackingMatcher >> notePartial: state [
 
 	| candidate |
+	state subjectText ifNotNil: [ ^ self ].
 	(self matchOptions bitAnd: PCRE2 partialSoft | PCRE2 partialHard) = 0 ifTrue: [ ^ self ].
 	(state position > candidateStart or: [ earliestConsulted < candidateStart or: [ root minimumLength = 0 ] ]) ifFalse: [ ^ self ].
 	candidate := state copy tasks: nil.
@@ -397,8 +421,9 @@ PCRE2BacktrackingMatcher >> run: aState [
 			firstChoice := false.
 			state := self nextChoice.
 			[ state notNil ] whileTrue: [
+					subject := state subjectText ifNil: [ originalSubject ].
 					state tasks ifNil: [
-							(state accepted or: [ self acceptsEndOf: state ]) ifTrue: [ ^ state ].
+							(self acceptsEndOf: state) ifTrue: [ ^ state ].
 							state := nil ].
 					state ifNotNil: [
 							(depthLimit isNotNil and: [ state pendingDepth > depthLimit ]) ifTrue: [
@@ -410,6 +435,12 @@ PCRE2BacktrackingMatcher >> run: aState [
 							state := self executeNode: node state: state.
 							self hardPartialFound ifTrue: [ ^ nil ] ] ] ].
 	^ nil
+]
+
+{ #category : 'accessing' }
+PCRE2BacktrackingMatcher >> scanSubjectTo: end [
+
+	^ originalSubject prefixTo: end
 ]
 
 { #category : 'matching' }
@@ -428,6 +459,7 @@ PCRE2BacktrackingMatcher >> subject [
 PCRE2BacktrackingMatcher >> subject: aString root: aNode groups: groupNodes names: captureNames limit: aLimit [
 
 	subject := aString.
+	originalSubject := aString.
 	root := aNode.
 	groups := groupNodes.
 	names := captureNames.

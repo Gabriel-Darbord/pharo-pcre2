@@ -136,6 +136,14 @@ PCRE2Test >> testAllOptions [
 ]
 
 { #category : 'tests' }
+PCRE2Test >> testCurrentDiagnosticCodes [
+
+	self assert: (PCRE2 translateErrorCode: 198) equals: 'octal digit missing after \0 (PCRE2_EXTRA_NO_BS0 is set)'.
+	self assert: (PCRE2 translateErrorCode: 207) equals: 'extended character class nesting is too deep'.
+	self assert: (PCRE2 translateErrorCode: -75) equals: 'disallowed use of \K in lookaround'
+]
+
+{ #category : 'tests' }
 PCRE2Test >> testOptionsFor [
 
 	self assert: (PCRE2 optionsFor: #compile) size equals: 31.

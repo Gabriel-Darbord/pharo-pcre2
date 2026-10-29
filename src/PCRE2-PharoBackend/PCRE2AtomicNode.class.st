@@ -48,6 +48,12 @@ PCRE2AtomicNode >> firstLiteral [
 	^ child firstLiteral
 ]
 
+{ #category : 'optimization' }
+PCRE2AtomicNode >> firstLiteralPredicate [
+
+	^ child firstLiteralPredicate
+]
+
 { #category : 'matching' }
 PCRE2AtomicNode >> lengthBoundsUsing: groups names: names visited: visited [
 

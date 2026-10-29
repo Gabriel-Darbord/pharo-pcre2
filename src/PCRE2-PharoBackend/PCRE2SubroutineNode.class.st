@@ -2,7 +2,8 @@ Class {
 	#name : 'PCRE2SubroutineNode',
 	#superclass : 'PCRE2PatternNode',
 	#instVars : [
-		'reference'
+		'reference',
+		'retainedGroups'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
@@ -21,18 +22,25 @@ PCRE2SubroutineNode >> executeIn: engine state: state [
 	index := engine captureIndexFor: reference.
 	frame := state subroutines.
 	[ frame isNotNil ] whileTrue: [
-			(frame first = index and: [ frame fourth = state position ]) ifTrue: [
+			(frame first = index and: [
+					 frame fourth = state position and: [
+						 frame fifth = engine lastInspected and: [ (engine matchOptions bitAnd: PCRE2 disableRecurseloopCheck) = 0 ] ] ]) ifTrue: [
 				PCRE2MatchError signal: 'nested recursion at the same subject position' ].
 			frame := frame second ].
 	state push: (PCRE2SubroutineReturnNode new
 			 captures: state captures copy;
+			 alternations: state alternations;
+			 retainedGroups: ((retainedGroups ifNil: [ #(  ) ]) flatCollect: [ :each |
+						  (engine captureIndexesFor: each) reject: [ :retained | retained = index ] ]);
 			 lastCapture: state lastCapture;
 			 subroutines: state subroutines).
 	state subroutines: {
 			index.
 			state subroutines.
 			engine choiceDepth.
-			state position }.
+			state position.
+			engine lastInspected }.
+	state alternations: nil.
 	state push: (engine groupFor: reference).
 	^ state
 ]
@@ -58,4 +66,10 @@ PCRE2SubroutineNode >> reference [
 PCRE2SubroutineNode >> reference: aValue [
 
 	reference := aValue
+]
+
+{ #category : 'accessing' }
+PCRE2SubroutineNode >> retainedGroups: references [
+
+	retainedGroups := references
 ]

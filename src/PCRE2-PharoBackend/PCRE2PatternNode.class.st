@@ -26,6 +26,12 @@ PCRE2PatternNode >> canAutoPossess [
 { #category : 'parsing' }
 PCRE2PatternNode >> canBeCondition [
 
+	^ false
+]
+
+{ #category : 'parsing' }
+PCRE2PatternNode >> canBeRepeated [
+
 	^ true
 ]
 
@@ -57,6 +63,12 @@ PCRE2PatternNode >> executeIn: engine state: state [
 PCRE2PatternNode >> firstLiteral [
 
 	^ nil
+]
+
+{ #category : 'optimization' }
+PCRE2PatternNode >> firstLiteralPredicate [
+
+	^ self firstLiteral ifNotNil: [ self startPredicate ]
 ]
 
 { #category : 'matching' }

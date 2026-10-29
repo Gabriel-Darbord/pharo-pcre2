@@ -59,6 +59,16 @@ PCRE2AlternativeNode >> firstLiteral [
 	^ (children allSatisfy: [ :child | child firstLiteral = first ]) ifTrue: [ first ]
 ]
 
+{ #category : 'optimization' }
+PCRE2AlternativeNode >> firstLiteralPredicate [
+
+	| predicates |
+	self firstLiteral ifNil: [ ^ nil ].
+	predicates := children collect: #firstLiteralPredicate.
+	(predicates includes: nil) ifTrue: [ ^ nil ].
+	^ [ :character | predicates anySatisfy: [ :predicate | predicate value: character ] ]
+]
+
 { #category : 'matching' }
 PCRE2AlternativeNode >> lengthBoundsUsing: groups names: names visited: visited [
 

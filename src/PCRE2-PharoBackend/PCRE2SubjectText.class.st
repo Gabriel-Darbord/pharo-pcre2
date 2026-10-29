@@ -128,6 +128,12 @@ PCRE2SubjectText >> pointWidthAtOffset: offset [
 ]
 
 { #category : 'accessing' }
+PCRE2SubjectText >> prefixTo: end [
+
+	^ self class new bytes: (bytes copyFrom: 1 to: end * (width // 8)) width: width utf: utf
+]
+
+{ #category : 'accessing' }
 PCRE2SubjectText >> previousOffsetFrom: offset [
 
 	| previous |

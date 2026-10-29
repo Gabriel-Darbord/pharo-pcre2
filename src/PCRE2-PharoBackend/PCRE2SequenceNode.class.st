@@ -33,10 +33,21 @@ PCRE2SequenceNode >> executeIn: anEngine state: aState [
 	^ aState
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2SequenceNode >> firstLiteral [
 
-	children do: [ :child | child maximumLength = 0 ifFalse: [ ^ child firstLiteral ] ].
+	children do: [ :child |
+			child canAccept ifTrue: [ ^ nil ].
+			child maximumLength = 0 ifFalse: [ ^ child firstLiteral ] ].
+	^ nil
+]
+
+{ #category : 'optimization' }
+PCRE2SequenceNode >> firstLiteralPredicate [
+
+	children do: [ :child |
+			child canAccept ifTrue: [ ^ nil ].
+			child maximumLength = 0 ifFalse: [ ^ child firstLiteralPredicate ] ].
 	^ nil
 ]
 
@@ -69,10 +80,15 @@ PCRE2SequenceNode >> maximumLength [
 	^ sum
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2SequenceNode >> minimumLength [
 
-	^ children inject: 0 into: [ :sum :node | sum + node minimumLength ]
+	| length |
+	length := 0.
+	children do: [ :child |
+			length := length + child minimumLength.
+			child canAccept ifTrue: [ ^ length ] ].
+	^ length
 ]
 
 { #category : 'optimization' }
