@@ -38,14 +38,17 @@ PCRE2CompilerPharoBackend >> compilePreparedInput: input [
 	           | PCRE2 anchored | PCRE2 endAnchored | PCRE2 noAutoCapture | PCRE2 dupNames | PCRE2 literal | PCRE2 dollarEndOnly
 	           | PCRE2 noStartOptimize | PCRE2 useOffsetLimit | PCRE2 noAutoPossess | PCRE2 noDotstarAnchor | PCRE2 matchUnsetBackref
 	           | PCRE2 extendedMore | PCRE2 altCircumflex | PCRE2 autoCallout | PCRE2 neverUTF | PCRE2 neverUCP
-	           | PCRE2 neverBackslashC | PCRE2 firstLine | PCRE2 noUTFCheck.
+	           | PCRE2 neverBackslashC | PCRE2 firstLine | PCRE2 noUTFCheck | PCRE2 altBSUX.
 	(flags bitAnd: allowed bitInvert) ~= 0 ifTrue: [
 		PCRE2UnsupportedFeature signal: 'Compile options are not yet implemented by the Pharo backend' ].
 	parser := PCRE2PatternParser new codeUnitWidth: compiler codeUnitWidth.
 	context := compiler existingContext.
 	context ifNotNil: [
 			context backend startOptimizationEnabled ifFalse: [ flags := flags bitOr: PCRE2 noStartOptimize ].
-			(context options bitAnd: (PCRE2 extraBadEscapeIsLiteral | PCRE2 extraAltBsux) bitInvert) ~= 0 ifTrue: [
+			(context options bitAnd:
+				 (PCRE2 extraBadEscapeIsLiteral | PCRE2 extraAltBsux | PCRE2 extraEscapedCrIsLf | PCRE2 extraAllowSurrogateEscapes
+				  | PCRE2 extraAsciiBsd | PCRE2 extraAsciiBss | PCRE2 extraAsciiBsw | PCRE2 extraAsciiPosix | PCRE2 extraAsciiDigit
+				  | PCRE2 extraCaselessRestrict | PCRE2 extraMatchLine | PCRE2 extraMatchWord) bitInvert) ~= 0 ifTrue: [
 				PCRE2UnsupportedFeature signal: 'Extra compile options are not yet implemented by the Pharo backend' ].
 			parser extraOptions: context options.
 			context maxPatternLength ifNotNil: [ :length |

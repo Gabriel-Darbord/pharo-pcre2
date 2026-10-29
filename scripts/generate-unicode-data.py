@@ -41,6 +41,17 @@ def generate(checkout, revision):
         ends = [int(value, 16) for value in text.split('..')]
         return ends[0], ends[-1]
 
+    catalog = subprocess.check_output(
+        ['git', 'show', f'{revision}:src/pcre2_ucptables_inc.h'],
+        cwd=checkout, text=True)
+    allowed = {}
+    for definition in re.findall(r'^#define STRING_\w+0 (.+)$', catalog, re.M):
+        tokens = re.findall(r'STR_(\w+)', definition)
+        name = ''.join('&' if token == 'AMPERSAND' else token for token in tokens)
+        allowed[name] = True
+    assert 'lu' in allowed and 'letter' not in allowed and 'l&' in allowed
+    assert 'DerivedGeneralCategory-17.0.0' in read('DerivedGeneralCategory')
+
     properties = collections.defaultdict(list)
     aliases = {}
     for code, category, *_ in rows('DerivedGeneralCategory'):
@@ -109,8 +120,12 @@ def generate(checkout, revision):
 
     for source in ('PropList', 'DerivedCoreProperties', 'emoji-data'):
         for code, prop, *extra in rows(source):
-            if not extra:
+            if not extra or (prop == 'InCB' and extra[0] != 'None'):
                 properties['bool:' + normalized(prop)].append(interval(code))
+    for row in rows('UnicodeData'):
+        if row[9] == 'Y':
+            code = int(row[0], 16)
+            properties['bool:bidimirrored'].append((code, code))
     for row in rows('PropertyAliases'):
         target = next(('bool:' + normalized(name) for name in row
                        if 'bool:' + normalized(name) in properties), None)
@@ -159,7 +174,8 @@ def generate(checkout, revision):
     assert properties['gc:lu'] and equivalents['8490'] == [75, 107, 8490]
     return {'version': '17.0.0', 'properties': properties,
             'aliases': aliases, 'folds': {str(k): v for k, v in folds.items()},
-            'equivalents': equivalents, 'scriptMasks': masks, 'digitSets': digits}
+            'equivalents': equivalents, 'scriptMasks': masks, 'digitSets': digits,
+            'allowedProperties': allowed}
 
 
 if __name__ == '__main__':

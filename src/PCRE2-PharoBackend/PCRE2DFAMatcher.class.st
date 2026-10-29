@@ -54,8 +54,8 @@ PCRE2DFAMatcher >> autoPossess: repeat state: state [
 					literal ifNil: [ ^ false ].
 					predicate := link first startPredicate.
 					predicate ifNil: [ ^ false ].
-					((PCRE2UnicodeData equivalents: literal asInteger) anySatisfy: [ :code | predicate value: (Character value: code) ]) ifTrue: [
-						^ false ].
+					((PCRE2UnicodeData equivalents: literal asInteger) anySatisfy: [ :code | predicate value: (PCRE2CodeUnit fromInteger: code) ])
+						ifTrue: [ ^ false ].
 					link first minimumLength > 0 ifTrue: [ ^ true ] ].
 			link := link second ].
 	^ true

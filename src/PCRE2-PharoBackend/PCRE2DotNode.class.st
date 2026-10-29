@@ -32,7 +32,8 @@ PCRE2DotNode >> executeIn: engine state: state [
 			 (convention lengthAt: state position + 1 in: engine subject) > 0 or: [
 				 convention mode = PCRE2 newlineCRLF and: [ (convention lengthEndingAt: state position + 1 in: engine subject) = 2 ] ] ])
 		ifTrue: [ ^ nil ].
-	state position: state position + 1.
+	engine noteInspectionAt: state position.
+	state position: (engine subject nextOffsetFrom: state position).
 	^ state
 ]
 

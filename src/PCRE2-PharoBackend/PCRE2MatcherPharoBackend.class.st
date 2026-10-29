@@ -91,10 +91,10 @@ PCRE2MatcherPharoBackend >> depthLimit [
 	^ matcher context depthLimit min: (patternLimits at: #depth ifAbsent: [ matcher context depthLimit ])
 ]
 
-{ #category : 'matching' }
+{ #category : 'DFA matching' }
 PCRE2MatcherPharoBackend >> dfaMatch: bytes from: start to: length matchData: data workspace: workspace size: workspaceSize [
 
-	| decoded text mapping initial engine state matches lastIndex options allowed minimum |
+	| decoded text mapping initial engine state matches lastIndex options allowed minimum candidate |
 	options := matcher options.
 	allowed := PCRE2 anchored | PCRE2 endAnchored | PCRE2 notBOL | PCRE2 notEOL | PCRE2 notEmpty | PCRE2 notEmptyAtStart
 	           | PCRE2 dfaShortest | PCRE2 noUTFCheck | PCRE2 partialSoft | PCRE2 partialHard | PCRE2 copyMatchedSubject.
@@ -103,7 +103,10 @@ PCRE2MatcherPharoBackend >> dfaMatch: bytes from: start to: length matchData: da
 	decoded := self textAndOffsetsFor: bytes length: length.
 	text := decoded first.
 	mapping := decoded second.
-	initial := (mapping indexOf: start ifAbsent: [ PCRE2MatchError signal: 'bad UTF offset' ]) - 1.
+	initial := start.
+	(start between: 0 and: text size) ifFalse: [ PCRE2MatchError signal: 'bad offset value' ].
+	((options bitAnd: PCRE2 noUTFCheck) = 0 and: [ (text isBoundary: start) not ]) ifTrue: [
+		PCRE2MatchError signal: 'bad UTF offset' ].
 	engine := PCRE2DFAMatcher new
 		          subject: text
 		          root: root
@@ -121,7 +124,8 @@ PCRE2MatcherPharoBackend >> dfaMatch: bytes from: start to: length matchData: da
 		             ifFalse: [ text size ].
 	minimum := (root lengthBoundsUsing: groups names: names visited: IdentitySet new) first.
 	(compileOptions bitAnd: PCRE2 firstLine) ~= 0 ifTrue: [ lastIndex := lastIndex min: (self firstLineEndIn: text) ].
-	initial to: lastIndex do: [ :candidate |
+	candidate := initial.
+	[ candidate <= lastIndex ] whileTrue: [
 			((compileOptions bitAnd: PCRE2 noStartOptimize) ~= 0 or: [
 				 (options bitAnd: PCRE2 partialSoft | PCRE2 partialHard) ~= 0 or: [ text size - candidate >= minimum ] ]) ifTrue: [
 					state := PCRE2MatchState new
@@ -143,7 +147,8 @@ PCRE2MatcherPharoBackend >> dfaMatch: bytes from: start to: length matchData: da
 							data startIndex: (mapping at: candidate + 1).
 							^ matches size > data getCount
 								  ifTrue: [ 0 ]
-								  ifFalse: [ matches size ] ] ] ].
+								  ifFalse: [ matches size ] ] ].
+			candidate := text nextOffsetFrom: candidate ].
 	engine partialState ifNotNil: [ :partial | ^ self storePartial: partial mapping: mapping into: data ].
 	^ PCRE2 errorNoMatch
 ]
@@ -179,9 +184,12 @@ PCRE2MatcherPharoBackend >> finalize [
 { #category : 'matching' }
 PCRE2MatcherPharoBackend >> firstLineEndIn: text [
 
-	| convention |
+	| convention offset |
 	convention := PCRE2NewlineConvention new mode: newlineMode.
-	1 to: text size do: [ :index | (convention lengthAt: index in: text) > 0 ifTrue: [ ^ index - 1 ] ].
+	offset := 0.
+	[ offset < text size ] whileTrue: [
+			(convention lengthAt: offset + 1 in: text) > 0 ifTrue: [ ^ offset ].
+			offset := text nextOffsetFrom: offset ].
 	^ text size
 ]
 
@@ -218,13 +226,16 @@ PCRE2MatcherPharoBackend >> match: bytes from: start to: length options: matchOp
 
 	| decoded text mapping initial engine state result anchored lastIndex converted rc allowed offsetLimit candidate startPredicate required |
 	allowed := PCRE2 anchored | PCRE2 endAnchored | PCRE2 notBOL | PCRE2 notEOL | PCRE2 notEmpty | PCRE2 notEmptyAtStart
-	           | PCRE2 noJIT | PCRE2 copyMatchedSubject | PCRE2 partialSoft | PCRE2 partialHard.
+	           | PCRE2 noJIT | PCRE2 noUTFCheck | PCRE2 copyMatchedSubject | PCRE2 partialSoft | PCRE2 partialHard.
 	(matchOptions bitAnd: allowed bitInvert) ~= 0 ifTrue: [
 		PCRE2UnsupportedFeature signal: 'Match options are not yet implemented by the Pharo backend' ].
 	decoded := self textAndOffsetsFor: bytes length: length.
 	text := decoded first.
 	mapping := decoded second.
-	initial := (mapping indexOf: start ifAbsent: [ PCRE2MatchError signal: 'bad UTF offset' ]) - 1.
+	initial := start.
+	(start between: 0 and: text size) ifFalse: [ PCRE2MatchError signal: 'bad offset value' ].
+	((matchOptions bitAnd: PCRE2 noUTFCheck) = 0 and: [ (text isBoundary: start) not ]) ifTrue: [
+		PCRE2MatchError signal: 'bad UTF offset' ].
 	((compileOptions bitAnd: PCRE2 noStartOptimize) = 0 and: [ (matchOptions bitAnd: PCRE2 partialSoft | PCRE2 partialHard) = 0 ])
 		ifTrue: [
 				required := root requiredNode.
@@ -248,7 +259,7 @@ PCRE2MatcherPharoBackend >> match: bytes from: start to: length options: matchOp
 	lastIndex := anchored
 		             ifTrue: [ initial ]
 		             ifFalse: [ text size ].
-	offsetLimit ifNotNil: [ lastIndex := lastIndex min: (mapping count: [ :offset | offset <= offsetLimit ]) - 1 ].
+	offsetLimit ifNotNil: [ lastIndex := lastIndex min: offsetLimit ].
 	startPredicate := ((compileOptions bitAnd: PCRE2 noStartOptimize) = 0 and: [
 		                   root firstLiteral isNotNil and: [ (matchOptions bitAnd: PCRE2 partialSoft | PCRE2 partialHard) = 0 ] ])
 		                  ifTrue: [ root startPredicate ].
@@ -282,7 +293,7 @@ PCRE2MatcherPharoBackend >> match: bytes from: start to: length options: matchOp
 								  ifFalse: [ rc ] ].
 					engine hardPartialFound ifTrue: [ ^ self storePartial: engine partialState mapping: mapping into: matchData ].
 					engine committed ifTrue: [ ^ PCRE2 errorNoMatch ] ].
-			candidate := candidate + 1 max: (engine skipPosition ifNil: [ 0 ]) ].
+			candidate := (text nextOffsetFrom: candidate) max: (engine skipPosition ifNil: [ 0 ]) ].
 	engine partialState ifNotNil: [ :partial | ^ self storePartial: partial mapping: mapping into: matchData ].
 	matchData mark: engine lastMark.
 	^ PCRE2 errorNoMatch
@@ -539,7 +550,7 @@ PCRE2MatcherPharoBackend >> substitutionMatches: input options: flags matchData:
 { #category : 'matching' }
 PCRE2MatcherPharoBackend >> textAndOffsetsFor: bytes length: length [
 
-	| input text mapping offset utf effectiveLength |
+	| input subject utf effectiveLength |
 	effectiveLength := length = PCRE2 zeroTerminated
 		                   ifTrue: [ self zeroTerminatedLength: bytes ]
 		                   ifFalse: [ length ].
@@ -547,25 +558,11 @@ PCRE2MatcherPharoBackend >> textAndOffsetsFor: bytes length: length [
 		PCRE2MatchError signal: 'bad subject length' ].
 	input := matcher preparedInputFor: (bytes copyFrom: 1 to: effectiveLength * matcher codeUnitByteSize).
 	utf := (compileOptions bitAnd: PCRE2 utf) ~= 0.
-	utf
-		ifTrue: [
-				PCRE2CodeUnitText validateUTF: input bytes width: self codeUnitWidth.
-				text := [ input readFrom: 1 to: input size ]
-					        on: Error
-					        do: [ :error | PCRE2MatchError signal: 'invalid UTF subject' ].
-				text isString ifFalse: [ text := text asString ] ]
-		ifFalse: [ text := PCRE2CodeUnitText from: input bytes width: self codeUnitWidth ].
-	mapping := Array new: text size + 1.
-	offset := 0.
-	mapping at: 1 put: 0.
-	text withIndexDo: [ :character :index |
-			offset := offset + (utf
-				           ifTrue: [ self codeUnitsFor: character ]
-				           ifFalse: [ 1 ]).
-			mapping at: index + 1 put: offset ].
+	utf ifTrue: [ PCRE2CodeUnitText validateUTF: input bytes width: self codeUnitWidth ].
+	subject := PCRE2SubjectText new bytes: input bytes width: self codeUnitWidth utf: utf.
 	^ {
-		  text.
-		  mapping }
+		  subject.
+		  (0 to: subject size) }
 ]
 
 { #category : 'substitution' }
@@ -597,6 +594,6 @@ PCRE2MatcherPharoBackend >> zeroTerminatedLength: bytes [
 	| width |
 	width := matcher codeUnitByteSize.
 	1 to: bytes size - width + 1 by: width do: [ :index |
-	((index to: index + width - 1) allSatisfy: [ :offset | (bytes at: offset) = 0 ]) ifTrue: [ ^ index - 1 // width ] ].
+		((index to: index + width - 1) allSatisfy: [ :offset | (bytes at: offset) asInteger = 0 ]) ifTrue: [ ^ index - 1 // width ] ].
 	^ bytes size // width
 ]

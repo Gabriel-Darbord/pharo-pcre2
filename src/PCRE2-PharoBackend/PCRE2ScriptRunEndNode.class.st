@@ -11,7 +11,9 @@ Class {
 { #category : 'matching' }
 PCRE2ScriptRunEndNode >> executeIn: engine state: state [
 
-	^ (PCRE2UnicodeData isScriptRun: engine subject from: start + 1 to: state position) ifTrue: [ state ]
+	| characters |
+	characters := engine subject charactersFrom: start to: state position.
+	^ (PCRE2UnicodeData isScriptRun: characters from: 1 to: characters size) ifTrue: [ state ]
 ]
 
 { #category : 'matching' }

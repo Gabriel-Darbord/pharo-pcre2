@@ -11,38 +11,41 @@ Class {
 { #category : 'matching' }
 PCRE2NewlineConvention >> lengthAt: index in: text [
 
-	| code |
+	| code length |
 	(index between: 1 and: text size) ifFalse: [ ^ 0 ].
 	code := (text at: index) asInteger.
+	length := text pointWidthAtOffset: index - 1.
 	mode = PCRE2 newlineLF ifTrue: [
 			^ code = 10
-				  ifTrue: [ 1 ]
+				  ifTrue: [ length ]
 				  ifFalse: [ 0 ] ].
 	mode = PCRE2 newlineCR ifTrue: [
 			^ code = 13
-				  ifTrue: [ 1 ]
+				  ifTrue: [ length ]
 				  ifFalse: [ 0 ] ].
 	mode = PCRE2 newlineNul ifTrue: [
 			^ code = 0
-				  ifTrue: [ 1 ]
+				  ifTrue: [ length ]
 				  ifFalse: [ 0 ] ].
 	(code = 13 and: [ index < text size and: [ (text at: index + 1) asInteger = 10 ] ]) ifTrue: [ ^ 2 ].
 	mode = PCRE2 newlineCRLF ifTrue: [ ^ 0 ].
-	(#( 10 13 ) includes: code) ifTrue: [ ^ 1 ].
+	(#( 10 13 ) includes: code) ifTrue: [ ^ length ].
 	^ (mode = PCRE2 newlineAny and: [ #( 11 12 133 8232 8233 ) includes: code ])
-		  ifTrue: [ 1 ]
+		  ifTrue: [ length ]
 		  ifFalse: [ 0 ]
 ]
 
 { #category : 'matching' }
 PCRE2NewlineConvention >> lengthEndingAt: index in: text [
 
-	| length |
+	| previous before length |
 	(index between: 1 and: text size) ifFalse: [ ^ 0 ].
-	(index > 1 and: [ (self lengthAt: index - 1 in: text) = 2 ]) ifTrue: [ ^ 2 ].
-	length := self lengthAt: index in: text.
-	^ length = 1
-		  ifTrue: [ 1 ]
+	previous := text previousOffsetFrom: index.
+	before := text previousOffsetFrom: previous.
+	(before >= 0 and: [ (self lengthAt: before + 1 in: text) = 2 and: [ before + 2 = index ] ]) ifTrue: [ ^ 2 ].
+	length := self lengthAt: previous + 1 in: text.
+	^ previous + length = index
+		  ifTrue: [ length ]
 		  ifFalse: [ 0 ]
 ]
 

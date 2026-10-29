@@ -164,6 +164,25 @@ PCRE2PharoBackendTest >> testCharacterClasses [
 ]
 
 { #category : 'tests' }
+PCRE2PharoBackendTest >> testCodeUnitEscapeAndFullRaw32BitValues [
+
+	| compiler matcher match bytes |
+	compiler := PCRE2UTF8Compiler new backend: PCRE2CompilerPharoBackend.
+	match := (compiler compile: '\C\C') findMatch: 'é'.
+	self assert: match offsets equals: #( 0 2 ).
+	match := (compiler compile: '(\C)(\C)') findMatch: 'é'.
+	self assert: match offsets equals: #( 0 2 0 1 1 2 ).
+	self should: [ compiler compile: '(?<=\C)a' ] raise: PCRE2CompileError.
+	compiler := PCRE2UTF32Compiler new
+		            backend: PCRE2CompilerPharoBackend;
+		            options: 0.
+	bytes := ByteArray new: 4.
+	bytes uint32AtOffset: 0 put: 16rFFFFFFFF.
+	match := (compiler compile: '\x{FFFFFFFF}') matchBytes: bytes from: 1 to: 1.
+	self assert: match offsets equals: #( 0 1 )
+]
+
+{ #category : 'tests' }
 PCRE2PharoBackendTest >> testCommentsDoNotBecomeQuantifiedAtoms [
 
 	self assert: ((self compile: '^a(?#comment){3}c') matches: 'aaac').
@@ -273,6 +292,26 @@ PCRE2PharoBackendTest >> testContextsKeepThePublicWidthSpecificAPI [
 	matcher := compiler compile: 'a'.
 	self assert: matcher context class equals: PCRE2UTF16MatchContext.
 	self assert: matcher context backend class equals: PCRE2ContextPharoBackend
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testControlOctalAndAlternativeUnicodeEscapes [
+
+	| compiler |
+	self assert:
+		((self compile: '\cA\c?\o{ 101 }') matches: (String with: (Character value: 1) with: (Character value: 127) with: $A)).
+	compiler := PCRE2UTF8Compiler new
+		            backend: PCRE2CompilerPharoBackend;
+		            options: PCRE2 utf | PCRE2 altBSUX.
+	self assert: ((compiler compile: '\u0061\x62\U') matches: 'abU').
+	self assert: ((compiler compile: '\u{61}') matches: ('u' repeat: 61)).
+	self assert: ((compiler compile: '\x{2}') matches: 'xx').
+	self assert: ((compiler compile: '\x1') matches: 'x1').
+	compiler options: PCRE2 utf.
+	compiler context options: PCRE2 extraEscapedCrIsLf.
+	self assert: ((compiler compile: '\r') matches: String lf).
+	compiler context options: PCRE2 extraAllowSurrogateEscapes.
+	self deny: ((compiler compile: '\x{D800}') matches: 'a')
 ]
 
 { #category : 'tests' }
@@ -595,7 +634,7 @@ PCRE2PharoBackendTest >> testPinnedUnicodePropertiesAndCaseFolding [
 
 	self assert: PCRE2UnicodeData version equals: '17.0.0'.
 	self assert: ((self compile: '\p{sc=Greek}+') find: 'aαβ') equals: 'αβ'.
-	self assert: ((self compile: '\p{Uppercase_Letter}') search: 'A').
+	self assert: ((self compile: '\p{Lu}') search: 'A').
 	self assert: ((self compile: '\p{Emoji}') search: '😀').
 	self assert: ((self compile: '(?i)k') matches: 'K').
 	self assert: ((self compile: '(?i)[A-Z]') matches: 'ſ').
@@ -657,6 +696,26 @@ PCRE2PharoBackendTest >> testRelativeAndOctalReferences [
 	self assert: ((self compile: '(a.)\g{-1}Z') matches: 'ababZ').
 	self assert: ((self compile: '\123') matches: 'S').
 	self should: [ self compile: '(a)\g{2}' ] raise: PCRE2CompileError
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testScopedASCIIAndCaselessRestrictions [
+
+	| compiler |
+	compiler := PCRE2UTF8Compiler new
+		            backend: PCRE2CompilerPharoBackend;
+		            options: PCRE2 utf | PCRE2 ucp | PCRE2 caseless.
+	self assert: ((compiler compile: '(?aD:\d)\d') matches: '1١').
+	self deny: ((compiler compile: '(?aD:\d)\d') matches: '١1').
+	self assert: ((compiler compile: '(?aP:[[:alpha:]])[[:alpha:]]') matches: 'aé').
+	self deny: ((compiler compile: '(?aP:[[:alpha:]])[[:alpha:]]') matches: 'éa').
+	self assert: ((compiler compile: '(?r:k)k') matches: 'kK').
+	self deny: ((compiler compile: '(?r:k)k') matches: 'Kk').
+	self assert: ((compiler compile: '(?r:(k)\1)') matches: 'KK').
+	self deny: ((compiler compile: '(?r:(k)\1)') matches: 'kK').
+	compiler context options: PCRE2 extraAsciiBsw | PCRE2 extraCaselessRestrict.
+	self deny: ((compiler compile: '\w') matches: 'é').
+	self deny: ((compiler compile: 'k') matches: 'K')
 ]
 
 { #category : 'tests' }
@@ -753,6 +812,20 @@ PCRE2PharoBackendTest >> testSyntaxErrors [
 ]
 
 { #category : 'tests' }
+PCRE2PharoBackendTest >> testUnicodePropertyNamesFollowPCRE2 [
+
+	#( '\p{gc=Lu}' '\p{Letter}' '\p{Uppercase_Letter}' '\p{Other_Alphabetic}' ) do: [ :pattern |
+		self should: [ self compile: pattern ] raise: PCRE2CompileError ].
+	self assert: ((self compile: '\p{Bidi_Mirrored}') search: '(').
+	self assert: ((self compile: '\p{InCB}') search: (Character value: 16r94D) asString).
+	self assert: ((self compile: '\p{bc=L}') search: 'a').
+	#( 'Inherited' 'scx=Inherited' ) do: [ :name |
+		self assert: ((self compile: '\p{' , name , '}') search: (Character value: 768) asString) ].
+	#( 'Common' 'scx=Common' ) do: [ :name |
+		self assert: ((self compile: '\p{' , name , '}') search: (Character value: 183) asString) ]
+]
+
+{ #category : 'tests' }
 PCRE2PharoBackendTest >> testUnicodeRangesForAllWidths [
 
 	{
@@ -805,6 +878,21 @@ PCRE2PharoBackendTest >> testUnsupportedFeaturesAreExplicit [
 					dfaMatches: 'a' ]
 		raise: PCRE2UnsupportedFeature.
 	self should: [ (self compile: 'a') compileJIT ] raise: PCRE2UnsupportedFeature
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testWholeWordAndWholeLineCompileOptions [
+
+	| compiler |
+	compiler := PCRE2UTF8Compiler new backend: PCRE2CompilerPharoBackend.
+	compiler context options: PCRE2 extraMatchWord.
+	self assert: ((compiler compile: 'cat|dog') search: 'a dog!').
+	self deny: ((compiler compile: 'cat|dog') search: 'scat').
+	compiler context options: PCRE2 extraMatchLine.
+	self assert: ((compiler compile: 'cat|dog') search: 'cat').
+	self deny: ((compiler compile: 'cat|dog') search: 'a cat').
+	compiler addOptions: PCRE2 multiline.
+	self assert: ((compiler compile: 'cat|dog') search: 'a' , String lf , 'dog' , String lf , 'b')
 ]
 
 { #category : 'tests' }

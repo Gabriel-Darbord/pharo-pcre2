@@ -12,7 +12,8 @@ Class {
 		'isJIT',
 		'options',
 		'nameTable',
-		'backend'
+		'backend',
+		'patternInput'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -896,6 +897,18 @@ PCRE2Matcher >> pattern: aString [
 	nameTable := nil
 ]
 
+{ #category : 'private' }
+PCRE2Matcher >> patternInput [
+
+	^ patternInput ifNil: [ compiler preparedPatternFor: pattern ]
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> patternInput: anInput [
+
+	patternInput := anInput
+]
+
 { #category : 'backends' }
 PCRE2Matcher >> postCopy [
 
@@ -938,7 +951,7 @@ PCRE2Matcher >> readNamedGroups [
 { #category : 'backends' }
 PCRE2Matcher >> recompile [
 
-	self initializeBackend: (backend recompiledBy: compiler pattern: pattern).
+	self initializeBackend: (backend recompiledBy: compiler pattern: self patternInput).
 	self restoreJITIfNeeded
 ]
 
@@ -1332,7 +1345,7 @@ PCRE2Matcher >> temporaryMatcherAddingCompileOptions: compileOptions matchOption
 	temporaryCompiler
 		options: (sourceCompiler options bitOr: compileOptions);
 		optionsJIT: sourceCompiler optionsJIT.
-	temporaryMatcher := temporaryCompiler compile: pattern.
+	temporaryMatcher := temporaryCompiler compile: self patternInput.
 	temporaryMatcher options: (options bitOr: matchOptions).
 	context ifNotNil: [ temporaryMatcher context: context copy autoRelease ].
 	^ temporaryMatcher
@@ -1356,7 +1369,7 @@ PCRE2Matcher >> traceMatch: aStringOrInput [
 	| eventSnapshots input match patternInput resultCode traceMatcher |
 	traceMatcher := self traceMatcher.
 	input := self preparedInputFor: aStringOrInput.
-	patternInput := compiler preparedPatternFor: pattern.
+	patternInput := self patternInput.
 	eventSnapshots := OrderedCollection new.
 	traceMatcher context calloutBlock: [ :event |
 			eventSnapshots add: event.

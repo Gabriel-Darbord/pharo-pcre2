@@ -28,15 +28,15 @@ PCRE2CharacterNode >> character: aCharacter [
 ]
 
 { #category : 'matching' }
-PCRE2CharacterNode >> executeIn: anEngine state: aState [
+PCRE2CharacterNode >> executeIn: engine state: state [
 
-	aState position >= anEngine subject size ifTrue: [
-			anEngine notePartial: aState.
+	state position >= engine subject size ifTrue: [
+			engine notePartial: state.
 			^ nil ].
-	anEngine noteInspectionAt: aState position.
-	(aState position < anEngine subject size and: [ predicate value: (anEngine subject at: aState position + 1) ]) ifFalse: [ ^ nil ].
-	aState position: aState position + 1.
-	^ aState
+	engine noteInspectionAt: state position.
+	(predicate value: (engine subject at: state position + 1)) ifFalse: [ ^ nil ].
+	state position: (engine subject nextOffsetFrom: state position).
+	^ state
 ]
 
 { #category : 'matching' }

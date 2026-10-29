@@ -95,8 +95,7 @@ PCRE2UTF8Input >> decodeBytesFrom: start to: end [
 	"Decode a 1-based inclusive byte range from my UTF-8 storage without copying that range first."
 
 	| byteStream |
-	byteStream := bytes readStream.
-	byteStream position: start - 1.
+	byteStream := ReadStream on: bytes from: start to: end.
 	^ String streamContents: [ :stream |
 			  [ byteStream position < end ] whileTrue: [
 					  | codePoint |

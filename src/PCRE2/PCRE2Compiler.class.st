@@ -143,6 +143,7 @@ PCRE2Compiler >> compile: pattern [
 	matcher := self matcherClass new backend: (self backend compilePreparedInput: input).
 	matcher
 		pattern: (self patternStringFromInput: input);
+		patternInput: input;
 		compiler: self.
 	matcher isJIT: (EagerJIT and: [ self backend supportsJIT and: [ (self backend privateJITCompile: matcher backend) = 0 ] ]).
 	^ matcher
@@ -297,8 +298,7 @@ PCRE2Compiler >> optionsJIT: anInteger [
 { #category : 'private' }
 PCRE2Compiler >> patternStringFromInput: input [
 
-	input size = 0 ifTrue: [ ^ '' ].
-	^ input readFrom: 1 to: input size
+	^ input displayFrom: 1 to: input size
 ]
 
 { #category : 'backends' }

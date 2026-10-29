@@ -33,6 +33,12 @@ Class {
 }
 
 { #category : 'parsing' }
+PCRE2PatternParser >> altBSUX [
+
+	^ (options bitAnd: PCRE2 altBSUX) ~= 0 or: [ (extraOptions bitAnd: PCRE2 extraAltBsux) ~= 0 ]
+]
+
+{ #category : 'parsing' }
 PCRE2PatternParser >> alternation [
 
 	| alternatives |
@@ -44,6 +50,20 @@ PCRE2PatternParser >> alternation [
 			self skipIgnored ].
 	alternatives size = 1 ifTrue: [ ^ alternatives first ].
 	^ PCRE2AlternativeNode new children: alternatives asArray
+]
+
+{ #category : 'parsing' }
+PCRE2PatternParser >> asciiInlineOption [
+
+	| flags |
+	flags := Dictionary newFrom: {
+			         ($D -> PCRE2 extraAsciiBsd).
+			         ($S -> PCRE2 extraAsciiBss).
+			         ($W -> PCRE2 extraAsciiBsw).
+			         ($T -> PCRE2 extraAsciiDigit).
+			         ($P -> (PCRE2 extraAsciiPosix | PCRE2 extraAsciiDigit)) }.
+	(flags includesKey: self peek) ifTrue: [ ^ flags at: self next ].
+	^ PCRE2 extraAsciiBsd | PCRE2 extraAsciiBss | PCRE2 extraAsciiBsw | PCRE2 extraAsciiDigit | PCRE2 extraAsciiPosix
 ]
 
 { #category : 'parsing' }
@@ -92,7 +112,7 @@ PCRE2PatternParser >> assertion: kind [
 																										  multiline or: [
 																											  beforeEnd and: [ dollarEndOnly not and: [ (engine matchOptions bitAnd: PCRE2 notEOL) = 0 ] ] ] ] ] ]
 																						  ifFalse: [
-																								  (index > 0 and: [ word value: (engine subject at: index) ])
+																								  (index > 0 and: [ word value: (engine subject at: (engine subject previousOffsetFrom: index) + 1) ])
 																								  ~= (index < size and: [ word value: (engine subject at: index + 1) ]) = (kind = #wordBoundary) ] ] ] ] ] ] ] ]
 ]
 
@@ -118,6 +138,17 @@ PCRE2PatternParser >> atom [
 ]
 
 { #category : 'parsing' }
+PCRE2PatternParser >> bracedOctalEscape [
+
+	| digits |
+	self expect: (Character value: 123).
+	digits := (self readUntil: $}) trimBoth.
+	(digits isEmpty or: [ digits anySatisfy: [ :character | (character between: $0 and: $7) not ] ]) ifTrue: [
+		self syntaxError: 'non-octal character in \o{} (closing brace missing?)' ].
+	^ self literalCodePoint: (Integer readFrom: digits readStream base: 8)
+]
+
+{ #category : 'parsing' }
 PCRE2PatternParser >> branchResetRestoring: savedOptions [
 
 	| base maximum alternatives |
@@ -135,7 +166,8 @@ PCRE2PatternParser >> branchResetRestoring: savedOptions [
 		self expect: $) ] ensure: [
 			captureCount := maximum.
 			depth := depth - 1.
-			options := savedOptions ].
+			options := savedOptions first.
+			extraOptions := savedOptions second ].
 	^ PCRE2AlternativeNode new children: alternatives asArray
 ]
 
@@ -149,6 +181,15 @@ PCRE2PatternParser >> bsrMode [
 PCRE2PatternParser >> calloutSites [
 
 	^ calloutSites asArray
+]
+
+{ #category : 'callouts' }
+PCRE2PatternParser >> calloutStringSize: text [
+
+	(options bitAnd: PCRE2 utf) = 0 ifTrue: [ ^ text size ].
+	codeUnitWidth = 8 ifTrue: [ ^ text asPCRE2UTF8Input size ].
+	codeUnitWidth = 16 ifTrue: [ ^ text asPCRE2UTF16Input size ].
+	^ text size
 ]
 
 { #category : 'private' }
@@ -352,11 +393,22 @@ PCRE2PatternParser >> conditionalRestoring: savedOptions [
 				no := self sequence ].
 		self expect: $) ] ensure: [
 			depth := depth - 1.
-			options := savedOptions ].
+			options := savedOptions first.
+			extraOptions := savedOptions second ].
 	^ PCRE2ConditionalNode new
 		  definition: text = 'DEFINE';
 		  dfaUnsupported: (assertion isNil and: [ text ~= 'DEFINE' and: [ text ~= 'R' ] ]);
 		  condition: condition then: yes else: no
+]
+
+{ #category : 'parsing' }
+PCRE2PatternParser >> controlEscape [
+
+	| character |
+	self atEnd ifTrue: [ self syntaxError: '\c at end of pattern' ].
+	character := self next.
+	(character asInteger between: 32 and: 126) ifFalse: [ self syntaxError: '\c must be followed by a printable ASCII character' ].
+	^ self literalCodePoint: (character asUppercase asInteger bitXor: 64)
 ]
 
 { #category : 'parsing' }
@@ -375,13 +427,23 @@ PCRE2PatternParser >> escapeInClass: inClass [
 	| character reference delimiter start nodes property predicate code |
 	character := self next.
 	('dDsSwWhHvV' includes: character) ifTrue: [ ^ PCRE2CharacterNode new predicate: (self predicateFor: character) ].
+	character = $C ifTrue: [
+			inClass ifTrue: [ self syntaxError: 'escape sequence is invalid in character class' ].
+			(options bitAnd: PCRE2 neverBackslashC) ~= 0 ifTrue: [ self syntaxError: 'using \C is disabled by the application' ].
+			^ PCRE2CodeUnitNode new unicodeWideUnit: ((options bitAnd: PCRE2 utf) ~= 0 and: [ codeUnitWidth ~= 32 ]) ].
 	character = $n ifTrue: [ ^ self literal: Character lf ].
-	character = $r ifTrue: [ ^ self literal: Character cr ].
+	character = $r ifTrue: [
+			^ self literal: ((extraOptions bitAnd: PCRE2 extraEscapedCrIsLf) = 0
+					   ifTrue: [ Character cr ]
+					   ifFalse: [ Character lf ]) ].
+	character = $c ifTrue: [ ^ self controlEscape ].
+	character = $o ifTrue: [ ^ self bracedOctalEscape ].
+	(character = $U and: [ self altBSUX ]) ifTrue: [ ^ self literal: $U ].
 	character = $t ifTrue: [ ^ self literal: Character tab ].
 	character = $f ifTrue: [ ^ self literal: Character newPage ].
 	character = $a ifTrue: [ ^ self literal: (Character value: 7) ].
 	character = $e ifTrue: [ ^ self literal: (Character value: 27) ].
-	(character = $u and: [ (extraOptions bitAnd: PCRE2 extraAltBsux) ~= 0 ]) ifTrue: [ ^ self unicodeEscape ].
+	(character = $u and: [ self altBSUX ]) ifTrue: [ ^ self unicodeEscape ].
 	character = $x ifTrue: [ ^ self hexadecimalEscape ].
 	character = $b ifTrue: [
 			^ inClass
@@ -416,7 +478,9 @@ PCRE2PatternParser >> escapeInClass: inClass [
 						            position := position + 1.
 						            self readUntil: $} ]
 				            ifFalse: [ self next asString ].
-			predicate := PCRE2UnicodeData predicateFor: property caseless: (options bitAnd: PCRE2 caseless) ~= 0.
+			predicate := [ PCRE2UnicodeData predicateFor: property caseless: (options bitAnd: PCRE2 caseless) ~= 0 ]
+				             on: PCRE2UnsupportedFeature
+				             do: [ :error | self syntaxError: 'unknown property after \\P or \\p' ].
 			character = $P ifTrue: [ ^ PCRE2CharacterNode new predicate: [ :candidate | (predicate value: candidate) not ] ].
 			^ PCRE2CharacterNode new predicate: predicate ].
 	(character between: $1 and: $9) ifTrue: [ ^ self numericEscapeInClass: inClass ].
@@ -447,7 +511,8 @@ PCRE2PatternParser >> escapeInClass: inClass [
 				  ifFalse: [
 						  PCRE2BackreferenceNode new
 							  reference: reference;
-							  options: options ] ].
+							  options: options;
+							  extraOptions: extraOptions ] ].
 	character = $X ifTrue: [
 			inClass ifTrue: [ self syntaxError: 'invalid escape sequence in a character class' ].
 			^ PCRE2GraphemeNode new ].
@@ -460,7 +525,7 @@ PCRE2PatternParser >> escapeInClass: inClass [
 			self atEnd ifFalse: [ position := position + 2 ].
 			^ PCRE2QuotedSequenceNode new children: nodes ].
 	(character asInteger < 128 and: [ character isAlphaNumeric and: [ (extraOptions bitAnd: PCRE2 extraBadEscapeIsLiteral) = 0 ] ])
-		ifTrue: [ self unsupported: 'escape \' , character asString ].
+		ifTrue: [ self syntaxError: 'unrecognized character follows \' ].
 	^ self literal: character
 ]
 
@@ -482,9 +547,7 @@ PCRE2PatternParser >> explicitCallout [
 			delimiter := self next.
 			delimiter = (Character value: 123) ifTrue: [ delimiter := $} ].
 			start := position.
-			text := String streamContents: [ :stream |
-				        [ self atEnd not and: [ self peek ~= delimiter ] ] whileTrue: [ stream nextPut: self next ] ].
-			self expect: delimiter ].
+			text := self readCalloutStringUntil: delimiter ].
 	self expect: $).
 	^ self
 		  newCallout: number
@@ -507,6 +570,17 @@ PCRE2PatternParser >> extendedClass [
 	^ PCRE2CharacterNode new predicate: predicate
 ]
 
+{ #category : 'parsing' }
+PCRE2PatternParser >> extraMatchingBoundary: prefix [
+
+	(extraOptions bitAnd: PCRE2 extraMatchLine) ~= 0 ifTrue: [
+			^ self assertion: (prefix
+					   ifTrue: [ #beginLine ]
+					   ifFalse: [ #endLine ]) ].
+	(extraOptions bitAnd: PCRE2 extraMatchWord) ~= 0 ifTrue: [ ^ self assertion: #wordBoundary ].
+	^ nil
+]
+
 { #category : 'configuration' }
 PCRE2PatternParser >> extraOptions: flags [
 
@@ -517,7 +591,9 @@ PCRE2PatternParser >> extraOptions: flags [
 PCRE2PatternParser >> group [
 
 	| savedOptions index name body character positive capture |
-	savedOptions := options.
+	savedOptions := {
+		                options.
+		                extraOptions }.
 	index := nil.
 	capture := (options bitAnd: PCRE2 noAutoCapture) = 0.
 	self peek = $* ifTrue: [ ^ self longGroupRestoring: savedOptions ].
@@ -565,7 +641,8 @@ PCRE2PatternParser >> group [
 							position := position + 1.
 							^ PCRE2BackreferenceNode new
 								  reference: self namedBackreference;
-								  options: options ].
+								  options: options;
+								  extraOptions: extraOptions ].
 					self expect: $<.
 					name := self readUntil: $> ].
 			character = $R ifTrue: [
@@ -588,7 +665,7 @@ PCRE2PatternParser >> group [
 					references add: index.
 					^ PCRE2SubroutineNode new reference: index ].
 			name ifNil: [
-					('imsxUJ-n^' includes: character) ifTrue: [
+					('imsxUJ-n^ar' includes: character) ifTrue: [
 							position := position - 1.
 							self inlineOptions.
 							self peek = $) ifTrue: [
@@ -613,7 +690,7 @@ PCRE2PatternParser >> group [
 	^ body
 ]
 
-{ #category : 'backends' }
+{ #category : 'parsing' }
 PCRE2PatternParser >> groupBodyRestoring: savedOptions [
 
 	| body |
@@ -623,7 +700,8 @@ PCRE2PatternParser >> groupBodyRestoring: savedOptions [
 		body := self alternation.
 		self expect: $) ] ensure: [
 			depth := depth - 1.
-			options := savedOptions ].
+			options := savedOptions first.
+			extraOptions := savedOptions second ].
 	^ body
 ]
 
@@ -642,20 +720,29 @@ PCRE2PatternParser >> groups: aValue [
 { #category : 'parsing' }
 PCRE2PatternParser >> hexadecimalEscape [
 
-	| digits codePoint |
+	| digits start |
+	(self atEnd and: [ self altBSUX not ]) ifTrue: [ self syntaxError: '\x is not followed by a hexadecimal digit' ].
+	self altBSUX ifTrue: [
+			start := position.
+			digits := String streamContents: [ :stream |
+				          2 timesRepeat: [
+					          (self peek isNotNil and: [ self peek digitValue between: 0 and: 15 ]) ifTrue: [ stream nextPut: self next ] ] ].
+			digits size = 2 ifFalse: [
+					position := start.
+					^ self literal: $x ].
+			^ self literalCodePoint: (Integer readFrom: digits readStream base: 16) ].
 	self peek = (Character value: 123)
 		ifTrue: [
-				position := position + 1.
-				digits := (self readUntil: $}) trimBoth ]
+				self next.
+				digits := (self readUntil: $}) trimBoth.
+				(digits isEmpty or: [ digits anySatisfy: [ :character | (character digitValue between: 0 and: 15) not ] ]) ifTrue: [
+					self syntaxError: 'non-hex character in \\x{} (closing brace missing?)' ] ]
 		ifFalse: [
 				digits := String streamContents: [ :stream |
 					          2 timesRepeat: [
-						          (self peek isNotNil and: [ self peek digitValue between: 0 and: 15 ]) ifTrue: [ stream nextPut: self next ] ] ] ].
-	(digits isEmpty or: [ digits anySatisfy: [ :character | (character digitValue between: 0 and: 15) not ] ]) ifTrue: [
-		self syntaxError: 'hexadecimal digit expected' ].
-	codePoint := Integer readFrom: digits readStream base: 16.
-	codePoint > 16r10FFFF ifTrue: [ self syntaxError: 'character code point too large' ].
-	^ self literal: (Character value: codePoint)
+						          (self peek isNotNil and: [ self peek digitValue between: 0 and: 15 ]) ifTrue: [ stream nextPut: self next ] ] ].
+				digits isEmpty ifTrue: [ ^ self literalCodePoint: 0 ] ].
+	^ self literalCodePoint: (Integer readFrom: digits readStream base: 16)
 ]
 
 { #category : 'callouts' }
@@ -695,9 +782,12 @@ PCRE2PatternParser >> initializePatternOffsets [
 { #category : 'parsing' }
 PCRE2PatternParser >> inlineOptions [
 
-	| remove flags character flag seenX |
+	| remove flags character flag seenX extra hyphenAllowed |
+	hyphenAllowed := true.
 	self peek = $^ ifTrue: [
 			self next.
+			hyphenAllowed := false.
+			extraOptions := extraOptions bitAnd: PCRE2 extraCaselessRestrict bitInvert.
 			options := options bitAnd:
 				           (PCRE2 caseless | PCRE2 multiline | PCRE2 dotAll | PCRE2 noAutoCapture | PCRE2 extended | PCRE2 extendedMore)
 					           bitInvert ].
@@ -714,27 +804,69 @@ PCRE2PatternParser >> inlineOptions [
 	[ self atEnd not and: [ self peek ~= $: and: [ self peek ~= $) ] ] ] whileTrue: [
 			character := self next.
 			character = $-
-				ifTrue: [ remove := true ]
+				ifTrue: [
+						hyphenAllowed ifFalse: [ self syntaxError: 'invalid hyphen in option setting' ].
+						hyphenAllowed := false.
+						remove := true ]
 				ifFalse: [
-						flag := flags at: character ifAbsent: [ self unsupported: 'inline option ' , character asString ].
+						extra := character = $a or: [ character = $r ].
+						flag := character = $a
+							        ifTrue: [ self asciiInlineOption ]
+							        ifFalse: [
+									        character = $r
+										        ifTrue: [ PCRE2 extraCaselessRestrict ]
+										        ifFalse: [ flags at: character ifAbsent: [ self syntaxError: 'unrecognized character after (? or (?-' ] ] ].
 						character = $x ifTrue: [
 								seenX := seenX + 1.
 								(remove or: [ seenX > 1 ]) ifTrue: [ flag := flag bitOr: PCRE2 extendedMore ] ].
-						options := remove
-							           ifTrue: [ options bitAnd: flag bitInvert ]
-							           ifFalse: [ options bitOr: flag ] ] ]
+						extra
+							ifTrue: [
+									extraOptions := remove
+										                ifTrue: [ extraOptions bitAnd: flag bitInvert ]
+										                ifFalse: [ extraOptions bitOr: flag ] ]
+							ifFalse: [
+									options := remove
+										           ifTrue: [ options bitAnd: flag bitInvert ]
+										           ifFalse: [ options bitOr: flag ] ] ] ]
 ]
 
 { #category : 'parsing' }
 PCRE2PatternParser >> literal: character [
 
-	| caseless unicode |
+	| caseless unicode restricted |
 	caseless := (options bitAnd: PCRE2 caseless) ~= 0.
+	restricted := (extraOptions bitAnd: PCRE2 extraCaselessRestrict) ~= 0.
 	unicode := (options bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0.
 	^ PCRE2CharacterNode new
 		  character: character;
 		  predicate: [ :candidate |
-			  candidate = character or: [ caseless and: [ PCRE2UnicodeData same: candidate as: character unicode: unicode ] ] ]
+				  candidate = character or: [
+							  caseless and: [
+										  PCRE2UnicodeData
+											  same: candidate
+											  as: character
+											  unicode: unicode
+											  restricted: restricted ] ] ]
+]
+
+{ #category : 'parsing' }
+PCRE2PatternParser >> literalCodePoint: code [
+
+	| maximum |
+	maximum := (options bitAnd: PCRE2 utf) ~= 0
+		           ifTrue: [ 16r10FFFF ]
+		           ifFalse: [
+				           codeUnitWidth = 8
+					           ifTrue: [ 255 ]
+					           ifFalse: [
+							           codeUnitWidth = 16
+								           ifTrue: [ 65535 ]
+								           ifFalse: [ 16rFFFFFFFF ] ] ].
+	code > maximum ifTrue: [ self syntaxError: 'character code point too large' ].
+	((options bitAnd: PCRE2 utf) ~= 0 and: [
+		 (code between: 16rD800 and: 16rDFFF) and: [ (extraOptions bitAnd: PCRE2 extraAllowSurrogateEscapes) = 0 ] ]) ifTrue: [
+		self syntaxError: 'disallowed Unicode code point (>= 0xd800 && <= 0xdfff)' ].
+	^ self literal: (PCRE2CodeUnit fromInteger: code)
 ]
 
 { #category : 'parsing' }
@@ -855,8 +987,7 @@ PCRE2PatternParser >> newCallout: number string: text stringStart: textStart pos
 		        nextLength: 0
 		        string: text
 		        offset: (textStart ifNil: [ 0 ] ifNotNil: [ self codeUnitOffsetAt: textStart ])
-		        length:
-		        (text ifNil: [ 0 ] ifNotNil: [ (self codeUnitOffsetAt: textStart + text size) - (self codeUnitOffsetAt: textStart) ]).
+		        length: (text ifNil: [ 0 ] ifNotNil: [ self calloutStringSize: text ]).
 	calloutSites add: site.
 	^ PCRE2CalloutNode new site: site
 ]
@@ -912,7 +1043,8 @@ PCRE2PatternParser >> numericEscapeInClass: inClass [
 			references add: reference.
 			^ PCRE2BackreferenceNode new
 				  reference: reference;
-				  options: options ].
+				  options: options;
+				  extraOptions: extraOptions ].
 	position := saved.
 	^ self octalEscape
 ]
@@ -926,7 +1058,7 @@ PCRE2PatternParser >> octalEscape [
 	[ count < 3 and: [ self peek isNotNil and: [ self peek between: $0 and: $7 ] ] ] whileTrue: [
 			value := value * 8 + self next asciiValue - $0 asciiValue.
 			count := count + 1 ].
-	^ self literal: (Character value: value)
+	^ self literalCodePoint: value
 ]
 
 { #category : 'parsing' }
@@ -948,19 +1080,19 @@ PCRE2PatternParser >> parse [
 { #category : 'parsing' }
 PCRE2PatternParser >> parse: preparedInput options: compileOptions [
 
+	| prefix tree |
 	newlineConvention ifNil: [ self newline: PCRE2 newlineLF bsr: PCRE2 bsrUnicode ].
 	extraOptions ifNil: [ extraOptions := 0 ].
 	input := preparedInput.
 	pattern := (compileOptions bitAnd: PCRE2 utf) = 0
 		           ifTrue: [ PCRE2CodeUnitText from: input bytes width: codeUnitWidth ]
-		           ifFalse: [ input readFrom: 1 to: input size ].
-	pattern isString ifFalse: [ pattern := pattern asString ].
+		           ifFalse: [ self utfPattern ].
 	options := compileOptions.
 	position := 1.
 	self startDirectives.
 	compiledOptions := options.
 	(options bitAnd: PCRE2 utf) ~= 0 ifTrue: [
-			pattern := input readFrom: 1 to: input size.
+			pattern := self utfPattern.
 			pattern isString ifFalse: [ pattern := pattern asString ] ].
 	self initializePatternOffsets.
 	((options bitAnd: PCRE2 neverUTF) ~= 0 and: [ (options bitAnd: PCRE2 utf) ~= 0 ]) ifTrue: [
@@ -977,9 +1109,17 @@ PCRE2PatternParser >> parse: preparedInput options: compileOptions [
 	itemLengths := Dictionary new.
 	references := OrderedCollection new.
 	lookbehinds := OrderedCollection new.
-	(options bitAnd: PCRE2 literal) ~= 0 ifTrue: [
-		^ PCRE2SequenceNode new children: (pattern collect: [ :character | self literal: character ] as: Array) ].
-	^ self parse
+	(extraOptions bitAnd: PCRE2 extraMatchLine | PCRE2 extraMatchWord) = (PCRE2 extraMatchLine | PCRE2 extraMatchWord) ifTrue: [
+		self syntaxError: 'PCRE2_EXTRA_MATCH_LINE and PCRE2_EXTRA_MATCH_WORD are mutually exclusive' ].
+	prefix := self extraMatchingBoundary: true.
+	tree := (options bitAnd: PCRE2 literal) ~= 0
+		        ifTrue: [ PCRE2SequenceNode new children: (pattern collect: [ :character | self literal: character ] as: Array) ]
+		        ifFalse: [ self parse ].
+	^ prefix ifNil: [ tree ] ifNotNil: [
+			  PCRE2SequenceNode new children: {
+					  prefix.
+					  tree.
+					  (self extraMatchingBoundary: false) } ]
 ]
 
 { #category : 'configuration' }
@@ -1016,6 +1156,9 @@ PCRE2PatternParser >> predicateFor: character [
 	| predicate unicode kind |
 	unicode := (options bitAnd: PCRE2 ucp) ~= 0.
 	kind := character asLowercase.
+	((kind = $d and: [ (extraOptions bitAnd: PCRE2 extraAsciiBsd) ~= 0 ]) or: [
+			 (kind = $s and: [ (extraOptions bitAnd: PCRE2 extraAsciiBss) ~= 0 ]) or: [
+				 kind = $w and: [ (extraOptions bitAnd: PCRE2 extraAsciiBsw) ~= 0 ] ] ]) ifTrue: [ unicode := false ].
 	kind = $d ifTrue: [
 			predicate := unicode
 				             ifTrue: [ [ :candidate | PCRE2UnicodeData matches: 'gc:nd' code: candidate asInteger ] ]
@@ -1043,10 +1186,14 @@ PCRE2PatternParser >> predicateFor: character [
 { #category : 'parsing' }
 PCRE2PatternParser >> propertyPredicate: property [
 
-	^ PCRE2UnicodeData
-		  posixPredicate: property
-		  unicode: (options bitAnd: PCRE2 ucp) ~= 0
-		  caseless: (options bitAnd: PCRE2 caseless) ~= 0
+	| unicode name |
+	unicode := (options bitAnd: PCRE2 ucp) ~= 0.
+	name := property first = $^
+		        ifTrue: [ property allButFirst ]
+		        ifFalse: [ property ].
+	((extraOptions bitAnd: PCRE2 extraAsciiPosix) ~= 0 or: [
+		 (extraOptions bitAnd: PCRE2 extraAsciiDigit) ~= 0 and: [ #( 'digit' 'xdigit' ) includes: name ] ]) ifTrue: [ unicode := false ].
+	^ PCRE2UnicodeData posixPredicate: property unicode: unicode caseless: (options bitAnd: PCRE2 caseless) ~= 0
 ]
 
 { #category : 'parsing' }
@@ -1117,7 +1264,8 @@ PCRE2PatternParser >> quantifierBounds [
 { #category : 'parsing' }
 PCRE2PatternParser >> rangeFrom: low to: high caseless: caseless [
 
-	| unicode |
+	| unicode restricted |
+	restricted := (extraOptions bitAnd: PCRE2 extraCaselessRestrict) ~= 0.
 	unicode := (options bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0.
 	^ [ :candidate |
 		  (candidate between: low and: high) or: [
@@ -1126,7 +1274,22 @@ PCRE2PatternParser >> rangeFrom: low to: high caseless: caseless [
 							  inRange: candidate asInteger
 							  from: low asInteger
 							  to: high asInteger
-							  unicode: unicode ] ] ]
+							  unicode: unicode
+							  restricted: restricted ] ] ]
+]
+
+{ #category : 'callouts' }
+PCRE2PatternParser >> readCalloutStringUntil: delimiter [
+
+	| stream character |
+	stream := WriteStream on: String new.
+	[ self atEnd not ] whileTrue: [
+			character := self next.
+			character = delimiter ifTrue: [
+					self peek = delimiter ifFalse: [ ^ stream contents ].
+					self next ].
+			stream nextPut: character ].
+	self syntaxError: 'missing terminating delimiter for callout string'
 ]
 
 { #category : 'parsing' }
@@ -1287,7 +1450,7 @@ PCRE2PatternParser >> unicodeEscape [
 
 	| digits start code |
 	start := position.
-	self peek = (Character value: 123)
+	(self peek = (Character value: 123) and: [ (extraOptions bitAnd: PCRE2 extraAltBsux) ~= 0 ])
 		ifTrue: [
 				self next.
 				digits := self readUntil: $} ]
@@ -1303,13 +1466,21 @@ PCRE2PatternParser >> unicodeEscape [
 		        on: Error
 		        do: [ :error | self syntaxError: 'hexadecimal digit expected' ].
 	code > 16r10FFFF ifTrue: [ self syntaxError: 'character code point too large' ].
-	^ self literal: (Character value: code)
+	^ self literalCodePoint: code
 ]
 
 { #category : 'parsing' }
 PCRE2PatternParser >> unsupported: feature [
 
 	PCRE2UnsupportedFeature signal: 'Pharo backend does not yet support ' , feature
+]
+
+{ #category : 'parsing' }
+PCRE2PatternParser >> utfPattern [
+
+	(PCRE2CodeUnitText utfErrorIn: input bytes width: codeUnitWidth) ifNotNil: [ :error |
+		PCRE2CompileError signal: (PCRE2 translateErrorCode: error first) in: input at: error second ].
+	^ (input readFrom: 1 to: input size) asString
 ]
 
 { #category : 'parsing' }

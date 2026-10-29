@@ -73,6 +73,35 @@ PCRE2Input >> decoder [
 	^ nil
 ]
 
+{ #category : 'displaying' }
+PCRE2Input >> displayFrom: start to: end [
+	"Use escapes when a raw pattern is not representable as Unicode text."
+
+	| decoded width |
+	start > end ifTrue: [ ^ '' ].
+	decoded := [ self readFrom: start to: end ]
+		           on: ZnCharacterEncodingError , PrimitiveFailed
+		           do: [ :error | nil ].
+	(decoded isNotNil and: [
+			 decoded allSatisfy: [ :character |
+				 character asInteger <= 16r10FFFF and: [ (character asInteger between: 16rD800 and: 16rDFFF) not ] ] ]) ifTrue: [
+		^ decoded asString ].
+	width := bytes size // self size.
+	^ String streamContents: [ :stream |
+			  start to: end do: [ :index |
+					  | unit |
+					  unit := width = 1
+						          ifTrue: [ bytes at: index ]
+						          ifFalse: [
+								          width = 2
+									          ifTrue: [ bytes uint16AtOffset: index - 1 * 2 ]
+									          ifFalse: [ bytes uint32AtOffset: index - 1 * 4 ] ].
+					  stream
+						  nextPutAll: '\x{';
+						  nextPutAll: (unit asInteger printStringBase: 16);
+						  nextPut: $} ] ]
+]
+
 { #category : 'decoding' }
 PCRE2Input >> nextFromStream: aStream [
 

@@ -109,6 +109,73 @@ PCRE2BackendIntegrationTest >> testFFIContextRestoreDoesNotFollowTheGlobalDefaul
 ]
 
 { #category : 'tests' }
+PCRE2BackendIntegrationTest >> testMalformedUTFPatternsReportCompileErrors [
+
+	{
+		{
+			PCRE2UTF8Compiler.
+			#[ 97 255 ].
+			1.
+			-23 }.
+		{
+			PCRE2UTF16Compiler.
+			#[  ].
+			1.
+			-24 }.
+		{
+			PCRE2UTF32Compiler.
+			#[  ].
+			1.
+			-28 } } do: [ :entry |
+			| bytes |
+			bytes := entry first = PCRE2UTF8Compiler
+				         ifTrue: [ entry second ]
+				         ifFalse: [
+						         entry first = PCRE2UTF16Compiler
+							         ifTrue: [
+									         (ByteArray new: 4)
+										         uint16AtOffset: 0 put: 97;
+										         uint16AtOffset: 2 put: 16rD800;
+										         yourself ]
+							         ifFalse: [
+									         (ByteArray new: 8)
+										         uint32AtOffset: 0 put: 97;
+										         uint32AtOffset: 4 put: 16r110000;
+										         yourself ] ].
+			{
+				PCRE2CompilerFFIBackend.
+				PCRE2CompilerPharoBackend } do: [ :backend |
+					self
+						should: [
+								entry first new
+									backend: backend;
+									compile: bytes ]
+						raise: PCRE2CompileError
+						withExceptionDo: [ :error |
+								self assert: error offset equals: entry third.
+								self assert: error errorMessage equals: (PCRE2 translateErrorCode: entry fourth).
+								self assert: (error messageText includesSubstring: '(*ERROR)') ] ] ]
+]
+
+{ #category : 'tests' }
+PCRE2BackendIntegrationTest >> testPartialCodeUnitCapturesDoNotReadBeyondTheirUTF8Slice [
+
+	| input |
+	input := 'é' asPCRE2UTF8Input.
+	self should: [ input readFrom: 1 to: 1 ] raise: ZnCharacterEncodingError.
+	self assert: (input readFrom: 1 to: 2) equals: 'é'.
+	{
+		PCRE2CompilerFFIBackend.
+		PCRE2CompilerPharoBackend } do: [ :backend |
+			| match |
+			match := (PCRE2Compiler new
+				          backend: backend;
+				          compile: '\C') findMatch: 'é'.
+			self assert: match offsets equals: #( 0 1 ).
+			self should: [ match readMatch ] raise: ZnCharacterEncodingError ]
+]
+
+{ #category : 'tests' }
 PCRE2BackendIntegrationTest >> testRawCodeUnitMatchingWithoutUTF [
 
 	{
@@ -132,6 +199,35 @@ PCRE2BackendIntegrationTest >> testRawCodeUnitMatchingWithoutUTF [
 					self assert: match offsets equals: {
 							0.
 							input size } ] ]
+]
+
+{ #category : 'tests' }
+PCRE2BackendIntegrationTest >> testRawPatternsSurviveRecompilationAndTracing [
+
+	{
+		PCRE2UTF8Compiler.
+		PCRE2UTF16Compiler.
+		PCRE2UTF32Compiler } do: [ :compilerClass |
+			{
+				PCRE2CompilerFFIBackend.
+				PCRE2CompilerPharoBackend } do: [ :backend |
+					| compiler bytes matcher width |
+					compiler := compilerClass new
+						            backend: backend;
+						            options: 0.
+					width := compiler codeUnitWidth.
+					bytes := ByteArray new: width // 8.
+					width = 8
+						ifTrue: [ bytes at: 1 put: 255 ]
+						ifFalse: [
+								width = 16
+									ifTrue: [ bytes uint16AtOffset: 0 put: 16rD800 ]
+									ifFalse: [ bytes uint32AtOffset: 0 put: 16rFFFFFFFF ] ].
+					matcher := compiler compile: bytes.
+					self assert: (matcher matchBytes: bytes from: 1 to: 1) offsets equals: #( 0 1 ).
+					matcher recompile.
+					self assert: (matcher matchBytes: bytes from: 1 to: 1) offsets equals: #( 0 1 ).
+					self assert: (matcher traceMatcher matchBytes: bytes from: 1 to: 1) offsets equals: #( 0 1 ) ] ]
 ]
 
 { #category : 'tests' }

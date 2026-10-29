@@ -3,7 +3,8 @@ Class {
 	#superclass : 'PCRE2PatternNode',
 	#instVars : [
 		'reference',
-		'options'
+		'options',
+		'extraOptions'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
@@ -18,7 +19,7 @@ PCRE2BackreferenceNode >> dfaError [
 { #category : 'matching' }
 PCRE2BackreferenceNode >> executeIn: engine state: state [
 
-	| index start end text candidate available |
+	| index start end source target code sourceStep targetStep count available |
 	index := engine captureIndexFor: reference state: state.
 	index ifNil: [ ^ nil ].
 	start := state captures at: index * 2 + 1.
@@ -27,15 +28,40 @@ PCRE2BackreferenceNode >> executeIn: engine state: state [
 			^ (options bitAnd: PCRE2 matchUnsetBackref) = 0
 				  ifTrue: [ nil ]
 				  ifFalse: [ state ] ].
-	text := engine subject copyFrom: start + 1 to: end.
-	available := engine subject size - state position min: text size.
-	candidate := engine subject copyFrom: state position + 1 to: state position + available.
-	(self sameText: (text first: available) as: candidate) ifFalse: [ ^ nil ].
-	available < text size ifTrue: [
-			engine notePartial: (state copy position: engine subject size).
-			^ nil ].
-	state position: state position + text size.
+	target := state position.
+	(options bitAnd: PCRE2 caseless) = 0 ifTrue: [
+			count := end - start.
+			available := count min: engine subject size - target.
+			0 to: available - 1 do: [ :offset |
+				(engine subject codeUnitAtOffset: start + offset) = (engine subject codeUnitAtOffset: target + offset) ifFalse: [ ^ nil ] ].
+			available < count ifTrue: [
+					engine notePartial: (state copy position: engine subject size).
+					^ nil ].
+			state position: target + count.
+			^ state ].
+	source := start.
+	[ source < end ] whileTrue: [
+			target >= engine subject size ifTrue: [
+					engine notePartial: (state copy position: engine subject size).
+					^ nil ].
+			code := engine subject at: source + 1.
+			(PCRE2UnicodeData
+				 same: code
+				 as: (engine subject at: target + 1)
+				 unicode: (options bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0
+				 restricted: ((extraOptions ifNil: [ 0 ]) bitAnd: PCRE2 extraCaselessRestrict) ~= 0) ifFalse: [ ^ nil ].
+			sourceStep := engine subject pointWidthAtOffset: source.
+			targetStep := engine subject pointWidthAtOffset: target.
+			source := source + sourceStep.
+			target := target + targetStep ].
+	state position: target.
 	^ state
+]
+
+{ #category : 'accessing' }
+PCRE2BackreferenceNode >> extraOptions: flags [
+
+	extraOptions := flags
 ]
 
 { #category : 'matching' }
@@ -81,5 +107,9 @@ PCRE2BackreferenceNode >> sameText: first as: second [
 		  ifFalse: [
 				  first size = second size and: [
 						  (1 to: first size) allSatisfy: [ :index |
-							  PCRE2UnicodeData same: (first at: index) as: (second at: index) unicode: (options bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0 ] ] ]
+								  PCRE2UnicodeData
+									  same: (first at: index)
+									  as: (second at: index)
+									  unicode: (options bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0
+									  restricted: ((extraOptions ifNil: [ 0 ]) bitAnd: PCRE2 extraCaselessRestrict) ~= 0 ] ] ]
 ]
