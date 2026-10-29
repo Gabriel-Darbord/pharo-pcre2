@@ -12,14 +12,13 @@ Class {
 	#classTraits : 'PCRE2TWithOptions classTrait',
 	#instVars : [
 		'optionsJIT',
-		'context'
+		'context',
+		'backend'
 	],
 	#classVars : [
+		'DefaultBackend',
 		'EagerJIT',
 		'SupportsJIT'
-	],
-	#pools : [
-		'PCRE2Types'
 	],
 	#classInstVars : [
 		'default'
@@ -37,6 +36,24 @@ PCRE2Compiler class >> default [
 	^ self new
 ]
 
+{ #category : 'backends' }
+PCRE2Compiler class >> defaultBackend [
+
+	^ DefaultBackend ifNil: [
+			  Smalltalk globals
+				  at: #PCRE2CompilerFFIBackend
+				  ifAbsent: [ PCRE2Error signal: 'No default PCRE2 backend is loaded; select one explicitly' ] ]
+]
+
+{ #category : 'backends' }
+PCRE2Compiler class >> defaultBackend: aBackendClass [
+
+	(aBackendClass inheritsFrom: PCRE2CompilerBackend) ifFalse: [ PCRE2Error signal: 'Expected a PCRE2 compiler backend class' ].
+	DefaultBackend := aBackendClass.
+	default := nil.
+	SupportsJIT := nil
+]
+
 { #category : 'accessing' }
 PCRE2Compiler class >> eagerJIT [
 
@@ -50,12 +67,11 @@ PCRE2Compiler class >> eagerJIT: aBoolean [
 	EagerJIT := aBoolean
 ]
 
-{ #category : 'class initialization' }
+{ #category : 'backends' }
 PCRE2Compiler class >> initialize [
 
 	EagerJIT := true.
-	self startUp: true.
-	SessionManager default registerToolClassNamed: self name
+	SupportsJIT := nil
 ]
 
 { #category : 'testing' }
@@ -64,10 +80,10 @@ PCRE2Compiler class >> isAbstract [
 	^ self == PCRE2Compiler
 ]
 
-{ #category : 'testing' }
+{ #category : 'backends' }
 PCRE2Compiler class >> nativeLibraryAvailable [
 
-	^ LibPCRE2UTF8 isNativeLibraryAvailable
+	^ self defaultBackend isAvailable
 ]
 
 { #category : 'instance creation' }
@@ -93,37 +109,44 @@ PCRE2Compiler class >> pattern: aString options: anInteger [
 		  compile: aString
 ]
 
-{ #category : 'system startup' }
+{ #category : 'backends' }
 PCRE2Compiler class >> startUp: resuming [
-	"Validate the default 8-bit binding and cache library-wide JIT support when the native library is available."
 
 	SupportsJIT := false.
-	resuming ifFalse: [ ^ self ].
-	PCRE2Types initialize. "Ensure shared UFFI holders exist before startup FFI calls."
-	self nativeLibraryAvailable ifFalse: [ ^ self ].
-	LibPCRE2UTF8 assertCompatibleLibrary.
-	SupportsJIT := LibPCRE2 supportsJIT
+	default := nil.
+	resuming ifTrue: [ self nativeLibraryAvailable ifTrue: [ SupportsJIT := self new backend supportsJIT ] ]
 ]
 
-{ #category : 'accessing' }
+{ #category : 'backends' }
 PCRE2Compiler class >> supportsJIT [
 
-	^ SupportsJIT
+	^ SupportsJIT ifNil: [ SupportsJIT := self new backend supportsJIT ]
 ]
 
-{ #category : 'compiling' }
+{ #category : 'backends' }
+PCRE2Compiler >> backend [
+
+	^ backend ifNil: [ backend := self class defaultBackend for: self ]
+]
+
+{ #category : 'backends' }
+PCRE2Compiler >> backend: aBackendClass [
+
+	(aBackendClass inheritsFrom: PCRE2CompilerBackend) ifFalse: [ PCRE2Error signal: 'Expected a PCRE2 compiler backend class' ].
+	context ifNotNil: [ PCRE2Error signal: 'Select a backend before creating the compile context' ].
+	backend := aBackendClass for: self
+]
+
+{ #category : 'backends' }
 PCRE2Compiler >> compile: pattern [
-	"Compile a pattern into a regular expression matcher.
-	Patterns are usually strings. Width-specific compilers may also accept prepared encoded input."
 
 	| input matcher |
 	input := self preparedPatternFor: pattern.
-	(matcher := self matcherClass fromHandle: (self compilePreparedInput: input))
-		autoRelease;
-		initialize;
+	matcher := self matcherClass new backend: (self backend compilePreparedInput: input).
+	matcher
 		pattern: (self patternStringFromInput: input);
 		compiler: self.
-	matcher isJIT: (EagerJIT and: [ SupportsJIT and: [ (self privateJITCompile: matcher) == 0 ] ]).
+	matcher isJIT: (EagerJIT and: [ self backend supportsJIT and: [ (self backend privateJITCompile: matcher backend) = 0 ] ]).
 	^ matcher
 ]
 
@@ -143,7 +166,7 @@ PCRE2Compiler >> compileBasic: pattern [
 { #category : 'private' }
 PCRE2Compiler >> compileContextClass [
 
-	self subclassResponsibility
+	^ self backend compileContextClass
 ]
 
 { #category : 'compiling' }
@@ -170,18 +193,8 @@ PCRE2Compiler >> compileJIT: matcher onError: aBlock [
 
 { #category : 'compiling' }
 PCRE2Compiler >> compilePreparedInput: input [
-	"Create a regex matcher handle from prepared pattern input."
 
-	| errorCode errorOffset handle |
-	errorCode := IntHolder new.
-	errorOffset := SizeTHolder new.
-	handle := self
-		          compile: input bytes
-		          upTo: input size
-		          errorCode: errorCode
-		          errorOffset: errorOffset.
-	handle isNull ifTrue: [ self errorCode: errorCode value in: input at: errorOffset value ].
-	^ handle
+	^ self backend compileBasicInput: input
 ]
 
 { #category : 'accessing' }
@@ -210,7 +223,7 @@ PCRE2Compiler >> copyContextIfPresent [
 { #category : 'private' }
 PCRE2Compiler >> createCompileContext [
 
-	self subclassResponsibility
+	^ self backend createCompileContext
 ]
 
 { #category : 'error handling' }
@@ -228,10 +241,16 @@ PCRE2Compiler >> errorCode: errorCode in: input at: codeUnitOffset [
 	PCRE2CompileError signal: (PCRE2 translateErrorCode: errorCode) in: input at: codeUnitOffset
 ]
 
-{ #category : 'library path' }
+{ #category : 'backends' }
+PCRE2Compiler >> existingContext [
+
+	^ context
+]
+
+{ #category : 'backends' }
 PCRE2Compiler >> ffiLibraryName [
 
-	self subclassResponsibility
+	^ self backend ffiLibraryName
 ]
 
 { #category : 'initialization' }
@@ -256,14 +275,10 @@ PCRE2Compiler >> matcherClass [
 	self subclassResponsibility
 ]
 
-{ #category : 'instance creation' }
+{ #category : 'backends' }
 PCRE2Compiler >> newCompileContext [
-	"Create a width-specific compile context for this compiler."
 
-	| pointer |
-	pointer := self createCompileContext.
-	pointer isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to create compile context' ].
-	^ (self compileContextClass fromHandle: pointer) initialize autoRelease
+	^ self backend newCompileContext
 ]
 
 { #category : 'accessing' }
@@ -286,6 +301,13 @@ PCRE2Compiler >> patternStringFromInput: input [
 	^ input readFrom: 1 to: input size
 ]
 
+{ #category : 'backends' }
+PCRE2Compiler >> postCopy [
+
+	backend := backend ifNotNil: [ backend copy compiler: self ].
+	context := context ifNotNil: [ context copy autoRelease ]
+]
+
 { #category : 'private' }
 PCRE2Compiler >> preparedPatternFor: aStringOrInput [
 	"Prepare a pattern object for this compiler's PCRE2 code-unit width. Concrete compilers accept Strings and may also accept width-specific prepared input objects or byte storage."
@@ -296,5 +318,7 @@ PCRE2Compiler >> preparedPatternFor: aStringOrInput [
 { #category : 'private' }
 PCRE2Compiler >> privateJITCompile: matcher [
 
-	self subclassResponsibility
+	^ self backend
+		  prepareForCompile;
+		  privateJITCompile: matcher backend
 ]

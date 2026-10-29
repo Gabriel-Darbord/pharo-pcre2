@@ -967,13 +967,8 @@ PCRE2 class >> matchUnsetBackref [
 
 { #category : 'constants' }
 PCRE2 class >> maximumSizeT [
-	"The value corresponds to the C code: `~(size_t)0`, which represents the largest fixed-size integer."
 
-	| wordSize |
-	wordSize := ExternalAddress wordSize.
-	wordSize == 8 ifTrue: [ ^ 16rFFFFFFFFFFFFFFFF ].
-	wordSize == 4 ifTrue: [ ^ 16rFFFFFFFF ].
-	^ (1 bitShift: wordSize * 8) - 1
+	^ (1 bitShift: Smalltalk wordSize * 8) - 1
 ]
 
 { #category : 'options' }

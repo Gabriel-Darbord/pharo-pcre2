@@ -16,13 +16,14 @@ BaselineOfPCRE2 >> baseline: spec [
 	<baseline>
 	spec for: #common do: [
 			spec package: 'PCRE2'.
+			spec package: 'PCRE2-FFIBackend' with: [ spec requires: #( 'PCRE2' ) ].
 			spec package: 'PCRE2-Tools' with: [ spec requires: #( 'PCRE2' ) ].
-			spec package: 'PCRE2-Tests' with: [ spec requires: #( 'PCRE2' ) ].
-			spec package: 'PCRE2-Tools-Tests' with: [ spec requires: #( 'PCRE2-Tools' ) ].
-
+			spec package: 'PCRE2-Tests' with: [ spec requires: #( 'PCRE2-FFIBackend' ) ].
+			spec package: 'PCRE2-Tools-Tests' with: [ spec requires: #( 'PCRE2-Tools' 'PCRE2-FFIBackend' ) ].
 			spec group: 'Core' with: #( 'PCRE2' ).
+			spec group: 'FFI' with: #( 'PCRE2-FFIBackend' ).
 			spec group: 'Tools' with: #( 'PCRE2-Tools' ).
 			spec group: 'Tests' with: #( 'PCRE2-Tests' 'PCRE2-Tools-Tests' ).
-			spec group: 'Default' with: #( 'Core' 'Tools' ).
-			spec group: 'All' with: #( 'Core' 'Tools' 'Tests' ) ]
+			spec group: 'Default' with: #( 'FFI' 'Tools' ).
+			spec group: 'All' with: #( 'FFI' 'Tools' 'Tests' ) ]
 ]

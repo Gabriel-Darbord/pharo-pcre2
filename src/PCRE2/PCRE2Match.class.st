@@ -7,7 +7,7 @@ Use match objects to inspect captures after matching. Persistent matches copy na
 "
 Class {
 	#name : 'PCRE2Match',
-	#superclass : 'PCRE2Object',
+	#superclass : 'Object',
 	#instVars : [
 		'count',
 		'isPersistent',
@@ -20,7 +20,8 @@ Class {
 		'nameTable',
 		'resultCode',
 		'matchDataSize',
-		'heapframesSize'
+		'heapframesSize',
+		'backend'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -30,6 +31,24 @@ Class {
 PCRE2Match class >> isAbstract [
 
 	^ self == PCRE2Match
+]
+
+{ #category : 'backends' }
+PCRE2Match >> autoRelease [
+
+	backend autoRelease
+]
+
+{ #category : 'backends' }
+PCRE2Match >> backend [
+
+	^ backend
+]
+
+{ #category : 'backends' }
+PCRE2Match >> backend: aBackend [
+
+	backend := aBackend
 ]
 
 { #category : 'private' }
@@ -62,19 +81,10 @@ PCRE2Match >> decoder [
 	^ decoder
 ]
 
-{ #category : 'accessing' }
+{ #category : 'backends' }
 PCRE2Match >> endOffsetAt: pairIndex [
-	"Return the zero-based exclusive PCRE2 code-unit end offset for the requested ovector pair. PCRE2 stores ovector entries as PCRE2_SIZE values; keep the 32/64-bit primitive fast paths because this accessor is used by match-result readers."
 
-	| index wordSize |
-	index := 2 * (pairIndex - 1) + 1. "to 0-based"
-	offsets isArray ifTrue: [ ^ offsets at: index + 1 ].
-
-	offsets ifNil: [ offsets := self getOffsets ].
-	wordSize := ExternalAddress wordSize.
-	wordSize == 8 ifTrue: [ ^ offsets uint64AtOffset: 8 * index ].
-	wordSize == 4 ifTrue: [ ^ offsets uint32AtOffset: 4 * index ].
-	^ offsets platformSizeTAt: wordSize * index + 1
+	^ (self offsetsAt: pairIndex) second
 ]
 
 { #category : 'private' }
@@ -84,10 +94,34 @@ PCRE2Match >> ensureSubjectAvailable [
 		self error: 'This match does not remember a subject; use readMatch: or readMatches: with an explicit subject' ]
 ]
 
-{ #category : 'private' }
+{ #category : 'backends' }
+PCRE2Match >> ffiLibraryName [
+
+	^ backend ffiLibraryName
+]
+
+{ #category : 'backends' }
+PCRE2Match >> finalize [
+
+	backend finalize
+]
+
+{ #category : 'backends' }
+PCRE2Match >> free [
+
+	backend free
+]
+
+{ #category : 'backends' }
 PCRE2Match >> getCount [
 
-	self subclassResponsibility
+	^ backend getCount
+]
+
+{ #category : 'backends' }
+PCRE2Match >> getHandle [
+
+	^ backend getHandle
 ]
 
 { #category : 'private' }
@@ -96,11 +130,10 @@ PCRE2Match >> getHeapframesSize [
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
+{ #category : 'backends' }
 PCRE2Match >> getMark [
-	"Answer the last MARK/PRUNE/THEN name as a Pharo string, or an empty string when PCRE2 reports no mark."
 
-	^ (PCRE2CalloutSite zeroTerminatedStringFrom: self getMarkPointer codeUnitWidth: self ffiLibraryName codeUnitWidth) ifNil: [ '' ]
+	^ backend getMark
 ]
 
 { #category : 'private' }
@@ -109,10 +142,10 @@ PCRE2Match >> getMarkPointer [
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
+{ #category : 'backends' }
 PCRE2Match >> getMatchDataSize [
 
-	self subclassResponsibility
+	^ backend getMatchDataSize
 ]
 
 { #category : 'private' }
@@ -121,10 +154,10 @@ PCRE2Match >> getOffsets [
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
+{ #category : 'backends' }
 PCRE2Match >> getStartIndex [
 
-	self subclassResponsibility
+	^ backend getStartIndex
 ]
 
 { #category : 'group access' }
@@ -180,13 +213,10 @@ PCRE2Match >> groupsNamed: groupName [
 	^ (self captureIndexesNamed: groupName) collect: [ :captureIndex | self groupAt: captureIndex ]
 ]
 
-{ #category : 'diagnostics' }
+{ #category : 'backends' }
 PCRE2Match >> heapframesSize [
-	"Answer the native heap-frame memory retained by this match-data block, in bytes, or nil when the loaded PCRE2 runtime does not expose this diagnostic. The value is cached so persistent matches can still report it after freeing the native handle."
 
-	heapframesSize ifNotNil: [ ^ heapframesSize ].
-	self ffiLibraryName supportsMatchDataHeapframesSize ifFalse: [ ^ nil ].
-	^ heapframesSize := self getHeapframesSize
+	^ heapframesSize ifNil: [ heapframesSize := backend heapframesSize ]
 ]
 
 { #category : 'initialization' }
@@ -217,6 +247,12 @@ PCRE2Match >> isComplete [
 	^ resultCode notNil and: [ resultCode > 0 ]
 ]
 
+{ #category : 'backends' }
+PCRE2Match >> isNull [
+
+	^ backend isNull
+]
+
 { #category : 'testing' }
 PCRE2Match >> isPartial [
 	"Answer whether PCRE2 returned PCRE2_ERROR_PARTIAL for this result."
@@ -230,19 +266,10 @@ PCRE2Match >> isPersistent [
 	^ isPersistent
 ]
 
-{ #category : 'enumerating' }
+{ #category : 'backends' }
 PCRE2Match >> lastMatchIndex [
-	"Return the zero-based exclusive PCRE2 code-unit end offset of the full match. This is ovector[1], stored by PCRE2 as PCRE2_SIZE/size_t, so read it with the same fixed-width fast paths used by the other ovector accessors."
 
-	| wordSize |
-	^ isPersistent
-		  ifTrue: [ offsets at: 2 ]
-		  ifFalse: [
-				  offsets ifNil: [ offsets := self getOffsets ].
-				  wordSize := ExternalAddress wordSize.
-				  wordSize == 8 ifTrue: [ ^ offsets uint64AtOffset: 8 ].
-				  wordSize == 4 ifTrue: [ ^ offsets uint32AtOffset: 4 ].
-				  offsets platformSizeTAt: wordSize + 1 ]
+	^ self endOffsetAt: 1
 ]
 
 { #category : 'accessing' }
@@ -288,68 +315,23 @@ PCRE2Match >> offsets [
 	^ offsets := copy
 ]
 
-{ #category : 'accessing' }
+{ #category : 'backends' }
 PCRE2Match >> offsetsAt: pairIndex [
-	"Return the requested raw ovector pair as zero-based {start. exclusiveEnd}. PCRE2 stores each entry as PCRE2_SIZE; the fixed-width branches are intentional hot-path reads, with platformSizeTAt: kept only as an unusual-platform fallback."
 
-	| index wordSize |
-	index := 2 * (pairIndex - 1). "to 0-based"
-	offsets isArray ifTrue: [
+	offsets ifNotNil: [
 			^ {
-				  (offsets at: index + 1).
-				  (offsets at: index + 2) } ].
-
-	offsets ifNil: [ offsets := self getOffsets ].
-	wordSize := ExternalAddress wordSize.
-	wordSize == 8 ifTrue: [
-			^ {
-				  (offsets uint64AtOffset: 8 * index).
-				  (offsets uint64AtOffset: 8 * (index + 1)) } ].
-	wordSize == 4 ifTrue: [
-			^ {
-				  (offsets uint32AtOffset: 4 * index).
-				  (offsets uint32AtOffset: 4 * (index + 1)) } ].
-	^ {
-		  (offsets platformSizeTAt: wordSize * index + 1).
-		  (offsets platformSizeTAt: wordSize * (index + 1) + 1) }
+				  (offsets at: 2 * pairIndex - 1).
+				  (offsets at: 2 * pairIndex) } ].
+	^ backend offsetsAt: pairIndex
 ]
 
-{ #category : 'enumerating' }
+{ #category : 'backends' }
 PCRE2Match >> offsetsDo: aBlock [
-	"Iterate ovector pairs as 1-based inclusive code-unit indexes over the prepared input storage. Starts are PCRE2 zero-based offsets plus one; exclusive ends already have the same numeric value as inclusive 1-based ends."
 
-	| wordSize |
-	offsets isArray ifTrue: [ "offsets have already been copied to a local array"
-			1 to: self count do: [ :pairIndex |
-					| index |
-					index := 2 * (pairIndex - 1).
-					aBlock value: (offsets at: index + 1) + 1 value: (offsets at: index + 2) ].
-			^ self ].
-
-	offsets ifNil: [ offsets := self getOffsets ]. "PCRE2 ovector: pairs of zero-based code-unit offsets"
-	wordSize := ExternalAddress wordSize.
-
-	wordSize == 8 ifTrue: [
-			1 to: self count do: [ :i |
-					| start end |
-					start := (offsets uint64AtOffset: 16 * (i - 1)) + 1.
-					end := offsets uint64AtOffset: 16 * i - 8.
-					aBlock value: start value: end ].
-			^ self ].
-
-	wordSize == 4 ifTrue: [
-			1 to: self count do: [ :i |
-					| start end |
-					start := (offsets uint32AtOffset: 8 * (i - 1)) + 1.
-					end := offsets uint32AtOffset: 8 * i - 4.
-					aBlock value: start value: end ].
-			^ self ].
-
-	1 to: self count do: [ :i |
-			| start end |
-			start := (offsets platformSizeTAt: 2 * wordSize * (i - 1) + 1) + 1.
-			end := offsets platformSizeTAt: wordSize * (2 * i - 1) + 1.
-			aBlock value: start value: end ]
+	1 to: self count do: [ :index |
+			| pair |
+			pair := self offsetsAt: index.
+			aBlock value: pair first + 1 value: pair second ]
 ]
 
 { #category : 'accessing' }
@@ -359,16 +341,17 @@ PCRE2Match >> ovectorCount [
 	^ self getCount
 ]
 
-{ #category : 'persistence' }
+{ #category : 'backends' }
 PCRE2Match >> prepareForShutdown [
-	"Copy native code-unit offset data and diagnostics into Pharo memory, then release my external match-data handle. Named-group metadata is already Pharo-side state."
 
-	self count.
-	self matchDataSize.
-	self heapframesSize.
-	offsets isArray ifFalse: [ "copy external data into local memory" self offsets ].
-	self free.
-	handle beNull.
+	self
+		count;
+		matchDataSize;
+		heapframesSize;
+		startIndex;
+		mark;
+		offsets.
+	backend finalize.
 	isPersistent := true
 ]
 
@@ -476,19 +459,10 @@ PCRE2Match >> startIndex [
 	^ startIndex ifNil: [ startIndex := self getStartIndex + 1 ]
 ]
 
-{ #category : 'accessing' }
+{ #category : 'backends' }
 PCRE2Match >> startOffsetAt: pairIndex [
-	"Return the zero-based inclusive PCRE2 code-unit start offset for the requested ovector pair. PCRE2 exposes the ovector as PCRE2_SIZE*, mapped here to size_t; the 32/64-bit branches deliberately use primitive fixed-width reads because platformSizeTAt: is too slow for this hot path."
 
-	| index wordSize |
-	index := 2 * (pairIndex - 1). "to 0-based"
-	offsets isArray ifTrue: [ ^ offsets at: index + 1 ].
-
-	offsets ifNil: [ offsets := self getOffsets ].
-	wordSize := ExternalAddress wordSize.
-	wordSize == 8 ifTrue: [ ^ offsets uint64AtOffset: 8 * index ].
-	wordSize == 4 ifTrue: [ ^ offsets uint32AtOffset: 4 * index ].
-	^ offsets platformSizeTAt: wordSize * index + 1
+	^ (self offsetsAt: pairIndex) first
 ]
 
 { #category : 'accessing' }
