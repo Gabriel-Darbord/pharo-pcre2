@@ -59,10 +59,10 @@ PCRE2MatchPharoBackend >> getMark [
 	^ mark ifNil: [ '' ]
 ]
 
-{ #category : 'accessing' }
+{ #category : 'diagnostics' }
 PCRE2MatchPharoBackend >> getMatchDataSize [
 
-	^ nil
+	^ self sizeInMemory + offsets sizeInMemory
 ]
 
 { #category : 'accessing' }
@@ -71,10 +71,10 @@ PCRE2MatchPharoBackend >> getStartIndex [
 	^ startIndex
 ]
 
-{ #category : 'accessing' }
+{ #category : 'diagnostics' }
 PCRE2MatchPharoBackend >> heapframesSize [
 
-	^ nil
+	^ 0
 ]
 
 { #category : 'accessing' }

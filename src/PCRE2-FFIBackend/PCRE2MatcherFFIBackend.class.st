@@ -198,6 +198,16 @@ PCRE2MatcherFFIBackend >> readNamedGroups [
 	^ table
 ]
 
+{ #category : 'compiling' }
+PCRE2MatcherFFIBackend >> recompiledBy: compiler pattern: pattern [
+
+	| handle |
+	handle := compiler compileBasic: pattern.
+	self finalize.
+	self setHandle: handle.
+	^ self
+]
+
 { #category : 'accessing' }
 PCRE2MatcherFFIBackend >> requiresSessionRestore [
 

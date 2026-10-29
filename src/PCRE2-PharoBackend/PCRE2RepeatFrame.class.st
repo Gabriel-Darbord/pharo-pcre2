@@ -22,6 +22,15 @@ PCRE2RepeatFrame >> count: aValue [
 	count := aValue
 ]
 
+{ #category : 'DFA matching' }
+PCRE2RepeatFrame >> dfaKey [
+
+	^ {
+		  repeat.
+		  (repeat maximum ifNil: [ count min: repeat minimum ] ifNotNil: [ count ]).
+		  previousPosition }
+]
+
 { #category : 'private' }
 PCRE2RepeatFrame >> executeIn: anEngine state: aState [
 
@@ -71,4 +80,10 @@ PCRE2RepeatFrame >> repeat [
 PCRE2RepeatFrame >> repeat: aValue [
 
 	repeat := aValue
+]
+
+{ #category : 'diagnostics' }
+PCRE2RepeatFrame >> runtimeStorageSize [
+
+	^ self sizeInMemory
 ]

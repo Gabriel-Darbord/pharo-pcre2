@@ -27,3 +27,9 @@ PCRE2AssertionNode >> predicate: aBlock [
 
 	predicate := aBlock
 ]
+
+{ #category : 'matching' }
+PCRE2AssertionNode >> startPredicate [
+
+	^ [ :character | false ]
+]

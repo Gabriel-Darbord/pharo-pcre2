@@ -71,7 +71,7 @@ PCRE2CalloutSite class >> stringFrom: anExternalAddress length: length codeUnitW
 PCRE2CalloutSite class >> stringFromBytes: bytes codeUnitWidth: codeUnitWidth [
 	"Decode native PCRE2 string bytes for the given code-unit width."
 
-	codeUnitWidth = 8 ifTrue: [ ^ bytes utf8Decoded ].
+	codeUnitWidth = 8 ifTrue: [ ^ (PCRE2UTF8Input fromBytes: bytes) readFrom: 1 to: bytes size ].
 	codeUnitWidth = 16 ifTrue: [ ^ (PCRE2UTF16Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
 	codeUnitWidth = 32 ifTrue: [ ^ (PCRE2UTF32Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
 	PCRE2Error signal: 'Unsupported PCRE2 callout string code-unit width'

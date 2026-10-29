@@ -8,6 +8,12 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
+{ #category : 'optimization' }
+PCRE2AtomicNode >> canAccept [
+
+	^ child canAccept
+]
+
 { #category : 'private' }
 PCRE2AtomicNode >> child [
 
@@ -20,15 +26,32 @@ PCRE2AtomicNode >> child: aValue [
 	child := aValue
 ]
 
-{ #category : 'private' }
-PCRE2AtomicNode >> executeIn: anEngine state: aState [
+{ #category : 'matching' }
+PCRE2AtomicNode >> executeIn: engine state: state [
 
-	| result tasks |
-	tasks := aState tasks.
-	result := anEngine matchNode: child state: aState.
+	| result |
+	result := engine matchNode: child state: state propagate: #atomic.
 	result ifNil: [ ^ nil ].
-	result tasks: tasks.
+	result
+		tasks: state tasks;
+		alternations: state alternations;
+		marks: state marks.
+	result accepted ifTrue: [
+			result accepted: false.
+			^ engine accept: result ].
 	^ result
+]
+
+{ #category : 'matching' }
+PCRE2AtomicNode >> firstLiteral [
+
+	^ child firstLiteral
+]
+
+{ #category : 'matching' }
+PCRE2AtomicNode >> lengthBoundsUsing: groups names: names visited: visited [
+
+	^ child lengthBoundsUsing: groups names: names visited: visited
 ]
 
 { #category : 'matching' }
@@ -41,4 +64,16 @@ PCRE2AtomicNode >> maximumLength [
 PCRE2AtomicNode >> minimumLength [
 
 	^ child minimumLength
+]
+
+{ #category : 'optimization' }
+PCRE2AtomicNode >> requiredNode [
+
+	^ child requiredNode
+]
+
+{ #category : 'matching' }
+PCRE2AtomicNode >> startPredicate [
+
+	^ child startPredicate
 ]

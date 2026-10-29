@@ -62,40 +62,46 @@ PCRE2CompileContext >> compilerClass [
 	^ backend compilerClass
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> disableAutoPossessification [
+	"Disable PCRE2's auto-possessification optimization."
 
-	^ backend disableAutoPossessification
+	^ self optimize: PCRE2 optimizeAutoPossessOff
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> disableDotstarAnchoring [
+	"Disable PCRE2's implicit dot-star anchoring optimization."
 
-	^ backend disableDotstarAnchoring
+	^ self optimize: PCRE2 optimizeDotstarAnchorOff
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> disableStartOptimization [
+	"Disable PCRE2's start-of-match optimizations."
 
-	^ backend disableStartOptimization
+	^ self optimize: PCRE2 optimizeStartOff
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> enableAutoPossessification [
+	"Enable PCRE2's auto-possessification optimization."
 
-	^ backend enableAutoPossessification
+	^ self optimize: PCRE2 optimizeAutoPossess
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> enableDotstarAnchoring [
+	"Enable PCRE2's implicit dot-star anchoring optimization."
 
-	^ backend enableDotstarAnchoring
+	^ self optimize: PCRE2 optimizeDotstarAnchor
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> enableStartOptimization [
+	"Enable PCRE2's start-of-match optimizations."
 
-	^ backend enableStartOptimization
+	^ self optimize: PCRE2 optimizeStart
 ]
 
 { #category : 'accessing' }
@@ -280,10 +286,11 @@ PCRE2CompileContext >> useCharacterTablesFromCurrentLocale [
 	^ backend useCharacterTablesFromCurrentLocale
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> useFullOptimization [
+	"Enable all optional compiler optimizations."
 
-	^ backend useFullOptimization
+	^ self optimize: PCRE2 optimizationFull
 ]
 
 { #category : 'backends' }
@@ -328,8 +335,9 @@ PCRE2CompileContext >> useNewlineNul [
 	^ self newline: PCRE2 newlineNul
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> useNoOptimization [
+	"Disable all optional compiler optimizations."
 
-	^ backend useNoOptimization
+	^ self optimize: PCRE2 optimizationNone
 ]

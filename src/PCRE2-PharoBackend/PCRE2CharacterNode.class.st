@@ -9,6 +9,12 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
+{ #category : 'DFA matching' }
+PCRE2CharacterNode >> canAutoPossess [
+
+	^ true
+]
+
 { #category : 'accessing' }
 PCRE2CharacterNode >> character [
 
@@ -21,12 +27,28 @@ PCRE2CharacterNode >> character: aCharacter [
 	character := aCharacter
 ]
 
-{ #category : 'private' }
+{ #category : 'matching' }
 PCRE2CharacterNode >> executeIn: anEngine state: aState [
 
+	aState position >= anEngine subject size ifTrue: [
+			anEngine notePartial: aState.
+			^ nil ].
+	anEngine noteInspectionAt: aState position.
 	(aState position < anEngine subject size and: [ predicate value: (anEngine subject at: aState position + 1) ]) ifFalse: [ ^ nil ].
 	aState position: aState position + 1.
 	^ aState
+]
+
+{ #category : 'matching' }
+PCRE2CharacterNode >> firstLiteral [
+
+	^ character
+]
+
+{ #category : 'DFA matching' }
+PCRE2CharacterNode >> literalCharacter [
+
+	^ character
 ]
 
 { #category : 'matching' }
@@ -51,4 +73,16 @@ PCRE2CharacterNode >> predicate [
 PCRE2CharacterNode >> predicate: aValue [
 
 	predicate := aValue
+]
+
+{ #category : 'optimization' }
+PCRE2CharacterNode >> requiredNode [
+
+	^ character ifNotNil: [ self ]
+]
+
+{ #category : 'matching' }
+PCRE2CharacterNode >> startPredicate [
+
+	^ predicate
 ]

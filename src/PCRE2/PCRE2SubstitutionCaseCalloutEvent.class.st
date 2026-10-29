@@ -67,6 +67,16 @@ PCRE2SubstitutionCaseCalloutEvent >> inputText [
 	^ inputText
 ]
 
+{ #category : 'initialization' }
+PCRE2SubstitutionCaseCalloutEvent >> inputText: text length: length capacity: capacity caseType: type codeUnitWidth: width [
+
+	inputText := text.
+	inputLength := length.
+	outputCapacity := capacity.
+	caseType := type.
+	codeUnitWidth := width
+]
+
 { #category : 'testing' }
 PCRE2SubstitutionCaseCalloutEvent >> isLowercase [
 

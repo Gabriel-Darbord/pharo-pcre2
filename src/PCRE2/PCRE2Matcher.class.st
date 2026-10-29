@@ -938,7 +938,7 @@ PCRE2Matcher >> readNamedGroups [
 { #category : 'backends' }
 PCRE2Matcher >> recompile [
 
-	backend setHandle: (compiler compileBasic: pattern).
+	self initializeBackend: (backend recompiledBy: compiler pattern: pattern).
 	self restoreJITIfNeeded
 ]
 

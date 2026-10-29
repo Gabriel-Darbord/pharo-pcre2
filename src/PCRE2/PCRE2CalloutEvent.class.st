@@ -71,6 +71,27 @@ PCRE2CalloutEvent >> hasString [
 	^ string notNil
 ]
 
+{ #category : 'initialization' }
+PCRE2CalloutEvent >> initializeSite: site captures: values captureLast: lastCapture start: start position: current subjectLength: size flags: bits mark: markName [
+
+	version := 2.
+	number := site number.
+	patternPosition := site patternPosition.
+	nextItemLength := site nextItemLength.
+	string := site string.
+	stringLength := site stringLength.
+	stringOffset := site stringOffset.
+	captureTop := 1.
+	1 to: values size // 2 - 1 do: [ :index | (values at: index * 2 + 2) ~= PCRE2 unsetOffset ifTrue: [ captureTop := index + 1 ] ].
+	offsets := values first: captureTop * 2.
+	captureLast := lastCapture.
+	startMatch := start.
+	currentPosition := current.
+	subjectLength := size.
+	flags := bits.
+	mark := markName
+]
+
 { #category : 'testing' }
 PCRE2CalloutEvent >> isAutomatic [
 	"Answer whether this event came from PCRE2_AUTO_CALLOUT rather than an explicit (?C...) item."

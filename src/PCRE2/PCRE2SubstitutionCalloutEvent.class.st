@@ -21,6 +21,20 @@ Class {
 	#package : 'PCRE2'
 }
 
+{ #category : 'initialization' }
+PCRE2SubstitutionCalloutEvent >> match: match replacement: text count: count outputStart: start length: length [
+
+	version := 0.
+	substitutionCount := count.
+	offsets := match offsets copy.
+	ovectorCount := match ovectorCount.
+	matchedText := match readMatch.
+	replacementText := text.
+	outputOffsets := {
+		                 start.
+		                 (start + length) }
+]
+
 { #category : 'accessing' }
 PCRE2SubstitutionCalloutEvent >> matchedText [
 	"Answer the subject substring matched for this substitution."

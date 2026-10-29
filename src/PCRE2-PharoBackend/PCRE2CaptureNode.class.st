@@ -9,6 +9,12 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
+{ #category : 'optimization' }
+PCRE2CaptureNode >> canAccept [
+
+	^ child canAccept
+]
+
 { #category : 'private' }
 PCRE2CaptureNode >> child [
 
@@ -31,6 +37,12 @@ PCRE2CaptureNode >> executeIn: anEngine state: aState [
 	^ aState
 ]
 
+{ #category : 'matching' }
+PCRE2CaptureNode >> firstLiteral [
+
+	^ child firstLiteral
+]
+
 { #category : 'private' }
 PCRE2CaptureNode >> index [
 
@@ -44,6 +56,15 @@ PCRE2CaptureNode >> index: aValue [
 ]
 
 { #category : 'matching' }
+PCRE2CaptureNode >> lengthBoundsUsing: groups names: names visited: visited [
+
+	(visited includes: self) ifTrue: [ ^ { 0. nil } ].
+	^ child lengthBoundsUsing: groups names: names visited: (visited copy
+			   add: self;
+			   yourself)
+]
+
+{ #category : 'matching' }
 PCRE2CaptureNode >> maximumLength [
 
 	^ child maximumLength
@@ -53,4 +74,16 @@ PCRE2CaptureNode >> maximumLength [
 PCRE2CaptureNode >> minimumLength [
 
 	^ child minimumLength
+]
+
+{ #category : 'optimization' }
+PCRE2CaptureNode >> requiredNode [
+
+	^ child requiredNode
+]
+
+{ #category : 'matching' }
+PCRE2CaptureNode >> startPredicate [
+
+	^ child startPredicate
 ]

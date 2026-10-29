@@ -26,7 +26,7 @@ PCRE2UTF8Matcher >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
 	"Decode a PCRE2-8 substitution output buffer. For this width, code units are bytes."
 
 	codeUnitCount = 0 ifTrue: [ ^ String new ].
-	^ ZnUTF8Encoder default decodeBytes: (buffer copyFrom: 1 to: codeUnitCount)
+	^ (PCRE2UTF8Input bytes: buffer decoder: ZnUTF8Encoder default) readFrom: 1 to: codeUnitCount
 ]
 
 { #category : 'private' }

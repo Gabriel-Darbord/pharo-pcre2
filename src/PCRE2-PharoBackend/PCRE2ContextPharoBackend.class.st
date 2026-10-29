@@ -12,16 +12,21 @@ Class {
 		'parensNestLimit',
 		'maxPatternLength',
 		'maxPatternCompiledLength',
-		'codeUnitWidth'
+		'codeUnitWidth',
+		'options',
+		'optimizationDirectives',
+		'calloutBlock',
+		'substituteCalloutBlock',
+		'substituteCaseCalloutBlock'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'backends' }
-PCRE2ContextPharoBackend >> addOptions: anInteger [
+{ #category : 'configuration' }
+PCRE2ContextPharoBackend >> addOptions: flags [
 
-	self options: anInteger
+	self options: (self options bitOr: flags)
 ]
 
 { #category : 'initialization' }
@@ -42,16 +47,23 @@ PCRE2ContextPharoBackend >> bsr [
 	^ bsr
 ]
 
-{ #category : 'private' }
-PCRE2ContextPharoBackend >> bsr: aValue [
+{ #category : 'configuration' }
+PCRE2ContextPharoBackend >> bsr: value [
 
-	bsr := aValue
+	(#( 1 2 ) includes: value) ifFalse: [ PCRE2Error signal: 'bad option value' ].
+	bsr := value
 ]
 
-{ #category : 'backends' }
-PCRE2ContextPharoBackend >> calloutBlock: aBlock [
+{ #category : 'callouts' }
+PCRE2ContextPharoBackend >> calloutBlock [
 
-	PCRE2UnsupportedFeature signal: 'Callouts are not yet implemented by the Pharo backend'
+	^ calloutBlock
+]
+
+{ #category : 'callouts' }
+PCRE2ContextPharoBackend >> calloutBlock: block [
+
+	calloutBlock := block
 ]
 
 { #category : 'backends' }
@@ -66,10 +78,10 @@ PCRE2ContextPharoBackend >> characterTables: tables [
 	tables ifNotNil: [ PCRE2UnsupportedFeature signal: 'Locale character tables are specific to the FFI backend' ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'callouts' }
 PCRE2ContextPharoBackend >> clearCallout [
 
-	^ self
+	calloutBlock := nil
 ]
 
 { #category : 'backends' }
@@ -84,16 +96,16 @@ PCRE2ContextPharoBackend >> clearJITStack [
 	^ self
 ]
 
-{ #category : 'backends' }
+{ #category : 'callouts' }
 PCRE2ContextPharoBackend >> clearSubstituteCallout [
 
-	^ self
+	substituteCalloutBlock := nil
 ]
 
-{ #category : 'backends' }
+{ #category : 'callouts' }
 PCRE2ContextPharoBackend >> clearSubstituteCaseCallout [
 
-	^ self
+	substituteCaseCalloutBlock := nil
 ]
 
 { #category : 'backends' }
@@ -128,6 +140,18 @@ PCRE2ContextPharoBackend >> family [
 	^ #pharo
 ]
 
+{ #category : 'configuration' }
+PCRE2ContextPharoBackend >> finalize [
+
+	^ self
+]
+
+{ #category : 'configuration' }
+PCRE2ContextPharoBackend >> free [
+
+	^ self
+]
+
 { #category : 'private' }
 PCRE2ContextPharoBackend >> heapLimit [
 
@@ -135,10 +159,10 @@ PCRE2ContextPharoBackend >> heapLimit [
 ]
 
 { #category : 'limits' }
-PCRE2ContextPharoBackend >> heapLimit: anInteger [
+PCRE2ContextPharoBackend >> heapLimit: value [
 
-	anInteger = 20000000 ifFalse: [ PCRE2UnsupportedFeature signal: 'Heap byte limits are not yet implemented by the Pharo backend' ].
-	heapLimit := anInteger
+	(value isInteger and: [ value between: 0 and: 16rFFFFFFFF ]) ifFalse: [ PCRE2Error signal: 'bad option value' ].
+	heapLimit := value
 ]
 
 { #category : 'initialization' }
@@ -227,10 +251,11 @@ PCRE2ContextPharoBackend >> newline [
 	^ newline
 ]
 
-{ #category : 'private' }
-PCRE2ContextPharoBackend >> newline: aValue [
+{ #category : 'configuration' }
+PCRE2ContextPharoBackend >> newline: value [
 
-	newline := aValue
+	(value isInteger and: [ value between: PCRE2 newlineCR and: PCRE2 newlineNul ]) ifFalse: [ PCRE2Error signal: 'bad option value' ].
+	newline := value
 ]
 
 { #category : 'private' }
@@ -245,16 +270,38 @@ PCRE2ContextPharoBackend >> offsetLimit: aValue [
 	offsetLimit := aValue
 ]
 
-{ #category : 'backends' }
-PCRE2ContextPharoBackend >> options [
+{ #category : 'configuration' }
+PCRE2ContextPharoBackend >> optimizationDirectives [
 
-	^ 0
+	^ optimizationDirectives ifNil: [ #(  ) ]
 ]
 
-{ #category : 'backends' }
-PCRE2ContextPharoBackend >> options: anInteger [
+{ #category : 'configuration' }
+PCRE2ContextPharoBackend >> optimize: directive [
 
-	anInteger = 0 ifFalse: [ PCRE2UnsupportedFeature signal: 'Extra compile options are not yet implemented by the Pharo backend' ]
+	({
+		 PCRE2 optimizationFull.
+		 PCRE2 optimizationNone.
+		 PCRE2 optimizeStart.
+		 PCRE2 optimizeStartOff.
+		 PCRE2 optimizeAutoPossess.
+		 PCRE2 optimizeAutoPossessOff.
+		 PCRE2 optimizeDotstarAnchor.
+		 PCRE2 optimizeDotstarAnchorOff } includes: directive) ifFalse: [ PCRE2Error signal: 'bad option value' ].
+	optimizationDirectives := self optimizationDirectives copyWith: directive
+]
+
+{ #category : 'configuration' }
+PCRE2ContextPharoBackend >> options [
+
+	^ options ifNil: [ 0 ]
+]
+
+{ #category : 'configuration' }
+PCRE2ContextPharoBackend >> options: flags [
+
+	(flags isInteger and: [ flags between: 0 and: 16r7FFFFFFF ]) ifFalse: [ PCRE2Error signal: 'bad option value' ].
+	options := flags
 ]
 
 { #category : 'private' }
@@ -275,10 +322,10 @@ PCRE2ContextPharoBackend >> prepareForShutdown [
 	^ self
 ]
 
-{ #category : 'backends' }
-PCRE2ContextPharoBackend >> removeOptions: anInteger [
+{ #category : 'configuration' }
+PCRE2ContextPharoBackend >> removeOptions: flags [
 
-	^ self
+	self options: (self options bitAnd: flags bitInvert)
 ]
 
 { #category : 'backends' }
@@ -293,14 +340,37 @@ PCRE2ContextPharoBackend >> restoreAfterStartup [
 	^ self
 ]
 
-{ #category : 'backends' }
-PCRE2ContextPharoBackend >> substituteCalloutBlock: aBlock [
+{ #category : 'configuration' }
+PCRE2ContextPharoBackend >> startOptimizationEnabled [
 
-	PCRE2UnsupportedFeature signal: 'Substitution callouts are not yet implemented by the Pharo backend'
+	| enabled |
+	enabled := true.
+	self optimizationDirectives do: [ :directive |
+			(directive = PCRE2 optimizationNone or: [ directive = PCRE2 optimizeStartOff ]) ifTrue: [ enabled := false ].
+			(directive = PCRE2 optimizationFull or: [ directive = PCRE2 optimizeStart ]) ifTrue: [ enabled := true ] ].
+	^ enabled
 ]
 
-{ #category : 'backends' }
-PCRE2ContextPharoBackend >> substituteCaseCalloutBlock: aBlock [
+{ #category : 'callouts' }
+PCRE2ContextPharoBackend >> substituteCalloutBlock [
 
-	PCRE2UnsupportedFeature signal: 'Substitution case callouts are not yet implemented by the Pharo backend'
+	^ substituteCalloutBlock
+]
+
+{ #category : 'callouts' }
+PCRE2ContextPharoBackend >> substituteCalloutBlock: block [
+
+	substituteCalloutBlock := block
+]
+
+{ #category : 'callouts' }
+PCRE2ContextPharoBackend >> substituteCaseCalloutBlock [
+
+	^ substituteCaseCalloutBlock
+]
+
+{ #category : 'callouts' }
+PCRE2ContextPharoBackend >> substituteCaseCalloutBlock: block [
+
+	substituteCaseCalloutBlock := block
 ]

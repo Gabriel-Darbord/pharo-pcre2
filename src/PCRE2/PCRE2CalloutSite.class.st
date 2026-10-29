@@ -49,10 +49,28 @@ PCRE2CalloutSite >> nextItemLength [
 	^ nextItemLength
 ]
 
+{ #category : 'initialization' }
+PCRE2CalloutSite >> nextItemLength: length [
+
+	nextItemLength := length
+]
+
 { #category : 'accessing' }
 PCRE2CalloutSite >> number [
 
 	^ number
+]
+
+{ #category : 'initialization' }
+PCRE2CalloutSite >> number: calloutNumber position: offset nextLength: nextLength string: text offset: textOffset length: textLength [
+
+	version := 0.
+	number := calloutNumber.
+	patternPosition := offset.
+	nextItemLength := nextLength.
+	string := text.
+	stringOffset := textOffset.
+	stringLength := textLength
 ]
 
 { #category : 'accessing' }
