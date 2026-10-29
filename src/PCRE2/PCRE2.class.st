@@ -71,6 +71,14 @@ PCRE2 class >> altCircumflex [
 ]
 
 { #category : 'options' }
+PCRE2 class >> altExtendedClass [
+	"Enable UTS#18 nested character classes and doubled set operators."
+
+	<pcre2Option: #( compile )>
+	^ 16r08000000
+]
+
+{ #category : 'options' }
 PCRE2 class >> altVerbNames [
 	"Process backslashes in verb names"
 
@@ -540,6 +548,34 @@ PCRE2 class >> extraMatchWord [
 	However, it is ignored if PCRE2_EXTRA_MATCH_LINE is also set."
 
 	^ 16r00000004
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraNeverCallout [
+	"Reject callouts in the pattern."
+
+	^ 16r00008000
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraNoBs0 [
+	"Reject backslash zero escapes."
+
+	^ 16r00004000
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraPythonOctal [
+	"Use Python rules to distinguish octal escapes from numeric backreferences."
+
+	^ 16r00002000
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraTurkishCasing [
+	"Use Turkish Unicode case equivalences."
+
+	^ 16r00010000
 ]
 
 { #category : 'options' }

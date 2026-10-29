@@ -68,6 +68,7 @@ PCRE2Test >> testAllOptions [
 					              (16777216 -> #extendedMore).
 					              (33554432 -> #literal).
 					              (67108864 -> #matchInvalidUTF).
+					              (134217728 -> #altExtendedClass).
 					              (536870912 -> #endAnchored).
 					              (1073741824 -> #noUTFCheck).
 					              (2147483648 -> #anchored) })).
@@ -137,7 +138,7 @@ PCRE2Test >> testAllOptions [
 { #category : 'tests' }
 PCRE2Test >> testOptionsFor [
 
-	self assert: (PCRE2 optionsFor: #compile) size equals: 30.
+	self assert: (PCRE2 optionsFor: #compile) size equals: 31.
 	self assert: (PCRE2 optionsFor: #jit_compile) size equals: 3.
 	self assert: (PCRE2 optionsFor: #match) size equals: 12.
 	self assert: (PCRE2 optionsFor: #jit_match) size equals: 8.

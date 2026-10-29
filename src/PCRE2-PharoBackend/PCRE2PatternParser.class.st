@@ -26,7 +26,8 @@ Class {
 		'patternOffsets',
 		'compiledOptions',
 		'patternMatchOptions',
-		'patternLimits'
+		'patternLimits',
+		'requiresPreviousCharacter'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
@@ -70,50 +71,53 @@ PCRE2PatternParser >> asciiInlineOption [
 PCRE2PatternParser >> assertion: kind [
 
 	| multiline dollarEndOnly word convention altCircumflex |
+	(#( wordBoundary notWordBoundary ) includes: kind) ifTrue: [ requiresPreviousCharacter := true ].
 	multiline := (options bitAnd: PCRE2 multiline) ~= 0.
 	dollarEndOnly := (options bitAnd: PCRE2 dollarEndOnly) ~= 0.
 	altCircumflex := (options bitAnd: PCRE2 altCircumflex) ~= 0.
 	word := self predicateFor: $w.
 	convention := newlineConvention.
-	^ PCRE2AssertionNode new predicate: [ :engine :state |
-			  | index size newline beforeEnd |
-			  index := state position.
-			  size := engine subject size.
-			  (index = size and: [ #( endLine endSubject endBeforeFinalNewline ) includes: kind ]) ifTrue: [ engine notePartial: state ].
-			  kind = #beginSubject
-				  ifTrue: [ index = 0 ]
-				  ifFalse: [
-						  kind = #endSubject
-							  ifTrue: [ index = size ]
-							  ifFalse: [
-									  kind = #startMatch
-										  ifTrue: [ index = engine initialPosition ]
-										  ifFalse: [
-												  kind = #resetStart
-													  ifTrue: [
-															  state captures at: 1 put: index.
-															  true ]
-													  ifFalse: [
-															  kind = #beginLine
-																  ifTrue: [
-																		  (index = 0 and: [ (engine matchOptions bitAnd: PCRE2 notBOL) = 0 ]) or: [
-																			  multiline and: [
-																				  (index < size or: [ altCircumflex ]) and: [ (convention lengthEndingAt: index in: engine subject) > 0 ] ] ] ]
-																  ifFalse: [
-																		  newline := convention lengthAt: index + 1 in: engine subject.
-																		  beforeEnd := newline > 0 and: [ index + newline = size ].
-																		  kind = #endBeforeFinalNewline
-																			  ifTrue: [ index = size or: [ beforeEnd ] ]
-																			  ifFalse: [
-																					  kind = #endLine
-																						  ifTrue: [
-																								  (index = size and: [ (engine matchOptions bitAnd: PCRE2 notEOL) = 0 ]) or: [
-																									  newline > 0 and: [
-																										  multiline or: [
-																											  beforeEnd and: [ dollarEndOnly not and: [ (engine matchOptions bitAnd: PCRE2 notEOL) = 0 ] ] ] ] ] ]
-																						  ifFalse: [
-																								  (index > 0 and: [ word value: (engine subject at: (engine subject previousOffsetFrom: index) + 1) ])
-																								  ~= (index < size and: [ word value: (engine subject at: index + 1) ]) = (kind = #wordBoundary) ] ] ] ] ] ] ] ]
+	^ PCRE2AssertionNode new
+		  kind: kind;
+		  predicate: [ :engine :state |
+				  | index size newline beforeEnd |
+				  index := state position.
+				  size := engine subject size.
+				  (index = size and: [ #( endLine endSubject endBeforeFinalNewline ) includes: kind ]) ifTrue: [ engine notePartial: state ].
+				  kind = #beginSubject
+					  ifTrue: [ index = 0 ]
+					  ifFalse: [
+							  kind = #endSubject
+								  ifTrue: [ index = size ]
+								  ifFalse: [
+										  kind = #startMatch
+											  ifTrue: [ index = engine initialPosition ]
+											  ifFalse: [
+													  kind = #resetStart
+														  ifTrue: [
+																  state captures at: 1 put: index.
+																  true ]
+														  ifFalse: [
+																  kind = #beginLine
+																	  ifTrue: [
+																			  (index = 0 and: [ (engine matchOptions bitAnd: PCRE2 notBOL) = 0 ]) or: [
+																					  multiline and: [
+																							  (index < size or: [ altCircumflex ]) and: [ (convention lengthEndingAt: index in: engine subject) > 0 ] ] ] ]
+																	  ifFalse: [
+																			  newline := convention lengthAt: index + 1 in: engine subject.
+																			  beforeEnd := newline > 0 and: [ index + newline = size ].
+																			  kind = #endBeforeFinalNewline
+																				  ifTrue: [ index = size or: [ beforeEnd ] ]
+																				  ifFalse: [
+																						  kind = #endLine
+																							  ifTrue: [
+																									  (index = size and: [ (engine matchOptions bitAnd: PCRE2 notEOL) = 0 ]) or: [
+																											  newline > 0 and: [
+																													  multiline or: [
+																															  beforeEnd and: [ dollarEndOnly not and: [ (engine matchOptions bitAnd: PCRE2 notEOL) = 0 ] ] ] ] ] ]
+																							  ifFalse: [
+																									  (index > 0 and: [ word value: (engine subject at: (engine subject previousOffsetFrom: index) + 1) ])
+																									  ~= (index < size and: [ word value: (engine subject at: index + 1) ]) = (kind = #wordBoundary) ] ] ] ] ] ] ] ]
 ]
 
 { #category : 'parsing' }
@@ -211,6 +215,9 @@ PCRE2PatternParser >> characterClass [
 	self skipClassIgnored.
 	negative := self peek = $^.
 	negative ifTrue: [ position := position + 1 ].
+	((options bitAnd: PCRE2 allowEmptyClass) ~= 0 and: [ self peek = $] ]) ifTrue: [
+			self next.
+			^ PCRE2CharacterNode new predicate: [ :candidate | negative ] ].
 	predicates := OrderedCollection new.
 	first := true.
 	self skipClassIgnored.
@@ -462,6 +469,11 @@ PCRE2PatternParser >> escapeInClass: inClass [
 						    ifFalse: [ PCRE2 newlineAny ])) ].
 	character = $N ifTrue: [
 			self peek = (Character value: 123) ifTrue: [
+					(pattern findString: '{U+' startingAt: position) = position ifFalse: [
+							start := position.
+							reference := self quantifierBounds.
+							position := start.
+							reference ifNotNil: [ ^ PCRE2DotNode new convention: newlineConvention dotAll: false ] ].
 					self next.
 					property := (self readUntil: $}) trimBoth.
 					(property beginsWith: 'U+') ifFalse: [ self syntaxError: 'only \\N{U+...} is supported' ].
@@ -539,6 +551,7 @@ PCRE2PatternParser >> expect: character [
 PCRE2PatternParser >> explicitCallout [
 
 	| number text delimiter start |
+	(extraOptions bitAnd: PCRE2 extraNeverCallout) ~= 0 ifTrue: [ self syntaxError: 'callout is not allowed' ].
 	number := 0.
 	(self peek isNotNil and: [ self peek isDigit ]) ifTrue: [
 			number := self decimal.
@@ -741,7 +754,7 @@ PCRE2PatternParser >> hexadecimalEscape [
 				digits := String streamContents: [ :stream |
 					          2 timesRepeat: [
 						          (self peek isNotNil and: [ self peek digitValue between: 0 and: 15 ]) ifTrue: [ stream nextPut: self next ] ] ].
-				digits isEmpty ifTrue: [ ^ self literalCodePoint: 0 ] ].
+				digits isEmpty ifTrue: [ self syntaxError: 'hexadecimal digit expected' ] ].
 	^ self literalCodePoint: (Integer readFrom: digits readStream base: 16)
 ]
 
@@ -818,6 +831,7 @@ PCRE2PatternParser >> inlineOptions [
 										        ifFalse: [ flags at: character ifAbsent: [ self syntaxError: 'unrecognized character after (? or (?-' ] ] ].
 						character = $x ifTrue: [
 								seenX := seenX + 1.
+								(remove not and: [ seenX = 1 ]) ifTrue: [ options := options bitAnd: PCRE2 extendedMore bitInvert ].
 								(remove or: [ seenX > 1 ]) ifTrue: [ flag := flag bitOr: PCRE2 extendedMore ] ].
 						extra
 							ifTrue: [
@@ -833,9 +847,9 @@ PCRE2PatternParser >> inlineOptions [
 { #category : 'parsing' }
 PCRE2PatternParser >> literal: character [
 
-	| caseless unicode restricted |
+	| caseless unicode caseOptions |
 	caseless := (options bitAnd: PCRE2 caseless) ~= 0.
-	restricted := (extraOptions bitAnd: PCRE2 extraCaselessRestrict) ~= 0.
+	caseOptions := extraOptions.
 	unicode := (options bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0.
 	^ PCRE2CharacterNode new
 		  character: character;
@@ -846,7 +860,7 @@ PCRE2PatternParser >> literal: character [
 											  same: candidate
 											  as: character
 											  unicode: unicode
-											  restricted: restricted ] ] ]
+											  extraOptions: caseOptions ] ] ]
 ]
 
 { #category : 'parsing' }
@@ -918,6 +932,7 @@ PCRE2PatternParser >> longGroupRestoring: savedOptions [
 			         ('THEN' -> #then) }.
 	(kinds includesKey: name) ifFalse: [ self unsupported: 'backtracking control verb ' , name ].
 	((kinds at: name) = #mark and: [ argument isEmptyOrNil ]) ifTrue: [ self syntaxError: 'MARK requires an argument' ].
+	argument isEmptyOrNil ifTrue: [ argument := nil ].
 	^ PCRE2ControlNode new kind: (kinds at: name) name: argument
 ]
 
@@ -944,7 +959,9 @@ PCRE2PatternParser >> lookbehindLimit: anInteger [
 PCRE2PatternParser >> maximumLookbehind [
 
 	| maximum |
-	maximum := 0.
+	maximum := requiresPreviousCharacter = true
+		           ifTrue: [ 1 ]
+		           ifFalse: [ 0 ].
 	lookbehinds do: [ :entry | entry second do: [ :branch | maximum := maximum max: (entry first maximumLengthFor: branch) ] ].
 	^ maximum
 ]
@@ -1039,7 +1056,10 @@ PCRE2PatternParser >> numericEscapeInClass: inClass [
 	inClass ifTrue: [ ^ self octalEscape ].
 	saved := position.
 	reference := self decimal.
-	(reference < 10 or: [ reference <= captureCount ]) ifTrue: [
+	((extraOptions bitAnd: PCRE2 extraPythonOctal) ~= 0
+		 ifTrue: [
+		 (position - saved >= 3 and: [ (pattern copyFrom: saved to: saved + 2) allSatisfy: [ :digit | digit between: $0 and: $7 ] ]) not ]
+		 ifFalse: [ reference < 10 or: [ (pattern at: saved) >= $8 or: [ reference <= captureCount ] ] ]) ifTrue: [
 			references add: reference.
 			^ PCRE2BackreferenceNode new
 				  reference: reference;
@@ -1058,6 +1078,11 @@ PCRE2PatternParser >> octalEscape [
 	[ count < 3 and: [ self peek isNotNil and: [ self peek between: $0 and: $7 ] ] ] whileTrue: [
 			value := value * 8 + self next asciiValue - $0 asciiValue.
 			count := count + 1 ].
+	count = 0 ifTrue: [ ^ self literal: self next ].
+	((extraOptions bitAnd: PCRE2 extraPythonOctal) ~= 0 and: [ value > 255 ]) ifTrue: [
+		self syntaxError: 'octal value is greater than 377 in Python octal mode' ].
+	((extraOptions bitAnd: PCRE2 extraNoBs0) ~= 0 and: [ value = 0 and: [ count = 1 ] ]) ifTrue: [
+		self syntaxError: '\0 is not allowed' ].
 	^ self literalCodePoint: value
 ]
 
@@ -1095,6 +1120,7 @@ PCRE2PatternParser >> parse: preparedInput options: compileOptions [
 			pattern := self utfPattern.
 			pattern isString ifFalse: [ pattern := pattern asString ] ].
 	self initializePatternOffsets.
+	self validateTurkishCasing.
 	((options bitAnd: PCRE2 neverUTF) ~= 0 and: [ (options bitAnd: PCRE2 utf) ~= 0 ]) ifTrue: [
 		self syntaxError: 'using UTF is disabled by the application' ].
 	((options bitAnd: PCRE2 neverUCP) ~= 0 and: [ (options bitAnd: PCRE2 ucp) ~= 0 ]) ifTrue: [
@@ -1109,8 +1135,6 @@ PCRE2PatternParser >> parse: preparedInput options: compileOptions [
 	itemLengths := Dictionary new.
 	references := OrderedCollection new.
 	lookbehinds := OrderedCollection new.
-	(extraOptions bitAnd: PCRE2 extraMatchLine | PCRE2 extraMatchWord) = (PCRE2 extraMatchLine | PCRE2 extraMatchWord) ifTrue: [
-		self syntaxError: 'PCRE2_EXTRA_MATCH_LINE and PCRE2_EXTRA_MATCH_WORD are mutually exclusive' ].
 	prefix := self extraMatchingBoundary: true.
 	tree := (options bitAnd: PCRE2 literal) ~= 0
 		        ifTrue: [ PCRE2SequenceNode new children: (pattern collect: [ :character | self literal: character ] as: Array) ]
@@ -1264,8 +1288,8 @@ PCRE2PatternParser >> quantifierBounds [
 { #category : 'parsing' }
 PCRE2PatternParser >> rangeFrom: low to: high caseless: caseless [
 
-	| unicode restricted |
-	restricted := (extraOptions bitAnd: PCRE2 extraCaselessRestrict) ~= 0.
+	| unicode caseOptions |
+	caseOptions := extraOptions.
 	unicode := (options bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0.
 	^ [ :candidate |
 		  (candidate between: low and: high) or: [
@@ -1275,7 +1299,7 @@ PCRE2PatternParser >> rangeFrom: low to: high caseless: caseless [
 							  from: low asInteger
 							  to: high asInteger
 							  unicode: unicode
-							  restricted: restricted ] ] ]
+							  extraOptions: caseOptions ] ] ]
 ]
 
 { #category : 'callouts' }
@@ -1359,11 +1383,12 @@ PCRE2PatternParser >> skipIgnored [
 				position := position + 3.
 				self readUntil: $).
 				consumed := true ].
-		(extended and: [ self atEnd not and: [ self peek isSeparator or: [ self peek = $# ] ] ]) ifTrue: [
-				self peek = $#
-					ifTrue: [ [ self atEnd not and: [ self next ~= Character lf ] ] whileTrue ]
-					ifFalse: [ position := position + 1 ].
-				consumed := true ].
+		(extended and: [ self atEnd not and: [ (#( 9 10 11 12 13 32 ) includes: self peek asInteger) or: [ self peek = $# ] ] ])
+			ifTrue: [
+					self peek = $#
+						ifTrue: [ [ self atEnd not and: [ self next ~= Character lf ] ] whileTrue ]
+						ifFalse: [ position := position + 1 ].
+					consumed := true ].
 		consumed ] whileTrue
 ]
 
@@ -1376,9 +1401,10 @@ PCRE2PatternParser >> skipQuantifierSpaces [
 { #category : 'configuration' }
 PCRE2PatternParser >> startDirectives [
 
-	| end directive newlineNames |
+	| end directive newlineNames optionNames extraNames matchNames limitNames key value |
 	patternMatchOptions := 0.
 	patternLimits := Dictionary new.
+	(options bitAnd: PCRE2 literal) ~= 0 ifTrue: [ ^ self ].
 	newlineNames := Dictionary newFrom: {
 			                ('CR' -> PCRE2 newlineCR).
 			                ('LF' -> PCRE2 newlineLF).
@@ -1386,53 +1412,53 @@ PCRE2PatternParser >> startDirectives [
 			                ('ANY' -> PCRE2 newlineAny).
 			                ('ANYCRLF' -> PCRE2 newlineAnyCRLF).
 			                ('NUL' -> PCRE2 newlineNul) }.
+	optionNames := Dictionary newFrom: {
+			               ('UTF' -> PCRE2 utf).
+			               ('UTF' , codeUnitWidth asString -> PCRE2 utf).
+			               ('UCP' -> PCRE2 ucp).
+			               ('NO_AUTO_POSSESS' -> PCRE2 noAutoPossess).
+			               ('NO_START_OPT' -> PCRE2 noStartOptimize).
+			               ('NO_DOTSTAR_ANCHOR' -> PCRE2 noDotstarAnchor).
+			               ('NO_JIT' -> 0) }.
+	extraNames := Dictionary newFrom: {
+			              ('CASELESS_RESTRICT' -> PCRE2 extraCaselessRestrict).
+			              ('TURKISH_CASING' -> PCRE2 extraTurkishCasing) }.
+	matchNames := Dictionary newFrom: {
+			              ('NOTEMPTY' -> PCRE2 notEmpty).
+			              ('NOTEMPTY_ATSTART' -> PCRE2 notEmptyAtStart) }.
+	limitNames := Dictionary newFrom: {
+			              ('LIMIT_MATCH' -> #match).
+			              ('LIMIT_DEPTH' -> #depth).
+			              ('LIMIT_RECURSION' -> #depth).
+			              ('LIMIT_HEAP' -> #heap) }.
 	[ (pattern findString: '(*' startingAt: position) = position ] whileTrue: [
 			end := pattern indexOf: $) startingAt: position + 2 ifAbsent: [ ^ self ].
 			directive := pattern copyFrom: position + 2 to: end - 1.
 			(newlineNames includesKey: directive)
 				ifTrue: [ newlineConvention := PCRE2NewlineConvention new mode: (newlineNames at: directive) ]
 				ifFalse: [
-						directive = 'UTF'
-							ifTrue: [ options := options bitOr: PCRE2 utf ]
+						(optionNames includesKey: directive)
+							ifTrue: [ options := options bitOr: (optionNames at: directive) ]
 							ifFalse: [
-									directive = 'UCP'
-										ifTrue: [ options := options bitOr: PCRE2 ucp ]
+									(extraNames includesKey: directive)
+										ifTrue: [ extraOptions := extraOptions bitOr: (extraNames at: directive) ]
 										ifFalse: [
-												directive = 'BSR_ANYCRLF'
-													ifTrue: [ bsr := PCRE2 bsrAnyCRLF ]
+												(matchNames includesKey: directive)
+													ifTrue: [ patternMatchOptions := patternMatchOptions bitOr: (matchNames at: directive) ]
 													ifFalse: [
-															directive = 'BSR_UNICODE'
-																ifTrue: [ bsr := PCRE2 bsrUnicode ]
+															directive = 'BSR_ANYCRLF'
+																ifTrue: [ bsr := PCRE2 bsrAnyCRLF ]
 																ifFalse: [
-																		directive = 'NO_AUTO_POSSESS'
-																			ifTrue: [ options := options bitOr: PCRE2 noAutoPossess ]
+																		directive = 'BSR_UNICODE'
+																			ifTrue: [ bsr := PCRE2 bsrUnicode ]
 																			ifFalse: [
-																					directive = 'NO_START_OPT'
-																						ifTrue: [ options := options bitOr: PCRE2 noStartOptimize ]
-																						ifFalse: [
-																								directive = 'NO_DOTSTAR_ANCHOR'
-																									ifTrue: [ options := options bitOr: PCRE2 noDotstarAnchor ]
-																									ifFalse: [
-																											directive = 'NO_JIT'
-																												ifTrue: [ ]
-																												ifFalse: [
-																														directive = 'NOTEMPTY'
-																															ifTrue: [ patternMatchOptions := patternMatchOptions bitOr: PCRE2 notEmpty ]
-																															ifFalse: [
-																																	directive = 'NOTEMPTY_ATSTART'
-																																		ifTrue: [ patternMatchOptions := patternMatchOptions bitOr: PCRE2 notEmptyAtStart ]
-																																		ifFalse: [
-																																				((directive beginsWith: 'LIMIT_MATCH=') or: [
-																																					 (directive beginsWith: 'LIMIT_DEPTH=') or: [ directive beginsWith: 'LIMIT_RECURSION=' ] ])
-																																					ifTrue: [
-																																							| key value |
-																																							key := (directive beginsWith: 'LIMIT_MATCH=')
-																																								       ifTrue: [ #match ]
-																																								       ifFalse: [ #depth ].
-																																							value := directive copyAfter: $=.
-																																							(value isEmpty or: [ (value allSatisfy: #isDigit) not ]) ifTrue: [ ^ self ].
-																																							patternLimits at: key put: value asInteger ]
-																																					ifFalse: [ ^ self ] ] ] ] ] ] ] ] ] ] ] ].
+																					key := directive copyUpTo: $=.
+																					(limitNames includesKey: key) ifFalse: [ ^ self ].
+																					value := directive copyAfter: $=.
+																					(value isEmpty or: [ (value allSatisfy: [ :digit | digit between: $0 and: $9 ]) not ]) ifTrue: [ ^ self ].
+																					value := value asInteger.
+																					value > 16rFFFFFFFF ifTrue: [ ^ self ].
+																					patternLimits at: (limitNames at: key) put: value ] ] ] ] ] ].
 			position := end + 1 ].
 	compiledOptions := options
 ]
@@ -1525,4 +1551,15 @@ PCRE2PatternParser >> validateLookbehinds [
 						self syntaxError: 'lookbehind is too long' ].
 					bounds at: branch put: lengths ].
 			entry first branchBounds: bounds ]
+]
+
+{ #category : 'parsing' }
+PCRE2PatternParser >> validateTurkishCasing [
+
+	(extraOptions bitAnd: PCRE2 extraTurkishCasing) = 0 ifTrue: [ ^ self ].
+	(options bitAnd: PCRE2 utf | PCRE2 ucp) = 0 ifTrue: [ self syntaxError: 'PCRE2_EXTRA_TURKISH_CASING requires UTF or UCP' ].
+	(codeUnitWidth = 8 and: [ (options bitAnd: PCRE2 utf) = 0 ]) ifTrue: [
+		self syntaxError: 'PCRE2_EXTRA_TURKISH_CASING requires UTF in 8-bit mode' ].
+	(extraOptions bitAnd: PCRE2 extraCaselessRestrict) ~= 0 ifTrue: [
+		self syntaxError: 'PCRE2_EXTRA_TURKISH_CASING is incompatible with PCRE2_EXTRA_CASELESS_RESTRICT' ]
 ]

@@ -43,6 +43,19 @@ PCRE2MatchState >> alternations: frames [
 ]
 
 { #category : 'matching' }
+PCRE2MatchState >> appendTasks: tail [
+
+	| nodes link |
+	nodes := OrderedCollection new.
+	link := tasks.
+	[ link isNotNil ] whileTrue: [
+			nodes add: link first.
+			link := link second ].
+	self tasks: tail.
+	nodes reverseDo: [ :node | self push: node ]
+]
+
+{ #category : 'matching' }
 PCRE2MatchState >> assertions [
 
 	^ assertions
@@ -208,6 +221,22 @@ PCRE2MatchState >> push: aNode [
 		         aNode.
 		         tasks }.
 	pendingDepth := pendingDepth + 1
+]
+
+{ #category : 'DFA matching' }
+PCRE2MatchState >> restartAfter: size [
+
+	| nodes link |
+	nodes := OrderedCollection new.
+	link := tasks.
+	[ link isNotNil ] whileTrue: [
+			nodes add: ((link first isKindOf: PCRE2RepeatFrame)
+					 ifTrue: [ link first copy previousPosition: (link first previousPosition ifNotNil: [ :offset | offset - size ]) ]
+					 ifFalse: [ link first ]).
+			link := link second ].
+	self tasks: nil.
+	nodes reverseDo: [ :node | self push: node ].
+	position := 0
 ]
 
 { #category : 'matching' }

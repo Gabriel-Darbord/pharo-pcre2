@@ -251,6 +251,17 @@ PCRE2Match >> input: aPreparedInput [
 	decoder := aPreparedInput decoder
 ]
 
+{ #category : 'private' }
+PCRE2Match >> invalidateResult [
+
+	isPersistent := false.
+	startIndex := nil.
+	offsets := nil.
+	mark := nil.
+	resultCode := nil.
+	heapframesSize := nil
+]
+
 { #category : 'testing' }
 PCRE2Match >> isComplete [
 	"Answer whether PCRE2 returned a complete match result."

@@ -49,7 +49,7 @@ PCRE2BackreferenceNode >> executeIn: engine state: state [
 				 same: code
 				 as: (engine subject at: target + 1)
 				 unicode: (options bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0
-				 restricted: ((extraOptions ifNil: [ 0 ]) bitAnd: PCRE2 extraCaselessRestrict) ~= 0) ifFalse: [ ^ nil ].
+				 extraOptions: (extraOptions ifNil: [ 0 ])) ifFalse: [ ^ nil ].
 			sourceStep := engine subject pointWidthAtOffset: source.
 			targetStep := engine subject pointWidthAtOffset: target.
 			source := source + sourceStep.
@@ -111,5 +111,5 @@ PCRE2BackreferenceNode >> sameText: first as: second [
 									  same: (first at: index)
 									  as: (second at: index)
 									  unicode: (options bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0
-									  restricted: ((extraOptions ifNil: [ 0 ]) bitAnd: PCRE2 extraCaselessRestrict) ~= 0 ] ] ]
+									  extraOptions: (extraOptions ifNil: [ 0 ]) ] ] ]
 ]

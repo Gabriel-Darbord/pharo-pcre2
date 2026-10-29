@@ -330,6 +330,55 @@ PCRE2PharoBackendTest >> testDFAAlternativesAndPossession [
 ]
 
 { #category : 'tests' }
+PCRE2PharoBackendTest >> testDFARestartRetainsOnlyThePartialAttempt [
+
+	| matcher workspace data rc |
+	matcher := self compile: '^\d?\d(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\d\d$'.
+	workspace := ByteArray new: 400.
+	data := matcher newMatchData.
+	matcher options: PCRE2 partialSoft.
+	rc := matcher
+		      dfaMatch: '23ja'
+		      from: 0
+		      to: 4
+		      matchData: data
+		      workspace: workspace
+		      size: 100.
+	self assert: rc equals: PCRE2 errorPartial.
+	matcher options: PCRE2 dfaRestart.
+	rc := matcher
+		      dfaMatch: 'n05'
+		      from: 0
+		      to: 3
+		      matchData: data
+		      workspace: workspace
+		      size: 100.
+	self assert: rc equals: 1.
+	self assert: (data offsets first: 2) equals: #( 0 3 ).
+	self
+		should: [
+				matcher
+					dfaMatch: 'n05'
+					from: 0
+					to: 3
+					matchData: data
+					workspace: (ByteArray new: 400)
+					size: 100 ]
+		raise: PCRE2MatchError
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testDFASoftPartialKeepsTheFirstCandidate [
+
+	| matcher match |
+	matcher := self compile: 'abc|b'.
+	matcher options: PCRE2 partialSoft.
+	match := matcher dfaMatch: 'ab'.
+	self assert: match resultCode equals: PCRE2 errorPartial.
+	self assert: match offsets equals: #( 0 2 )
+]
+
+{ #category : 'tests' }
 PCRE2PharoBackendTest >> testDefaultChangesOnlyAffectNewCompilers [
 
 	| original compiler matcher |
@@ -351,6 +400,19 @@ PCRE2PharoBackendTest >> testDepthAndUnsignedWorkLimits [
 	matcher context depthLimit: 2.
 	self should: [ matcher search: 'abc' ] raise: PCRE2MatchError.
 	self should: [ matcher context matchLimit: -1 ] raise: PCRE2Error
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testEmptyClassesAndLineOptionPrecedence [
+
+	| compiler |
+	compiler := PCRE2UTF8Compiler new
+		            backend: PCRE2CompilerPharoBackend;
+		            options: PCRE2 utf | PCRE2 allowEmptyClass.
+	self deny: ((compiler compile: '[]') search: 'a').
+	self assert: ((compiler compile: '[^]') matches: 'a').
+	compiler context options: PCRE2 extraMatchLine | PCRE2 extraMatchWord.
+	self assert: ((compiler compile: '!') matches: '!')
 ]
 
 { #category : 'tests' }
@@ -407,6 +469,18 @@ PCRE2PharoBackendTest >> testExtendedSubstitutionsAndCallbacks [
 				 options: PCRE2 substituteExtended | PCRE2 substituteGlobal
 				 caseCallout: [ :event | event inputText reversed ])
 		equals: 'eno'
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testExtendedWhitespaceAndScopedSingleX [
+
+	| compiler |
+	compiler := PCRE2UTF8Compiler new
+		            backend: PCRE2CompilerPharoBackend;
+		            options: PCRE2 utf | PCRE2 extended | PCRE2 extendedMore.
+	self assert: ((compiler compile: 'a' , (String with: (Character value: 11)) , 'b') matches: 'ab').
+	self assert: ((compiler compile: '<(?x:[a b])>') matches: '< >').
+	self deny: ((compiler compile: 'A(*MARK:A)A+(*SKIP:)(B|Z) | AC') search: 'AAAC')
 ]
 
 { #category : 'tests' }
@@ -596,6 +670,14 @@ PCRE2PharoBackendTest >> testNonAtomicAssertionsCanBacktrack [
 ]
 
 { #category : 'tests' }
+PCRE2PharoBackendTest >> testNonOctalClassEscapesAndQuantifiedNonNewline [
+
+	self assert: ((self compile: '^[A\8B\9C]+$') matches: 'A8B9C').
+	self deny: ((self compile: '^[A\8B\9C]+$') matches: 'A8B9C' , (String with: Character null)).
+	self assert: ((self compile: '^\N{1,}') findMatch: 'abc' , String lf , 'def') offsets equals: #( 0 3 )
+]
+
+{ #category : 'tests' }
 PCRE2PharoBackendTest >> testOffsetLimitsUseCodeUnits [
 
 	| compiler matcher |
@@ -652,6 +734,24 @@ PCRE2PharoBackendTest >> testProperties [
 			  backend: PCRE2CompilerPharoBackend;
 			  addOptions: PCRE2 ucp;
 			  compile: '\d+') search: '٣')
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testPythonOctalAndEscapeRestrictions [
+
+	| compiler |
+	compiler := PCRE2UTF8Compiler new backend: PCRE2CompilerPharoBackend.
+	compiler context options: PCRE2 extraPythonOctal.
+	self assert: ((compiler compile: '\141') matches: 'a').
+	self should: [ compiler compile: '\12' ] raise: PCRE2CompileError.
+	self should: [ compiler compile: '\400' ] raise: PCRE2CompileError.
+	compiler context options: PCRE2 extraNoBs0.
+	self should: [ compiler compile: '\0' ] raise: PCRE2CompileError.
+	self assert: ((compiler compile: '\00') matches: (String with: Character null)).
+	compiler context options: PCRE2 extraNeverCallout.
+	self should: [ compiler compile: '(?C1)a' ] raise: PCRE2CompileError.
+	compiler addOptions: PCRE2 autoCallout.
+	self assert: ((compiler compile: 'a') matches: 'a')
 ]
 
 { #category : 'tests' }
@@ -812,6 +912,28 @@ PCRE2PharoBackendTest >> testSyntaxErrors [
 ]
 
 { #category : 'tests' }
+PCRE2PharoBackendTest >> testTurkishCaseFoldingAndStartDirectives [
+
+	| compiler |
+	compiler := PCRE2UTF8Compiler new
+		            backend: PCRE2CompilerPharoBackend;
+		            options: PCRE2 utf | PCRE2 caseless.
+	compiler context options: PCRE2 extraTurkishCasing.
+	self assert: ((compiler compile: 'I') matches: 'ı').
+	self assert: ((compiler compile: 'i') matches: 'İ').
+	self deny: ((compiler compile: 'I') matches: 'i').
+	self assert: ((compiler compile: '(I)\1') matches: 'Iı').
+	self assert: ((compiler compile: '(?r:I)') matches: 'i').
+	compiler context options: 0.
+	self assert: ((compiler compile: '(*TURKISH_CASING)I') matches: 'ı').
+	self deny: ((compiler compile: '(*CASELESS_RESTRICT)k') matches: 'K').
+	compiler options: 0.
+	self assert: ((compiler compile: '(*UTF8)é') matches: 'é').
+	compiler context options: PCRE2 extraTurkishCasing.
+	self should: [ compiler compile: 'I' ] raise: PCRE2CompileError
+]
+
+{ #category : 'tests' }
 PCRE2PharoBackendTest >> testUnicodePropertyNamesFollowPCRE2 [
 
 	#( '\p{gc=Lu}' '\p{Letter}' '\p{Uppercase_Letter}' '\p{Other_Alphabetic}' ) do: [ :pattern |
@@ -871,12 +993,6 @@ PCRE2PharoBackendTest >> testUnicodeWordIncludesCombiningMarksAndNumbers [
 { #category : 'tests' }
 PCRE2PharoBackendTest >> testUnsupportedFeaturesAreExplicit [
 
-	self
-		should: [
-				(self compile: 'a')
-					addOptions: PCRE2 dfaRestart;
-					dfaMatches: 'a' ]
-		raise: PCRE2UnsupportedFeature.
 	self should: [ (self compile: 'a') compileJIT ] raise: PCRE2UnsupportedFeature
 ]
 

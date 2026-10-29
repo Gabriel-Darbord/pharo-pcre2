@@ -242,6 +242,7 @@ PCRE2Matcher >> dfaMatch: subject [
 { #category : 'private' }
 PCRE2Matcher >> dfaMatch: subject from: start to: end matchData: matchData workspace: workspace size: workspaceSize [
 
+	matchData invalidateResult.
 	^ backend
 		  prepareForMatch;
 		  dfaMatch: subject
@@ -605,6 +606,7 @@ PCRE2Matcher >> mark [
 { #category : 'private' }
 PCRE2Matcher >> match: subject from: start to: end options: matchOptions matchData: matchData [
 
+	matchData invalidateResult.
 	^ backend
 		  prepareForMatch;
 		  match: subject

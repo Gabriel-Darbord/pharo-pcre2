@@ -93,6 +93,40 @@ PCRE2BackendIntegrationTest >> testCrossBackendContextsAndMatchDataAreRejected [
 ]
 
 { #category : 'tests' }
+PCRE2BackendIntegrationTest >> testDFAWorkspaceReuseInvalidatesOffsetsAndResumesRepetition [
+
+	{
+		PCRE2CompilerFFIBackend.
+		PCRE2CompilerPharoBackend } do: [ :backend |
+			| matcher workspace data rc |
+			matcher := PCRE2UTF8Compiler new
+				           backend: backend;
+				           compile: 'a+b+c'.
+			workspace := ByteArray new: 400.
+			data := matcher newMatchData.
+			matcher options: PCRE2 partialHard.
+			rc := matcher
+				      dfaMatch: 'a'
+				      from: 0
+				      to: 1
+				      matchData: data
+				      workspace: workspace
+				      size: 100.
+			self assert: rc equals: PCRE2 errorPartial.
+			self assert: (data offsets first: 2) equals: #( 0 1 ).
+			matcher options: PCRE2 dfaRestart.
+			rc := matcher
+				      dfaMatch: 'bbc'
+				      from: 0
+				      to: 3
+				      matchData: data
+				      workspace: workspace
+				      size: 100.
+			self assert: rc equals: 1.
+			self assert: (data offsets first: 2) equals: #( 0 3 ) ]
+]
+
+{ #category : 'tests' }
 PCRE2BackendIntegrationTest >> testFFIContextRestoreDoesNotFollowTheGlobalDefault [
 
 	| original context |

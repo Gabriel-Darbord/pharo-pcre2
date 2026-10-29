@@ -149,6 +149,22 @@ PCRE2UnicodeData class >> inRange: code from: low to: high unicode: unicode [
 ]
 
 { #category : 'properties' }
+PCRE2UnicodeData class >> inRange: code from: low to: high unicode: unicode extraOptions: flags [
+
+	| restricted variants |
+	restricted := (flags bitAnd: PCRE2 extraCaselessRestrict) ~= 0.
+	(unicode and: [ restricted not and: [ (flags bitAnd: PCRE2 extraTurkishCasing) ~= 0 ] ]) ifTrue: [
+			variants := self turkishEquivalents: code.
+			variants ifNotNil: [ ^ variants anySatisfy: [ :other | other between: low and: high ] ] ].
+	^ self
+		  inRange: code
+		  from: low
+		  to: high
+		  unicode: unicode
+		  restricted: restricted
+]
+
+{ #category : 'properties' }
 PCRE2UnicodeData class >> inRange: code from: low to: high unicode: unicode restricted: restricted [
 
 	(restricted and: [ unicode ]) ifFalse: [
@@ -356,6 +372,21 @@ PCRE2UnicodeData class >> same: first as: second unicode: unicode [
 ]
 
 { #category : 'properties' }
+PCRE2UnicodeData class >> same: first as: second unicode: unicode extraOptions: flags [
+
+	| restricted variants |
+	restricted := (flags bitAnd: PCRE2 extraCaselessRestrict) ~= 0.
+	(unicode and: [ restricted not and: [ (flags bitAnd: PCRE2 extraTurkishCasing) ~= 0 ] ]) ifTrue: [
+			variants := self turkishEquivalents: first asInteger.
+			variants ifNotNil: [ ^ variants includes: second asInteger ] ].
+	^ self
+		  same: first
+		  as: second
+		  unicode: unicode
+		  restricted: restricted
+]
+
+{ #category : 'properties' }
 PCRE2UnicodeData class >> same: first as: second unicode: unicode restricted: restricted [
 
 	(restricted and: [ first asInteger < 128 ~= (second asInteger < 128) ]) ifTrue: [ ^ false ].
@@ -378,6 +409,14 @@ PCRE2UnicodeData class >> scriptMaskFor: code [
 							ifTrue: [ low := middle + 1 ]
 							ifFalse: [ ^ ranges at: middle * 3 ] ] ].
 	^ 0
+]
+
+{ #category : 'properties' }
+PCRE2UnicodeData class >> turkishEquivalents: code [
+
+	(#( 73 305 ) includes: code) ifTrue: [ ^ #( 73 305 ) ].
+	(#( 105 304 ) includes: code) ifTrue: [ ^ #( 105 304 ) ].
+	^ nil
 ]
 
 { #category : 'properties' }

@@ -2,7 +2,8 @@ Class {
 	#name : 'PCRE2AssertionNode',
 	#superclass : 'PCRE2PatternNode',
 	#instVars : [
-		'predicate'
+		'predicate',
+		'kind'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
@@ -14,6 +15,18 @@ PCRE2AssertionNode >> executeIn: anEngine state: aState [
 	^ (predicate value: anEngine value: aState)
 		  ifTrue: [ aState ]
 		  ifFalse: [ nil ]
+]
+
+{ #category : 'accessing' }
+PCRE2AssertionNode >> kind [
+
+	^ kind
+]
+
+{ #category : 'accessing' }
+PCRE2AssertionNode >> kind: aSymbol [
+
+	kind := aSymbol
 ]
 
 { #category : 'matching' }
