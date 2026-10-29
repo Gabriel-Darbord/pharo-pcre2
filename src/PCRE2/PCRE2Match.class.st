@@ -1,9 +1,5 @@
 "
-Abstract superclass for PCRE2 match data.
-
-Concrete subclasses bind the native match-data accessors for PCRE2's 8-bit, 16-bit, and 32-bit APIs. This class stores shared result state: result code, offsets, remembered subject/input, decoder, named-capture metadata, persistence state, and cached native memory diagnostics.
-
-Use match objects to inspect captures after matching. Persistent matches copy native offset data into Pharo memory, cache native diagnostics, and release the native match-data handle.
+Standalone match results with numbered and named captures, encoded offsets, and remembered subject input. A backend owns the result representation. FFI results can be materialized before image shutdown; Pharo results already live entirely in the image.
 "
 Class {
 	#name : 'PCRE2Match',
@@ -46,9 +42,22 @@ PCRE2Match >> backend [
 ]
 
 { #category : 'backends' }
-PCRE2Match >> backend: aBackend [
+PCRE2Match >> backend: anImplementation [
 
-	backend := aBackend
+	backend ifNotNil: [ PCRE2Error signal: 'Match results cannot change backend' ].
+	backend := anImplementation
+]
+
+{ #category : 'persistence' }
+PCRE2Match >> cacheForSnapshot [
+
+	self
+		count;
+		matchDataSize;
+		heapframesSize;
+		startIndex;
+		mark;
+		offsets
 ]
 
 { #category : 'private' }
@@ -213,10 +222,12 @@ PCRE2Match >> groupsNamed: groupName [
 	^ (self captureIndexesNamed: groupName) collect: [ :captureIndex | self groupAt: captureIndex ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Match >> heapframesSize [
 
-	^ heapframesSize ifNil: [ heapframesSize := backend heapframesSize ]
+	heapframesSize ifNotNil: [ ^ heapframesSize ].
+	backend isNull ifTrue: [ ^ nil ].
+	^ heapframesSize := backend heapframesSize
 ]
 
 { #category : 'initialization' }
@@ -260,10 +271,10 @@ PCRE2Match >> isPartial [
 	^ resultCode = PCRE2 errorPartial
 ]
 
-{ #category : 'testing' }
+{ #category : 'persistence' }
 PCRE2Match >> isPersistent [
 
-	^ isPersistent
+	^ isPersistent or: [ backend isNull ]
 ]
 
 { #category : 'backends' }
@@ -275,7 +286,9 @@ PCRE2Match >> lastMatchIndex [
 { #category : 'accessing' }
 PCRE2Match >> mark [
 
-	^ mark ifNil: [ mark := self getMark ifEmpty: [ nil ] ]
+	mark ifNotNil: [ ^ mark ].
+	backend isNull ifTrue: [ ^ nil ].
+	^ mark := self getMark ifEmpty: [ nil ]
 ]
 
 { #category : 'diagnostics' }
@@ -341,16 +354,10 @@ PCRE2Match >> ovectorCount [
 	^ self getCount
 ]
 
-{ #category : 'backends' }
+{ #category : 'persistence' }
 PCRE2Match >> prepareForShutdown [
 
-	self
-		count;
-		matchDataSize;
-		heapframesSize;
-		startIndex;
-		mark;
-		offsets.
+	self cacheForSnapshot.
 	backend finalize.
 	isPersistent := true
 ]

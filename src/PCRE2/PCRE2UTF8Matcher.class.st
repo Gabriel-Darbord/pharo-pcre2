@@ -1,7 +1,5 @@
 "
-Represents a compiled PCRE2 pattern using 8-bit UTF-8 code units.
-
-Most users get this class through PCRE2Compiler or String>>asPerlCompatibleRegex. The shared matching API lives on PCRE2Matcher; this subclass supplies the libpcre2-8 FFI entry points and UTF-8 input preparation.
+Public PCRE2 Matcher using 8-bit code units. The selected backend supplies the implementation; input and offset conventions are shared across backends.
 "
 Class {
 	#name : 'PCRE2UTF8Matcher',

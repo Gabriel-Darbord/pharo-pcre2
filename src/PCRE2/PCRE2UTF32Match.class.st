@@ -1,7 +1,5 @@
 "
-Stores match data produced by PCRE2's 32-bit code-unit API.
-
-The result-reading behavior is inherited from PCRE2Match. This subclass only binds the native match-data accessors to the libpcre2-32 entry points.
+Public PCRE2 Match using 32-bit code units. The selected backend supplies the implementation; input and offset conventions are shared across backends.
 "
 Class {
 	#name : 'PCRE2UTF32Match',

@@ -1,9 +1,5 @@
 "
-Abstract superclass for compiled PCRE2 matchers.
-
-Concrete subclasses bind the width-specific native API: PCRE2UTF8Matcher, PCRE2UTF16Matcher, and PCRE2UTF32Matcher. This class keeps shared matching, enumeration, groups, split, substitution, DFA, callout, tracing, persistence, and diagnostic behavior that can be expressed independently of the code-unit width.
-
-Match operations create standalone PCRE2Match subclasses. A matcher does not own a reusable match result, so callers can keep a returned match and inspect text, groups, offsets, marks, partial/complete status, and native match-data diagnostics later.
+A compiled regular expression with a selected implementation backend. Shared methods provide matching, capture queries, enumeration, splitting, and substitution. The backend owns compiled state and any external resources. Backend selection is fixed once compiled.
 "
 Class {
 	#name : 'PCRE2Matcher',
@@ -48,10 +44,10 @@ PCRE2Matcher >> backend [
 ]
 
 { #category : 'backends' }
-PCRE2Matcher >> backend: aBackend [
+PCRE2Matcher >> backend: anImplementation [
 
-	backend := aBackend.
-	backend matcher: self
+	backend ifNotNil: [ PCRE2Error signal: 'Compile a new matcher to select a different backend' ].
+	self initializeBackend: anImplementation
 ]
 
 { #category : 'documentation' }
@@ -107,7 +103,7 @@ PCRE2Matcher >> compileJIT: anInteger [
 	"Request JIT (re-)compilation for this compiled pattern."
 
 	| newCompiler |
-	newCompiler := self compilerClass new.
+	newCompiler := self compilerClass new backend: compiler backend class.
 	compiler copyContextIfPresent ifNotNil: [ :contextCopy | newCompiler context: contextCopy ].
 	newCompiler
 		options: compiler options;
@@ -145,6 +141,10 @@ PCRE2Matcher >> context [
 { #category : 'accessing' }
 PCRE2Matcher >> context: aMatchContext [
 
+	aMatchContext ifNotNil: [
+			(aMatchContext isKindOf: PCRE2MatchContext) ifFalse: [ PCRE2Error signal: 'Expected a match context' ].
+			(aMatchContext backend family = backend family and: [ aMatchContext backend codeUnitWidth = self codeUnitWidth ]) ifFalse: [
+				PCRE2Error signal: 'Match context must use the same backend and code-unit width as the matcher' ] ].
 	context := aMatchContext
 ]
 
@@ -206,7 +206,7 @@ PCRE2Matcher >> copyWithCharacterTables [
 
 	| copy |
 	copy := self shallowCopy.
-	copy backend: backend copyWithCharacterTables.
+	copy initializeBackend: backend copyWithCharacterTables.
 	copy
 		initialize;
 		options: self options.
@@ -551,6 +551,13 @@ PCRE2Matcher >> initialize [
 	"Initialize matcher-local options and lazily-computed metadata. Match data is created per match operation."
 
 	options := 0
+]
+
+{ #category : 'backends' }
+PCRE2Matcher >> initializeBackend: anImplementation [
+
+	backend := anImplementation.
+	backend matcher: self
 ]
 
 { #category : 'testing' }
@@ -1320,7 +1327,7 @@ PCRE2Matcher >> temporaryMatcherAddingCompileOptions: compileOptions matchOption
 
 	| sourceCompiler temporaryCompiler temporaryMatcher |
 	sourceCompiler := compiler ifNil: [ self compilerClass new ].
-	temporaryCompiler := self compilerClass new.
+	temporaryCompiler := self compilerClass new backend: sourceCompiler backend class.
 	sourceCompiler copyContextIfPresent ifNotNil: [ :contextCopy | temporaryCompiler context: contextCopy ].
 	temporaryCompiler
 		options: (sourceCompiler options bitOr: compileOptions);
@@ -1406,10 +1413,12 @@ PCRE2Matcher >> validateSubstitutionMatchData: aPCRE2Match [
 	aPCRE2Match isComplete ifFalse: [ PCRE2Error signal: 'Substitution match data must contain a complete match' ]
 ]
 
-{ #category : 'private' }
-PCRE2Matcher >> validateUsableMatchData: aPCRE2Match [
+{ #category : 'backends' }
+PCRE2Matcher >> validateUsableMatchData: matchData [
 
-	(aPCRE2Match isPersistent or: [ aPCRE2Match isNull ]) ifTrue: [
+	(matchData backend family = backend family and: [ matchData backend codeUnitWidth = self codeUnitWidth ]) ifFalse: [
+		PCRE2Error signal: 'Match data must use the same backend and code-unit width as the matcher' ].
+	(matchData isPersistent or: [ matchData isNull ]) ifTrue: [
 		PCRE2Error signal: 'Match data must hold an external PCRE2 match data block' ]
 ]
 

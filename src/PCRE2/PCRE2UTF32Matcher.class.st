@@ -1,7 +1,5 @@
 "
-Represents a compiled PCRE2 pattern using 32-bit code units.
-
-The shared matching API lives on PCRE2Matcher. This subclass supplies the libpcre2-32 FFI entry points, and offsets are interpreted as UTF-32 code-unit indexes before prepared input translates them back to Pharo character ranges.
+Public PCRE2 Matcher using 32-bit code units. The selected backend supplies the implementation; input and offset conventions are shared across backends.
 "
 Class {
 	#name : 'PCRE2UTF32Matcher',

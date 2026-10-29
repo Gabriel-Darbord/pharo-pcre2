@@ -45,11 +45,29 @@ PCRE2Object >> autoRelease [
 	FinalizationRegistry default add: self
 ]
 
+{ #category : 'backends' }
+PCRE2Object >> backend [
+
+	^ self
+]
+
+{ #category : 'backends' }
+PCRE2Object >> codeUnitWidth [
+
+	^ self ffiLibraryName codeUnitWidth
+]
+
 { #category : 'error handling' }
 PCRE2Object >> errorCode: errorCode [
 
 	<debuggerCompleteToSender>
 	PCRE2Error signal: (PCRE2 translateErrorCode: errorCode)
+]
+
+{ #category : 'backends' }
+PCRE2Object >> family [
+
+	^ #ffi
 ]
 
 { #category : 'library path' }
@@ -81,6 +99,12 @@ PCRE2Object >> prepareForShutdown [
 	"Prepare this wrapper to survive image save/load. Subclasses with native-derived Pharo-side state should materialize it before session shutdown."
 
 	^ self
+]
+
+{ #category : 'backends' }
+PCRE2Object >> requiresSessionRestore [
+
+	^ true
 ]
 
 { #category : 'persistence' }

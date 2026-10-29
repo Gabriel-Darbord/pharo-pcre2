@@ -58,6 +58,12 @@ PCRE2CompilerFFIBackend >> compilePreparedInput: input [
 	^ (self matcherBackendClass fromHandle: (self compileBasicInput: input)) autoRelease
 ]
 
+{ #category : 'backends' }
+PCRE2CompilerFFIBackend >> family [
+
+	^ #ffi
+]
+
 { #category : 'compiling' }
 PCRE2CompilerFFIBackend >> newCompileContext [
 
@@ -72,7 +78,7 @@ PCRE2CompilerFFIBackend >> prepareForCompile [
 
 	options := compiler options.
 	optionsJIT := compiler optionsJIT.
-	context := compiler existingContext
+	context := compiler existingContext ifNotNil: [ :aContext | aContext backend ]
 ]
 
 { #category : 'compiling' }

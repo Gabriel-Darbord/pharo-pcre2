@@ -1,7 +1,5 @@
 "
-Compiles patterns for PCRE2's 32-bit code-unit API.
-
-Use this compiler when the subject should cross the FFI boundary as UTF-32 code units instead of UTF-8 bytes. The high-level matching API is inherited through PCRE2UTF32Matcher; the native FFI methods are intentionally copied with _32 symbols because UFFI compiles ffiCall: methods to concrete functions.
+Public PCRE2 Compiler using 32-bit code units. The selected backend supplies the implementation; input and offset conventions are shared across backends.
 "
 Class {
 	#name : 'PCRE2UTF32Compiler',

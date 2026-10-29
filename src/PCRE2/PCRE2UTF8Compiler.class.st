@@ -1,7 +1,5 @@
 "
-Compiles patterns for PCRE2's 8-bit code-unit API.
-
-This is the UTF-8 compiler returned by PCRE2Compiler new and used by String convenience methods. It binds compile and JIT calls to libpcre2-8 while the abstract superclass keeps the shared compiler state and high-level compile flow.
+Public PCRE2 Compiler using 8-bit code units. The selected backend supplies the implementation; input and offset conventions are shared across backends.
 "
 Class {
 	#name : 'PCRE2UTF8Compiler',

@@ -4,7 +4,7 @@
 
 # Pharo-PCRE2
 
-Perl-compatible regular expressions for Pharo, backed by the native [PCRE2](https://github.com/PCRE2Project/pcre2) library through FFI.
+Perl-compatible regular expressions for Pharo with independently loadable FFI and Pharo backends. The stable default uses the [PCRE2](https://github.com/PCRE2Project/pcre2) C library through FFI. The experimental Pharo backend executes entirely in the image.
 
 ## Pharo Version Policy
 
@@ -26,7 +26,7 @@ Metacello new
   load
 ```
 
-The native PCRE2 8-bit library must be available on the host. The UTF-16 and UTF-32 APIs also use `libpcre2-16` and `libpcre2-32` when present.
+The default FFI backend requires the native PCRE2 8-bit library on the host. Its UTF-16 and UTF-32 APIs also use `libpcre2-16` and `libpcre2-32` when present.
 
 Linux:
 
@@ -40,7 +40,19 @@ macOS:
 brew install pcre2
 ```
 
+Load group `Pharo` for the Pharo implementation without the FFI backend or a C library, or `Backends` for both implementations. See [backend selection and current limitations](docs/Backends.md).
+
 ## Quick Start
+
+Select an implementation explicitly when compiling:
+
+```smalltalk
+matcher := PCRE2Compiler new
+  backend: PCRE2CompilerPharoBackend;
+  compile: '(?<word>\w+)'.
+```
+
+Use `PCRE2CompilerFFIBackend` to select FFI. Changing `PCRE2Compiler defaultBackend:` affects new compilers and the String convenience methods; existing objects retain their selected backend. FFI remains the default while the Pharo implementation is incomplete.
 
 Compile a pattern by sending `asPerlCompatibleRegex` to a string.
 
@@ -96,7 +108,7 @@ matcher matches: 'Package.st'. "true"
 
 ## Lifecycle
 
-Compiled PCRE2 patterns are native objects, so the project includes `PCRE2SessionManager` to restore them across image restarts. Serialization is used by default when the native library signature is compatible; otherwise matchers are recompiled from their saved pattern and options. Serialized caches are grouped by PCRE2 code-unit width.
+FFI compiled patterns are external objects, so `PCRE2SessionManager` restores their backend resources across image restarts. Serialization is used by default when the native library signature is compatible; otherwise matchers are recompiled from their saved pattern and options. Pharo backend patterns and results are ordinary image objects and do not enter C serialization or restoration.
 
 The binding targets PCRE2 10.x. The usual API uses `LibPCRE2UTF8` and the 8-bit library; `LibPCRE2` itself is abstract. `PCRE2UTF16Compiler` and `PCRE2UTF32Compiler` use PCRE2's wider code-unit libraries when available. Minor PCRE2 versions may differ in reported configuration details, so tests and applications should prefer capability checks over exact minor-version strings.
 
@@ -107,5 +119,6 @@ User documentation lives in the `docs` folder and is shown by Pharo's documentat
 - `docs/GettingStarted.md`
 - `docs/API.md`
 - `docs/Lifecycle.md`
+- `docs/Backends.md`
 
 For the complete regular expression syntax, see the [official PCRE2 documentation](https://www.pcre.org/current/doc/html/index.html).

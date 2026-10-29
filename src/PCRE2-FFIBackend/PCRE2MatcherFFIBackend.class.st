@@ -163,7 +163,7 @@ PCRE2MatcherFFIBackend >> postCopy [
 PCRE2MatcherFFIBackend >> prepareForMatch [
 
 	options := matcher options.
-	context := matcher existingContext
+	context := matcher existingContext ifNotNil: [ :aContext | aContext backend ]
 ]
 
 { #category : 'private - native' }

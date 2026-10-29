@@ -76,16 +76,23 @@ PCRE2SessionManager class >> shouldUseSerialization [
 
 { #category : 'system startup' }
 PCRE2SessionManager class >> shutDown: quitting [
-	"Prepare native-backed PCRE2 wrappers before the image shuts down."
+	"Prepare saved state without invalidating handles in a continuing session."
 
-	quitting & enabled ifTrue: [ instance := self new shutDown ]
+	enabled ifTrue: [
+			instance := self new.
+			quitting
+				ifTrue: [ instance shutDown ]
+				ifFalse: [ instance prepareForSnapshot ] ]
 ]
 
 { #category : 'system startup' }
 PCRE2SessionManager class >> startUp: resuming [
 	"Restore all compiled patterns using the serialized data from the previous session"
 
-	resuming & enabled ifFalse: [ ^ self ].
+	resuming ifFalse: [
+			instance := nil.
+			^ self ].
+	enabled ifFalse: [ ^ self ].
 
 	"Failsafe to disable restoration if it crashes the image (open an issue if this happens!)"
 	(OSEnvironment current includesKey: 'PHARO_PCRE2_NOSTARTUP') ifTrue: [ ^ self ].
@@ -111,6 +118,14 @@ PCRE2SessionManager class >> useSerialization [
 ]
 
 { #category : 'persistence' }
+PCRE2SessionManager >> cacheMatchers [
+
+	(self class shouldUseSerialization and: [ self hasMatchersToRestore ]) ifFalse: [ ^ self ].
+	serializedSignature := self class serializationSignature.
+	serializedMatchers := self serializeMatchersByCodeUnitWidth
+]
+
+{ #category : 'persistence' }
 PCRE2SessionManager >> canDeserializeSerializedMatchers [
 	"Serialized PCRE2 bytecode is only a cache. Use it only when the saved runtime signature still matches."
 
@@ -127,17 +142,18 @@ PCRE2SessionManager >> findMatchersToRestore [
 		PCRE2UTF16Matcher.
 		PCRE2UTF32Matcher } do: [ :matcherClass |
 			matcherClass allInstancesDo: [ :matcher |
-					matcher isNull ifFalse: [
+					(matcher backend requiresSessionRestore and: [ matcher isNull not ]) ifTrue: [
 						(matchersToRestore at: matcher codeUnitWidth ifAbsentPut: [ OrderedCollection new ]) add: matcher prepareForShutdown ] ] ]
 ]
 
-{ #category : 'enumerating' }
+{ #category : 'backends' }
 PCRE2SessionManager >> findObjectsToRestore [
 	"Register live external wrappers that can rebuild their native handles after image startup."
 
 	objectsToRestore := OrderedCollection new.
 	self restorableObjectClasses do: [ :objectClass |
-		objectClass allInstancesDo: [ :object | object isNull ifFalse: [ objectsToRestore add: object prepareForShutdown ] ] ]
+			objectClass allInstancesDo: [ :object |
+				(object backend requiresSessionRestore and: [ object isNull not ]) ifTrue: [ objectsToRestore add: object prepareForShutdown ] ] ]
 ]
 
 { #category : 'testing' }
@@ -154,6 +170,15 @@ PCRE2SessionManager >> matcherGroupsDo: aBlock [
 	matchersToRestore ifNotNil: [ matchersToRestore keysAndValuesDo: aBlock ]
 ]
 
+{ #category : 'persistence' }
+PCRE2SessionManager >> prepareForSnapshot [
+
+	self findObjectsToRestore.
+	self prepareMatchesForSnapshot.
+	self findMatchersToRestore.
+	self cacheMatchers
+]
+
 { #category : 'enumerating' }
 PCRE2SessionManager >> prepareMatchesForShutdown [
 	"Make live match data independent from native match-data handles before shutdown. Matches are Pharo-side snapshots after prepareForShutdown and need no startup restore work."
@@ -162,7 +187,21 @@ PCRE2SessionManager >> prepareMatchesForShutdown [
 		PCRE2UTF8Match.
 		PCRE2UTF16Match.
 		PCRE2UTF32Match } do: [ :matchClass |
-		matchClass allInstancesDo: [ :match | (match isPersistent or: [ match isNull ]) ifFalse: [ match prepareForShutdown ] ] ]
+			matchClass allInstancesDo: [ :match |
+				(match backend requiresSessionRestore and: [ (match isPersistent or: [ match isNull ]) not ]) ifTrue: [
+					match prepareForShutdown ] ] ]
+]
+
+{ #category : 'persistence' }
+PCRE2SessionManager >> prepareMatchesForSnapshot [
+
+	{
+		PCRE2UTF8Match.
+		PCRE2UTF16Match.
+		PCRE2UTF32Match } do: [ :matchClass |
+			matchClass allInstancesDo: [ :match |
+					(match backend requiresSessionRestore and: [ match isNull not and: [ match resultCode isNotNil ] ]) ifTrue: [
+						match cacheForSnapshot ] ] ]
 ]
 
 { #category : 'persistence' }
@@ -239,15 +278,13 @@ PCRE2SessionManager >> serializedSignature: aDictionary [
 	serializedSignature := aDictionary
 ]
 
-{ #category : 'system startup' }
+{ #category : 'persistence' }
 PCRE2SessionManager >> shutDown [
 
 	self findObjectsToRestore.
 	self prepareMatchesForShutdown.
 	self findMatchersToRestore.
-	(self class shouldUseSerialization and: [ self hasMatchersToRestore ]) ifFalse: [ ^ self ].
-	serializedSignature := self class serializationSignature.
-	serializedMatchers := self serializeMatchersByCodeUnitWidth
+	self cacheMatchers
 ]
 
 { #category : 'system startup' }

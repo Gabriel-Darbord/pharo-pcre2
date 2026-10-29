@@ -1,14 +1,5 @@
-"
-Abstract superclass for PCRE2 match contexts.
-
-Concrete subclasses bind PCRE2's width-specific native setters and lifetime functions: PCRE2UTF8MatchContext, PCRE2UTF16MatchContext, and PCRE2UTF32MatchContext. This class keeps the shared Pharo-side runtime limit accessors, callback installation protocol, and explicit JIT stack assignment.
-
-A non-nil JIT stack is an advanced ownership-sensitive resource. Use it only when large or complex JIT-compiled patterns need more runtime stack than PCRE2's default.
-
-Callback blocks are Pharo objects and are reinstalled during restoreAfterStartup. Any objects captured by those blocks must themselves remain valid after image startup.
-"
 Class {
-	#name : 'PCRE2MatchContext',
+	#name : 'PCRE2MatchContextFFIBackend',
 	#superclass : 'PCRE2Object',
 	#instVars : [
 		'depthLimit',
@@ -27,33 +18,28 @@ Class {
 	#package : 'PCRE2-FFIBackend'
 }
 
-{ #category : 'testing' }
-PCRE2MatchContext class >> isAbstract [
-
-	^ self == PCRE2MatchContext
-]
-
-{ #category : 'callouts' }
-PCRE2MatchContext >> calloutBlock: aBlock [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> calloutBlock: aBlock [
 	"Install a runtime callout. aBlock receives a PCRE2CalloutEvent and may answer an integer PCRE2 return code; non-integer answers continue matching."
 
 	| callback rc |
 	callback := FFICallback
-		            signature: #(int (void *calloutBlock, void *userData))
+		            signature: #( int #( void #* calloutBlock #, void #* userData ) )
 		            block: [ :calloutBlockAddress :userData |
-			            | answer |
-			            answer := aBlock value: (PCRE2CalloutEvent fromCalloutBlock: calloutBlockAddress codeUnitWidth: self codeUnitWidth).
-			            answer isInteger
-				            ifTrue: [ answer ]
-				            ifFalse: [ 0 ] ].
+				            | answer |
+				            answer := aBlock value:
+					                      (PCRE2CalloutEvent fromCalloutBlock: calloutBlockAddress codeUnitWidth: self codeUnitWidth).
+				            answer isInteger
+					            ifTrue: [ answer ]
+					            ifFalse: [ 0 ] ].
 	rc := self setCalloutCallback: callback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
 	calloutBlock := aBlock.
 	calloutCallback := callback
 ]
 
-{ #category : 'callouts' }
-PCRE2MatchContext >> clearCallout [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> clearCallout [
 	"Remove the runtime callout from this match context."
 
 	| rc |
@@ -63,16 +49,16 @@ PCRE2MatchContext >> clearCallout [
 	calloutCallback := nil
 ]
 
-{ #category : 'accessing' }
-PCRE2MatchContext >> clearJITStack [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> clearJITStack [
 	"Remove the explicit JIT stack assignment so PCRE2 uses its default stack."
 
 	self unsetJITStack.
 	jitStack := nil
 ]
 
-{ #category : 'callouts' }
-PCRE2MatchContext >> clearSubstituteCallout [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> clearSubstituteCallout [
 	"Remove the runtime substitution callout from this match context."
 
 	| rc |
@@ -82,8 +68,8 @@ PCRE2MatchContext >> clearSubstituteCallout [
 	substituteCalloutCallback := nil
 ]
 
-{ #category : 'callouts' }
-PCRE2MatchContext >> clearSubstituteCaseCallout [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> clearSubstituteCaseCallout [
 	"Remove the runtime substitution case callout from this match context."
 
 	| rc |
@@ -93,48 +79,48 @@ PCRE2MatchContext >> clearSubstituteCaseCallout [
 	substituteCaseCalloutCallback := nil
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> codeUnitWidth [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> codeUnitWidth [
 	"Answer the PCRE2 code-unit width used to decode callback payloads."
 
 	self subclassResponsibility
 ]
 
-{ #category : 'accessing' }
-PCRE2MatchContext >> depthLimit [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> depthLimit [
 
 	^ depthLimit
 ]
 
-{ #category : 'accessing' }
-PCRE2MatchContext >> depthLimit: anInteger [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> depthLimit: anInteger [
 	"Set the backtracking depth limit"
 
 	self setDepthLimit: (depthLimit := anInteger)
 ]
 
-{ #category : 'accessing' }
-PCRE2MatchContext >> heapLimit [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> heapLimit [
 
 	^ heapLimit
 ]
 
-{ #category : 'accessing' }
-PCRE2MatchContext >> heapLimit: anInteger [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> heapLimit: anInteger [
 	"Set the heap memory limit"
 
 	self setHeapLimit: (heapLimit := anInteger)
 ]
 
-{ #category : 'accessing' }
-PCRE2MatchContext >> jitStack [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> jitStack [
 	"Assigned JIT stack, or nil when PCRE2 uses its default thread-local machine stack."
 
 	^ jitStack
 ]
 
-{ #category : 'accessing' }
-PCRE2MatchContext >> jitStack: aJITStack [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> jitStack: aJITStack [
 	"Assign an explicit JIT stack to this match context. Use nil or clearJITStack to return to PCRE2's default stack. The same non-nil stack must not be used by concurrent or nested matches."
 
 	aJITStack ifNil: [ ^ self clearJITStack ].
@@ -144,34 +130,34 @@ PCRE2MatchContext >> jitStack: aJITStack [
 	jitStack := aJITStack
 ]
 
-{ #category : 'accessing' }
-PCRE2MatchContext >> matchLimit [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> matchLimit [
 
 	^ matchLimit
 ]
 
-{ #category : 'accessing' }
-PCRE2MatchContext >> matchLimit: anInteger [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> matchLimit: anInteger [
 	"Set the backtracking match limit"
 
 	self setMatchLimit: (matchLimit := anInteger)
 ]
 
-{ #category : 'accessing' }
-PCRE2MatchContext >> offsetLimit [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> offsetLimit [
 
 	^ offsetLimit
 ]
 
-{ #category : 'accessing' }
-PCRE2MatchContext >> offsetLimit: anInteger [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> offsetLimit: anInteger [
 	"Set PCRE2's subject offset limit as a zero-based code-unit offset."
 
 	self setOffsetLimit: (offsetLimit := anInteger)
 ]
 
-{ #category : 'copying' }
-PCRE2MatchContext >> postCopy [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> postCopy [
 
 	handle := self privateCopy.
 	handle isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to copy match context' ].
@@ -181,14 +167,14 @@ PCRE2MatchContext >> postCopy [
 	substituteCaseCalloutBlock ifNotNil: [ self substituteCaseCalloutBlock: substituteCaseCalloutBlock ]
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> privateCopy [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> privateCopy [
 
 	self subclassResponsibility
 ]
 
-{ #category : 'persistence' }
-PCRE2MatchContext >> restoreAfterStartup [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> restoreAfterStartup [
 	"Recreate my native match context and reapply remembered limits, JIT stack, and callbacks. Callback blocks are preserved as Pharo objects; their captured objects must also survive startup correctly."
 
 	self setHandle: self ffiLibraryName uniqueInstance createMatchContext.
@@ -205,102 +191,104 @@ PCRE2MatchContext >> restoreAfterStartup [
 	substituteCaseCalloutBlock ifNotNil: [ self substituteCaseCalloutBlock: substituteCaseCalloutBlock ]
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> setCalloutCallback: callback [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> setCalloutCallback: callback [
 
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> setDepthLimit: value [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> setDepthLimit: value [
 
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> setHeapLimit: value [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> setHeapLimit: value [
 
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> setJITStack: aJITStack [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> setJITStack: aJITStack [
 
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> setMatchLimit: value [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> setMatchLimit: value [
 
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> setOffsetLimit: value [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> setOffsetLimit: value [
 
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> setSubstituteCalloutCallback: callback [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> setSubstituteCalloutCallback: callback [
 
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> setSubstituteCaseCalloutCallback: callback [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> setSubstituteCaseCalloutCallback: callback [
 
 	self subclassResponsibility
 ]
 
-{ #category : 'callouts' }
-PCRE2MatchContext >> substituteCalloutBlock: aBlock [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> substituteCalloutBlock: aBlock [
 	"Install a runtime substitution callout. aBlock receives a PCRE2SubstitutionCalloutEvent and may answer a PCRE2 substitution-callout return code; non-integer answers accept the replacement."
 
 	| callback rc |
 	self ffiLibraryName supportsSubstitutionCallouts ifFalse: [
 		PCRE2Error signal: 'Substitution callouts require PCRE2 10.33 or newer; loaded ' , self ffiLibraryName versionString ].
 	callback := FFICallback
-		            signature: #(int (void *calloutBlock, void *userData))
+		            signature: #( int #( void #* calloutBlock #, void #* userData ) )
 		            block: [ :calloutBlockAddress :userData |
-			            | answer |
-			            answer := aBlock value:
-				                      (PCRE2SubstitutionCalloutEvent fromCalloutBlock: calloutBlockAddress codeUnitWidth: self codeUnitWidth).
-			            answer isInteger
-				            ifTrue: [ answer ]
-				            ifFalse: [ PCRE2 substituteCalloutAccept ] ].
+				            | answer |
+				            answer := aBlock value:
+					                      (PCRE2SubstitutionCalloutEvent fromCalloutBlock: calloutBlockAddress codeUnitWidth: self codeUnitWidth).
+				            answer isInteger
+					            ifTrue: [ answer ]
+					            ifFalse: [ PCRE2 substituteCalloutAccept ] ].
 	rc := self setSubstituteCalloutCallback: callback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
 	substituteCalloutBlock := aBlock.
 	substituteCalloutCallback := callback
 ]
 
-{ #category : 'callouts' }
-PCRE2MatchContext >> substituteCaseCalloutBlock: aBlock [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> substituteCaseCalloutBlock: aBlock [
 	"Install a runtime substitution case callout. aBlock receives a PCRE2SubstitutionCaseCalloutEvent and should answer transformed text. Answer nil to make PCRE2 fail with a replace-case error; non-string answers use PCRE2's requested default transform in Pharo."
 
 	| callback rc |
 	self ffiLibraryName supportsSubstitutionCaseCallouts ifFalse: [
 		PCRE2Error signal: 'Substitution case callouts require PCRE2 10.45 or newer; loaded ' , self ffiLibraryName versionString ].
 	callback := FFICallback
-		            signature: #(size_t (void *input, size_t inputLength, void *output, size_t outputCapacity, int caseType, void *userData))
+		            signature:
+		            #( size_t #( void #* input #, size_t inputLength #, void #* output #, size_t outputCapacity #, int caseType #, void
+		                  #* userData ) )
 		            block: [ :input :inputLength :output :outputCapacity :caseType :userData |
-			            | event |
-			            event := PCRE2SubstitutionCaseCalloutEvent
-				                     fromInput: input
-				                     length: inputLength
-				                     outputCapacity: outputCapacity
-				                     caseType: caseType
-				                     codeUnitWidth: self codeUnitWidth.
-			            self substituteCaseCalloutResultFor: event output: output block: aBlock ].
+				            | event |
+				            event := PCRE2SubstitutionCaseCalloutEvent
+					                     fromInput: input
+					                     length: inputLength
+					                     outputCapacity: outputCapacity
+					                     caseType: caseType
+					                     codeUnitWidth: self codeUnitWidth.
+				            self substituteCaseCalloutResultFor: event output: output block: aBlock ].
 	rc := self setSubstituteCaseCalloutCallback: callback.
 	rc < 0 ifTrue: [ self errorCode: rc ].
 	substituteCaseCalloutBlock := aBlock.
 	substituteCaseCalloutCallback := callback
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> substituteCaseCalloutResultFor: event output: outputPointer block: aBlock [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> substituteCaseCalloutResultFor: event output: outputPointer block: aBlock [
 	"Run the user block and copy its encoded answer into PCRE2's output buffer when it fits."
 
 	| answer bytes codeUnitCount text |
@@ -315,26 +303,26 @@ PCRE2MatchContext >> substituteCaseCalloutResultFor: event output: outputPointer
 	^ codeUnitCount
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> unsetCalloutCallback [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> unsetCalloutCallback [
 
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> unsetJITStack [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> unsetJITStack [
 
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> unsetSubstituteCalloutCallback [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> unsetSubstituteCalloutCallback [
 
 	self subclassResponsibility
 ]
 
-{ #category : 'private' }
-PCRE2MatchContext >> unsetSubstituteCaseCalloutCallback [
+{ #category : 'private - FFI' }
+PCRE2MatchContextFFIBackend >> unsetSubstituteCaseCalloutCallback [
 
 	self subclassResponsibility
 ]

@@ -23,6 +23,12 @@ PCRE2CompilerBackend class >> isAbstract [
 	^ self = PCRE2CompilerBackend
 ]
 
+{ #category : 'backends' }
+PCRE2CompilerBackend >> codeUnitWidth [
+
+	^ compiler codeUnitWidth
+]
+
 { #category : 'accessing' }
 PCRE2CompilerBackend >> compiler [
 
@@ -33,6 +39,12 @@ PCRE2CompilerBackend >> compiler [
 PCRE2CompilerBackend >> compiler: aCompiler [
 
 	compiler := aCompiler
+]
+
+{ #category : 'compiling' }
+PCRE2CompilerBackend >> prepareForCompile [
+
+	^ self
 ]
 
 { #category : 'accessing' }

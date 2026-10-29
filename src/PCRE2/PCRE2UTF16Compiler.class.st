@@ -1,7 +1,5 @@
 "
-Compiles patterns for PCRE2's 16-bit code-unit API.
-
-Use this compiler when the pattern and subject should cross the FFI boundary as UTF-16 code units instead of UTF-8 bytes. The high-level matching API is inherited through PCRE2UTF16Matcher; the native FFI methods are intentionally copied with _16 symbols because UFFI compiles ffiCall: methods to concrete functions.
+Public PCRE2 Compiler using 16-bit code units. The selected backend supplies the implementation; input and offset conventions are shared across backends.
 "
 Class {
 	#name : 'PCRE2UTF16Compiler',

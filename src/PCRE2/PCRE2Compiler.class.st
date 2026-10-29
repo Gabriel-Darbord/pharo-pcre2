@@ -1,9 +1,5 @@
 "
-Abstract superclass for PCRE2 compilers.
-
-Concrete subclasses bind the width-specific PCRE2 compile and JIT entry points: PCRE2UTF8Compiler, PCRE2UTF16Compiler, and PCRE2UTF32Compiler. This class keeps the shared compile flow, options, compile context handling, error reporting, and default JIT policy.
-
-For normal UTF-8 use, PCRE2Compiler new answers a PCRE2UTF8Compiler. Most users should keep using String>>asPerlCompatibleRegex or PCRE2Compiler directly unless they need a specific code-unit width.
+Public compiler facade. New compilers capture the configured default backend; backend: explicitly selects an implementation before context creation. Width-specific subclasses preserve the UTF-8/16/32 input API. FFI remains the default when loaded; the Pharo implementation is experimental.
 "
 Class {
 	#name : 'PCRE2Compiler',
@@ -36,19 +32,20 @@ PCRE2Compiler class >> default [
 	^ self new
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Compiler class >> defaultBackend [
 
 	^ DefaultBackend ifNil: [
 			  Smalltalk globals
 				  at: #PCRE2CompilerFFIBackend
-				  ifAbsent: [ PCRE2Error signal: 'No default PCRE2 backend is loaded; select one explicitly' ] ]
+				  ifAbsent: [ Smalltalk globals at: #PCRE2CompilerPharoBackend ifAbsent: [ PCRE2Error signal: 'No PCRE2 backend is loaded' ] ] ]
 ]
 
 { #category : 'backends' }
 PCRE2Compiler class >> defaultBackend: aBackendClass [
 
-	(aBackendClass inheritsFrom: PCRE2CompilerBackend) ifFalse: [ PCRE2Error signal: 'Expected a PCRE2 compiler backend class' ].
+	(aBackendClass isBehavior and: [ aBackendClass inheritsFrom: PCRE2CompilerBackend ]) ifFalse: [
+		PCRE2Error signal: 'Expected a PCRE2 compiler backend class' ].
 	DefaultBackend := aBackendClass.
 	default := nil.
 	SupportsJIT := nil
@@ -132,7 +129,8 @@ PCRE2Compiler >> backend [
 { #category : 'backends' }
 PCRE2Compiler >> backend: aBackendClass [
 
-	(aBackendClass inheritsFrom: PCRE2CompilerBackend) ifFalse: [ PCRE2Error signal: 'Expected a PCRE2 compiler backend class' ].
+	(aBackendClass isBehavior and: [ aBackendClass inheritsFrom: PCRE2CompilerBackend ]) ifFalse: [
+		PCRE2Error signal: 'Expected a PCRE2 compiler backend class' ].
 	context ifNotNil: [ PCRE2Error signal: 'Select a backend before creating the compile context' ].
 	backend := aBackendClass for: self
 ]
@@ -206,6 +204,10 @@ PCRE2Compiler >> context [
 { #category : 'accessing' }
 PCRE2Compiler >> context: aCompileContext [
 
+	aCompileContext ifNotNil: [
+			(aCompileContext isKindOf: PCRE2CompileContext) ifFalse: [ PCRE2Error signal: 'Expected a compile context' ].
+			(aCompileContext backend family = self backend family and: [ aCompileContext backend codeUnitWidth = self codeUnitWidth ])
+				ifFalse: [ PCRE2Error signal: 'Compile context must use the same backend and code-unit width as the compiler' ] ].
 	context := aCompileContext
 ]
 
@@ -255,12 +257,10 @@ PCRE2Compiler >> ffiLibraryName [
 
 { #category : 'initialization' }
 PCRE2Compiler >> initialize [
-	"Set default options for (JIT-)compiling.
-	Use UTF option because whether subjects will have non-ASCII codepoints cannot be known.
-	You can skip this option if you are working with ASCII and need speed, although the difference is small."
 
-	options := 524288. "PCRE2 utf"
-	optionsJIT := 1 "PCRE2 jitComplete"
+	options := PCRE2 utf.
+	optionsJIT := PCRE2 jitComplete.
+	backend := self class defaultBackend for: self
 ]
 
 { #category : 'private' }
