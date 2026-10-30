@@ -41,7 +41,7 @@ PCRE2Compiler class >> defaultBackend [
 				  ifAbsent: [ Smalltalk globals at: #PCRE2CompilerPharoBackend ifAbsent: [ PCRE2Error signal: 'No PCRE2 backend is loaded' ] ] ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Compiler class >> defaultBackend: aBackendClass [
 
 	(aBackendClass isBehavior and: [ aBackendClass inheritsFrom: PCRE2CompilerBackend ]) ifFalse: [
@@ -64,7 +64,7 @@ PCRE2Compiler class >> eagerJIT: aBoolean [
 	EagerJIT := aBoolean
 ]
 
-{ #category : 'backends' }
+{ #category : 'class initialization' }
 PCRE2Compiler class >> initialize [
 
 	EagerJIT := true.
@@ -77,7 +77,7 @@ PCRE2Compiler class >> isAbstract [
 	^ self == PCRE2Compiler
 ]
 
-{ #category : 'backends' }
+{ #category : 'testing' }
 PCRE2Compiler class >> nativeLibraryAvailable [
 
 	^ self defaultBackend isAvailable
@@ -106,7 +106,7 @@ PCRE2Compiler class >> pattern: aString options: anInteger [
 		  compile: aString
 ]
 
-{ #category : 'backends' }
+{ #category : 'system startup' }
 PCRE2Compiler class >> startUp: resuming [
 
 	SupportsJIT := false.
@@ -114,19 +114,19 @@ PCRE2Compiler class >> startUp: resuming [
 	resuming ifTrue: [ self nativeLibraryAvailable ifTrue: [ SupportsJIT := self new backend supportsJIT ] ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Compiler class >> supportsJIT [
 
 	^ SupportsJIT ifNil: [ SupportsJIT := self new backend supportsJIT ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Compiler >> backend [
 
 	^ backend ifNil: [ backend := self class defaultBackend for: self ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Compiler >> backend: aBackendClass [
 
 	(aBackendClass isBehavior and: [ aBackendClass inheritsFrom: PCRE2CompilerBackend ]) ifFalse: [
@@ -135,7 +135,7 @@ PCRE2Compiler >> backend: aBackendClass [
 	backend := aBackendClass for: self
 ]
 
-{ #category : 'backends' }
+{ #category : 'compiling' }
 PCRE2Compiler >> compile: pattern [
 
 	| input matcher |
@@ -244,13 +244,13 @@ PCRE2Compiler >> errorCode: errorCode in: input at: codeUnitOffset [
 	PCRE2CompileError signal: (PCRE2 translateErrorCode: errorCode) in: input at: codeUnitOffset
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Compiler >> existingContext [
 
 	^ context
 ]
 
-{ #category : 'backends' }
+{ #category : 'library path' }
 PCRE2Compiler >> ffiLibraryName [
 
 	^ self backend ffiLibraryName
@@ -276,7 +276,7 @@ PCRE2Compiler >> matcherClass [
 	self subclassResponsibility
 ]
 
-{ #category : 'backends' }
+{ #category : 'instance creation' }
 PCRE2Compiler >> newCompileContext [
 
 	^ self backend newCompileContext
@@ -301,7 +301,7 @@ PCRE2Compiler >> patternStringFromInput: input [
 	^ input displayFrom: 1 to: input size
 ]
 
-{ #category : 'backends' }
+{ #category : 'copying' }
 PCRE2Compiler >> postCopy [
 
 	backend := backend ifNotNil: [ backend copy compiler: self ].

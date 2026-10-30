@@ -1,3 +1,6 @@
+"
+Owns a compiled-pattern handle of the 16-bit PCRE2 library.
+"
 Class {
 	#name : 'PCRE2MatcherUTF16FFIBackend',
 	#superclass : 'PCRE2MatcherFFIBackend',
@@ -5,7 +8,7 @@ Class {
 	#package : 'PCRE2-FFIBackend'
 }
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherUTF16FFIBackend >> codeUnitWidth [
 
 	^ 16
@@ -25,7 +28,7 @@ PCRE2MatcherUTF16FFIBackend >> createMatchDataWithOvectorSize: ovectorSize [
 	self ffiCall: #(void *pcre2_match_data_create_16(uint32 ovectorSize, nil))
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherUTF16FFIBackend >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
 	"Decode a native-endian UTF-16 substitution output buffer."
 
@@ -51,7 +54,7 @@ PCRE2MatcherUTF16FFIBackend >> enumerateCalloutsWith: callback [
 	self ffiCall: #(int pcre2_callout_enumerate_16(self, FFICallback callback, nil))
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherUTF16FFIBackend >> ffiLibraryName [
 
 	^ LibPCRE2UTF16
@@ -90,7 +93,7 @@ PCRE2MatcherUTF16FFIBackend >> matchBackendClass [
 	^ PCRE2MatchUTF16FFIBackend
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherUTF16FFIBackend >> preparedInputFor: aStringOrInput [
 
 	^ aStringOrInput asPCRE2UTF16Input

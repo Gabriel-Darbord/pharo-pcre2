@@ -1,3 +1,6 @@
+"
+Owns a compiled-pattern handle of the 8-bit PCRE2 library.
+"
 Class {
 	#name : 'PCRE2MatcherUTF8FFIBackend',
 	#superclass : 'PCRE2MatcherFFIBackend',
@@ -5,7 +8,7 @@ Class {
 	#package : 'PCRE2-FFIBackend'
 }
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherUTF8FFIBackend >> codeUnitWidth [
 	"Answer the PCRE2 code-unit width used by this matcher."
 
@@ -49,7 +52,7 @@ PCRE2MatcherUTF8FFIBackend >> enumerateCalloutsWith: callback [
 	self ffiCall: #(int pcre2_callout_enumerate_8(self, FFICallback callback, nil))
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherUTF8FFIBackend >> ffiLibraryName [
 
 	^ LibPCRE2UTF8
@@ -88,7 +91,7 @@ PCRE2MatcherUTF8FFIBackend >> matchBackendClass [
 	^ PCRE2MatchUTF8FFIBackend
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherUTF8FFIBackend >> preparedInputFor: aStringOrInput [
 
 	^ aStringOrInput asPCRE2UTF8Input

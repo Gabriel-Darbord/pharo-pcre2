@@ -1,3 +1,6 @@
+"
+Runtime continuation a capturing group pushes to record the extent of the group once its child has matched. Built while matching, never by the parser.
+"
 Class {
 	#name : 'PCRE2CaptureEndNode',
 	#superclass : 'PCRE2PatternNode',
@@ -31,19 +34,19 @@ PCRE2CaptureEndNode >> executeIn: anEngine state: aState [
 	^ aState
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CaptureEndNode >> index [
 
 	^ index
 ]
 
-{ #category : 'private' }
-PCRE2CaptureEndNode >> index: aValue [
+{ #category : 'accessing' }
+PCRE2CaptureEndNode >> index: anInteger [
 
-	index := aValue
+	index := anInteger
 ]
 
-{ #category : 'DFA matching' }
+{ #category : 'accessing' }
 PCRE2CaptureEndNode >> maximumLength [
 
 	^ 0
@@ -55,13 +58,13 @@ PCRE2CaptureEndNode >> runtimeStorageSize [
 	^ self sizeInMemory
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2CaptureEndNode >> start: anInteger [
 
 	start := anInteger
 ]
 
-{ #category : 'DFA matching' }
+{ #category : 'optimization' }
 PCRE2CaptureEndNode >> startPredicate [
 
 	^ [ :character | false ]

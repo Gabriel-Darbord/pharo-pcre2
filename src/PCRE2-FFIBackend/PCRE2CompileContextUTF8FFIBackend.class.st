@@ -1,3 +1,6 @@
+"
+Owns a compile-context handle of the 8-bit PCRE2 library.
+"
 Class {
 	#name : 'PCRE2CompileContextUTF8FFIBackend',
 	#superclass : 'PCRE2CompileContextFFIBackend',

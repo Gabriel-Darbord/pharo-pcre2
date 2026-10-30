@@ -23,7 +23,7 @@ PCRE2CompilerBackend class >> isAbstract [
 	^ self = PCRE2CompilerBackend
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2CompilerBackend >> codeUnitWidth [
 
 	^ compiler codeUnitWidth

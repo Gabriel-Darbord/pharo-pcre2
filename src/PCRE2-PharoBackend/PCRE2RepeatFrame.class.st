@@ -1,3 +1,6 @@
+"
+Runtime continuation for one turn of a repetition. It carries the turn count and the position and captures of the previous turn, which is how the engine stops a repetition whose body matches nothing. Built while matching, never by the parser.
+"
 Class {
 	#name : 'PCRE2RepeatFrame',
 	#superclass : 'PCRE2PatternNode',
@@ -11,16 +14,16 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2RepeatFrame >> count [
 
 	^ count
 ]
 
-{ #category : 'private' }
-PCRE2RepeatFrame >> count: aValue [
+{ #category : 'accessing' }
+PCRE2RepeatFrame >> count: anInteger [
 
-	count := aValue
+	count := anInteger
 ]
 
 { #category : 'DFA matching' }
@@ -32,7 +35,7 @@ PCRE2RepeatFrame >> dfaKey [
 		  previousPosition }
 ]
 
-{ #category : 'private' }
+{ #category : 'matching' }
 PCRE2RepeatFrame >> executeIn: anEngine state: aState [
 
 	| canStop canRepeat next |
@@ -40,10 +43,7 @@ PCRE2RepeatFrame >> executeIn: anEngine state: aState [
 	canRepeat := (repeat maximum isNil or: [ count < repeat maximum ]) and: [
 			             previousPosition ~= aState position or: [
 				             (previousCaptures isNotNil and: [ previousCaptures ~= aState captures ]) or: [ canStop not ] ] ].
-	canRepeat ifFalse: [
-			^ canStop
-				  ifTrue: [ aState ]
-				  ifFalse: [ nil ] ].
+	canRepeat ifFalse: [ ^ canStop ifTrue: [ aState ] ].
 	next := aState copy.
 	next push: (self class new
 			 repeat: repeat;
@@ -61,34 +61,34 @@ PCRE2RepeatFrame >> executeIn: anEngine state: aState [
 				^ aState ]
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2RepeatFrame >> previousCaptures: captures [
 
 	previousCaptures := captures
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2RepeatFrame >> previousPosition [
 
 	^ previousPosition
 ]
 
-{ #category : 'private' }
-PCRE2RepeatFrame >> previousPosition: aValue [
+{ #category : 'accessing' }
+PCRE2RepeatFrame >> previousPosition: anInteger [
 
-	previousPosition := aValue
+	previousPosition := anInteger
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2RepeatFrame >> repeat [
 
 	^ repeat
 ]
 
-{ #category : 'private' }
-PCRE2RepeatFrame >> repeat: aValue [
+{ #category : 'accessing' }
+PCRE2RepeatFrame >> repeat: aRepeatNode [
 
-	repeat := aValue
+	repeat := aRepeatNode
 ]
 
 { #category : 'diagnostics' }

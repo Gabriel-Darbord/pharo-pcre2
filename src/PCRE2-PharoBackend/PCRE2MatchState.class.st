@@ -1,3 +1,8 @@
+"
+One point in a match: the subject position, the capture vector, the list of tasks still to run, the current mark, and the scopes that assertions, alternations and subroutines unwind to.
+
+The engine copies a state whenever it takes a choice, so abandoning a path costs nothing and no node has to undo its own work.
+"
 Class {
 	#name : 'PCRE2MatchState',
 	#superclass : 'Object',
@@ -13,7 +18,8 @@ Class {
 		'accepted',
 		'lastCapture',
 		'assertions',
-		'subjectText'
+		'subjectText',
+		'capturesStorage'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
@@ -25,19 +31,19 @@ PCRE2MatchState >> accepted [
 	^ accepted = true
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2MatchState >> accepted: boolean [
 
 	accepted := boolean
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2MatchState >> alternations [
 
 	^ alternations
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2MatchState >> alternations: frames [
 
 	alternations := frames
@@ -56,28 +62,36 @@ PCRE2MatchState >> appendTasks: tail [
 	nodes reverseDo: [ :node | self push: node ]
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2MatchState >> assertions [
 
 	^ assertions
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2MatchState >> assertions: frames [
 
 	assertions := frames
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2MatchState >> captures [
 
 	^ captures
 ]
 
-{ #category : 'private' }
-PCRE2MatchState >> captures: aValue [
+{ #category : 'accessing' }
+PCRE2MatchState >> captures: anArray [
 
-	captures := aValue
+	captures := anArray.
+	capturesStorage := nil
+]
+
+{ #category : 'diagnostics' }
+PCRE2MatchState >> capturesStorage [
+	"The memory the capture vector takes, measured once. Its size never changes while a match runs, and the heap limit asks for this on every step."
+
+	^ capturesStorage ifNil: [ capturesStorage := captures sizeInMemory ]
 ]
 
 { #category : 'DFA matching' }
@@ -94,7 +108,7 @@ PCRE2MatchState >> dfaKey [
 		  keys asArray }
 ]
 
-{ #category : 'matching' }
+{ #category : 'initialization' }
 PCRE2MatchState >> initialize [
 
 	pendingDepth := 0
@@ -106,31 +120,31 @@ PCRE2MatchState >> lastCapture [
 	^ lastCapture ifNil: [ 0 ]
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2MatchState >> lastCapture: number [
 
 	lastCapture := number
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2MatchState >> mark [
 
 	^ mark
 ]
 
-{ #category : 'private' }
-PCRE2MatchState >> mark: aValue [
+{ #category : 'accessing' }
+PCRE2MatchState >> mark: aString [
 
-	mark := aValue
+	mark := aString
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2MatchState >> marks [
 
 	^ marks
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2MatchState >> marks: frames [
 
 	marks := frames
@@ -176,12 +190,13 @@ PCRE2MatchState >> matchingStorageIn: seen [
 { #category : 'diagnostics' }
 PCRE2MatchState >> matchingStorageUpperBound [
 
-	| marksCount |
+	| marksCount capturesSize |
 	marksCount := marks ifNil: [ 0 ] ifNotNil: [ marks fourth ].
-	^ self sizeInMemory + captures sizeInMemory + (pendingDepth * (160 + captures sizeInMemory)) + (marksCount * 64)
+	capturesSize := self capturesStorage.
+	^ self class byteSizeOfInstance + capturesSize + (pendingDepth * (160 + capturesSize)) + (marksCount * 64)
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2MatchState >> pendingDepth [
 
 	^ pendingDepth
@@ -189,27 +204,28 @@ PCRE2MatchState >> pendingDepth [
 
 { #category : 'matching' }
 PCRE2MatchState >> pop [
+	"The task list is a chain of pairs, read here by index rather than through first and second because this runs for every node the engine executes."
 
 	| node |
-	node := tasks first.
-	tasks := tasks second.
+	node := tasks at: 1.
+	tasks := tasks at: 2.
 	pendingDepth := pendingDepth - 1.
 	^ node
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2MatchState >> position [
 
 	^ position
 ]
 
-{ #category : 'private' }
-PCRE2MatchState >> position: aValue [
+{ #category : 'accessing' }
+PCRE2MatchState >> position: anInteger [
 
-	position := aValue
+	position := anInteger
 ]
 
-{ #category : 'private' }
+{ #category : 'copying' }
 PCRE2MatchState >> postCopy [
 
 	captures := captures copy
@@ -252,19 +268,19 @@ PCRE2MatchState >> subjectText: aSubject [
 	subjectText := aSubject
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2MatchState >> subroutines [
 
 	^ subroutines
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2MatchState >> subroutines: frames [
 
 	subroutines := frames
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2MatchState >> tasks [
 
 	^ tasks

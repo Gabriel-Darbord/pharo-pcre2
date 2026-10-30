@@ -1,3 +1,6 @@
+"
+Backtracking control verb: (*ACCEPT), (*FAIL), (*MARK), (*COMMIT), (*PRUNE), (*SKIP) and (*THEN). The verbs that cut back enqueue a failure continuation saying how far the engine unwinds when what follows fails.
+"
 Class {
 	#name : 'PCRE2ControlNode',
 	#superclass : 'PCRE2PatternNode',
@@ -10,19 +13,19 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2ControlNode >> boundary: aFrame [
 
 	boundary := aFrame
 ]
 
-{ #category : 'optimization' }
+{ #category : 'testing' }
 PCRE2ControlNode >> canAccept [
 
 	^ kind = #accept
 ]
 
-{ #category : 'parsing' }
+{ #category : 'testing' }
 PCRE2ControlNode >> canBeRepeated [
 
 	^ kind = #accept
@@ -75,6 +78,13 @@ PCRE2ControlNode >> executeIn: engine state: state [
 	^ state
 ]
 
+{ #category : 'optimization' }
+PCRE2ControlNode >> isSignificantForStart [
+	"PCRE2 looks past a verb that does no more than leave a name behind, and stops at every other one. (*ACCEPT:NAME) leaves a name and then accepts, so the scan stops there."
+
+	^ name isNil or: [ (#( mark commit prune skip then ) includes: kind) not ]
+]
+
 { #category : 'matching' }
 PCRE2ControlNode >> kind: aSymbol name: aName [
 
@@ -82,13 +92,13 @@ PCRE2ControlNode >> kind: aSymbol name: aName [
 	name := aName
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2ControlNode >> lengthBoundsUsing: groups names: names visited: visited [
 
 	^ #( 0 0 )
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2ControlNode >> maximumLength [
 
 	^ kind = #accept ifFalse: [ 0 ]
@@ -102,7 +112,7 @@ PCRE2ControlNode >> runtimeStorageSize [
 		  ifFalse: [ 0 ]
 ]
 
-{ #category : 'matching' }
+{ #category : 'testing' }
 PCRE2ControlNode >> terminatesWithAccept [
 
 	^ kind = #accept

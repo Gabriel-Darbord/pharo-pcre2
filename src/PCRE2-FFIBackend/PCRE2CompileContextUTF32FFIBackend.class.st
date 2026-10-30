@@ -1,3 +1,6 @@
+"
+Owns a compile-context handle of the 32-bit PCRE2 library.
+"
 Class {
 	#name : 'PCRE2CompileContextUTF32FFIBackend',
 	#superclass : 'PCRE2CompileContextFFIBackend',

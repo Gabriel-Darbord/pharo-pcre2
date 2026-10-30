@@ -11,13 +11,13 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'matching' }
+{ #category : 'testing' }
 PCRE2ScanSubstringNode >> canBeCondition [
 
 	^ false
 ]
 
-{ #category : 'matching' }
+{ #category : 'DFA matching' }
 PCRE2ScanSubstringNode >> dfaError [
 
 	^ -42
@@ -49,7 +49,7 @@ PCRE2ScanSubstringNode >> executeIn: engine state: state [
 	^ nil
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2ScanSubstringNode >> references: aCollection [
 
 	references := aCollection

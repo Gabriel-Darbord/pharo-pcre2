@@ -146,7 +146,7 @@ PCRE2SessionManager >> findMatchersToRestore [
 						(matchersToRestore at: matcher codeUnitWidth ifAbsentPut: [ OrderedCollection new ]) add: matcher prepareForShutdown ] ] ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'enumerating' }
 PCRE2SessionManager >> findObjectsToRestore [
 	"Register live external wrappers that can rebuild their native handles after image startup."
 

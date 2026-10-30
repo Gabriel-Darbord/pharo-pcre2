@@ -1,3 +1,6 @@
+"
+Expands the replacement text of a substitution. It reads the dollar and backslash group references and, under the extended substitution option, the escapes and the conditional ${n:-...} and ${n:+...} forms, applying the case-conversion modes as it writes.
+"
 Class {
 	#name : 'PCRE2ReplacementExpander',
 	#superclass : 'Object',

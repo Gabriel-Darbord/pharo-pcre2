@@ -30,9 +30,15 @@ PCRE2Test >> testAbstractClassDeclarations [
 		                   PCRE2JITStack.
 		                   PCRE2Match.
 		                   PCRE2MatchContext.
-		                   PCRE2Matcher }.
+		                   PCRE2Matcher.
+		                   PCRE2CompilerBackend.
+		                   PCRE2CompilerFFIBackend.
+		                   PCRE2CompileContextFFIBackend.
+		                   PCRE2MatchContextFFIBackend.
+		                   PCRE2MatchFFIBackend.
+		                   PCRE2MatcherFFIBackend }.
 
-	abstractClasses do: [ :each | self assert: each isAbstract ]
+	abstractClasses do: [ :each | self assert: each isAbstract description: each name , ' is abstract' ]
 ]
 
 { #category : 'tests' }

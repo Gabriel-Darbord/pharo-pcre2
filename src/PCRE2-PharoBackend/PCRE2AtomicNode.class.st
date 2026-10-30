@@ -1,29 +1,44 @@
+"
+Atomic group. The child matches in a nested run and the choice points it made are dropped once it succeeds, so the enclosing pattern never backtracks into it.
+
+A possessive quantifier compiles to the same thing wrapped around its repetition, and says so, because PCRE2 reads such a quantifier as a quantifier and not as a group it must distrust.
+"
 Class {
 	#name : 'PCRE2AtomicNode',
 	#superclass : 'PCRE2PatternNode',
 	#instVars : [
-		'child'
+		'child',
+		'possessive'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
 }
 
 { #category : 'optimization' }
+PCRE2AtomicNode >> analysisWithin: analysis [
+	"A possessive quantifier is a quantifier, so PCRE2 reads what it repeats as it would without it. An atomic group is a group whose length cannot be adjusted afterwards, so nothing leading inside it says where a match can begin."
+
+	^ possessive = true
+		  ifTrue: [ analysis ]
+		  ifFalse: [ analysis withinAtomicGroup ]
+]
+
+{ #category : 'testing' }
 PCRE2AtomicNode >> canAccept [
 
 	^ child canAccept
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2AtomicNode >> child [
 
 	^ child
 ]
 
-{ #category : 'private' }
-PCRE2AtomicNode >> child: aValue [
+{ #category : 'accessing' }
+PCRE2AtomicNode >> child: aNode [
 
-	child := aValue
+	child := aNode
 ]
 
 { #category : 'matching' }
@@ -42,7 +57,7 @@ PCRE2AtomicNode >> executeIn: engine state: state [
 	^ result
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2AtomicNode >> firstLiteral [
 
 	^ child firstLiteral
@@ -54,22 +69,40 @@ PCRE2AtomicNode >> firstLiteralPredicate [
 	^ child firstLiteralPredicate
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
+PCRE2AtomicNode >> isAnchoredIn: analysis [
+
+	^ child isAnchoredIn: (self analysisWithin: analysis)
+]
+
+{ #category : 'optimization' }
+PCRE2AtomicNode >> isStartLineIn: analysis [
+
+	^ child isStartLineIn: (self analysisWithin: analysis)
+]
+
+{ #category : 'accessing' }
 PCRE2AtomicNode >> lengthBoundsUsing: groups names: names visited: visited [
 
 	^ child lengthBoundsUsing: groups names: names visited: visited
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2AtomicNode >> maximumLength [
 
 	^ child maximumLength
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2AtomicNode >> minimumLength [
 
 	^ child minimumLength
+]
+
+{ #category : 'accessing' }
+PCRE2AtomicNode >> possessive: aBoolean [
+
+	possessive := aBoolean
 ]
 
 { #category : 'optimization' }
@@ -78,7 +111,7 @@ PCRE2AtomicNode >> requiredNode [
 	^ child requiredNode
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2AtomicNode >> startPredicate [
 
 	^ child startPredicate

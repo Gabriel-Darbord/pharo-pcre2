@@ -1,3 +1,6 @@
+"
+One of the PCRE2 newline conventions. It answers the length of the line terminator starting at, or ending at, a position, and zero where there is none, so callers treat all six conventions alike.
+"
 Class {
 	#name : 'PCRE2NewlineConvention',
 	#superclass : 'Object',
@@ -51,13 +54,13 @@ PCRE2NewlineConvention >> lengthEndingAt: index in: text [
 		  ifFalse: [ 0 ]
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2NewlineConvention >> mode [
 
 	^ mode
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2NewlineConvention >> mode: value [
 
 	mode := value

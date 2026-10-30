@@ -1,8 +1,21 @@
 "
-Executes pattern nodes with an explicit stack of alternatives. Pending tasks use immutable linked pairs; branch copies retain their own capture arrays. Nested assertions save the outer choice stack. Work and pending-depth limits bound execution.
+The engine that runs a compiled pattern over a subject for the Pharo backend.
+
+It drives the standard PCRE2 algorithm: `run:` takes states off the choice stack, pops one task from each and lets the node execute itself, so a node never recurses into the engine. `PCRE2DFAMatchEngine` reuses all of this and replaces only the search around it, which is why it is a subclass rather than a sibling: it still runs nested assertions through `run:`.
+
+My state is the registers of that loop, in groups:
+
+- the match: subject, originalSubject, root, groups, names, matchOptions, initialPosition
+- the search: choices, outerStates, steps
+- control verbs: committed, failureControl, skipPosition, lastMark, callBase
+- partial matching: partialState, hardPartialFound, candidateStart, earliestConsulted, lastInspected, allowEmptyPartial
+- callouts: calloutBlock, codeUnitMapping, calloutFlags, abortedCode
+- limits: limit, depthLimit, heapLimit, queuedStorage
+
+`subject` follows the state being run, since a scan-substring assertion narrows it; `originalSubject` is what the match was started on.
 "
 Class {
-	#name : 'PCRE2BacktrackingMatcher',
+	#name : 'PCRE2MatchEngine',
 	#superclass : 'Object',
 	#instVars : [
 		'subject',
@@ -32,20 +45,21 @@ Class {
 		'candidateStart',
 		'earliestConsulted',
 		'originalSubject',
-		'lastInspected'
+		'lastInspected',
+		'allowEmptyPartial'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'callouts' }
-PCRE2BacktrackingMatcher >> abortedCode [
+{ #category : 'accessing' }
+PCRE2MatchEngine >> abortedCode [
 
 	^ abortedCode
 ]
 
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> accept: state [
+PCRE2MatchEngine >> accept: state [
 
 	[ state tasks isNotNil ] whileTrue: [ (state pop acceptIn: self state: state) ifTrue: [ ^ state ] ].
 	self trimChoicesTo: 0.
@@ -54,7 +68,7 @@ PCRE2BacktrackingMatcher >> accept: state [
 ]
 
 { #category : 'accessing' }
-PCRE2BacktrackingMatcher >> acceptsEndOf: aState [
+PCRE2MatchEngine >> acceptsEndOf: aState [
 
 	((self matchOptions bitAnd: PCRE2 endAnchored) ~= 0 and: [ aState position ~= subject size ]) ifTrue: [ ^ false ].
 	aState position = aState captures first ifFalse: [ ^ true ].
@@ -62,14 +76,21 @@ PCRE2BacktrackingMatcher >> acceptsEndOf: aState [
 	^ (self matchOptions bitAnd: PCRE2 notEmptyAtStart) = 0 or: [ aState position ~= initialPosition ]
 ]
 
-{ #category : 'DFA matching' }
-PCRE2BacktrackingMatcher >> autoPossess: repeat state: state [
+{ #category : 'accessing' }
+PCRE2MatchEngine >> allowEmptyPartial: aBoolean [
+	"Whether PCRE2 counts a partial match that has consumed nothing, which it does for a pattern that looks behind or can match an empty string."
+
+	allowEmptyPartial := aBoolean
+]
+
+{ #category : 'optimization' }
+PCRE2MatchEngine >> autoPossess: repeat state: state [
 
 	^ false
 ]
 
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> backtrack: kind boundary: frame state: state [
+PCRE2MatchEngine >> backtrack: kind boundary: frame state: state [
 
 	| depth |
 	kind = #then ifTrue: [
@@ -97,13 +118,13 @@ PCRE2BacktrackingMatcher >> backtrack: kind boundary: frame state: state [
 ]
 
 { #category : 'callouts' }
-PCRE2BacktrackingMatcher >> beginMatch [
+PCRE2MatchEngine >> beginMatch [
 
 	calloutFlags := PCRE2 calloutStartMatch
 ]
 
 { #category : 'callouts' }
-PCRE2BacktrackingMatcher >> beginMatchAt: position [
+PCRE2MatchEngine >> beginMatchAt: position [
 
 	calloutFlags := PCRE2 calloutStartMatch.
 	candidateStart := position.
@@ -111,7 +132,7 @@ PCRE2BacktrackingMatcher >> beginMatchAt: position [
 ]
 
 { #category : 'callouts' }
-PCRE2BacktrackingMatcher >> callout: site state: state [
+PCRE2MatchEngine >> callout: site state: state [
 
 	| event result values |
 	calloutBlock ifNil: [ ^ state ].
@@ -142,7 +163,7 @@ PCRE2BacktrackingMatcher >> callout: site state: state [
 ]
 
 { #category : 'callouts' }
-PCRE2BacktrackingMatcher >> calloutBlock: block mapping: mapping [
+PCRE2MatchEngine >> calloutBlock: block mapping: mapping [
 
 	calloutBlock := block.
 	codeUnitMapping := mapping.
@@ -150,7 +171,7 @@ PCRE2BacktrackingMatcher >> calloutBlock: block mapping: mapping [
 ]
 
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> captureIndexFor: reference [
+PCRE2MatchEngine >> captureIndexFor: reference [
 
 	| indexes |
 	reference isInteger ifTrue: [ ^ reference ].
@@ -159,7 +180,7 @@ PCRE2BacktrackingMatcher >> captureIndexFor: reference [
 ]
 
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> captureIndexFor: reference state: state [
+PCRE2MatchEngine >> captureIndexFor: reference state: state [
 
 	| indexes |
 	reference isInteger ifTrue: [ ^ reference ].
@@ -170,14 +191,14 @@ PCRE2BacktrackingMatcher >> captureIndexFor: reference state: state [
 ]
 
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> captureIndexesFor: reference [
+PCRE2MatchEngine >> captureIndexesFor: reference [
 
 	reference isInteger ifTrue: [ ^ { reference } ].
 	^ (names keys select: [ :index | (names at: index) = reference ]) sorted
 ]
 
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> captureIsSet: reference state: state [
+PCRE2MatchEngine >> captureIsSet: reference state: state [
 
 	reference isInteger ifTrue: [ ^ (state captures at: reference * 2 + 2) ~= PCRE2 unsetOffset ].
 	names keysAndValuesDo: [ :index :name |
@@ -186,7 +207,7 @@ PCRE2BacktrackingMatcher >> captureIsSet: reference state: state [
 ]
 
 { #category : 'limits' }
-PCRE2BacktrackingMatcher >> checkHeapFor: state [
+PCRE2MatchEngine >> checkHeapFor: state [
 
 	| estimate seen size outer |
 	heapLimit ifNil: [ ^ self ].
@@ -207,39 +228,41 @@ PCRE2BacktrackingMatcher >> checkHeapFor: state [
 	size > heapLimit ifTrue: [ PCRE2MatchError signal: 'heap limit exceeded' ]
 ]
 
-{ #category : 'matching' }
-PCRE2BacktrackingMatcher >> choiceDepth [
+{ #category : 'choices' }
+PCRE2MatchEngine >> choiceDepth [
 
 	^ choices size
 ]
 
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> committed [
+PCRE2MatchEngine >> committed [
 
 	^ committed = true
 ]
 
-{ #category : 'configuration' }
-PCRE2BacktrackingMatcher >> depthLimit: anInteger [
+{ #category : 'accessing' }
+PCRE2MatchEngine >> depthLimit: anInteger [
 
 	depthLimit := anInteger
 ]
 
-{ #category : 'limits' }
-PCRE2BacktrackingMatcher >> enqueue: state [
+{ #category : 'choices' }
+PCRE2MatchEngine >> enqueue: state [
+	"Keep a choice to come back to. The heap is checked here, where the storage grows, rather than on every step."
 
 	choices add: state.
-	queuedStorage := (queuedStorage ifNil: [ 0 ]) + state matchingStorageUpperBound
+	queuedStorage := (queuedStorage ifNil: [ 0 ]) + state matchingStorageUpperBound.
+	self checkHeapFor: state
 ]
 
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> executeNode: node state: state [
+PCRE2MatchEngine >> executeNode: node state: state [
 
 	^ node executeIn: self state: state
 ]
 
 { #category : 'private' }
-PCRE2BacktrackingMatcher >> groupFor: reference [
+PCRE2MatchEngine >> groupFor: reference [
 
 	| index |
 	index := self captureIndexFor: reference.
@@ -248,31 +271,37 @@ PCRE2BacktrackingMatcher >> groupFor: reference [
 ]
 
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> hardPartialFound [
+PCRE2MatchEngine >> hardPartialFound [
 
-	^ hardPartialFound = true
+	^ hardPartialFound
 ]
 
 { #category : 'limits' }
-PCRE2BacktrackingMatcher >> heapLimit: kibibytes [
+PCRE2MatchEngine >> heapLimit: kibibytes [
 
 	heapLimit := kibibytes * 1024
 ]
 
 { #category : 'accessing' }
-PCRE2BacktrackingMatcher >> initialPosition [
+PCRE2MatchEngine >> initialPosition [
 
 	^ initialPosition
 ]
 
 { #category : 'accessing' }
-PCRE2BacktrackingMatcher >> initialPosition: anInteger [
+PCRE2MatchEngine >> initialPosition: anInteger [
 
 	initialPosition := anInteger
 ]
 
+{ #category : 'initialization' }
+PCRE2MatchEngine >> initialize [
+
+	hardPartialFound := false
+]
+
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> isRecursing: reference state: state [
+PCRE2MatchEngine >> isRecursing: reference state: state [
 
 	state subroutines ifNil: [ ^ false ].
 	reference ifNil: [ ^ true ].
@@ -281,31 +310,31 @@ PCRE2BacktrackingMatcher >> isRecursing: reference state: state [
 ]
 
 { #category : 'accessing' }
-PCRE2BacktrackingMatcher >> lastInspected [
+PCRE2MatchEngine >> lastInspected [
 
 	^ lastInspected ifNil: [ 0 ]
 ]
 
-{ #category : 'matching' }
-PCRE2BacktrackingMatcher >> lastMark [
+{ #category : 'accessing' }
+PCRE2MatchEngine >> lastMark [
 
 	^ lastMark
 ]
 
-{ #category : 'matching' }
-PCRE2BacktrackingMatcher >> lastMark: value [
+{ #category : 'accessing' }
+PCRE2MatchEngine >> lastMark: value [
 
 	lastMark := value
 ]
 
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> matchNode: node state: state [
+PCRE2MatchEngine >> matchNode: node state: state [
 
 	^ self matchNode: node state: state propagate: #none
 ]
 
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> matchNode: node state: state propagate: mode [
+PCRE2MatchEngine >> matchNode: node state: state propagate: mode [
 
 	| savedChoices savedOptions savedCommit savedSkip savedFailure savedBase nested result failure savedStorage savedOuter |
 	savedChoices := choices.
@@ -353,19 +382,19 @@ PCRE2BacktrackingMatcher >> matchNode: node state: state propagate: mode [
 ]
 
 { #category : 'accessing' }
-PCRE2BacktrackingMatcher >> matchOptions [
+PCRE2MatchEngine >> matchOptions [
 
 	^ matchOptions ifNil: [ 0 ]
 ]
 
 { #category : 'accessing' }
-PCRE2BacktrackingMatcher >> matchOptions: anInteger [
+PCRE2MatchEngine >> matchOptions: anInteger [
 
 	matchOptions := anInteger
 ]
 
-{ #category : 'limits' }
-PCRE2BacktrackingMatcher >> nextChoice [
+{ #category : 'choices' }
+PCRE2MatchEngine >> nextChoice [
 
 	| state |
 	state := choices removeLast.
@@ -374,22 +403,12 @@ PCRE2BacktrackingMatcher >> nextChoice [
 ]
 
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> noteInspectionAt: position [
-
-	earliestConsulted ifNil: [ earliestConsulted := position ].
-	earliestConsulted := earliestConsulted min: position.
-	lastInspected := self lastInspected max: position + (position < subject size
-			                  ifTrue: [ subject pointWidthAtOffset: position ]
-			                  ifFalse: [ 0 ])
-]
-
-{ #category : 'matching' }
-PCRE2BacktrackingMatcher >> notePartial: state [
+PCRE2MatchEngine >> noteEndOfSubject: state [
+	"An assertion answered what it did only because the subject ends where it does. PCRE2 counts that however little the attempt has consumed."
 
 	| candidate |
 	state subjectText ifNotNil: [ ^ self ].
 	(self matchOptions bitAnd: PCRE2 partialSoft | PCRE2 partialHard) = 0 ifTrue: [ ^ self ].
-	(state position > candidateStart or: [ earliestConsulted < candidateStart or: [ root minimumLength = 0 ] ]) ifFalse: [ ^ self ].
 	candidate := state copy tasks: nil.
 	candidate captures
 		at: 1 put: candidateStart;
@@ -399,28 +418,53 @@ PCRE2BacktrackingMatcher >> notePartial: state [
 ]
 
 { #category : 'matching' }
-PCRE2BacktrackingMatcher >> partialState [
+PCRE2MatchEngine >> noteInspectionAt: position [
+
+	earliestConsulted ifNil: [ earliestConsulted := position ].
+	earliestConsulted := earliestConsulted min: position.
+	lastInspected := self lastInspected max: position + (position < subject size
+			                  ifTrue: [ subject pointWidthAtOffset: position ]
+			                  ifFalse: [ 0 ])
+]
+
+{ #category : 'matching' }
+PCRE2MatchEngine >> notePartial: state [
+	"The matcher ran out of subject here. PCRE2 counts it only once the attempt has consumed something or read behind its start, unless the pattern allows an empty partial match."
+
+	(state position > candidateStart or: [ earliestConsulted < candidateStart or: [ allowEmptyPartial = true ] ]) ifTrue: [
+		self noteEndOfSubject: state ]
+]
+
+{ #category : 'accessing' }
+PCRE2MatchEngine >> partialState [
 
 	^ partialState
 ]
 
-{ #category : 'matching' }
-PCRE2BacktrackingMatcher >> run: aState [
+{ #category : 'private' }
+PCRE2MatchEngine >> prepareRunFor: aState [
+	"Clear the state one run leaves behind, then make aState the only choice."
 
-	| state node firstChoice |
-	firstChoice := true.
 	choices := OrderedCollection new.
 	queuedStorage := 0.
-	self enqueue: aState.
 	committed := false.
 	failureControl := nil.
 	callBase := aState subroutines.
 	skipPosition := nil.
+	self enqueue: aState
+]
+
+{ #category : 'matching' }
+PCRE2MatchEngine >> run: aState [
+
+	| state node firstChoice |
+	self prepareRunFor: aState.
+	firstChoice := true.
 	[ choices isEmpty ] whileFalse: [
 			firstChoice ifFalse: [ calloutFlags := calloutFlags bitOr: PCRE2 calloutBacktrack ].
 			firstChoice := false.
 			state := self nextChoice.
-			[ state notNil ] whileTrue: [
+			[ state isNotNil ] whileTrue: [
 					subject := state subjectText ifNil: [ originalSubject ].
 					state tasks ifNil: [
 							(self acceptsEndOf: state) ifTrue: [ ^ state ].
@@ -430,33 +474,62 @@ PCRE2BacktrackingMatcher >> run: aState [
 								PCRE2MatchError signal: 'matching depth limit exceeded' ].
 							steps := steps + 1.
 							steps > limit ifTrue: [ PCRE2MatchError signal: 'match limit exceeded' ].
-							self checkHeapFor: state.
 							node := state pop.
 							state := self executeNode: node state: state.
-							self hardPartialFound ifTrue: [ ^ nil ] ] ] ].
+							hardPartialFound ifTrue: [ ^ nil ] ] ] ].
 	^ nil
 ]
 
+{ #category : 'optimization' }
+PCRE2MatchEngine >> scanRepeat: node state: aState [
+	"Count off a repetition of single characters in one step, then keep the shorter runs as one choice. A run only moves forward, so of everything the engine records about what was read, only the first and the last position matter. Counting the run costs no steps, as in PCRE2, where the match limit counts backtracks rather than characters."
+
+	| scan count read next |
+	scan := node child countIn: self from: aState position limit: node maximum.
+	count := scan first.
+	read := scan third.
+	read ifNotNil: [
+			self noteInspectionAt: aState position.
+			self noteInspectionAt: read ].
+	aState position: scan second.
+	((node maximum isNil or: [ count < node maximum ]) and: [ scan second >= subject size ]) ifTrue: [ self notePartial: aState ].
+	count < node minimum ifTrue: [ ^ nil ].
+	count > node minimum ifTrue: [
+			next := aState copy.
+			next push: (PCRE2CharacterRepeatFrame new
+					 repeat: node;
+					 count: count).
+			self enqueue: next ].
+	^ aState
+]
+
 { #category : 'accessing' }
-PCRE2BacktrackingMatcher >> scanSubjectTo: end [
+PCRE2MatchEngine >> scanSubjectTo: end [
 
 	^ originalSubject prefixTo: end
 ]
 
-{ #category : 'matching' }
-PCRE2BacktrackingMatcher >> skipPosition [
+{ #category : 'optimization' }
+PCRE2MatchEngine >> scansRepeats [
+	"Whether a repetition of single characters may be counted off in one step. The DFA matcher answers no: it follows every alternative at once and needs each turn of a repetition as a state of its own."
+
+	^ true
+]
+
+{ #category : 'accessing' }
+PCRE2MatchEngine >> skipPosition [
 
 	^ skipPosition
 ]
 
-{ #category : 'private' }
-PCRE2BacktrackingMatcher >> subject [
+{ #category : 'accessing' }
+PCRE2MatchEngine >> subject [
 
 	^ subject
 ]
 
 { #category : 'private' }
-PCRE2BacktrackingMatcher >> subject: aString root: aNode groups: groupNodes names: captureNames limit: aLimit [
+PCRE2MatchEngine >> subject: aString root: aNode groups: groupNodes names: captureNames limit: aLimit [
 
 	subject := aString.
 	originalSubject := aString.
@@ -467,8 +540,8 @@ PCRE2BacktrackingMatcher >> subject: aString root: aNode groups: groupNodes name
 	steps := 0
 ]
 
-{ #category : 'limits' }
-PCRE2BacktrackingMatcher >> trimChoicesTo: depth [
+{ #category : 'choices' }
+PCRE2MatchEngine >> trimChoicesTo: depth [
 
 	[ choices size > depth ] whileTrue: [ self nextChoice ]
 ]

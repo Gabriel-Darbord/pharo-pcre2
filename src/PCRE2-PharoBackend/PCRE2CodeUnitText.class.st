@@ -25,10 +25,10 @@ PCRE2CodeUnitText class >> from: bytes width: width [
 ]
 
 { #category : 'validating' }
-PCRE2CodeUnitText class >> utf8ErrorIn: bytes [
+PCRE2CodeUnitText class >> utf8ErrorIn: bytes from: start [
 
 	| offset first second additional remaining code |
-	offset := 0.
+	offset := start.
 	[ offset < bytes size ] whileTrue: [
 			first := (bytes at: offset + 1) asInteger.
 			first >= 128 ifTrue: [
@@ -98,11 +98,17 @@ PCRE2CodeUnitText class >> utf8ErrorIn: bytes [
 
 { #category : 'validating' }
 PCRE2CodeUnitText class >> utfErrorIn: bytes width: width [
-	"Answer the PCRE2 error code and its code-unit offset, or nil."
+
+	^ self utfErrorIn: bytes width: width from: 0
+]
+
+{ #category : 'validating' }
+PCRE2CodeUnitText class >> utfErrorIn: bytes width: width from: start [
+	"Answer the PCRE2 error code and the code-unit offset of the first invalid sequence at or after start, or nil. The offset is where that sequence begins, as PCRE2 reports it."
 
 	| offset first second size |
-	width = 8 ifTrue: [ ^ self utf8ErrorIn: bytes ].
-	offset := 0.
+	width = 8 ifTrue: [ ^ self utf8ErrorIn: bytes from: start ].
+	offset := start.
 	size := bytes size // (width // 8).
 	[ offset < size ] whileTrue: [
 			first := width = 16

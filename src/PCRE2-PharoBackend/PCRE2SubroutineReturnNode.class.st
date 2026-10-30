@@ -1,3 +1,6 @@
+"
+Runtime continuation that restores the captures, the alternation scope and the subroutine stack a subroutine call was made in, keeping the groups the call asked to retain.
+"
 Class {
 	#name : 'PCRE2SubroutineReturnNode',
 	#superclass : 'PCRE2PatternNode',
@@ -26,7 +29,7 @@ PCRE2SubroutineReturnNode >> alternations: aFrame [
 	alternations := aFrame
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2SubroutineReturnNode >> captures: anArray [
 
 	captures := anArray
@@ -59,7 +62,7 @@ PCRE2SubroutineReturnNode >> executeIn: anEngine state: aState [
 	^ aState
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2SubroutineReturnNode >> lastCapture: number [
 
 	lastCapture := number
@@ -77,7 +80,7 @@ PCRE2SubroutineReturnNode >> runtimeStorageSize [
 	^ self sizeInMemory + captures sizeInMemory
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2SubroutineReturnNode >> subroutines: frames [
 
 	subroutines := frames

@@ -29,19 +29,19 @@ PCRE2Match class >> isAbstract [
 	^ self == PCRE2Match
 ]
 
-{ #category : 'backends' }
+{ #category : 'external resource management' }
 PCRE2Match >> autoRelease [
 
 	backend autoRelease
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Match >> backend [
 
 	^ backend
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Match >> backend: anImplementation [
 
 	backend ifNotNil: [ PCRE2Error signal: 'Match results cannot change backend' ].
@@ -90,7 +90,7 @@ PCRE2Match >> decoder [
 	^ decoder
 ]
 
-{ #category : 'backends' }
+{ #category : 'enumerating' }
 PCRE2Match >> endOffsetAt: pairIndex [
 
 	^ (self offsetsAt: pairIndex) second
@@ -103,31 +103,31 @@ PCRE2Match >> ensureSubjectAvailable [
 		self error: 'This match does not remember a subject; use readMatch: or readMatches: with an explicit subject' ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'library path' }
 PCRE2Match >> ffiLibraryName [
 
 	^ backend ffiLibraryName
 ]
 
-{ #category : 'backends' }
+{ #category : 'external resource management' }
 PCRE2Match >> finalize [
 
 	backend finalize
 ]
 
-{ #category : 'backends' }
+{ #category : 'external resource management' }
 PCRE2Match >> free [
 
 	backend free
 ]
 
-{ #category : 'backends' }
+{ #category : 'private' }
 PCRE2Match >> getCount [
 
 	^ backend getCount
 ]
 
-{ #category : 'backends' }
+{ #category : 'private' }
 PCRE2Match >> getHandle [
 
 	^ backend getHandle
@@ -139,7 +139,7 @@ PCRE2Match >> getHeapframesSize [
 	self subclassResponsibility
 ]
 
-{ #category : 'backends' }
+{ #category : 'private' }
 PCRE2Match >> getMark [
 
 	^ backend getMark
@@ -151,7 +151,7 @@ PCRE2Match >> getMarkPointer [
 	self subclassResponsibility
 ]
 
-{ #category : 'backends' }
+{ #category : 'private' }
 PCRE2Match >> getMatchDataSize [
 
 	^ backend getMatchDataSize
@@ -163,7 +163,7 @@ PCRE2Match >> getOffsets [
 	self subclassResponsibility
 ]
 
-{ #category : 'backends' }
+{ #category : 'private' }
 PCRE2Match >> getStartIndex [
 
 	^ backend getStartIndex
@@ -269,7 +269,7 @@ PCRE2Match >> isComplete [
 	^ resultCode notNil and: [ resultCode > 0 ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'testing' }
 PCRE2Match >> isNull [
 
 	^ backend isNull
@@ -288,7 +288,7 @@ PCRE2Match >> isPersistent [
 	^ isPersistent or: [ backend isNull ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'enumerating' }
 PCRE2Match >> lastMatchIndex [
 
 	^ self endOffsetAt: 1
@@ -339,7 +339,7 @@ PCRE2Match >> offsets [
 	^ offsets := copy
 ]
 
-{ #category : 'backends' }
+{ #category : 'enumerating' }
 PCRE2Match >> offsetsAt: pairIndex [
 
 	offsets ifNotNil: [
@@ -349,7 +349,7 @@ PCRE2Match >> offsetsAt: pairIndex [
 	^ backend offsetsAt: pairIndex
 ]
 
-{ #category : 'backends' }
+{ #category : 'enumerating' }
 PCRE2Match >> offsetsDo: aBlock [
 
 	1 to: self count do: [ :index |
@@ -477,7 +477,7 @@ PCRE2Match >> startIndex [
 	^ startIndex ifNil: [ startIndex := self getStartIndex + 1 ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'enumerating' }
 PCRE2Match >> startOffsetAt: pairIndex [
 
 	^ (self offsetsAt: pairIndex) first

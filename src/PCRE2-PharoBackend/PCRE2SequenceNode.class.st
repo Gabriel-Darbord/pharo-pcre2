@@ -1,3 +1,6 @@
+"
+A sequence of nodes, pushed so that the first child runs first.
+"
 Class {
 	#name : 'PCRE2SequenceNode',
 	#superclass : 'PCRE2PatternNode',
@@ -8,25 +11,25 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'optimization' }
+{ #category : 'testing' }
 PCRE2SequenceNode >> canAccept [
 
 	^ children anySatisfy: #canAccept
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2SequenceNode >> children [
 
 	^ children
 ]
 
-{ #category : 'private' }
-PCRE2SequenceNode >> children: aValue [
+{ #category : 'accessing' }
+PCRE2SequenceNode >> children: anArray [
 
-	children := aValue
+	children := anArray
 ]
 
-{ #category : 'private' }
+{ #category : 'matching' }
 PCRE2SequenceNode >> executeIn: anEngine state: aState [
 
 	children reverseDo: [ :node | aState push: node ].
@@ -51,7 +54,33 @@ PCRE2SequenceNode >> firstLiteralPredicate [
 	^ nil
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
+PCRE2SequenceNode >> firstSignificantChild [
+	"The first child the start optimizations have to look at, or nil when the branch holds nothing but nodes they pass over."
+
+	^ children detect: [ :child | child isSignificantForStart ] ifNone: [ nil ]
+]
+
+{ #category : 'optimization' }
+PCRE2SequenceNode >> isAnchoredIn: analysis [
+
+	^ self firstSignificantChild ifNil: [ false ] ifNotNil: [ :child | child isAnchoredIn: analysis ]
+]
+
+{ #category : 'optimization' }
+PCRE2SequenceNode >> isSignificantForStart [
+	"A sequence holding nothing the start optimizations look at, such as the one an inline option setting or a comment leaves behind, is passed over like its children."
+
+	^ self firstSignificantChild isNotNil
+]
+
+{ #category : 'optimization' }
+PCRE2SequenceNode >> isStartLineIn: analysis [
+
+	^ self firstSignificantChild ifNil: [ false ] ifNotNil: [ :child | child isStartLineIn: analysis ]
+]
+
+{ #category : 'accessing' }
 PCRE2SequenceNode >> lengthBoundsUsing: groups names: names visited: visited [
 
 	| minimum maximum |
@@ -71,7 +100,7 @@ PCRE2SequenceNode >> lengthBoundsUsing: groups names: names visited: visited [
 		  maximum }
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2SequenceNode >> maximumLength [
 
 	| sum |
@@ -80,7 +109,7 @@ PCRE2SequenceNode >> maximumLength [
 	^ sum
 ]
 
-{ #category : 'optimization' }
+{ #category : 'accessing' }
 PCRE2SequenceNode >> minimumLength [
 
 	| length |
@@ -101,7 +130,7 @@ PCRE2SequenceNode >> requiredNode [
 	^ required
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2SequenceNode >> startPredicate [
 
 	| predicates |
@@ -111,6 +140,6 @@ PCRE2SequenceNode >> startPredicate [
 			predicate := child startPredicate.
 			predicate ifNil: [ ^ nil ].
 			predicates add: predicate.
-			child minimumLength > 0 ifTrue: [ ^ [ :character | predicates anySatisfy: [ :test | test value: character ] ] ] ].
-	^ [ :character | predicates anySatisfy: [ :test | test value: character ] ]
+			child minimumLength > 0 ifTrue: [ ^ self startPredicateOf: predicates ] ].
+	^ self startPredicateOf: predicates
 ]

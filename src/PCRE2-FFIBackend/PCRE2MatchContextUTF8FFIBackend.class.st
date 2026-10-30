@@ -1,3 +1,6 @@
+"
+Owns a match-context handle of the 8-bit PCRE2 library.
+"
 Class {
 	#name : 'PCRE2MatchContextUTF8FFIBackend',
 	#superclass : 'PCRE2MatchContextFFIBackend',

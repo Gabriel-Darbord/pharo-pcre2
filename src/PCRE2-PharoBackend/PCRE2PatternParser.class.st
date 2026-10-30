@@ -29,13 +29,32 @@ Class {
 		'patternLimits',
 		'requiresPreviousCharacter',
 		'branchResetUsed',
-		'extendedClassDepth'
+		'extendedClassDepth',
+		'referenceOffsets',
+		'lookbehindPositions',
+		'classExpressionDelimiter',
+		'classExpressionStart',
+		'utsNestedClassClosed',
+		'backreferences',
+		'hadPruneOrSkip',
+		'startLine'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'parsing' }
+{ #category : 'configuration' }
+PCRE2PatternParser class >> limitDirectives [
+	"The start directives that carry a value, mapped to the limit each one sets."
+
+	^ Dictionary newFrom: {
+			  ('LIMIT_MATCH' -> #match).
+			  ('LIMIT_DEPTH' -> #depth).
+			  ('LIMIT_RECURSION' -> #depth).
+			  ('LIMIT_HEAP' -> #heap) }
+]
+
+{ #category : 'parsing - escapes' }
 PCRE2PatternParser >> altBSUX [
 
 	^ (options bitAnd: PCRE2 altBSUX) ~= 0 or: [ (extraOptions bitAnd: PCRE2 extraAltBsux) ~= 0 ]
@@ -55,7 +74,26 @@ PCRE2PatternParser >> alternation [
 	^ PCRE2AlternativeNode new children: alternatives asArray
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - optimization' }
+PCRE2PatternParser >> analyseStartOf: tree [
+	"PCRE2's two structural start optimizations, decided once the whole tree stands. A pattern every branch of which starts at a fixed place is anchored, whatever else is turned off; one every branch of which starts at a line start is only ever tried there, which is of no use to a pattern that is anchored already or that has a first character to look for."
+
+	| analysis |
+	startLine := false.
+	((compiledOptions bitOr: patternMatchOptions) bitAnd: PCRE2 anchored) ~= 0 ifTrue: [ ^ self ].
+	analysis := PCRE2StartAnalysis
+		            backreferences: self backreferenceMap
+		            pruneOrSkip: hadPruneOrSkip
+		            dotStarAnchor: (compiledOptions bitAnd: PCRE2 noDotstarAnchor) = 0.
+	(tree isAnchoredIn: analysis) ifTrue: [
+			compiledOptions := compiledOptions bitOr: PCRE2 anchored.
+			^ self ].
+	(compiledOptions bitAnd: PCRE2 noStartOptimize) ~= 0 ifTrue: [ ^ self ].
+	tree firstLiteralPredicate ifNotNil: [ ^ self ].
+	startLine := tree isStartLineIn: analysis
+]
+
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> asciiInlineOption [
 
 	| flags |
@@ -69,60 +107,35 @@ PCRE2PatternParser >> asciiInlineOption [
 	^ PCRE2 extraAsciiBsd | PCRE2 extraAsciiBss | PCRE2 extraAsciiBsw | PCRE2 extraAsciiDigit | PCRE2 extraAsciiPosix
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - assertions' }
 PCRE2PatternParser >> assertion: kind [
+	"The node for one zero-width position assertion. Its predicate is chosen here, once, so matching never asks again which kind it is."
 
-	| multiline dollarEndOnly word convention altCircumflex |
 	(#( wordBoundary notWordBoundary ) includes: kind) ifTrue: [ requiresPreviousCharacter := true ].
-	multiline := (options bitAnd: PCRE2 multiline) ~= 0.
-	dollarEndOnly := (options bitAnd: PCRE2 dollarEndOnly) ~= 0.
-	altCircumflex := (options bitAnd: PCRE2 altCircumflex) ~= 0.
-	word := self predicateFor: $w.
-	convention := newlineConvention.
 	^ PCRE2AssertionNode new
 		  kind: kind;
-		  predicate: [ :engine :state |
-				  | index size newline beforeEnd |
-				  index := state position.
-				  size := engine subject size.
-				  (index = size and: [ #( endLine endSubject endBeforeFinalNewline ) includes: kind ]) ifTrue: [ engine notePartial: state ].
-				  kind = #beginSubject
-					  ifTrue: [ index = 0 ]
-					  ifFalse: [
-							  kind = #endSubject
-								  ifTrue: [ index = size ]
-								  ifFalse: [
-										  kind = #startMatch
-											  ifTrue: [ index = engine initialPosition ]
-											  ifFalse: [
-													  kind = #resetStart
-														  ifTrue: [
-																  state captures at: 1 put: index.
-																  true ]
-														  ifFalse: [
-																  kind = #beginLine
-																	  ifTrue: [
-																			  (index = 0 and: [ (engine matchOptions bitAnd: PCRE2 notBOL) = 0 ]) or: [
-																					  multiline and: [
-																							  (index < size or: [ altCircumflex ]) and: [ (convention lengthEndingAt: index in: engine subject) > 0 ] ] ] ]
-																	  ifFalse: [
-																			  newline := convention lengthAt: index + 1 in: engine subject.
-																			  beforeEnd := newline > 0 and: [ index + newline = size ].
-																			  kind = #endBeforeFinalNewline
-																				  ifTrue: [ index = size or: [ beforeEnd ] ]
-																				  ifFalse: [
-																						  kind = #endLine
-																							  ifTrue: [
-																									  (index = size and: [ (engine matchOptions bitAnd: PCRE2 notEOL) = 0 ]) or: [
-																											  newline > 0 and: [
-																													  multiline or: [
-																															  beforeEnd and: [ dollarEndOnly not and: [ (engine matchOptions bitAnd: PCRE2 notEOL) = 0 ] ] ] ] ] ]
-																							  ifFalse: [
-																									  (index > 0 and: [ word value: (engine subject at: (engine subject previousOffsetFrom: index) + 1) ])
-																									  ~= (index < size and: [ word value: (engine subject at: index + 1) ]) = (kind = #wordBoundary) ] ] ] ] ] ] ] ]
+		  multiline: (options bitAnd: PCRE2 multiline) ~= 0;
+		  predicate: (self assertionPredicateFor: kind)
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - assertions' }
+PCRE2PatternParser >> assertionPredicateFor: kind [
+	"The block that decides one assertion kind while matching."
+
+	kind = #beginSubject ifTrue: [ ^ [ :engine :state | state position = 0 ] ].
+	kind = #endSubject ifTrue: [ ^ self endOfSubjectPredicate ].
+	kind = #beginLine ifTrue: [ ^ self startOfLinePredicate ].
+	kind = #endLine ifTrue: [ ^ self endOfLinePredicate ].
+	kind = #endBeforeFinalNewline ifTrue: [ ^ self endBeforeFinalNewlinePredicate ].
+	kind = #startMatch ifTrue: [ ^ [ :engine :state | state position = engine initialPosition ] ].
+	kind = #resetStart ifTrue: [
+			^ [ :engine :state |
+				  state captures at: 1 put: state position.
+				  true ] ].
+	^ self wordBoundaryPredicateFor: kind
+]
+
+{ #category : 'scanning' }
 PCRE2PatternParser >> atEnd [
 
 	^ position > pattern size
@@ -149,18 +162,49 @@ PCRE2PatternParser >> atom [
 	^ self literal: character
 ]
 
-{ #category : 'parsing' }
-PCRE2PatternParser >> bracedOctalEscape [
+{ #category : 'parsing - optimization' }
+PCRE2PatternParser >> backreferenceMap [
+	"The groups backreferences point at, in PCRE2's bitmap of the first 31 of them."
 
-	| digits |
-	self expect: (Character value: 123).
-	digits := (self readUntil: $}) trimBoth.
-	(digits isEmpty or: [ digits anySatisfy: [ :character | (character between: $0 and: $7) not ] ]) ifTrue: [
-		self syntaxError: 'non-octal character in \o{} (closing brace missing?)' ].
-	^ self literalCodePoint: (Integer readFrom: digits readStream base: 8)
+	| map |
+	map := 0.
+	backreferences do: [ :reference |
+			reference isInteger
+				ifTrue: [ map := map bitOr: (PCRE2StartAnalysis bitFor: reference) ]
+				ifFalse: [
+				names keysAndValuesDo: [ :index :name | name = reference ifTrue: [ map := map bitOr: (PCRE2StartAnalysis bitFor: index) ] ] ] ].
+	^ map
 ]
 
-{ #category : 'parsing' }
+{ #category : 'scanning' }
+PCRE2PatternParser >> bracedNumberInBase: base invalidCode: errorCode [
+
+	| start digits |
+	[ self peek = Character space or: [ self peek = Character tab ] ] whileTrue: [ self next ].
+	start := position.
+	[ self peek isNotNil and: [ self peek asInteger < 128 and: [ self peek digitValue between: 0 and: base - 1 ] ] ] whileTrue: [
+		self next ].
+	digits := pattern copyFrom: start to: position - 1.
+	[ self peek = Character space or: [ self peek = Character tab ] ] whileTrue: [ self next ].
+	self peek = $} ifFalse: [
+			self atEnd
+				ifTrue: [ digits ifEmpty: [ self syntaxErrorCode: 178 ] ]
+				ifFalse: [ self next ].
+			self syntaxErrorCode: errorCode ].
+	digits ifEmpty: [ self syntaxErrorCode: 178 ].
+	self next.
+	^ Integer readFrom: digits readStream base: base
+]
+
+{ #category : 'parsing - escapes' }
+PCRE2PatternParser >> bracedOctalEscape [
+
+	self peek = (Character value: 123) ifFalse: [ self syntaxErrorCode: 155 ].
+	self next.
+	^ self literalCodePoint: (self bracedNumberInBase: 8 invalidCode: 164)
+]
+
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> branchResetRestoring: savedOptions [
 
 	| base maximum alternatives |
@@ -176,7 +220,7 @@ PCRE2PatternParser >> branchResetRestoring: savedOptions [
 			alternatives add: self sequence.
 			maximum := maximum max: captureCount.
 			self peek = $| ] whileTrue: [ position := position + 1 ].
-		self expect: $) ] ensure: [
+		self expect: $) errorCode: 114 ] ensure: [
 			captureCount := maximum.
 			depth := depth - 1.
 			options := savedOptions first.
@@ -184,7 +228,7 @@ PCRE2PatternParser >> branchResetRestoring: savedOptions [
 	^ PCRE2AlternativeNode new children: alternatives asArray
 ]
 
-{ #category : 'configuration' }
+{ #category : 'accessing' }
 PCRE2PatternParser >> bsrMode [
 
 	^ bsr
@@ -205,53 +249,47 @@ PCRE2PatternParser >> calloutStringSize: text [
 	^ text size
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2PatternParser >> captureCount [
 
 	^ captureCount
 ]
 
-{ #category : 'private' }
-PCRE2PatternParser >> captureCount: aValue [
+{ #category : 'accessing' }
+PCRE2PatternParser >> captureCount: anInteger [
 
-	captureCount := aValue
+	captureCount := anInteger
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> captureReferenceList [
 
-	| result text reference start |
+	| result reference start delimiter |
 	result := OrderedCollection new.
-	self expect: $(.
-	self skipIgnored.
-	[ self peek ~= $) ] whileTrue: [
-			(self peek = $' or: [ self peek = $< ])
-				ifTrue: [
-						reference := self next.
-						text := self readUntil: (reference = $'
-								         ifTrue: [ $' ]
-								         ifFalse: [ $> ]) ]
-				ifFalse: [
-						start := position.
-						(self peek = $+ or: [ self peek = $- ]) ifTrue: [ self next ].
-						self decimal.
-						text := pattern copyFrom: start to: position - 1 ].
-			reference := self normalizedReference: text.
-			(reference isInteger and: [ reference <= 0 ]) ifTrue: [ self syntaxError: 'invalid capture group number' ].
-			references add: reference.
-			result add: reference.
-			self skipIgnored.
-			self peek = $,
-				ifTrue: [
-						self next.
-						self skipIgnored ]
-				ifFalse: [
-						self expect: $).
-						^ result asArray ] ].
-	self syntaxError: 'empty capture group list'
+	self peek = $( ifFalse: [ self syntaxErrorCode: 218 ].
+	self next.
+	[
+		start := position.
+		reference := self readReferenceNumber.
+		reference ifNil: [
+				(self peek = $< or: [ self peek = $' ]) ifFalse: [ self syntaxErrorCode: 217 ].
+				delimiter := self next = $<
+					             ifTrue: [ $> ]
+					             ifFalse: [ $' ].
+				start := position.
+				reference := self readCaptureNameUntil: delimiter ].
+		(reference isInteger and: [ reference = 0 ]) ifTrue: [ self syntaxErrorCode: 115 ].
+		self registerReference: reference at: start.
+		result add: reference.
+		self atEnd ifTrue: [ self syntaxErrorCode: 114 ].
+		self peek = $) ifTrue: [
+				self next.
+				^ result asArray ].
+		self peek = $, ifFalse: [ self syntaxErrorCode: 124 ].
+		self next ] repeat
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> characterClass [
 
 	(options bitAnd: PCRE2 altExtendedClass) ~= 0 ifTrue: [ ^ self utsClass ].
@@ -260,26 +298,65 @@ PCRE2PatternParser >> characterClass [
 		  ifFalse: [ self parseCharacterClass ]
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> classElement [
 
-	| character property closing |
+	^ self classElementAsRangeEnd: false
+]
+
+{ #category : 'parsing - classes' }
+PCRE2PatternParser >> classElementAsRangeEnd: isRangeEnd [
+	"PCRE2 blames a POSIX collating element differently when it closes a range."
+
+	| character property closing nested |
 	character := self next.
 	character = $\ ifTrue: [ ^ self escapeInClass: true ].
 	(character = $[ and: [ self peek isNotNil and: [ '.=' includes: self peek ] ]) ifTrue: [
 			closing := pattern findString: (String with: self peek with: $]) startingAt: position + 1.
-			closing > 0 ifTrue: [ self syntaxError: 'POSIX collating elements are not supported' ] ].
+			closing > 0 ifTrue: [
+					self
+						syntaxErrorCode: (isRangeEnd
+								 ifTrue: [ 150 ]
+								 ifFalse: [ 113 ])
+						atCodeUnit: (self codeUnitOffsetAt: closing + 2) ] ].
 	(character = $[ and: [ self peek = $: ]) ifTrue: [
 			closing := pattern findString: ':]' startingAt: position + 1.
 			(closing > 0 and: [ (self firstClosingBracketFrom: position + 1) = (closing + 1) ]) ifTrue: [
 					property := pattern copyFrom: position + 1 to: closing - 1.
 					position := closing + 2.
-					^ PCRE2CharacterNode new predicate: (self propertyPredicate: property) ] ].
-	(character = $[ and: [ (options bitAnd: PCRE2 altExtendedClass) ~= 0 ]) ifTrue: [ ^ self utsClass ].
+					^ self classNodeFor: (self propertyPredicate: property) ] ].
+	(character = $[ and: [ (options bitAnd: PCRE2 altExtendedClass) ~= 0 ]) ifTrue: [
+			nested := self utsClass.
+			utsNestedClassClosed := true.
+			^ nested ].
 	^ self literal: character
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
+PCRE2PatternParser >> classExpressionClosing: delimiter [
+
+	| previousDelimiter previousStart predicate |
+	previousDelimiter := classExpressionDelimiter.
+	previousStart := classExpressionStart.
+	classExpressionDelimiter := delimiter.
+	classExpressionStart := position.
+	[
+		predicate := self classUnion.
+		self classExpressionIgnored.
+		self peek = delimiter ifFalse: [
+				self atEnd ifTrue: [ self syntaxErrorCode: self unterminatedClassExpressionCode ].
+				(delimiter = $) and: [ self peek = $] ]) ifTrue: [ self syntaxErrorCode: 114 ].
+				(delimiter = $] and: [ self peek = $) ]) ifTrue: [
+						self next.
+						self syntaxErrorCode: 122 ].
+				self unexpectedClassExpression ].
+		self next.
+		^ predicate ] ensure: [
+			classExpressionDelimiter := previousDelimiter.
+			classExpressionStart := previousStart ]
+]
+
+{ #category : 'scanning' }
 PCRE2PatternParser >> classExpressionIgnored [
 
 	[
@@ -287,7 +364,7 @@ PCRE2PatternParser >> classExpressionIgnored [
 		self peek isNotNil and: [ self peek isSeparator ] ] whileTrue: [ position := position + 1 ]
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> classIntersection [
 
 	| left |
@@ -300,33 +377,56 @@ PCRE2PatternParser >> classIntersection [
 	^ left
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
+PCRE2PatternParser >> classNodeFor: aPredicate [
+	"A node for a character class. It carries a table of the codes under 256 it accepts, since a class is asked once for every character of a subject."
+
+	| node |
+	node := PCRE2CharacterNode new predicate: aPredicate.
+	node tabulate.
+	^ node
+]
+
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> classOperand [
 
 	| character predicate node |
 	self classExpressionIgnored.
+	self atEnd ifTrue: [ self syntaxErrorCode: self unterminatedClassExpressionCode ].
 	character := self next.
 	character = $! ifTrue: [
 			predicate := self classOperand.
 			^ [ :candidate | (predicate value: candidate) not ] ].
-	character = $( ifTrue: [
-			predicate := self withExtendedClassDo: [ self classUnion ].
-			self classExpressionIgnored.
-			self expect: $).
-			^ predicate ].
+	character = $( ifTrue: [ ^ self withExtendedClassDo: [ self classExpressionClosing: $) ] ].
 	character = $[ ifTrue: [
 			self peek = $: ifTrue: [
 					position := position - 1.
 					^ self classElement predicate ].
 			^ self characterClass predicate ].
 	character = $\ ifTrue: [
-			node := self escapeInClass: true.
-			(node isKindOf: PCRE2CharacterNode) ifFalse: [ self syntaxError: 'invalid extended class operand' ].
+			self peek = $E ifTrue: [
+					self next.
+					^ self classOperand ].
+			self peek = $Q ifTrue: [
+					self next.
+					(self peek = $\ and: [ position < pattern size and: [ (pattern at: position + 1) = $E ] ]) ifTrue: [
+							position := position + 2.
+							^ self classOperand ].
+					self atEnd ifFalse: [ self next ].
+					self syntaxErrorCode: 216 ].
+			node := self parseEscapeInClass: true.
+			(node isKindOf: PCRE2CharacterNode) ifFalse: [ self syntaxErrorCode: 216 ].
 			^ node predicate ].
-	self syntaxError: 'expected an extended class operand'
+	(character = $] and: [ classExpressionDelimiter = $) ]) ifTrue: [
+			position := position - 1.
+			self syntaxErrorCode: 114 ].
+	(character = $) and: [ classExpressionDelimiter = $] ]) ifTrue: [ self syntaxErrorCode: 122 ].
+	(character = $] or: [ character = $) ]) ifTrue: [ self syntaxErrorCode: 214 ].
+	('+|-^&' includes: character) ifTrue: [ self syntaxErrorCode: 209 ].
+	self syntaxErrorCode: 216
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> classUnion [
 
 	| left right operator |
@@ -340,19 +440,19 @@ PCRE2PatternParser >> classUnion [
 	^ left
 ]
 
-{ #category : 'callouts' }
+{ #category : 'scanning' }
 PCRE2PatternParser >> codeUnitOffsetAt: index [
 
 	^ patternOffsets at: index
 ]
 
-{ #category : 'callouts' }
+{ #category : 'accessing' }
 PCRE2PatternParser >> codeUnitWidth: width [
 
 	codeUnitWidth := width
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> combineClass: left with: right operator: operator [
 
 	operator = $& ifTrue: [ ^ [ :character | (left value: character) and: [ right value: character ] ] ].
@@ -361,77 +461,139 @@ PCRE2PatternParser >> combineClass: left with: right operator: operator [
 	^ [ :character | (left value: character) or: [ right value: character ] ]
 ]
 
-{ #category : 'configuration' }
+{ #category : 'accessing' }
 PCRE2PatternParser >> compiledOptions [
 
 	^ compiledOptions
 ]
 
-{ #category : 'parsing' }
+{ #category : 'validation' }
+PCRE2PatternParser >> conditionalAssertionAllowingCallout: allowCallout [
+
+	| next following end name |
+	next := position < pattern size ifTrue: [ pattern at: position + 1 ].
+	following := position + 1 < pattern size ifTrue: [ pattern at: position + 2 ].
+	self peek = $? ifTrue: [
+			((#( $= $! ) includes: next) or: [ (next = $< and: [ #( $= $! ) includes: following ]) or: [ next = $C and: [ allowCallout ] ] ])
+				ifFalse: [ self syntaxErrorCode: 128 ].
+			^ self group ].
+	(self peek = $* and: [ next isNotNil and: [ next between: $a and: $z ] ]) ifFalse: [ self syntaxErrorCode: 128 ].
+	end := position + 1.
+	[ end <= pattern size and: [ self isCaptureNameCharacter: (pattern at: end) ] ] whileTrue: [ end := end + 1 ].
+	name := pattern copyFrom: position + 1 to: end - 1.
+	(#( 'atomic' 'sr' 'script_run' 'asr' 'atomic_script_run' 'scs' 'scan_substring' 'napla' 'non_atomic_positive_lookahead'
+	    'naplb' 'non_atomic_positive_lookbehind' ) includes: name) ifTrue: [
+		self syntaxErrorCode: 128 atCodeUnit: (self codeUnitOffsetAt: end) ].
+	^ self group
+]
+
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> conditionalRestoring: savedOptions [
 
-	| condition yes no assertion reference text prefix |
+	| condition yes no assertion reference text prefix conditionStart delimiter quoted recursion knownNames unsupported definition groupStart constantFalse elseWritten version |
+	conditionStart := position.
+	groupStart := position - 3.
+	definition := false.
+	constantFalse := false.
+	elseWritten := false.
+	knownNames := names.
+	unsupported := false.
 	prefix := OrderedCollection new.
-	self skipIgnored.
 	(self peek = $? or: [ self peek = $* ])
 		ifTrue: [
-				assertion := self group.
-				[ assertion isKindOf: PCRE2CalloutNode ] whileTrue: [
+				assertion := self conditionalAssertionAllowingCallout: true.
+				(assertion isKindOf: PCRE2CalloutNode) ifTrue: [
 						prefix add: assertion.
 						self skipIgnored.
-						self expect: $(.
-						assertion := self group ].
+						self peek = $( ifFalse: [ self syntaxErrorCode: 128 ].
+						self next.
+						assertion := self conditionalAssertionAllowingCallout: false ].
 				self validateLookaroundResetsIn: assertion active: true.
-				assertion canBeCondition ifFalse: [ self syntaxError: 'non-atomic assertion is not allowed in a conditional group' ].
 				condition := [ :engine :state | assertion conditionalIn: engine state: state ] ]
 		ifFalse: [
-				text := self readUntil: $).
-				text = 'DEFINE' ifTrue: [ condition := [ :engine :state | false ] ].
-				((text beginsWith: 'VERSION=') or: [ text beginsWith: 'VERSION>=' ]) ifTrue: [ condition := self versionCondition: text ].
-				(text beginsWith: 'R') ifTrue: [
-						(text = 'R' or: [
-							 (text beginsWith: 'R&') or: [ text size > 1 and: [ (text copyFrom: 2 to: text size) allSatisfy: #isDigit ] ] ]) ifTrue: [
-								reference := text = 'R' ifFalse: [
-										             (text beginsWith: 'R&')
-											             ifTrue: [ text copyFrom: 3 to: text size ]
-											             ifFalse: [ (text copyFrom: 2 to: text size) asInteger ] ].
-								reference ifNotNil: [ references add: reference ].
-								condition := [ :engine :state | engine isRecursing: reference state: state ] ] ].
+				reference := self readReferenceNumber.
+				reference ifNotNil: [
+						reference = 0 ifTrue: [ self syntaxErrorCode: 115 ].
+						self registerReference: reference at: position - 2.
+						condition := [ :engine :state | engine captureIsSet: reference state: state ].
+						unsupported := true ].
 				condition ifNil: [
-						(text beginsWith: '<') ifTrue: [
-								(text endsWith: '>') ifFalse: [ self syntaxError: 'missing condition delimiter' ].
-								text := text copyFrom: 2 to: text size - 1 ].
-						(text beginsWith: '''') ifTrue: [
-								(text endsWith: '''') ifFalse: [ self syntaxError: 'missing condition delimiter' ].
-								text := text copyFrom: 2 to: text size - 1 ].
-						text isEmpty ifTrue: [ self syntaxError: 'empty condition' ].
-						reference := self normalizedReference: text.
-						(reference isInteger and: [ reference = 0 ]) ifTrue: [ self syntaxError: 'reference to non-existent subpattern' ].
-						references add: reference.
-						condition := [ :engine :state | engine captureIsSet: reference state: state ] ] ].
+						(pattern size - position + 1 >= 10 and: [
+							 (pattern findString: 'VERSION' startingAt: position) = position and: [ (pattern at: position + 7) ~= $) ] ])
+							ifTrue: [
+									version := self versionCondition.
+									constantFalse := version not.
+									condition := [ :engine :state | version ] ]
+							ifFalse: [
+									quoted := self peek = $< or: [ self peek = $' ].
+									delimiter := nil.
+									quoted ifTrue: [
+											delimiter := self next = $<
+												             ifTrue: [ $> ]
+												             ifFalse: [ $' ] ].
+									recursion := (pattern findString: 'R&' startingAt: position) = position and: [ quoted not ].
+									recursion ifTrue: [ position := position + 2 ].
+									conditionStart := position.
+									text := self readCaptureNameUntil: delimiter.
+									recursion
+										ifTrue: [
+												self registerReference: text at: conditionStart.
+												condition := [ :engine :state | engine isRecursing: text state: state ] ]
+										ifFalse: [
+												(quoted not and: [ text = 'DEFINE' ])
+													ifTrue: [
+															definition := true.
+															constantFalse := true.
+															condition := [ :engine :state | false ] ]
+													ifFalse: [
+															(quoted not and: [
+																 text first = $R and: [ text allButFirst allSatisfy: [ :character | character between: $0 and: $9 ] ] ])
+																ifTrue: [
+																		self registerRecursionCondition: text at: conditionStart.
+																		reference := text size = 1
+																			             ifTrue: [ nil ]
+																			             ifFalse: [ text allButFirst asInteger ].
+																		reference = 0 ifTrue: [ reference := nil ].
+																		condition := [ :engine :state |
+																			             (knownNames includes: text)
+																				             ifTrue: [ engine captureIsSet: text state: state ]
+																				             ifFalse: [ engine isRecursing: reference state: state ] ].
+																		unsupported := [ knownNames includes: text ] ]
+																ifFalse: [
+																		self registerReference: text at: conditionStart.
+																		condition := [ :engine :state | engine captureIsSet: text state: state ].
+																		unsupported := true ] ] ].
+									self peek = $) ifFalse: [ self syntaxErrorCode: 124 ].
+									self next ] ].
+				(reference isInteger and: [ text isNil ]) ifTrue: [
+						self peek = $) ifFalse: [ self syntaxErrorCode: 124 ].
+						self next ] ].
 	depth := depth + 1.
 	depth > nestLimit ifTrue: [ self syntaxError: 'parentheses are too deeply nested' ].
 	[
 		yes := self sequence.
 		no := PCRE2SequenceNode new children: #(  ).
 		self peek = $| ifTrue: [
-				text = 'DEFINE' ifTrue: [ self syntaxError: 'DEFINE subpattern contains more than one branch' ].
-				position := position + 1.
-				no := self sequence ].
-		self expect: $) ] ensure: [
+				definition ifTrue: [ self syntaxErrorCode: 154 atCodeUnit: (self codeUnitOffsetAt: conditionStart) ].
+				self next.
+				elseWritten := true.
+				no := self sequence.
+				self peek = $| ifTrue: [ self syntaxErrorCode: 127 atCodeUnit: (self codeUnitOffsetAt: groupStart) ] ].
+		self expect: $) errorCode: 114 ] ensure: [
 			depth := depth - 1.
 			options := savedOptions first.
 			extraOptions := savedOptions second ].
 	^ PCRE2ConditionalNode new
 		  prefix: prefix asArray;
-		  definition: text = 'DEFINE';
-		  dfaUnsupported: (assertion isNil and: [
-					   text ~= 'DEFINE' and: [
-							   text ~= 'R' and: [ (text beginsWith: 'VERSION=') not and: [ (text beginsWith: 'VERSION>=') not ] ] ] ]);
+		  definition: definition;
+		  dfaUnsupported: unsupported;
+		  assertion: assertion;
+		  hasElse: elseWritten;
+		  neverRuns: (constantFalse and: [ elseWritten not ]);
 		  condition: condition then: yes else: no
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - escapes' }
 PCRE2PatternParser >> controlEscape [
 
 	| character |
@@ -441,152 +603,140 @@ PCRE2PatternParser >> controlEscape [
 	^ self literalCodePoint: (character asUppercase asInteger bitXor: 64)
 ]
 
-{ #category : 'parsing' }
+{ #category : 'scanning' }
 PCRE2PatternParser >> decimal [
 
 	| value |
 	value := 0.
-	[ self peek notNil and: [ self peek between: $0 and: $9 ] ] whileTrue: [
+	[ self peek isNotNil and: [ self peek between: $0 and: $9 ] ] whileTrue: [
 		value := value * 10 + self next asciiValue - $0 asciiValue ].
 	^ value
 ]
 
-{ #category : 'parsing' }
-PCRE2PatternParser >> escapeInClass: inClass [
+{ #category : 'parsing - assertions' }
+PCRE2PatternParser >> endBeforeFinalNewlinePredicate [
+	"\Z, and $ outside multiline mode: the end of the subject, or just before the line terminator that ends it."
 
-	| character reference delimiter start nodes property predicate code |
-	character := self next.
-	('dDsSwWhHvV' includes: character) ifTrue: [ ^ PCRE2CharacterNode new predicate: (self predicateFor: character) ].
-	character = $C ifTrue: [
-			inClass ifTrue: [ self syntaxError: 'escape sequence is invalid in character class' ].
-			(options bitAnd: PCRE2 neverBackslashC) ~= 0 ifTrue: [ self syntaxError: 'using \C is disabled by the application' ].
-			^ PCRE2CodeUnitNode new unicodeWideUnit: ((options bitAnd: PCRE2 utf) ~= 0 and: [ codeUnitWidth ~= 32 ]) ].
-	character = $n ifTrue: [ ^ self literal: Character lf ].
-	character = $r ifTrue: [
-			^ self literal: ((extraOptions bitAnd: PCRE2 extraEscapedCrIsLf) = 0
-					   ifTrue: [ Character cr ]
-					   ifFalse: [ Character lf ]) ].
-	character = $c ifTrue: [ ^ self controlEscape ].
-	character = $o ifTrue: [ ^ self bracedOctalEscape ].
-	(character = $U and: [ self altBSUX ]) ifTrue: [ ^ self literal: $U ].
-	character = $t ifTrue: [ ^ self literal: Character tab ].
-	character = $f ifTrue: [ ^ self literal: Character newPage ].
-	character = $a ifTrue: [ ^ self literal: (Character value: 7) ].
-	character = $e ifTrue: [ ^ self literal: (Character value: 27) ].
-	(character = $u and: [ self altBSUX ]) ifTrue: [ ^ self unicodeEscape ].
-	character = $x ifTrue: [ ^ self hexadecimalEscape ].
-	character = $b ifTrue: [
-			^ inClass
-				  ifTrue: [ self literal: (Character value: 8) ]
-				  ifFalse: [ self assertion: #wordBoundary ] ].
-	character = $B ifTrue: [ ^ self assertion: #notWordBoundary ].
-	character = $A ifTrue: [ ^ self assertion: #beginSubject ].
-	character = $z ifTrue: [ ^ self assertion: #endSubject ].
-	character = $Z ifTrue: [ ^ self assertion: #endBeforeFinalNewline ].
-	character = $G ifTrue: [ ^ self assertion: #startMatch ].
-	character = $K ifTrue: [ ^ self assertion: #resetStart ].
-	character = $R ifTrue: [
-			inClass ifTrue: [ self syntaxError: 'invalid escape sequence in a character class' ].
-			^ PCRE2NewlineNode new convention: (PCRE2NewlineConvention new mode: (bsr = PCRE2 bsrAnyCRLF
-						    ifTrue: [ PCRE2 newlineAnyCRLF ]
-						    ifFalse: [ PCRE2 newlineAny ])) ].
-	character = $N ifTrue: [
-			self peek = (Character value: 123) ifTrue: [
-					(pattern findString: '{U+' startingAt: position) = position ifFalse: [
-							start := position.
-							reference := self quantifierBounds.
-							position := start.
-							reference ifNotNil: [ ^ PCRE2DotNode new convention: newlineConvention dotAll: false ] ].
-					self next.
-					property := (self readUntil: $}) trimBoth.
-					(property beginsWith: 'U+') ifFalse: [ self syntaxError: 'only \\N{U+...} is supported' ].
-					code := [ Integer readFrom: (property allButFirst: 2) readStream base: 16 ]
-						        on: Error
-						        do: [ :error | self syntaxError: 'invalid Unicode code point' ].
-					(code > 16r10FFFF or: [ code < 0 or: [ code between: 16rD800 and: 16rDFFF ] ]) ifTrue: [
-						self syntaxError: 'invalid Unicode code point' ].
-					^ self literal: (Character value: code) ].
-			^ PCRE2DotNode new convention: newlineConvention dotAll: false ].
-	(character = $p or: [ character = $P ]) ifTrue: [
-			property := self peek = (Character value: 123)
-				            ifTrue: [
-						            position := position + 1.
-						            self readUntil: $} ]
-				            ifFalse: [ self next asString ].
-			predicate := [ PCRE2UnicodeData predicateFor: property caseless: (options bitAnd: PCRE2 caseless) ~= 0 ]
-				             on: PCRE2UnsupportedFeature
-				             do: [ :error | self syntaxError: 'unknown property after \\P or \\p' ].
-			character = $P ifTrue: [ ^ PCRE2CharacterNode new predicate: [ :candidate | (predicate value: candidate) not ] ].
-			^ PCRE2CharacterNode new predicate: predicate ].
-	(character between: $1 and: $9) ifTrue: [ ^ self numericEscapeInClass: inClass ].
-	character = $0 ifTrue: [
-			position := position - 1.
-			^ self octalEscape ].
-	(character = $k or: [ character = $g ]) ifTrue: [
-			inClass ifTrue: [ ^ self literal: character ].
-			delimiter := self peek.
-			(delimiter = $< or: [ delimiter = $' or: [ delimiter = (Character value: 123) ] ])
-				ifTrue: [
-						position := position + 1.
-						delimiter := delimiter = $<
-							             ifTrue: [ $> ]
-							             ifFalse: [
-									             delimiter = (Character value: 123)
-										             ifTrue: [ $} ]
-										             ifFalse: [ $' ] ].
-						reference := self normalizedReference: (self readUntil: delimiter) ]
-				ifFalse: [
-						start := position.
-						(self peek = $- or: [ self peek = $+ ]) ifTrue: [ position := position + 1 ].
-						self decimal.
-						reference := self normalizedReference: (pattern copyFrom: start to: position - 1) ].
-			(reference = 0 and: [ (character = $g and: [ delimiter = $> or: [ delimiter = $' ] ]) not ]) ifTrue: [
-				self syntaxError: 'reference to non-existent subpattern' ].
-			references add: reference.
-			^ (character = $g and: [ delimiter = $> or: [ delimiter = $' ] ])
-				  ifTrue: [ PCRE2SubroutineNode new reference: reference ]
-				  ifFalse: [
-						  PCRE2BackreferenceNode new
-							  reference: reference;
-							  options: options;
-							  extraOptions: extraOptions ] ].
-	character = $X ifTrue: [
-			inClass ifTrue: [ self syntaxError: 'invalid escape sequence in a character class' ].
-			^ PCRE2GraphemeNode new ].
-	character = $E ifTrue: [ ^ PCRE2SequenceNode new children: #(  ) ].
-	character = $Q ifTrue: [
-			start := position.
-			[ self atEnd not and: [ (self peek = $\ and: [ position < pattern size and: [ (pattern at: position + 1) = $E ] ]) not ] ]
-				whileTrue: [ position := position + 1 ].
-			nodes := (pattern copyFrom: start to: position - 1) collect: [ :literal | self literal: literal ] as: Array.
-			self atEnd ifFalse: [ position := position + 2 ].
-			^ PCRE2QuotedSequenceNode new children: nodes ].
-	(character asInteger < 128 and: [ character isAlphaNumeric and: [ (extraOptions bitAnd: PCRE2 extraBadEscapeIsLiteral) = 0 ] ])
-		ifTrue: [ self syntaxError: 'unrecognized character follows \' ].
-	^ self literal: character
+	| convention crlf |
+	convention := newlineConvention.
+	crlf := convention mode = PCRE2 newlineCRLF.
+	^ [ :engine :state |
+		  | index trueEnd newline |
+		  index := state position.
+		  trueEnd := engine subject codeUnitCount.
+		  newline := convention lengthAt: index + 1 in: engine subject.
+		  (index = trueEnd or: [ newline > 0 and: [ index + newline = trueEnd ] ])
+			  ifTrue: [
+					  engine noteEndOfSubject: state.
+					  true ]
+			  ifFalse: [ "A CR in the last position may still turn out to be the first half of the CRLF this convention wants."
+					  (crlf and: [ index = (engine subject size - 1) and: [ (engine subject codeUnitAtOffset: index) = 13 ] ]) ifTrue: [
+						  engine noteEndOfSubject: state ].
+					  false ] ]
 ]
 
-{ #category : 'parsing' }
-PCRE2PatternParser >> expect: character [
+{ #category : 'parsing - assertions' }
+PCRE2PatternParser >> endOfLineInMultilinePredicate [
+	"$ in multiline mode: before any line terminator, or at the end of the subject unless PCRE2_NOTEOL applies."
 
-	self next = character ifFalse: [ self syntaxError: 'expected ' , character asString ]
+	| convention crlf |
+	convention := newlineConvention.
+	crlf := convention mode = PCRE2 newlineCRLF.
+	^ [ :engine :state |
+		  | index size |
+		  index := state position.
+		  size := engine subject size.
+		  index < size
+			  ifTrue: [
+					  (convention lengthAt: index + 1 in: engine subject) > 0 or: [ "A CR in the last position may still turn out to be the first half of the CRLF this convention wants."
+							  (crlf and: [ index = (size - 1) and: [ (engine subject codeUnitAtOffset: index) = 13 ] ]) ifTrue: [
+								  engine noteEndOfSubject: state ].
+							  false ] ]
+			  ifFalse: [
+					  (engine matchOptions bitAnd: PCRE2 notEOL) ~= 0
+						  ifTrue: [ false ]
+						  ifFalse: [
+								  engine notePartial: state.
+								  true ] ] ]
+]
+
+{ #category : 'parsing - assertions' }
+PCRE2PatternParser >> endOfLinePredicate [
+	"$: before any line terminator in multiline mode, otherwise what \Z asserts, or what \z asserts under PCRE2_DOLLAR_ENDONLY. PCRE2_NOTEOL rules it out outside multiline mode."
+
+	| inner |
+	(options bitAnd: PCRE2 multiline) ~= 0 ifTrue: [ ^ self endOfLineInMultilinePredicate ].
+	inner := (options bitAnd: PCRE2 dollarEndOnly) ~= 0
+		         ifTrue: [ self endOfSubjectPredicate ]
+		         ifFalse: [ self endBeforeFinalNewlinePredicate ].
+	^ [ :engine :state | (engine matchOptions bitAnd: PCRE2 notEOL) = 0 and: [ inner value: engine value: state ] ]
+]
+
+{ #category : 'parsing - assertions' }
+PCRE2PatternParser >> endOfSubjectPredicate [
+	"\z: the very end of the subject, which narrowing to one fragment of valid UTF does not move."
+
+	^ [ :engine :state |
+		  | held |
+		  held := state position = engine subject codeUnitCount.
+		  held ifTrue: [ engine noteEndOfSubject: state ].
+		  held ]
+]
+
+{ #category : 'parsing - escapes' }
+PCRE2PatternParser >> escapeInClass: inClass [
+
+	| start |
+	start := position.
+	^ [ self parseEscapeInClass: inClass ]
+		  on: PCRE2CompileError
+		  do: [ :error |
+				  ((extraOptions bitAnd: PCRE2 extraBadEscapeIsLiteral) = 0 or: [
+					   inClass and: [ #( 107 171 ) anySatisfy: [ :code | error errorMessage = (PCRE2 translateErrorCode: code) ] ] ]) ifTrue: [
+					  error pass ].
+				  position := start.
+				  self literal: (self atEnd
+						   ifTrue: [ $\ ]
+						   ifFalse: [ self next ]) ]
+]
+
+{ #category : 'scanning' }
+PCRE2PatternParser >> expect: character errorCode: errorCode [
+	"Consume character, or report the PCRE2 error that names what is missing."
+
+	self peek = character ifFalse: [ self syntaxErrorCode: errorCode ].
+	self next
+]
+
+{ #category : 'parsing - groups' }
+PCRE2PatternParser >> expectAlphaAssertionColon [
+
+	self atEnd ifTrue: [ self syntaxErrorCode: 114 ].
+	self next = $: ifFalse: [ self syntaxErrorCode: 195 ]
 ]
 
 { #category : 'callouts' }
 PCRE2PatternParser >> explicitCallout [
 
-	| number text delimiter start |
+	| number text delimiter start numeric |
 	(extraOptions bitAnd: PCRE2 extraNeverCallout) ~= 0 ifTrue: [ self syntaxError: 'callout is not allowed' ].
 	number := 0.
-	(self peek isNotNil and: [ self peek isDigit ]) ifTrue: [
+	numeric := self peek isNotNil and: [ self peek between: $0 and: $9 ].
+	numeric ifTrue: [
 			number := self decimal.
 			number > 255 ifTrue: [ self syntaxError: 'number after (?C is greater than 255' ] ].
-	(self peek isNotNil and: [ #( 39 34 96 94 37 35 36 123 ) includes: self peek asInteger ]) ifTrue: [
-			delimiter := self next.
-			delimiter = (Character value: 123) ifTrue: [ delimiter := $} ].
-			start := position.
-			text := self readCalloutStringUntil: delimiter ].
-	self expect: $).
+	(numeric not and: [ self peek isNotNil and: [ #( 39 34 96 94 37 35 36 123 ) includes: self peek asInteger ] ])
+		ifTrue: [
+				delimiter := self next.
+				delimiter = (Character value: 123) ifTrue: [ delimiter := $} ].
+				start := position.
+				text := self readCalloutStringUntil: delimiter ]
+		ifFalse: [
+				(numeric not and: [ self atEnd not and: [ self peek ~= $) ] ]) ifTrue: [
+						self next.
+						self syntaxErrorCode: 182 ] ].
+	self peek = $) ifFalse: [ self syntaxErrorCode: 139 ].
+	self next.
 	^ self
 		  newCallout: number
 		  string: text
@@ -594,7 +744,7 @@ PCRE2PatternParser >> explicitCallout [
 		  position: position
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> extendedClass [
 
 	^ self withExtendedClassDo: [ self parseExtendedClass ]
@@ -611,13 +761,13 @@ PCRE2PatternParser >> extraMatchingBoundary: prefix [
 	^ nil
 ]
 
-{ #category : 'configuration' }
+{ #category : 'accessing' }
 PCRE2PatternParser >> extraOptions: flags [
 
 	extraOptions := flags
 ]
 
-{ #category : 'parsing' }
+{ #category : 'scanning' }
 PCRE2PatternParser >> firstClosingBracketFrom: start [
 
 	| index |
@@ -630,10 +780,11 @@ PCRE2PatternParser >> firstClosingBracketFrom: start [
 	^ 0
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> group [
 
-	| savedOptions index name body character positive capture |
+	| savedOptions index name body character positive capture groupStart |
+	groupStart := position - 1.
 	savedOptions := {
 		                options.
 		                extraOptions }.
@@ -655,7 +806,7 @@ PCRE2PatternParser >> group [
 			character = $| ifTrue: [ ^ self branchResetRestoring: savedOptions ].
 			character = $( ifTrue: [ ^ self conditionalRestoring: savedOptions ].
 			character = $# ifTrue: [
-					self readUntil: $).
+					self readUntil: $) errorCode: 118.
 					^ PCRE2SequenceNode new children: #(  ) ].
 			character = $: ifTrue: [ ^ self groupBodyRestoring: savedOptions ].
 			(character = $= or: [ character = $! ]) ifTrue: [
@@ -668,41 +819,43 @@ PCRE2PatternParser >> group [
 			character = $< ifTrue: [
 					self peek = $* ifTrue: [
 							self next.
-							^ (self lookbehind: (self groupBodyRestoring: savedOptions) positive: true) atomic: false ].
+							^ (self lookbehind: (self groupBodyRestoring: savedOptions) positive: true startingAt: groupStart) atomic: false ].
 					(self peek = $= or: [ self peek = $! ]) ifTrue: [
 							positive := self next = $=.
-							^ self lookbehind: (self groupBodyRestoring: savedOptions) positive: positive ].
-					name := self readUntil: $> ].
-			character = $' ifTrue: [ name := self readUntil: $' ].
+							^ self lookbehind: (self groupBodyRestoring: savedOptions) positive: positive startingAt: groupStart ].
+					name := self readCaptureNameUntil: $> ].
+			character = $' ifTrue: [ name := self readCaptureNameUntil: $' ].
 			character = $P ifTrue: [
 					self peek = $> ifTrue: [
 							position := position + 1.
 							name := self readSubroutineName.
-							references add: name.
+							self registerReference: name at: position - name size.
 							^ self subroutineNode: name ].
 					self peek = $= ifTrue: [
 							position := position + 1.
 							^ PCRE2BackreferenceNode new
-								  reference: self namedBackreference;
+								  reference: (self noteBackreference: self namedBackreference);
 								  options: options;
 								  extraOptions: extraOptions ].
-					self expect: $<.
-					name := self readUntil: $> ].
-			character = $R ifTrue: [ ^ self subroutineNode: 0 ].
+					self peek = $< ifFalse: [ self syntaxErrorCode: 141 atCodeUnit: self offsetAfterCurrent ].
+					self next.
+					name := self readCaptureNameUntil: $> ].
+			character = $R ifTrue: [ ^ self subroutineNode: 0 closingErrorCode: 158 ].
 			character = $& ifTrue: [
 					name := self readSubroutineName.
-					references add: name.
+					self registerReference: name at: position - name size.
 					^ self subroutineNode: name ].
 			(character between: $0 and: $9) ifTrue: [
 					position := position - 1.
-					index := self decimal.
-					references add: index.
+					index := self readReferenceNumber.
+					self registerReference: index.
 					^ self subroutineNode: index ].
 			((character = $- or: [ character = $+ ]) and: [ self peek isNotNil and: [ self peek isDigit ] ]) ifTrue: [
-					name := character asString , self decimal asString.
-					index := self normalizedReference: name.
-					references add: index.
+					position := position - 1.
+					index := self readReferenceNumber.
+					self registerReference: index.
 					^ self subroutineNode: index ].
+			character = $+ ifTrue: [ self syntaxErrorCode: 129 atCodeUnit: self offsetAfterCurrent ].
 			name ifNil: [
 					('imsxUJ-n^ar' includes: character) ifTrue: [
 							position := position - 1.
@@ -710,18 +863,18 @@ PCRE2PatternParser >> group [
 							self peek = $) ifTrue: [
 									position := position + 1.
 									^ PCRE2SequenceNode new children: #(  ) ].
-							self expect: $:.
+							self expect: $: errorCode: 114.
 							^ self groupBodyRestoring: savedOptions ].
 					self syntaxError: 'unrecognized character after (? or (?-' ].
 			capture := true ].
 	capture ifFalse: [ ^ self groupBodyRestoring: savedOptions ].
+	captureCount >= 65535 ifTrue: [ self syntaxErrorCode: 197 ].
 	captureCount := captureCount + 1.
 	index := captureCount.
 	name ifNotNil: [
-			self validateCaptureName: name.
 			((names includes: name) and: [ (names at: index ifAbsent: [ nil ]) ~= name and: [ (options bitAnd: PCRE2 dupNames) = 0 ] ])
-				ifTrue: [ self syntaxError: 'duplicate capture name' ].
-			(names at: index ifAbsent: [ name ]) = name ifFalse: [ self syntaxError: 'different names for subpatterns of the same number' ].
+				ifTrue: [ self syntaxErrorCode: 143 ].
+			(names at: index ifAbsent: [ name ]) = name ifFalse: [ self syntaxErrorCode: 165 ].
 			names at: index put: name ].
 	body := PCRE2CaptureNode new index: index.
 	groups at: index ifAbsentPut: [ body ].
@@ -729,7 +882,7 @@ PCRE2PatternParser >> group [
 	^ body
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> groupBodyRestoring: savedOptions [
 
 	| body |
@@ -737,23 +890,23 @@ PCRE2PatternParser >> groupBodyRestoring: savedOptions [
 	depth > nestLimit ifTrue: [ self syntaxError: 'parentheses are too deeply nested' ].
 	[
 		body := self alternation.
-		self expect: $) ] ensure: [
+		self expect: $) errorCode: 114 ] ensure: [
 			depth := depth - 1.
 			options := savedOptions first.
 			extraOptions := savedOptions second ].
 	^ body
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2PatternParser >> groups [
 
 	^ groups
 ]
 
-{ #category : 'private' }
-PCRE2PatternParser >> groups: aValue [
+{ #category : 'accessing' }
+PCRE2PatternParser >> groups: aDictionary [
 
-	groups := aValue
+	groups := aDictionary
 ]
 
 { #category : 'validation' }
@@ -763,11 +916,11 @@ PCRE2PatternParser >> hasBackreferenceIn: node [
 	^ (self patternChildrenOf: node) anySatisfy: [ :child | self hasBackreferenceIn: child ]
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - escapes' }
 PCRE2PatternParser >> hexadecimalEscape [
 
 	| digits start |
-	(self atEnd and: [ self altBSUX not ]) ifTrue: [ self syntaxError: '\x is not followed by a hexadecimal digit' ].
+	(self atEnd and: [ self altBSUX not ]) ifTrue: [ self syntaxErrorCode: 178 ].
 	self altBSUX ifTrue: [
 			start := position.
 			digits := String streamContents: [ :stream |
@@ -780,18 +933,16 @@ PCRE2PatternParser >> hexadecimalEscape [
 	self peek = (Character value: 123)
 		ifTrue: [
 				self next.
-				digits := (self readUntil: $}) trimBoth.
-				(digits isEmpty or: [ digits anySatisfy: [ :character | (character digitValue between: 0 and: 15) not ] ]) ifTrue: [
-					self syntaxError: 'non-hex character in \\x{} (closing brace missing?)' ] ]
+				^ self literalCodePoint: (self bracedNumberInBase: 16 invalidCode: 167) ]
 		ifFalse: [
 				digits := String streamContents: [ :stream |
 					          2 timesRepeat: [
 						          (self peek isNotNil and: [ self peek digitValue between: 0 and: 15 ]) ifTrue: [ stream nextPut: self next ] ] ].
-				digits isEmpty ifTrue: [ self syntaxError: 'hexadecimal digit expected' ] ].
+				digits isEmpty ifTrue: [ self syntaxErrorCode: 178 ] ].
 	^ self literalCodePoint: (Integer readFrom: digits readStream base: 16)
 ]
 
-{ #category : 'callouts' }
+{ #category : 'scanning' }
 PCRE2PatternParser >> initializePatternOffsets [
 
 	| offset code width |
@@ -825,7 +976,7 @@ PCRE2PatternParser >> initializePatternOffsets [
 			patternOffsets at: index + 1 put: offset ]
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> inlineOptions [
 
 	| remove flags character flag seenX extra hyphenAllowed |
@@ -877,6 +1028,18 @@ PCRE2PatternParser >> inlineOptions [
 										           ifFalse: [ options bitOr: flag ] ] ] ]
 ]
 
+{ #category : 'scanning' }
+PCRE2PatternParser >> isCaptureNameCharacter: character [
+
+	character ifNil: [ ^ false ].
+	^ character = $_ or: [
+			  (options bitAnd: PCRE2 utf) ~= 0
+				  ifTrue: [
+					  (PCRE2UnicodeData matches: 'gc:l' code: character asInteger) or: [
+						  PCRE2UnicodeData matches: 'gc:nd' code: character asInteger ] ]
+				  ifFalse: [ character asInteger < 128 and: [ character isAlphaNumeric ] ] ]
+]
+
 { #category : 'validation' }
 PCRE2PatternParser >> isRecursiveLength: node visiting: active [
 
@@ -894,7 +1057,7 @@ PCRE2PatternParser >> isRecursiveLength: node visiting: active [
 	^ (self patternChildrenOf: node) anySatisfy: [ :child | self isRecursiveLength: child visiting: next ]
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - escapes' }
 PCRE2PatternParser >> literal: character [
 
 	| caseless unicode caseOptions |
@@ -913,7 +1076,7 @@ PCRE2PatternParser >> literal: character [
 											  extraOptions: caseOptions ] ] ]
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - escapes' }
 PCRE2PatternParser >> literalCodePoint: code [
 
 	| maximum |
@@ -926,22 +1089,26 @@ PCRE2PatternParser >> literalCodePoint: code [
 							           codeUnitWidth = 16
 								           ifTrue: [ 65535 ]
 								           ifFalse: [ 16rFFFFFFFF ] ] ].
-	code > maximum ifTrue: [ self syntaxError: 'character code point too large' ].
+	code > maximum ifTrue: [ self syntaxErrorCode: 134 ].
 	((options bitAnd: PCRE2 utf) ~= 0 and: [
 		 (code between: 16rD800 and: 16rDFFF) and: [ (extraOptions bitAnd: PCRE2 extraAllowSurrogateEscapes) = 0 ] ]) ifTrue: [
-		self syntaxError: 'disallowed Unicode code point (>= 0xd800 && <= 0xdfff)' ].
+		self syntaxErrorCode: 173 ].
 	^ self literal: (PCRE2CodeUnit fromInteger: code)
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> longGroupRestoring: savedOptions [
 
-	| name argument kinds child selection |
-	self expect: $*.
+	| name argument kinds child selection groupStart |
+	groupStart := position - 1.
+	self expect: $* errorCode: 160.
+	self peek = $) ifTrue: [ self syntaxErrorCode: 109 ].
+	self atEnd ifTrue: [ self syntaxErrorCode: 109 ].
 	name := String streamContents: [ :stream |
-		        [ self atEnd not and: [ self peek ~= $: and: [ self peek ~= $) ] ] ] whileTrue: [ stream nextPut: self next ] ].
+			        [ self peek isNotNil and: [ self peek asInteger < 128 and: [ self peek isAlphaNumeric or: [ self peek = $_ ] ] ] ]
+				        whileTrue: [ stream nextPut: self next ] ].
 	(#( 'scs' 'scan_substring' ) includes: name) ifTrue: [
-			self expect: $:.
+			self expectAlphaAssertionColon.
 			selection := self captureReferenceList.
 			child := self groupBodyRestoring: savedOptions.
 			^ PCRE2ScanSubstringNode new
@@ -949,35 +1116,34 @@ PCRE2PatternParser >> longGroupRestoring: savedOptions [
 				  references: selection;
 				  positive: true ].
 	(#( 'napla' 'non_atomic_positive_lookahead' ) includes: name) ifTrue: [
-			self expect: $:.
+			self expectAlphaAssertionColon.
 			^ PCRE2LookaheadNode new
 				  child: (self groupBodyRestoring: savedOptions);
 				  positive: true;
 				  atomic: false ].
 	(#( 'naplb' 'non_atomic_positive_lookbehind' ) includes: name) ifTrue: [
-			self expect: $:.
-			^ (self lookbehind: (self groupBodyRestoring: savedOptions) positive: true) atomic: false ].
+			self expectAlphaAssertionColon.
+			^ (self lookbehind: (self groupBodyRestoring: savedOptions) positive: true startingAt: groupStart) atomic: false ].
 	(#( 'pla' 'positive_lookahead' 'nla' 'negative_lookahead' ) includes: name) ifTrue: [
-			self expect: $:.
+			self expectAlphaAssertionColon.
 			^ PCRE2LookaheadNode new
 				  child: (self groupBodyRestoring: savedOptions);
 				  positive: (#( 'pla' 'positive_lookahead' ) includes: name) ].
 	(#( 'plb' 'positive_lookbehind' 'nlb' 'negative_lookbehind' ) includes: name) ifTrue: [
-			self expect: $:.
-			^ self lookbehind: (self groupBodyRestoring: savedOptions) positive: (#( 'plb' 'positive_lookbehind' ) includes: name) ].
+			self expectAlphaAssertionColon.
+			^ self
+				  lookbehind: (self groupBodyRestoring: savedOptions)
+				  positive: (#( 'plb' 'positive_lookbehind' ) includes: name)
+				  startingAt: groupStart ].
 	(#( 'sr' 'script_run' 'asr' 'atomic_script_run' ) includes: name) ifTrue: [
-			self expect: $:.
+			self expectAlphaAssertionColon.
 			child := self groupBodyRestoring: savedOptions.
 			(#( 'asr' 'atomic_script_run' ) includes: name) ifTrue: [ child := PCRE2AtomicNode new child: child ].
 			^ PCRE2ScriptRunNode new child: child ].
 	name = 'atomic' ifTrue: [
-			self expect: $:.
+			self expectAlphaAssertionColon.
 			^ PCRE2AtomicNode new child: (self groupBodyRestoring: savedOptions) ].
-	self peek = $:
-		ifTrue: [
-				self next.
-				argument := self readVerbArgument ]
-		ifFalse: [ self expect: $) ].
+	(name isNotEmpty and: [ name first between: $a and: $z ]) ifTrue: [ self syntaxErrorCode: 195 ].
 	kinds := Dictionary newFrom: {
 			         ('MARK' -> #mark).
 			         ('' -> #mark).
@@ -988,13 +1154,21 @@ PCRE2PatternParser >> longGroupRestoring: savedOptions [
 			         ('PRUNE' -> #prune).
 			         ('SKIP' -> #skip).
 			         ('THEN' -> #then) }.
-	(kinds includesKey: name) ifFalse: [ self syntaxError: '(*VERB) not recognized or malformed' ].
-	((kinds at: name) = #mark and: [ argument isEmptyOrNil ]) ifTrue: [ self syntaxError: 'MARK requires an argument' ].
-	argument isEmptyOrNil ifTrue: [ argument := nil ].
-	^ PCRE2ControlNode new kind: (kinds at: name) name: argument
+	((kinds includesKey: name) not or: [ self peek ~= $: and: [ self peek ~= $) ] ]) ifTrue: [ self rejectVerbName: name ].
+	((kinds at: name) = #mark and: [ self peek = $) ]) ifTrue: [ self syntaxErrorCode: 166 ].
+	self peek = $:
+		ifTrue: [
+				self next.
+				self peek = $)
+					ifTrue: [
+							(kinds at: name) = #mark ifTrue: [ self syntaxErrorCode: 166 ].
+							self next ]
+					ifFalse: [ argument := self readVerbArgument ] ]
+		ifFalse: [ self next ].
+	^ PCRE2ControlNode new kind: (self noteVerb: (kinds at: name)) name: argument
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> lookbehind: body positive: positive [
 
 	| node |
@@ -1004,6 +1178,15 @@ PCRE2PatternParser >> lookbehind: body positive: positive [
 	lookbehinds add: {
 			node.
 			body lookbehindBranches }.
+	^ node
+]
+
+{ #category : 'parsing - groups' }
+PCRE2PatternParser >> lookbehind: body positive: positive startingAt: index [
+
+	| node |
+	node := self lookbehind: body positive: positive.
+	lookbehindPositions at: node put: (self codeUnitOffsetAt: index).
 	^ node
 ]
 
@@ -1027,7 +1210,7 @@ PCRE2PatternParser >> lookbehindBranchCount: node upTo: maximum [
 	^ count
 ]
 
-{ #category : 'configuration' }
+{ #category : 'accessing' }
 PCRE2PatternParser >> lookbehindLimit: anInteger [
 
 	lookbehindLimit := anInteger
@@ -1044,28 +1227,29 @@ PCRE2PatternParser >> maximumLookbehind [
 	^ maximum
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> namedBackreference [
 
-	| name |
-	name := self readUntil: $).
-	references add: name.
+	| name start |
+	start := position.
+	name := self readCaptureNameUntil: $).
+	self registerReference: name at: start.
 	^ name
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2PatternParser >> names [
 
 	^ names
 ]
 
-{ #category : 'private' }
-PCRE2PatternParser >> names: aValue [
+{ #category : 'accessing' }
+PCRE2PatternParser >> names: aDictionary [
 
-	names := aValue
+	names := aDictionary
 ]
 
-{ #category : 'configuration' }
+{ #category : 'accessing' }
 PCRE2PatternParser >> nestLimit: anInteger [
 
 	nestLimit := anInteger
@@ -1094,13 +1278,13 @@ PCRE2PatternParser >> newline: mode bsr: bsrMode [
 	bsr := bsrMode
 ]
 
-{ #category : 'configuration' }
+{ #category : 'accessing' }
 PCRE2PatternParser >> newlineMode [
 
 	^ newlineConvention mode
 ]
 
-{ #category : 'parsing' }
+{ #category : 'scanning' }
 PCRE2PatternParser >> next [
 
 	| character |
@@ -1110,10 +1294,10 @@ PCRE2PatternParser >> next [
 	^ character
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> normalizedReference: text [
 
-	| trimmed number |
+	| trimmed number index |
 	trimmed := text trimBoth.
 	trimmed isEmpty ifTrue: [ self syntaxError: 'empty reference' ].
 	((trimmed first isDigit or: [ trimmed first = $- or: [ trimmed first = $+ ] ]) and: [
@@ -1122,7 +1306,11 @@ PCRE2PatternParser >> normalizedReference: text [
 		          on: Error
 		          do: [ :error | self syntaxError: 'invalid subpattern reference' ].
 	trimmed first = $- ifTrue: [
-			(number = 0 or: [ captureCount + number + 1 <= 0 ]) ifTrue: [ self syntaxError: 'reference to non-existent subpattern' ].
+			(number = 0 or: [ captureCount + number + 1 <= 0 ]) ifTrue: [
+					index := (position > 1 and: [ (pattern at: position - 1) = $) ])
+						         ifTrue: [ position - 1 ]
+						         ifFalse: [ position ].
+					self syntaxErrorCode: 115 atCodeUnit: (self codeUnitOffsetAt: index) ].
 			^ captureCount + number + 1 ].
 	trimmed first = $+ ifTrue: [
 			number = 0 ifTrue: [ self syntaxError: 'invalid relative subpattern number' ].
@@ -1130,7 +1318,23 @@ PCRE2PatternParser >> normalizedReference: text [
 	^ number
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - optimization' }
+PCRE2PatternParser >> noteBackreference: reference [
+	"Record what a backreference points at. PCRE2 refuses to read a leading dot star as saying where a match begins when it sits in a group something refers back to, because the group can then be asked to have matched something else."
+
+	backreferences add: reference.
+	^ reference
+]
+
+{ #category : 'parsing - optimization' }
+PCRE2PatternParser >> noteVerb: kind [
+	"Record a verb that breaks the leading dot star optimization. PCRE2 gives it up for the whole pattern as soon as (*PRUNE) or (*SKIP) appears anywhere in it."
+
+	(kind = #prune or: [ kind = #skip ]) ifTrue: [ hadPruneOrSkip := true ].
+	^ kind
+]
+
+{ #category : 'parsing - escapes' }
 PCRE2PatternParser >> numericEscapeInClass: inClass [
 
 	| saved reference |
@@ -1142,16 +1346,16 @@ PCRE2PatternParser >> numericEscapeInClass: inClass [
 		 ifTrue: [
 		 (position - saved >= 3 and: [ (pattern copyFrom: saved to: saved + 2) allSatisfy: [ :digit | digit between: $0 and: $7 ] ]) not ]
 		 ifFalse: [ reference < 10 or: [ (pattern at: saved) >= $8 or: [ reference <= captureCount ] ] ]) ifTrue: [
-			references add: reference.
+			self registerReference: reference.
 			^ PCRE2BackreferenceNode new
-				  reference: reference;
+				  reference: (self noteBackreference: reference);
 				  options: options;
 				  extraOptions: extraOptions ].
 	position := saved.
 	^ self octalEscape
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - escapes' }
 PCRE2PatternParser >> octalEscape [
 
 	| value count |
@@ -1168,17 +1372,23 @@ PCRE2PatternParser >> octalEscape [
 	^ self literalCodePoint: value
 ]
 
+{ #category : 'signalling' }
+PCRE2PatternParser >> offsetAfterCurrent [
+	"The code-unit offset one character past the one at the current position. PCRE2 blames several diagnostics there."
+
+	^ self codeUnitOffsetAt: (position + 1 min: pattern size + 1)
+]
+
 { #category : 'parsing' }
 PCRE2PatternParser >> parse [
 
 	| result |
 	result := self alternation.
 	self skipIgnored.
-	self atEnd ifFalse: [ self syntaxError: 'unmatched closing parenthesis' ].
-	references do: [ :reference |
-			(reference isInteger
-				 ifTrue: [ reference > captureCount or: [ reference < 0 ] ]
-				 ifFalse: [ (names includes: reference) not ]) ifTrue: [ self syntaxError: 'reference to non-existent subpattern' ] ].
+	self atEnd ifFalse: [
+			position := position + 1.
+			self syntaxError: 'unmatched closing parenthesis' ].
+	references do: #value.
 	self validateLookbehinds.
 	self validateLookaroundResetsIn: result active: false.
 	calloutSites do: [ :site | site nextItemLength: (itemLengths at: site patternPosition ifAbsent: [ 0 ]) ].
@@ -1188,7 +1398,7 @@ PCRE2PatternParser >> parse [
 { #category : 'parsing' }
 PCRE2PatternParser >> parse: preparedInput options: compileOptions [
 
-	| prefix tree |
+	| prefix tree result |
 	newlineConvention ifNil: [ self newline: PCRE2 newlineLF bsr: PCRE2 bsrUnicode ].
 	extraOptions ifNil: [ extraOptions := 0 ].
 	input := preparedInput.
@@ -1217,22 +1427,31 @@ PCRE2PatternParser >> parse: preparedInput options: compileOptions [
 	calloutSites := OrderedCollection new.
 	itemLengths := Dictionary new.
 	references := OrderedCollection new.
+	referenceOffsets := Dictionary new.
+	lookbehindPositions := IdentityDictionary new.
+	backreferences := OrderedCollection new.
+	hadPruneOrSkip := false.
+	branchResetUsed := false.
+	requiresPreviousCharacter := false.
+	extendedClassDepth := 0.
 	lookbehinds := OrderedCollection new.
 	prefix := self extraMatchingBoundary: true.
 	tree := (options bitAnd: PCRE2 literal) ~= 0
 		        ifTrue: [ PCRE2SequenceNode new children: (pattern collect: [ :character | self literal: character ] as: Array) ]
 		        ifFalse: [ self parse ].
-	^ prefix ifNil: [ tree ] ifNotNil: [
-			  PCRE2SequenceNode new children: {
-					  prefix.
-					  tree.
-					  (self extraMatchingBoundary: false) } ]
+	result := prefix ifNil: [ tree ] ifNotNil: [
+			          PCRE2SequenceNode new children: {
+					          prefix.
+					          tree.
+					          (self extraMatchingBoundary: false) } ].
+	self analyseStartOf: result.
+	^ result
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> parseCharacterClass [
 
-	| negative predicates first node end caseless closing |
+	| negative predicates first node end caseless closing tests |
 	(pattern findString: '[:<:]]' startingAt: position) = position ifTrue: [
 			position := position + 6.
 			^ self posixWordBoundary: true ].
@@ -1244,7 +1463,11 @@ PCRE2PatternParser >> parseCharacterClass [
 			(closing > 0 and: [
 					 ((pattern copyFrom: position + 1 to: closing - 1) includes: $[) not and: [
 						 (self firstClosingBracketFrom: position + 1) = (closing + 1) ] ]) ifTrue: [
-				self syntaxError: 'POSIX collating elements are not supported, or POSIX class outside a class' ] ].
+					self
+						syntaxErrorCode: (self peek = $:
+								 ifTrue: [ 112 ]
+								 ifFalse: [ 113 ])
+						atCodeUnit: (self codeUnitOffsetAt: closing + 2) ] ].
 	(options bitAnd: PCRE2 altExtendedClass) ~= 0 ifTrue: [ ^ self utsClass ].
 	self skipClassIgnored.
 	negative := self peek = $^.
@@ -1258,10 +1481,10 @@ PCRE2PatternParser >> parseCharacterClass [
 	[ self atEnd not and: [ self peek ~= $] or: [ first ] ] ] whileTrue: [
 			node := self classElement.
 			(node isKindOf: PCRE2QuotedSequenceNode) ifTrue: [
-					node children ifEmpty: [ self syntaxError: 'missing terminating ] for character class' ].
+					node children ifEmpty: [ self syntaxErrorCode: 106 ].
 					node children allButLast do: [ :quoted | predicates add: quoted predicate ].
 					node := node children last ].
-			(node isKindOf: PCRE2CharacterNode) ifFalse: [ self syntaxError: 'escape sequence is invalid in character class' ].
+			(node isKindOf: PCRE2CharacterNode) ifFalse: [ self syntaxErrorCode: 107 ].
 			self skipClassIgnored.
 			(self peek = $- and: [ position < pattern size and: [ (pattern at: position + 1) ~= $] ] ])
 				ifTrue: [
@@ -1269,43 +1492,154 @@ PCRE2PatternParser >> parseCharacterClass [
 						self skipClassIgnored.
 						self peek = $]
 							ifTrue: [
-									predicates add: node predicate.
-									predicates add: (self literal: $-) predicate ]
+									predicates
+										add: node predicate;
+										add: (self literal: $-) predicate ]
 							ifFalse: [
-									end := self classElement.
+									node character ifNil: [ self syntaxErrorCode: 150 ].
+									end := self classElementAsRangeEnd: true.
 									(end isKindOf: PCRE2QuotedSequenceNode) ifTrue: [
-											end children ifEmpty: [ self syntaxError: 'missing terminating ] for character class' ].
+											end children ifEmpty: [ self syntaxErrorCode: 106 ].
 											end children allButFirst do: [ :quoted | predicates add: quoted predicate ].
 											end := end children first ].
-									(end isKindOf: PCRE2CharacterNode) ifFalse: [ self syntaxError: 'invalid range endpoint' ].
-									(node character isNil or: [ end character isNil ]) ifTrue: [ self syntaxError: 'invalid range endpoint' ].
-									node character > end character ifTrue: [ self syntaxError: 'range out of order in character class' ].
+									(end isKindOf: PCRE2CharacterNode) ifFalse: [ self syntaxErrorCode: 150 ].
+									(node character isNil or: [ end character isNil ]) ifTrue: [ self syntaxErrorCode: 150 ].
+									node character > end character ifTrue: [ self syntaxErrorCode: 108 ].
 									caseless := (options bitAnd: PCRE2 caseless) ~= 0.
 									predicates add: (self rangeFrom: node character to: end character caseless: caseless) ] ]
 				ifFalse: [ predicates add: node predicate ].
 			first := false.
 			self skipClassIgnored ].
-	self expect: $].
-	^ PCRE2CharacterNode new predicate: [ :candidate |
-		  (predicates anySatisfy: [ :predicate | predicate value: candidate ]) ~= negative ]
+	self expect: $] errorCode: 106.
+	tests := predicates asArray.
+	"Both sides below are booleans, so identity settles the negation without a comparison send on a path walked for every character."
+	^ self classNodeFor: [ :candidate | (tests anySatisfy: [ :test | test value: candidate ]) ~~ negative ]
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - escapes' }
+PCRE2PatternParser >> parseEscapeInClass: inClass [
+
+	| character reference start nodes property predicate code |
+	self atEnd ifTrue: [ self syntaxErrorCode: 101 ].
+	character := self next.
+	('dDsSwWhHvV' includes: character) ifTrue: [ ^ self classNodeFor: (self predicateFor: character) ].
+	character = $C ifTrue: [
+			inClass ifTrue: [ self syntaxErrorCode: 107 ].
+			(options bitAnd: PCRE2 neverBackslashC) ~= 0 ifTrue: [ self syntaxError: 'using \C is disabled by the application' ].
+			^ PCRE2CodeUnitNode new unicodeWideUnit: ((options bitAnd: PCRE2 utf) ~= 0 and: [ codeUnitWidth ~= 32 ]) ].
+	character = $n ifTrue: [ ^ self literal: Character lf ].
+	character = $r ifTrue: [
+			^ self literal: ((extraOptions bitAnd: PCRE2 extraEscapedCrIsLf) = 0
+					   ifTrue: [ Character cr ]
+					   ifFalse: [ Character lf ]) ].
+	character = $c ifTrue: [ ^ self controlEscape ].
+	character = $o ifTrue: [ ^ self bracedOctalEscape ].
+	(character = $U and: [ self altBSUX ]) ifTrue: [ ^ self literal: $U ].
+	character = $t ifTrue: [ ^ self literal: Character tab ].
+	character = $f ifTrue: [ ^ self literal: Character newPage ].
+	character = $a ifTrue: [ ^ self literal: (Character value: 7) ].
+	character = $e ifTrue: [ ^ self literal: (Character value: 27) ].
+	(character = $u and: [ self altBSUX ]) ifTrue: [ ^ self unicodeEscape ].
+	character = $x ifTrue: [ ^ self hexadecimalEscape ].
+	character = $b ifTrue: [
+			^ inClass
+				  ifTrue: [ self literal: (Character value: 8) ]
+				  ifFalse: [ self assertion: #wordBoundary ] ].
+	character = $B ifTrue: [
+			inClass ifTrue: [ self syntaxErrorCode: 107 ].
+			^ self assertion: #notWordBoundary ].
+	character = $A ifTrue: [
+			inClass ifTrue: [ self syntaxErrorCode: 107 ].
+			^ self assertion: #beginSubject ].
+	character = $z ifTrue: [
+			inClass ifTrue: [ self syntaxErrorCode: 107 ].
+			^ self assertion: #endSubject ].
+	character = $Z ifTrue: [
+			inClass ifTrue: [ self syntaxErrorCode: 107 ].
+			^ self assertion: #endBeforeFinalNewline ].
+	character = $G ifTrue: [
+			inClass ifTrue: [ self syntaxErrorCode: 107 ].
+			^ self assertion: #startMatch ].
+	character = $K ifTrue: [
+			inClass ifTrue: [ self syntaxErrorCode: 107 ].
+			^ self assertion: #resetStart ].
+	character = $R ifTrue: [
+			inClass ifTrue: [ self syntaxErrorCode: 107 ].
+			^ PCRE2NewlineNode new convention: (PCRE2NewlineConvention new mode: (bsr = PCRE2 bsrAnyCRLF
+						    ifTrue: [ PCRE2 newlineAnyCRLF ]
+						    ifFalse: [ PCRE2 newlineAny ])) ].
+	character = $N ifTrue: [
+			self peek = (Character value: 123) ifTrue: [
+					start := position.
+					self next.
+					[ self peek = Character space or: [ self peek = Character tab ] ] whileTrue: [ self next ].
+					(pattern findString: 'U+' startingAt: position) = position ifTrue: [
+							position := position + 2.
+							code := self bracedNumberInBase: 16 invalidCode: 167.
+							(options bitAnd: PCRE2 utf) = 0 ifTrue: [ self syntaxErrorCode: 193 ].
+							^ self literalCodePoint: code ].
+					position := start.
+					inClass ifFalse: [
+							reference := self quantifierBounds.
+							position := start.
+							reference ifNotNil: [ ^ PCRE2DotNode new convention: newlineConvention dotAll: false ] ].
+					self next.
+					self syntaxErrorCode: 137 ].
+			inClass ifTrue: [ self syntaxErrorCode: 171 ].
+			^ PCRE2DotNode new convention: newlineConvention dotAll: false ].
+	(character = $p or: [ character = $P ]) ifTrue: [
+			property := self peek = (Character value: 123)
+				            ifTrue: [
+						            position := position + 1.
+						            self readUntil: $} errorCode: 146 ]
+				            ifFalse: [ self next asString ].
+			predicate := [ PCRE2UnicodeData predicateFor: property caseless: (options bitAnd: PCRE2 caseless) ~= 0 ]
+				             on: PCRE2UnsupportedFeature
+				             do: [ :error | self syntaxErrorCode: 147 ].
+			character = $P ifTrue: [ ^ self classNodeFor: [ :candidate | (predicate value: candidate) not ] ].
+			^ self classNodeFor: predicate ].
+	(character between: $1 and: $9) ifTrue: [ ^ self numericEscapeInClass: inClass ].
+	character = $0 ifTrue: [
+			position := position - 1.
+			^ self octalEscape ].
+	(character = $k or: [ character = $g ]) ifTrue: [
+			inClass ifTrue: [ ^ self literal: character ].
+			^ self referenceEscape: character ].
+	character = $X ifTrue: [
+			inClass ifTrue: [ self syntaxErrorCode: 107 ].
+			^ PCRE2GraphemeNode new ].
+	character = $E ifTrue: [ ^ PCRE2SequenceNode new children: #(  ) ].
+	character = $Q ifTrue: [
+			start := position.
+			[ self atEnd not and: [ (self peek = $\ and: [ position < pattern size and: [ (pattern at: position + 1) = $E ] ]) not ] ]
+				whileTrue: [ position := position + 1 ].
+			nodes := (pattern copyFrom: start to: position - 1) collect: [ :literal | self literal: literal ] as: Array.
+			self atEnd ifFalse: [ position := position + 2 ].
+			^ PCRE2QuotedSequenceNode new children: nodes ].
+	('FLlUu' includes: character) ifTrue: [ self syntaxErrorCode: 137 ].
+	(character asInteger < 128 and: [ character isAlphaNumeric ]) ifTrue: [ self syntaxError: 'unrecognized character follows \' ].
+	^ self literal: character
+]
+
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> parseExtendedClass [
 
-	| predicate savedOptions |
+	| predicate savedOptions savedExtraOptions |
 	savedOptions := options.
+	savedExtraOptions := extraOptions.
+	extraOptions := extraOptions bitAnd: PCRE2 extraBadEscapeIsLiteral bitInvert.
 	options := (options bitAnd: (PCRE2 altExtendedClass | PCRE2 allowEmptyClass) bitInvert) bitOr:
 		           PCRE2 extended | PCRE2 extendedMore.
 	[
-		predicate := self classUnion.
-		self classExpressionIgnored.
-		self expect: $].
-		self expect: $) ] ensure: [ options := savedOptions ].
-	^ PCRE2CharacterNode new predicate: predicate
+		predicate := self classExpressionClosing: $].
+		self peek = $) ifFalse: [ self syntaxErrorCode: 215 ].
+		self next ] ensure: [
+			options := savedOptions.
+			extraOptions := savedExtraOptions ].
+	^ self classNodeFor: predicate
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> parseUTSClass [
 
 	| negative left operator previous right |
@@ -1321,7 +1655,8 @@ PCRE2PatternParser >> parseUTSClass [
 	self skipClassIgnored.
 	[ self utsOperator isNotNil ] whileTrue: [
 			operator := self utsOperator.
-			(previous isNotNil and: [ previous ~= operator ]) ifTrue: [ self syntaxError: 'mixed operators in extended character class' ].
+			(previous isNotNil and: [ previous ~= operator ]) ifTrue: [
+				self syntaxErrorCode: 211 atCodeUnit: (self codeUnitOffsetAt: position + 2) ].
 			previous := operator.
 			position := position + 2.
 			right := self utsSegmentAllowingClosingLiteral: false.
@@ -1329,8 +1664,8 @@ PCRE2PatternParser >> parseUTSClass [
 					         ifTrue: [ $^ ]
 					         ifFalse: [ operator ]).
 			self skipClassIgnored ].
-	self expect: $].
-	^ PCRE2CharacterNode new predicate: [ :candidate | (left value: candidate) ~= negative ]
+	self expect: $] errorCode: self unterminatedUTSClassCode.
+	^ self classNodeFor: [ :candidate | (left value: candidate) ~= negative ]
 ]
 
 { #category : 'validation' }
@@ -1349,19 +1684,19 @@ PCRE2PatternParser >> patternChildrenOf: node [
 	^ result
 ]
 
-{ #category : 'configuration' }
+{ #category : 'accessing' }
 PCRE2PatternParser >> patternLimits [
 
 	^ patternLimits
 ]
 
-{ #category : 'configuration' }
+{ #category : 'accessing' }
 PCRE2PatternParser >> patternMatchOptions [
 
 	^ patternMatchOptions
 ]
 
-{ #category : 'parsing' }
+{ #category : 'scanning' }
 PCRE2PatternParser >> peek [
 
 	^ self atEnd ifFalse: [ pattern at: position ]
@@ -1377,11 +1712,11 @@ PCRE2PatternParser >> piece [
 	^ node
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> posixWordBoundary: beginning [
 
 	| word assertion |
-	word := PCRE2CharacterNode new predicate: (self predicateFor: $w).
+	word := self classNodeFor: (self predicateFor: $w).
 	assertion := beginning
 		             ifTrue: [
 				             PCRE2LookaheadNode new
@@ -1393,7 +1728,7 @@ PCRE2PatternParser >> posixWordBoundary: beginning [
 			  assertion }
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> predicateFor: character [
 
 	| predicate unicode kind |
@@ -1426,7 +1761,7 @@ PCRE2PatternParser >> predicateFor: character [
 	^ predicate
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> propertyPredicate: property [
 
 	| unicode name |
@@ -1476,7 +1811,9 @@ PCRE2PatternParser >> quantifiedAtom [
 			position := position + 1.
 			lazy ifTrue: [ self syntaxError: 'quantifier does not follow a repeatable item' ].
 			repeat greedy: true.
-			^ PCRE2AtomicNode new child: repeat ].
+			^ PCRE2AtomicNode new
+				  child: repeat;
+				  possessive: true ].
 	^ repeat
 ]
 
@@ -1503,14 +1840,18 @@ PCRE2PatternParser >> quantifierBounds [
 			position := saved.
 			^ nil ].
 	position := position + 1.
-	(maximum isNotNil and: [ minimum > maximum ]) ifTrue: [ self syntaxError: 'numbers out of order in quantifier' ].
-	(minimum > 65535 or: [ maximum isNotNil and: [ maximum > 65535 ] ]) ifTrue: [ self syntaxError: 'number too big in quantifier' ].
+	(maximum isNotNil and: [ minimum > maximum ]) ifTrue: [
+			position := position - 1.
+			self syntaxErrorCode: 104 ].
+	(minimum > 65535 or: [ maximum isNotNil and: [ maximum > 65535 ] ]) ifTrue: [
+			position := position - 1.
+			self syntaxErrorCode: 105 ].
 	^ {
 		  minimum.
 		  maximum }
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> rangeFrom: low to: high caseless: caseless [
 
 	| unicode caseOptions |
@@ -1530,7 +1871,8 @@ PCRE2PatternParser >> rangeFrom: low to: high caseless: caseless [
 { #category : 'callouts' }
 PCRE2PatternParser >> readCalloutStringUntil: delimiter [
 
-	| stream character |
+	| stream character offset |
+	offset := self codeUnitOffsetAt: position - 1.
 	stream := WriteStream on: String new.
 	[ self atEnd not ] whileTrue: [
 			character := self next.
@@ -1538,36 +1880,83 @@ PCRE2PatternParser >> readCalloutStringUntil: delimiter [
 					self peek = delimiter ifFalse: [ ^ stream contents ].
 					self next ].
 			stream nextPut: character ].
-	self syntaxError: 'missing terminating delimiter for callout string'
+	self syntaxErrorCode: 181 atCodeUnit: offset
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - groups' }
+PCRE2PatternParser >> readCaptureNameUntil: delimiter [
+
+	| start end name first digit |
+	delimiter = $} ifTrue: [ [ self peek = Character space or: [ self peek = Character tab ] ] whileTrue: [ self next ] ].
+	start := position.
+	first := self peek.
+	first ifNil: [ self syntaxErrorCode: 162 ].
+	digit := (options bitAnd: PCRE2 utf) ~= 0
+		         ifTrue: [ PCRE2UnicodeData matches: 'gc:nd' code: first asInteger ]
+		         ifFalse: [ first between: $0 and: $9 ].
+	digit ifTrue: [
+			self next.
+			self syntaxErrorCode: 144 ].
+	[ self isCaptureNameCharacter: self peek ] whileTrue: [ self next ].
+	end := position.
+	name := pattern copyFrom: start to: end - 1.
+	(self codeUnitOffsetAt: end) - (self codeUnitOffsetAt: start) > 128 ifTrue: [ self syntaxErrorCode: 148 ].
+	start = end ifTrue: [ self syntaxErrorCode: 162 ].
+	delimiter ifNotNil: [
+			delimiter = $} ifTrue: [ [ self peek = Character space or: [ self peek = Character tab ] ] whileTrue: [ self next ] ].
+			self peek = delimiter ifFalse: [ self syntaxErrorCode: 142 ].
+			self next ].
+	^ name
+]
+
+{ #category : 'parsing - groups' }
+PCRE2PatternParser >> readReferenceNumber [
+
+	| start sign number |
+	start := position.
+	sign := self peek.
+	(sign = $+ or: [ sign = $- ]) ifTrue: [ self next ].
+	(self peek isNotNil and: [ self peek between: $0 and: $9 ]) ifFalse: [
+			position := start.
+			^ nil ].
+	number := self decimal.
+	number > (sign = $+
+		 ifTrue: [ 65535 - captureCount ]
+		 ifFalse: [ 65535 ]) ifTrue: [ self syntaxErrorCode: 161 ].
+	(sign = $+ or: [ sign = $- ]) ifTrue: [
+			number = 0 ifTrue: [ self syntaxErrorCode: 126 ].
+			sign = $- ifTrue: [
+					number > captureCount ifTrue: [ self syntaxErrorCode: 115 ].
+					^ captureCount + 1 - number ].
+			^ captureCount + number ].
+	^ number
+]
+
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> readSubroutineName [
 
-	| start |
-	start := position.
-	[ self atEnd not and: [ self peek ~= $( and: [ self peek ~= $) ] ] ] whileTrue: [ self next ].
-	^ pattern copyFrom: start to: position - 1
+	^ self readCaptureNameUntil: nil
 ]
 
-{ #category : 'parsing' }
-PCRE2PatternParser >> readUntil: delimiter [
+{ #category : 'scanning' }
+PCRE2PatternParser >> readUntil: delimiter errorCode: errorCode [
+	"Read up to the delimiter, reporting the PCRE2 error that names it when the pattern ends first."
 
 	| start |
 	start := position.
 	[ self atEnd not and: [ self peek ~= delimiter ] ] whileTrue: [ position := position + 1 ].
-	self atEnd ifTrue: [ self syntaxError: 'missing delimiter' ].
+	self atEnd ifTrue: [ self syntaxErrorCode: errorCode ].
 	position := position + 1.
 	^ pattern copyFrom: start to: position - 2
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> readVerbArgument [
 
 	| start result |
 	start := position.
 	(options bitAnd: PCRE2 altVerbNames) = 0
-		ifTrue: [ result := self readUntil: $) ]
+		ifTrue: [ result := self readUntil: $) errorCode: 160 ]
 		ifFalse: [
 				result := String streamContents: [ :stream |
 						          [ self atEnd not and: [ self peek ~= $) ] ] whileTrue: [
@@ -1580,18 +1969,104 @@ PCRE2PatternParser >> readVerbArgument [
 											          ifFalse: [
 													          character = $\
 														          ifTrue: [
-																          node := self escapeInClass: false.
+																          node := self parseEscapeInClass: false.
 																          (node isKindOf: PCRE2SequenceNode)
 																	          ifTrue: [ node children do: [ :each | stream nextPut: each character ] ]
 																	          ifFalse: [
-																			          (node isKindOf: PCRE2CharacterNode) ifFalse: [ self syntaxError: 'invalid escape in verb argument' ].
-																			          node character ifNil: [ self syntaxError: 'invalid escape in verb argument' ].
+																			          (node isKindOf: PCRE2CharacterNode) ifFalse: [ self syntaxErrorCode: 140 ].
+																			          node character ifNil: [ self syntaxErrorCode: 140 ].
 																			          stream nextPut: node character ] ]
 														          ifFalse: [ stream nextPut: character ] ] ] ] ].
-				self expect: $) ].
+				self expect: $) errorCode: 160 ].
 	(self codeUnitOffsetAt: position - 1) - (self codeUnitOffsetAt: start) > 255 ifTrue: [
-		self syntaxError: 'verb argument is too long' ].
+		self syntaxErrorCode: 176 atCodeUnit: (self codeUnitOffsetAt: position - 1) ].
 	^ result
+]
+
+{ #category : 'parsing - groups' }
+PCRE2PatternParser >> referenceEscape: character [
+
+	| delimiter start reference subroutine |
+	delimiter := nil.
+	subroutine := false.
+	(self peek = $< or: [ self peek = $' or: [ self peek = (Character value: 123) ] ])
+		ifTrue: [
+				delimiter := self next.
+				delimiter := delimiter = $<
+					             ifTrue: [ $> ]
+					             ifFalse: [
+							             delimiter = (Character value: 123)
+								             ifTrue: [ $} ]
+								             ifFalse: [ $' ] ].
+				subroutine := character = $g and: [ delimiter ~= $} ].
+				delimiter = $} ifTrue: [ [ self peek = Character space or: [ self peek = Character tab ] ] whileTrue: [ self next ] ].
+				start := position.
+				reference := character = $g ifTrue: [ self readReferenceNumber ].
+				reference
+					ifNil: [
+							reference := self readCaptureNameUntil: delimiter.
+							self registerReference: reference at: start ]
+					ifNotNil: [
+							delimiter = $} ifTrue: [ [ self peek = Character space or: [ self peek = Character tab ] ] whileTrue: [ self next ] ].
+							self peek = delimiter ifFalse: [ self syntaxErrorCode: 219 ].
+							self next.
+							(reference = 0 and: [ subroutine not ]) ifTrue: [ self syntaxErrorCode: 115 ].
+							self registerReference: reference ] ]
+		ifFalse: [
+				character = $k ifTrue: [ self syntaxErrorCode: 169 ].
+				reference := self readReferenceNumber.
+				reference ifNil: [ self syntaxErrorCode: 157 ].
+				reference = 0 ifTrue: [ self syntaxErrorCode: 115 ].
+				self registerReference: reference ].
+	^ subroutine
+		  ifTrue: [ PCRE2SubroutineNode new reference: reference ]
+		  ifFalse: [
+				  PCRE2BackreferenceNode new
+					  reference: (self noteBackreference: reference);
+					  options: options;
+					  extraOptions: extraOptions ]
+]
+
+{ #category : 'validation' }
+PCRE2PatternParser >> registerRecursionCondition: name at: index [
+
+	| offset |
+	offset := self codeUnitOffsetAt: index.
+	references add: [
+			(names includes: name) ifFalse: [
+					| number |
+					number := 0.
+					2 to: name size do: [ :digit |
+							number := number * 10 + (name at: digit) asciiValue - $0 asciiValue.
+							number > 65535 ifTrue: [ self syntaxErrorCode: 161 atCodeUnit: (self codeUnitOffsetAt: index + digit - 1) ] ].
+					number > captureCount ifTrue: [ self syntaxErrorCode: 115 atCodeUnit: offset ] ] ]
+]
+
+{ #category : 'validation' }
+PCRE2PatternParser >> registerReference: reference [
+
+	^ self registerReference: reference at: position
+]
+
+{ #category : 'validation' }
+PCRE2PatternParser >> registerReference: reference at: index [
+
+	| offset |
+	offset := self codeUnitOffsetAt: index.
+	references add: [
+			(reference isInteger and: [ reference > 65535 ]) ifTrue: [ self syntaxErrorCode: 161 atCodeUnit: offset ].
+			(reference isInteger
+				 ifTrue: [ reference < 0 or: [ reference > captureCount ] ]
+				 ifFalse: [ (names includes: reference) not ]) ifTrue: [ self syntaxErrorCode: 115 atCodeUnit: offset ] ].
+	^ reference
+]
+
+{ #category : 'signalling' }
+PCRE2PatternParser >> rejectVerbName: name [
+	"PCRE2 consumes the equals sign of a start directive it knows before blaming the verb."
+
+	(self peek = $= and: [ self class limitDirectives includesKey: name ]) ifTrue: [ self next ].
+	self syntaxErrorCode: 160
 ]
 
 { #category : 'parsing' }
@@ -1621,7 +2096,7 @@ PCRE2PatternParser >> sequence [
 	^ PCRE2SequenceNode new children: nodes asArray
 ]
 
-{ #category : 'parsing' }
+{ #category : 'scanning' }
 PCRE2PatternParser >> skipClassIgnored [
 
 	| consumed |
@@ -1639,7 +2114,7 @@ PCRE2PatternParser >> skipClassIgnored [
 		consumed ] whileTrue
 ]
 
-{ #category : 'parsing' }
+{ #category : 'scanning' }
 PCRE2PatternParser >> skipIgnored [
 
 	| extended consumed |
@@ -1654,7 +2129,7 @@ PCRE2PatternParser >> skipIgnored [
 				consumed := true ].
 		(pattern findString: '(?#' startingAt: position) = position ifTrue: [
 				position := position + 3.
-				self readUntil: $).
+				self readUntil: $) errorCode: 118.
 				consumed := true ].
 		(extended and: [
 			 self atEnd not and: [ (#( 9 10 11 12 13 32 133 8206 8207 8232 8233 ) includes: self peek asInteger) or: [ self peek = $# ] ] ])
@@ -1666,7 +2141,7 @@ PCRE2PatternParser >> skipIgnored [
 		consumed ] whileTrue
 ]
 
-{ #category : 'parsing' }
+{ #category : 'scanning' }
 PCRE2PatternParser >> skipPatternComment [
 
 	| length |
@@ -1678,13 +2153,13 @@ PCRE2PatternParser >> skipPatternComment [
 			position := position + 1 ]
 ]
 
-{ #category : 'parsing' }
+{ #category : 'scanning' }
 PCRE2PatternParser >> skipQuantifierSpaces [
 
 	[ self peek = Character space or: [ self peek = Character tab ] ] whileTrue: [ position := position + 1 ]
 ]
 
-{ #category : 'configuration' }
+{ #category : 'parsing' }
 PCRE2PatternParser >> startDirectives [
 
 	| end directive newlineNames optionNames extraNames matchNames limitNames key value |
@@ -1712,11 +2187,7 @@ PCRE2PatternParser >> startDirectives [
 	matchNames := Dictionary newFrom: {
 			              ('NOTEMPTY' -> PCRE2 notEmpty).
 			              ('NOTEMPTY_ATSTART' -> PCRE2 notEmptyAtStart) }.
-	limitNames := Dictionary newFrom: {
-			              ('LIMIT_MATCH' -> #match).
-			              ('LIMIT_DEPTH' -> #depth).
-			              ('LIMIT_RECURSION' -> #depth).
-			              ('LIMIT_HEAP' -> #heap) }.
+	limitNames := self class limitDirectives.
 	[ (pattern findString: '(*' startingAt: position) = position ] whileTrue: [
 			end := pattern indexOf: $) startingAt: position + 2 ifAbsent: [ ^ self ].
 			directive := pattern copyFrom: position + 2 to: end - 1.
@@ -1749,20 +2220,49 @@ PCRE2PatternParser >> startDirectives [
 	compiledOptions := options
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - optimization' }
+PCRE2PatternParser >> startLine [
+	"Whether every branch starts at a line start, so that matching may jump from one line to the next."
+
+	^ startLine
+]
+
+{ #category : 'parsing - assertions' }
+PCRE2PatternParser >> startOfLinePredicate [
+	"^: the start of the subject unless PCRE2_NOTBOL applies, and after any line terminator in multiline mode."
+
+	| convention multiline altCircumflex |
+	convention := newlineConvention.
+	multiline := (options bitAnd: PCRE2 multiline) ~= 0.
+	altCircumflex := (options bitAnd: PCRE2 altCircumflex) ~= 0.
+	^ [ :engine :state |
+		  | index |
+		  index := state position.
+		  (index = 0 and: [ (engine matchOptions bitAnd: PCRE2 notBOL) = 0 ]) or: [
+				  multiline and: [
+					  (index < engine subject size or: [ altCircumflex ]) and: [ (convention lengthEndingAt: index in: engine subject) > 0 ] ] ] ]
+]
+
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> subroutineNode: reference [
+
+	^ self subroutineNode: reference closingErrorCode: 114
+]
+
+{ #category : 'parsing - groups' }
+PCRE2PatternParser >> subroutineNode: reference closingErrorCode: errorCode [
 
 	| retained |
 	retained := self peek = $(
 		            ifTrue: [ self captureReferenceList ]
 		            ifFalse: [ #(  ) ].
-	self expect: $).
+	self expect: $) errorCode: errorCode.
 	^ PCRE2SubroutineNode new
 		  reference: reference;
 		  retainedGroups: retained
 ]
 
-{ #category : 'parsing' }
+{ #category : 'signalling' }
 PCRE2PatternParser >> syntaxError: message [
 
 	| offset |
@@ -1770,7 +2270,40 @@ PCRE2PatternParser >> syntaxError: message [
 	PCRE2CompileError signal: message in: input at: offset
 ]
 
-{ #category : 'parsing' }
+{ #category : 'signalling' }
+PCRE2PatternParser >> syntaxError: message atCodeUnit: offset [
+
+	PCRE2CompileError signal: message in: input at: offset
+]
+
+{ #category : 'signalling' }
+PCRE2PatternParser >> syntaxErrorCode: errorCode [
+	"Signal the PCRE2 compile error this code names, at the current position."
+
+	self syntaxError: (PCRE2 translateErrorCode: errorCode)
+]
+
+{ #category : 'signalling' }
+PCRE2PatternParser >> syntaxErrorCode: errorCode atCodeUnit: offset [
+	"Signal the PCRE2 compile error this code names, at a known code-unit offset."
+
+	self syntaxError: (PCRE2 translateErrorCode: errorCode) atCodeUnit: offset
+]
+
+{ #category : 'signalling' }
+PCRE2PatternParser >> unexpectedClassExpression [
+
+	self peek = $\ ifTrue: [
+			self classOperand.
+			self syntaxErrorCode: 213 ].
+	(self peek = $[ and: [ position < pattern size and: [ (pattern at: position + 1) = $: ] ]) ifTrue: [
+			self classElement.
+			self syntaxErrorCode: 213 ].
+	self next.
+	self syntaxErrorCode: 213
+]
+
+{ #category : 'parsing - escapes' }
 PCRE2PatternParser >> unicodeEscape [
 
 	| digits start code |
@@ -1778,7 +2311,7 @@ PCRE2PatternParser >> unicodeEscape [
 	(self peek = (Character value: 123) and: [ (extraOptions bitAnd: PCRE2 extraAltBsux) ~= 0 ])
 		ifTrue: [
 				self next.
-				digits := self readUntil: $} ]
+				digits := self readUntil: $} errorCode: 167 ]
 		ifFalse: [
 				digits := String streamContents: [ :stream |
 					          4 timesRepeat: [
@@ -1786,18 +2319,36 @@ PCRE2PatternParser >> unicodeEscape [
 				digits size < 4 ifTrue: [
 						position := start.
 						^ self literal: $u ] ].
-	digits isEmpty ifTrue: [ self syntaxError: 'hexadecimal digit expected' ].
+	digits isEmpty ifTrue: [ self syntaxErrorCode: 178 ].
 	code := [ Integer readFrom: digits readStream base: 16 ]
 		        on: Error
-		        do: [ :error | self syntaxError: 'hexadecimal digit expected' ].
-	code > 16r10FFFF ifTrue: [ self syntaxError: 'character code point too large' ].
+		        do: [ :error | self syntaxErrorCode: 178 ].
+	code > 16r10FFFF ifTrue: [ self syntaxErrorCode: 134 ].
 	^ self literalCodePoint: code
 ]
 
-{ #category : 'parsing' }
+{ #category : 'signalling' }
 PCRE2PatternParser >> unsupported: feature [
 
 	PCRE2UnsupportedFeature signal: 'Pharo backend does not yet support ' , feature
+]
+
+{ #category : 'signalling' }
+PCRE2PatternParser >> unterminatedClassExpressionCode [
+	"PCRE2 blames the open parenthesis only while nothing at all follows it."
+
+	^ (classExpressionDelimiter = $) and: [ position = classExpressionStart ])
+		  ifTrue: [ 114 ]
+		  ifFalse: [ 106 ]
+]
+
+{ #category : 'signalling' }
+PCRE2PatternParser >> unterminatedUTSClassCode [
+	"PCRE2 blames the extended-class bracket only once a nested class has closed inside this one."
+
+	^ utsNestedClassClosed == true
+		  ifTrue: [ 212 ]
+		  ifFalse: [ 106 ]
 ]
 
 { #category : 'parsing' }
@@ -1808,24 +2359,29 @@ PCRE2PatternParser >> utfPattern [
 	^ (input readFrom: 1 to: input size) asString
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> utsClass [
 
-	^ self withExtendedClassDo: [ self parseUTSClass ]
+	| previous |
+	previous := utsNestedClassClosed.
+	utsNestedClassClosed := false.
+	^ [ self withExtendedClassDo: [ self parseUTSClass ] ] ensure: [ utsNestedClassClosed := previous ]
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> utsOperator [
 
-	(self peek isNotNil and: [ '&|-~' includes: self peek ]) ifFalse: [ ^ nil ].
-	(position < pattern size and: [ (pattern at: position + 1) = self peek ]) ifTrue: [
-			(position + 2 <= pattern size and: [ (pattern at: position + 2) = self peek ]) ifTrue: [
-				self syntaxError: 'unexpected operator in extended character class' ].
-			^ self peek ].
-	^ nil
+	| end character |
+	character := self peek.
+	(character isNotNil and: [ '&|-~' includes: character ]) ifFalse: [ ^ nil ].
+	(position < pattern size and: [ (pattern at: position + 1) = character ]) ifFalse: [ ^ nil ].
+	end := position + 2.
+	[ end <= pattern size and: [ (pattern at: end) = character ] ] whileTrue: [ end := end + 1 ].
+	end > (position + 2) ifTrue: [ self syntaxErrorCode: 208 atCodeUnit: (self codeUnitOffsetAt: end) ].
+	^ character
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> utsRangeAllowedAfter: node [
 
 	| next |
@@ -1836,7 +2392,7 @@ PCRE2PatternParser >> utsRangeAllowedAfter: node [
 	^ true
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> utsSegmentAllowingClosingLiteral: allowClosing [
 
 	| predicates first node end |
@@ -1846,10 +2402,10 @@ PCRE2PatternParser >> utsSegmentAllowingClosingLiteral: allowClosing [
 	[ self atEnd not and: [ (self peek ~= $] or: [ first ]) and: [ self utsOperator isNil ] ] ] whileTrue: [
 			node := self classElement.
 			(node isKindOf: PCRE2QuotedSequenceNode) ifTrue: [
-					node children ifEmpty: [ self syntaxError: 'missing terminating ] for character class' ].
+					node children ifEmpty: [ self syntaxErrorCode: self unterminatedUTSClassCode ].
 					node children allButLast do: [ :quoted | predicates add: quoted predicate ].
 					node := node children last ].
-			(node isKindOf: PCRE2CharacterNode) ifFalse: [ self syntaxError: 'invalid extended class item' ].
+			(node isKindOf: PCRE2CharacterNode) ifFalse: [ self syntaxErrorCode: 107 ].
 			self skipClassIgnored.
 			(self utsRangeAllowedAfter: node)
 				ifTrue: [
@@ -1861,48 +2417,57 @@ PCRE2PatternParser >> utsSegmentAllowingClosingLiteral: allowClosing [
 										add: node predicate;
 										add: (self literal: $-) predicate ]
 							ifFalse: [
-									end := self classElement.
+									node character ifNil: [ self syntaxErrorCode: 150 ].
+									end := self classElementAsRangeEnd: true.
 									(end isKindOf: PCRE2QuotedSequenceNode) ifTrue: [
-											end children ifEmpty: [ self syntaxError: 'missing terminating ] for character class' ].
+											end children ifEmpty: [ self syntaxErrorCode: self unterminatedUTSClassCode ].
 											end children allButFirst do: [ :quoted | predicates add: quoted predicate ].
 											end := end children first ].
-									(node character isNil or: [ end character isNil ]) ifTrue: [ self syntaxError: 'invalid range in character class' ].
+									(node character isNil or: [ end character isNil ]) ifTrue: [ self syntaxErrorCode: 150 ].
 									end character ifNotNil: [
-											node character > end character ifTrue: [ self syntaxError: 'range out of order in character class' ].
+											node character > end character ifTrue: [ self syntaxErrorCode: 108 ].
 											predicates add: (self rangeFrom: node character to: end character caseless: (options bitAnd: PCRE2 caseless) ~= 0) ] ] ]
 				ifFalse: [ predicates add: node predicate ].
 			first := false.
 			self skipClassIgnored ].
-	predicates ifEmpty: [ self syntaxError: 'missing operand in extended character class' ].
+	predicates ifEmpty: [
+			self atEnd ifTrue: [ self syntaxErrorCode: self unterminatedUTSClassCode ].
+			self utsOperator ifNotNil: [ self syntaxErrorCode: 209 atCodeUnit: (self codeUnitOffsetAt: position + 2) ].
+			self syntaxErrorCode: 210 atCodeUnit: (self codeUnitOffsetAt: position + 1) ].
 	^ [ :candidate | predicates anySatisfy: [ :predicate | predicate value: candidate ] ]
 ]
 
-{ #category : 'parsing' }
+{ #category : 'validation' }
 PCRE2PatternParser >> validateCaptureName: name [
 
-	| unicode first |
-	name isEmpty ifTrue: [ self syntaxError: 'empty capture name' ].
+	| unicode first start valid |
+	start := position - name size - 1.
+	name isEmpty ifTrue: [ self syntaxErrorCode: 162 atCodeUnit: (self codeUnitOffsetAt: start) ].
 	unicode := (options bitAnd: PCRE2 utf) ~= 0.
 	first := name first.
 	(first = $_ or: [
 			 unicode
 				 ifTrue: [ PCRE2UnicodeData matches: 'gc:l' code: first asInteger ]
 				 ifFalse: [ (first between: $A and: $Z) or: [ first between: $a and: $z ] ] ]) ifFalse: [
-		self syntaxError: 'subpattern name must start with a non-digit' ].
-	(name allSatisfy: [ :character |
-			 character = $_ or: [
-					 unicode
-						 ifTrue: [
-							 (PCRE2UnicodeData matches: 'gc:l' code: character asInteger) or: [
-								 PCRE2UnicodeData matches: 'gc:nd' code: character asInteger ] ]
-						 ifFalse: [ character asInteger < 128 and: [ character isAlphaNumeric ] ] ] ]) ifFalse: [
-		self syntaxError: 'syntax error in subpattern name' ].
+			self
+				syntaxErrorCode: ((first between: $0 and: $9)
+						 ifTrue: [ 144 ]
+						 ifFalse: [ 162 ])
+				atCodeUnit: (self codeUnitOffsetAt: start) ].
+	name withIndexDo: [ :character :index |
+			valid := character = $_ or: [
+					         unicode
+						         ifTrue: [
+							         (PCRE2UnicodeData matches: 'gc:l' code: character asInteger) or: [
+								         PCRE2UnicodeData matches: 'gc:nd' code: character asInteger ] ]
+						         ifFalse: [ character asInteger < 128 and: [ character isAlphaNumeric ] ] ].
+			valid ifFalse: [ self syntaxErrorCode: 142 atCodeUnit: (self codeUnitOffsetAt: start + index - 1) ] ].
 	(codeUnitWidth = 8
 		 ifTrue: [ name asPCRE2UTF8Input size ]
 		 ifFalse: [
 				 codeUnitWidth = 16
 					 ifTrue: [ name asPCRE2UTF16Input size ]
-					 ifFalse: [ name size ] ]) > 128 ifTrue: [ self syntaxError: 'subpattern name is too long' ]
+					 ifFalse: [ name size ] ]) > 128 ifTrue: [ self syntaxErrorCode: 148 ]
 ]
 
 { #category : 'validation' }
@@ -1919,29 +2484,30 @@ PCRE2PatternParser >> validateLookaroundResetsIn: node active: enclosing [
 	(self patternChildrenOf: node) do: [ :child | self validateLookaroundResetsIn: child active: active ]
 ]
 
-{ #category : 'parsing' }
+{ #category : 'validation' }
 PCRE2PatternParser >> validateLookbehinds [
 
 	lookbehinds do: [ :entry |
 			| bounds |
 			bounds := IdentityDictionary new.
 			entry second do: [ :branch |
-					| lengths |
+					| lengths errorOffset |
+					errorOffset := lookbehindPositions at: entry first ifAbsent: [ self codeUnitOffsetAt: position ].
 					(branchResetUsed = true and: [ self hasBackreferenceIn: branch ]) ifTrue: [
-						self syntaxError: 'length of lookbehind assertion is not limited' ].
-					(self isRecursiveLength: branch visiting: IdentitySet new) ifTrue: [
-						self syntaxError: 'lookbehind contains a recursive reference' ].
+						self syntaxErrorCode: 125 atCodeUnit: errorOffset ].
+					(self isRecursiveLength: branch visiting: IdentitySet new) ifTrue: [ self syntaxErrorCode: 125 atCodeUnit: errorOffset ].
 					(branchResetUsed = true and: [ (self lookbehindBranchCount: branch upTo: 2000) > 2000 ]) ifTrue: [
-						self syntaxError: 'lookbehind is too complicated' ].
+						self syntaxError: 'lookbehind is too complicated' atCodeUnit: errorOffset ].
 					lengths := branch lengthBoundsUsing: groups names: names visited: IdentitySet new.
-					lengths second ifNil: [ self syntaxError: 'length of lookbehind assertion is not limited' ].
-					(lengths second > 65535 or: [ lengths second > lookbehindLimit and: [ lengths first ~= lengths second ] ]) ifTrue: [
-						self syntaxError: 'lookbehind is too long' ].
+					lengths second ifNil: [ self syntaxErrorCode: 125 atCodeUnit: errorOffset ].
+					lengths second > 65535 ifTrue: [ self syntaxErrorCode: 187 atCodeUnit: errorOffset ].
+					(lengths second > lookbehindLimit and: [ lengths first ~= lengths second ]) ifTrue: [
+						self syntaxErrorCode: 200 atCodeUnit: errorOffset ].
 					bounds at: branch put: lengths ].
 			entry first branchBounds: bounds ]
 ]
 
-{ #category : 'parsing' }
+{ #category : 'validation' }
 PCRE2PatternParser >> validateTurkishCasing [
 
 	(extraOptions bitAnd: PCRE2 extraTurkishCasing) = 0 ifTrue: [ ^ self ].
@@ -1952,7 +2518,43 @@ PCRE2PatternParser >> validateTurkishCasing [
 		self syntaxError: 'PCRE2_EXTRA_TURKISH_CASING is incompatible with PCRE2_EXTRA_CASELESS_RESTRICT' ]
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - groups' }
+PCRE2PatternParser >> versionCondition [
+
+	| ge major minor current requested result |
+	position := position + 7.
+	ge := self peek = $>.
+	ge ifTrue: [ self next ].
+	(self peek = $= and: [
+			 self next.
+			 self peek isNotNil and: [ self peek between: $0 and: $9 ] ]) ifFalse: [
+			(ge not and: [ self atEnd not ]) ifTrue: [ self next ].
+			self syntaxErrorCode: 179 ].
+	major := self decimal.
+	major > 1000 ifTrue: [ self syntaxErrorCode: 179 ].
+	minor := 0.
+	self peek = $. ifTrue: [
+			self next.
+			(self peek isNotNil and: [ self peek between: $0 and: $9 ]) ifFalse: [
+					self atEnd ifFalse: [ self next ].
+					self syntaxErrorCode: 179 ].
+			minor := self decimal.
+			minor > 1000 ifTrue: [ self syntaxErrorCode: 179 ] ].
+	self peek = $) ifFalse: [
+			self atEnd ifFalse: [ self next ].
+			self syntaxErrorCode: 179 ].
+	self next.
+	current := PCRE2CompilerPharoBackend compatibleVersion.
+	requested := {
+		             major.
+		             minor }.
+	result := ge
+		          ifTrue: [ current first > major or: [ current first = major and: [ current second >= minor ] ] ]
+		          ifFalse: [ current = requested ].
+	^ result
+]
+
+{ #category : 'parsing - groups' }
 PCRE2PatternParser >> versionCondition: text [
 
 	| comparison parts requested current result |
@@ -1976,15 +2578,33 @@ PCRE2PatternParser >> versionCondition: text [
 		          ifTrue: [ current = requested ]
 		          ifFalse: [
 		          current first > requested first or: [ current first = requested first and: [ current second >= requested second ] ] ].
-	^ [ :engine :state | result ]
+	^ result
 ]
 
-{ #category : 'parsing' }
+{ #category : 'parsing - classes' }
 PCRE2PatternParser >> withExtendedClassDo: block [
 
 	extendedClassDepth := (extendedClassDepth ifNil: [ 0 ]) + 1.
 	extendedClassDepth > 15 ifTrue: [
 			extendedClassDepth := extendedClassDepth - 1.
-			self syntaxError: 'extended character class nesting is too deep' ].
+			self syntaxErrorCode: 207 atCodeUnit: (self codeUnitOffsetAt: position - 1) ].
 	^ block ensure: [ extendedClassDepth := extendedClassDepth - 1 ]
+]
+
+{ #category : 'parsing - assertions' }
+PCRE2PatternParser >> wordBoundaryPredicateFor: kind [
+	"\b and \B: where a word character meets something that is not one. The edges of the window count as not one, and reaching the end of the subject there is what partial matching calls a hit."
+
+	| word wanted |
+	word := self predicateFor: $w.
+	wanted := kind = #wordBoundary.
+	^ [ :engine :state |
+		  | index size previous before after |
+		  index := state position.
+		  size := engine subject size.
+		  index = size ifTrue: [ engine notePartial: state ].
+		  previous := engine subject previousOffsetFrom: index.
+		  before := previous >= 0 and: [ word value: (engine subject at: previous + 1) ].
+		  after := index < size and: [ word value: (engine subject at: index + 1) ].
+		  before ~= after = wanted ]
 ]

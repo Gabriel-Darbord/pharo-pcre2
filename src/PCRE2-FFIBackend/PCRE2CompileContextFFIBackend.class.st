@@ -1,3 +1,6 @@
+"
+Owns a C compile-context handle for a public PCRE2CompileContext. Every setting is written through to the library, so the handle is the only copy of it. Width-specific subclasses contain the UFFI entry points.
+"
 Class {
 	#name : 'PCRE2CompileContextFFIBackend',
 	#superclass : 'PCRE2Object',
@@ -16,13 +19,19 @@ Class {
 	#package : 'PCRE2-FFIBackend'
 }
 
+{ #category : 'testing' }
+PCRE2CompileContextFFIBackend class >> isAbstract [
+
+	^ self == PCRE2CompileContextFFIBackend
+]
+
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> addOptions: anInteger [
 
 	^ self options: (self options bitOr: anInteger)
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'accessing' }
 PCRE2CompileContextFFIBackend >> bsr [
 
 	^ bsr
@@ -36,7 +45,7 @@ PCRE2CompileContextFFIBackend >> bsr: anInteger [
 	bsr := anInteger
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'accessing' }
 PCRE2CompileContextFFIBackend >> characterTables [
 	"Low-character tables used by this compile context, or nil when PCRE2 uses its built-in tables."
 
@@ -118,7 +127,7 @@ PCRE2CompileContextFFIBackend >> enableStartOptimization [
 	^ self optimize: PCRE2 optimizeStart
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'accessing' }
 PCRE2CompileContextFFIBackend >> maxPatternCompiledLength [
 	"Maximum compiled pattern size in bytes, or nil when PCRE2 uses its default."
 
@@ -137,7 +146,7 @@ PCRE2CompileContextFFIBackend >> maxPatternCompiledLength: anInteger [
 	maxPatternCompiledLength := anInteger
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'accessing' }
 PCRE2CompileContextFFIBackend >> maxPatternLength [
 	"Maximum pattern length in code units, or nil when PCRE2 uses its default."
 
@@ -152,7 +161,7 @@ PCRE2CompileContextFFIBackend >> maxPatternLength: anInteger [
 	maxPatternLength := anInteger
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'accessing' }
 PCRE2CompileContextFFIBackend >> maxVarLookbehind [
 	"Maximum length for bounded variable-length lookbehind, or nil when PCRE2 uses its default."
 
@@ -168,7 +177,7 @@ PCRE2CompileContextFFIBackend >> maxVarLookbehind: anInteger [
 	maxVarLookbehind := anInteger
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'accessing' }
 PCRE2CompileContextFFIBackend >> newline [
 	"Configured newline convention, or nil when PCRE2 uses the library default."
 
@@ -214,7 +223,7 @@ PCRE2CompileContextFFIBackend >> options: anInteger [
 	options := anInteger
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'accessing' }
 PCRE2CompileContextFFIBackend >> parensNestLimit [
 	"Maximum parenthesis nesting depth, or nil when PCRE2 uses its default."
 
@@ -229,7 +238,7 @@ PCRE2CompileContextFFIBackend >> parensNestLimit: anInteger [
 	parensNestLimit := anInteger
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'copying' }
 PCRE2CompileContextFFIBackend >> postCopy [
 
 	handle := self privateCopy.
@@ -258,7 +267,7 @@ PCRE2CompileContextFFIBackend >> requireSupportedFeature: featureName since: ver
 	PCRE2Error signal: featureName , ' requires PCRE2 ' , versionString , ' or newer; loaded ' , self ffiLibraryName versionString
 ]
 
-{ #category : 'backends' }
+{ #category : 'persistence' }
 PCRE2CompileContextFFIBackend >> restoreAfterStartup [
 	"Recreate my native compile context and reapply remembered compile settings."
 

@@ -1,3 +1,6 @@
+"
+Compiles patterns through the 32-bit PCRE2 library.
+"
 Class {
 	#name : 'PCRE2CompilerUTF32FFIBackend',
 	#superclass : 'PCRE2CompilerFFIBackend',
@@ -12,7 +15,7 @@ PCRE2CompilerUTF32FFIBackend >> compile: pattern upTo: length errorCode: errorCo
 	self ffiCall: #(void *pcre2_compile_32(void *pattern, size_t length, uint32 options, IntHolder errorCode, SizeTHolder errorOffset, void *context))
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2CompilerUTF32FFIBackend >> compileContextClass [
 
 	^ PCRE2UTF32CompileContext
@@ -27,13 +30,13 @@ PCRE2CompilerUTF32FFIBackend >> createCompileContext [
 	self ffiCall: #(void *pcre2_compile_context_create_32(nil))
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2CompilerUTF32FFIBackend >> ffiLibraryName [
 
 	^ LibPCRE2UTF32
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2CompilerUTF32FFIBackend >> inputClass [
 
 	^ PCRE2UTF32Input

@@ -1,3 +1,6 @@
+"
+Backreference to a capture by number or by name. It compares the subject under the referenced group, honouring the caseless, Unicode and match-unset-backreference options the pattern was compiled with.
+"
 Class {
 	#name : 'PCRE2BackreferenceNode',
 	#superclass : 'PCRE2PatternNode',
@@ -64,7 +67,7 @@ PCRE2BackreferenceNode >> extraOptions: flags [
 	extraOptions := flags
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2BackreferenceNode >> lengthBoundsUsing: groups names: names visited: visited [
 
 	| index target |
@@ -77,28 +80,28 @@ PCRE2BackreferenceNode >> lengthBoundsUsing: groups names: names visited: visite
 	^ target lengthBoundsUsing: groups names: names visited: visited
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2BackreferenceNode >> options [
 
 	^ options
 ]
 
-{ #category : 'private' }
-PCRE2BackreferenceNode >> options: aValue [
+{ #category : 'accessing' }
+PCRE2BackreferenceNode >> options: anInteger [
 
-	options := aValue
+	options := anInteger
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2BackreferenceNode >> reference [
 
 	^ reference
 ]
 
-{ #category : 'private' }
-PCRE2BackreferenceNode >> reference: aValue [
+{ #category : 'accessing' }
+PCRE2BackreferenceNode >> reference: aReference [
 
-	reference := aValue
+	reference := aReference
 ]
 
 { #category : 'matching' }

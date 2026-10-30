@@ -266,14 +266,14 @@ PCRE2CompileContext >> setParensNestLimit: value [
 	^ backend setParensNestLimit: value
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> useBSRAnyCRLF [
 	"\R matches only CR, LF, or CRLF."
 
 	^ self bsr: PCRE2 bsrAnyCRLF
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> useBSRUnicode [
 	"\R matches any Unicode line ending sequence."
 
@@ -293,42 +293,42 @@ PCRE2CompileContext >> useFullOptimization [
 	^ self optimize: PCRE2 optimizationFull
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> useNewlineAny [
 	"Use any Unicode newline sequence."
 
 	^ self newline: PCRE2 newlineAny
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> useNewlineAnyCRLF [
 	"Use CR, LF, or CRLF as newline sequences."
 
 	^ self newline: PCRE2 newlineAnyCRLF
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> useNewlineCR [
 	"Use carriage return as the newline sequence."
 
 	^ self newline: PCRE2 newlineCR
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> useNewlineCRLF [
 	"Use CRLF as the newline sequence."
 
 	^ self newline: PCRE2 newlineCRLF
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> useNewlineLF [
 	"Use line feed as the newline sequence."
 
 	^ self newline: PCRE2 newlineLF
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> useNewlineNul [
 	"Use NUL as the newline sequence."
 

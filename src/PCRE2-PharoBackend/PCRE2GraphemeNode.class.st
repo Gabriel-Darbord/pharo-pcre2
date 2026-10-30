@@ -1,3 +1,6 @@
+"
+\X. Matches one extended grapheme cluster, using the pinned Unicode grapheme-break data.
+"
 Class {
 	#name : 'PCRE2GraphemeNode',
 	#superclass : 'PCRE2PatternNode',
@@ -5,7 +8,7 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'DFA matching' }
+{ #category : 'optimization' }
 PCRE2GraphemeNode >> canAutoPossess [
 
 	^ true
@@ -22,7 +25,7 @@ PCRE2GraphemeNode >> executeIn: engine state: state [
 	^ state
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2GraphemeNode >> minimumLength [
 
 	^ 1

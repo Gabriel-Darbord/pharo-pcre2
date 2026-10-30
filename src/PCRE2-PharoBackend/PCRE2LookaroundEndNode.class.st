@@ -1,3 +1,6 @@
+"
+Runtime continuation pushed behind a lookaround body to restore the position and the assertion and alternation scopes the assertion was entered with.
+"
 Class {
 	#name : 'PCRE2LookaroundEndNode',
 	#superclass : 'PCRE2PatternNode',
@@ -18,7 +21,7 @@ PCRE2LookaroundEndNode >> acceptIn: engine state: state [
 	^ true
 ]
 
-{ #category : 'matching' }
+{ #category : 'DFA matching' }
 PCRE2LookaroundEndNode >> dfaKey [
 
 	^ {
@@ -36,7 +39,7 @@ PCRE2LookaroundEndNode >> executeIn: engine state: state [
 	^ state
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2LookaroundEndNode >> position: offset [
 
 	position := offset
@@ -50,7 +53,7 @@ PCRE2LookaroundEndNode >> position: offset assertions: assertions alternations: 
 	previousAlternations := alternatives
 ]
 
-{ #category : 'matching' }
+{ #category : 'diagnostics' }
 PCRE2LookaroundEndNode >> runtimeStorageSize [
 
 	^ self sizeInMemory

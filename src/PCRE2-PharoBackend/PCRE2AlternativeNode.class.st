@@ -1,3 +1,6 @@
+"
+Alternation. The first branch continues the current state and every other branch is enqueued as a copy of it, so branches are tried in pattern order.
+"
 Class {
 	#name : 'PCRE2AlternativeNode',
 	#superclass : 'PCRE2PatternNode',
@@ -8,22 +11,22 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'optimization' }
+{ #category : 'testing' }
 PCRE2AlternativeNode >> canAccept [
 
 	^ children anySatisfy: #canAccept
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2AlternativeNode >> children [
 
 	^ children
 ]
 
-{ #category : 'private' }
-PCRE2AlternativeNode >> children: aValue [
+{ #category : 'accessing' }
+PCRE2AlternativeNode >> children: anArray [
 
-	children := aValue
+	children := anArray
 ]
 
 { #category : 'matching' }
@@ -50,7 +53,7 @@ PCRE2AlternativeNode >> executeIn: engine state: state [
 	^ state
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2AlternativeNode >> firstLiteral [
 
 	| first |
@@ -66,10 +69,22 @@ PCRE2AlternativeNode >> firstLiteralPredicate [
 	self firstLiteral ifNil: [ ^ nil ].
 	predicates := children collect: #firstLiteralPredicate.
 	(predicates includes: nil) ifTrue: [ ^ nil ].
-	^ [ :character | predicates anySatisfy: [ :predicate | predicate value: character ] ]
+	^ self startPredicateOf: predicates
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
+PCRE2AlternativeNode >> isAnchoredIn: analysis [
+
+	^ children allSatisfy: [ :branch | branch isAnchoredIn: analysis ]
+]
+
+{ #category : 'optimization' }
+PCRE2AlternativeNode >> isStartLineIn: analysis [
+
+	^ children allSatisfy: [ :branch | branch isStartLineIn: analysis ]
+]
+
+{ #category : 'accessing' }
 PCRE2AlternativeNode >> lengthBoundsUsing: groups names: names visited: visited [
 
 	| bounds maximum |
@@ -80,13 +95,13 @@ PCRE2AlternativeNode >> lengthBoundsUsing: groups names: names visited: visited 
 		  ((maximum includes: nil) ifFalse: [ maximum max ]) }
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2AlternativeNode >> lookbehindBranches [
 
 	^ children
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2AlternativeNode >> maximumLength [
 
 	| lengths |
@@ -95,17 +110,17 @@ PCRE2AlternativeNode >> maximumLength [
 	^ lengths max
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2AlternativeNode >> minimumLength [
 
 	^ (children collect: #minimumLength) min
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2AlternativeNode >> startPredicate [
 
 	| predicates |
 	predicates := children collect: #startPredicate.
 	(predicates includes: nil) ifTrue: [ ^ nil ].
-	^ [ :character | predicates anySatisfy: [ :test | test value: character ] ]
+	^ self startPredicateOf: predicates
 ]

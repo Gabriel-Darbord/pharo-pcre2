@@ -1,3 +1,6 @@
+"
+Lookbehind assertion, positive or negative. Every branch carries the length bounds the parser computed for it, and the engine starts the branch that many characters back and pins it to the current position.
+"
 Class {
 	#name : 'PCRE2LookbehindNode',
 	#superclass : 'PCRE2PatternNode',
@@ -11,25 +14,25 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2LookbehindNode >> atomic: boolean [
 
 	atomic := boolean
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2LookbehindNode >> branchBounds: bounds [
 
 	branchBounds := bounds
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2LookbehindNode >> branches: anArray [
 
 	branches := anArray
 ]
 
-{ #category : 'matching' }
+{ #category : 'testing' }
 PCRE2LookbehindNode >> canBeCondition [
 
 	^ atomic ~= false
@@ -91,19 +94,19 @@ PCRE2LookbehindNode >> executeIn: engine state: state [
 	^ positive ifFalse: [ state ]
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2LookbehindNode >> maximumLength [
 
 	^ 0
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2LookbehindNode >> maximumLengthFor: branch [
 
 	^ (branchBounds at: branch) second
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2LookbehindNode >> minimumLengthFor: branch [
 
 	^ (branchBounds at: branch) first
@@ -134,13 +137,13 @@ PCRE2LookbehindNode >> nonAtomicIn: engine state: state [
 	^ candidates first
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2LookbehindNode >> positive: aBoolean [
 
 	positive := aBoolean
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2LookbehindNode >> startPredicate [
 
 	^ [ :character | false ]

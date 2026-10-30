@@ -26,7 +26,7 @@ PCRE2CodeUnit >> < other [
 	^ value < other asciiValue
 ]
 
-{ #category : 'accessing' }
+{ #category : 'comparing' }
 PCRE2CodeUnit >> = other [
 
 	^ (other isKindOf: self class) and: [ value = other value ]
@@ -62,7 +62,7 @@ PCRE2CodeUnit >> digitValue [
 	^ -1
 ]
 
-{ #category : 'accessing' }
+{ #category : 'comparing' }
 PCRE2CodeUnit >> hash [
 
 	^ value hash
@@ -104,7 +104,7 @@ PCRE2CodeUnit >> isUppercase [
 	^ false
 ]
 
-{ #category : 'accessing' }
+{ #category : 'printing' }
 PCRE2CodeUnit >> printOn: stream [
 
 	stream

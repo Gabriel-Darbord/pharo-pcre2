@@ -1,3 +1,6 @@
+"
+Owns a compiled-pattern handle of the 32-bit PCRE2 library.
+"
 Class {
 	#name : 'PCRE2MatcherUTF32FFIBackend',
 	#superclass : 'PCRE2MatcherFFIBackend',
@@ -5,7 +8,7 @@ Class {
 	#package : 'PCRE2-FFIBackend'
 }
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherUTF32FFIBackend >> codeUnitWidth [
 
 	^ 32
@@ -25,7 +28,7 @@ PCRE2MatcherUTF32FFIBackend >> createMatchDataWithOvectorSize: ovectorSize [
 	self ffiCall: #(void *pcre2_match_data_create_32(uint32 ovectorSize, nil))
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherUTF32FFIBackend >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
 	"Decode a native-endian UTF-32 substitution output buffer."
 
@@ -51,7 +54,7 @@ PCRE2MatcherUTF32FFIBackend >> enumerateCalloutsWith: callback [
 	self ffiCall: #(int pcre2_callout_enumerate_32(self, FFICallback callback, nil))
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherUTF32FFIBackend >> ffiLibraryName [
 
 	^ LibPCRE2UTF32
@@ -90,7 +93,7 @@ PCRE2MatcherUTF32FFIBackend >> matchBackendClass [
 	^ PCRE2MatchUTF32FFIBackend
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherUTF32FFIBackend >> preparedInputFor: aStringOrInput [
 
 	^ aStringOrInput asPCRE2UTF32Input

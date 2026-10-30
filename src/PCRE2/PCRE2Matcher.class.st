@@ -32,19 +32,19 @@ PCRE2Matcher >> allInfo [
 	^ (0 to: 26) collect: [ :i | self info: i ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'external resource management' }
 PCRE2Matcher >> autoRelease [
 
 	backend autoRelease
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Matcher >> backend [
 
 	^ backend
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Matcher >> backend: anImplementation [
 
 	backend ifNotNil: [ PCRE2Error signal: 'Compile a new matcher to select a different backend' ].
@@ -61,7 +61,7 @@ PCRE2Matcher >> calloutSites [
 	^ sites asArray
 ]
 
-{ #category : 'backends' }
+{ #category : 'callouts' }
 PCRE2Matcher >> calloutSitesDo: aBlock [
 
 	backend calloutSitesDo: aBlock
@@ -133,7 +133,7 @@ PCRE2Matcher >> compilerClass [
 	self subclassResponsibility
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Matcher >> context [
 
 	^ context ifNil: [ context := backend newMatchContext ]
@@ -202,7 +202,7 @@ PCRE2Matcher >> copy: subject translatingMatchesUsing: aBlock [
 		  ws nextPutAll: (aBlock value: (input decodeBytes: (utfSubject copyFrom: start to: end))) ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'copying' }
 PCRE2Matcher >> copyWithCharacterTables [
 
 	| copy |
@@ -349,19 +349,19 @@ PCRE2Matcher >> errorCode: errorCode [
 	PCRE2MatchError signal: (PCRE2 translateErrorCode: errorCode)
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Matcher >> existingContext [
 
 	^ context
 ]
 
-{ #category : 'backends' }
+{ #category : 'library path' }
 PCRE2Matcher >> ffiLibraryName [
 
 	^ backend ffiLibraryName
 ]
 
-{ #category : 'backends' }
+{ #category : 'external resource management' }
 PCRE2Matcher >> finalize [
 
 	backend finalize
@@ -524,19 +524,19 @@ PCRE2Matcher >> findWithGroups: subject [
 	^ (self findMatch: subject) ifNil: [ #(  ) ] ifNotNil: [ :match | match readMatches ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'external resource management' }
 PCRE2Matcher >> free [
 
 	backend free
 ]
 
-{ #category : 'backends' }
+{ #category : 'private' }
 PCRE2Matcher >> getHandle [
 
 	^ backend getHandle
 ]
 
-{ #category : 'backends' }
+{ #category : 'documentation' }
 PCRE2Matcher >> info: option [
 
 	^ backend info: option
@@ -555,7 +555,7 @@ PCRE2Matcher >> initialize [
 	options := 0
 ]
 
-{ #category : 'backends' }
+{ #category : 'private' }
 PCRE2Matcher >> initializeBackend: anImplementation [
 
 	backend := anImplementation.
@@ -578,7 +578,7 @@ PCRE2Matcher >> isJIT: aBoolean [
 	isJIT := aBoolean and: [ compiler optionsJIT ~~ 0 ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'testing' }
 PCRE2Matcher >> isNull [
 
 	^ backend isNull
@@ -864,13 +864,13 @@ PCRE2Matcher >> namedGroups [
 	^ nameTable ifNil: [ nameTable := self readNamedGroups ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'external resource management' }
 PCRE2Matcher >> newMatchData [
 
 	^ self matchClass new backend: backend newMatchBackend
 ]
 
-{ #category : 'backends' }
+{ #category : 'external resource management' }
 PCRE2Matcher >> newMatchDataWithOvectorSize: size [
 
 	^ self matchClass new backend: (backend newMatchBackendWithOvectorSize: size)
@@ -911,7 +911,7 @@ PCRE2Matcher >> patternInput: anInput [
 	patternInput := anInput
 ]
 
-{ #category : 'backends' }
+{ #category : 'copying' }
 PCRE2Matcher >> postCopy [
 
 	backend := backend copy matcher: self.
@@ -944,13 +944,13 @@ PCRE2Matcher >> privateCopyWithCharacterTables [
 	self subclassResponsibility
 ]
 
-{ #category : 'backends' }
+{ #category : 'private' }
 PCRE2Matcher >> readNamedGroups [
 
 	^ backend readNamedGroups
 ]
 
-{ #category : 'backends' }
+{ #category : 'persistence' }
 PCRE2Matcher >> recompile [
 
 	self initializeBackend: (backend recompiledBy: compiler pattern: self patternInput).
@@ -997,7 +997,7 @@ PCRE2Matcher >> recordMatchResult: rc in: aPCRE2Match [
 	self errorCode: rc
 ]
 
-{ #category : 'backends' }
+{ #category : 'persistence' }
 PCRE2Matcher >> restoreFrom: bytes [
 
 	backend restoreFrom: bytes
@@ -1025,13 +1025,13 @@ PCRE2Matcher >> search: subject calloutsDo: calloutBlock [
 	^ self withCallout: calloutBlock do: [ :callbackMatcher | callbackMatcher search: subject ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'persistence' }
 PCRE2Matcher >> serialize [
 
 	^ backend serialize
 ]
 
-{ #category : 'backends' }
+{ #category : 'private' }
 PCRE2Matcher >> setHandle: anAddress [
 
 	backend setHandle: anAddress
@@ -1428,7 +1428,7 @@ PCRE2Matcher >> validateSubstitutionMatchData: aPCRE2Match [
 	aPCRE2Match isComplete ifFalse: [ PCRE2Error signal: 'Substitution match data must contain a complete match' ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'private' }
 PCRE2Matcher >> validateUsableMatchData: matchData [
 
 	(matchData backend family = backend family and: [ matchData backend codeUnitWidth = self codeUnitWidth ]) ifFalse: [

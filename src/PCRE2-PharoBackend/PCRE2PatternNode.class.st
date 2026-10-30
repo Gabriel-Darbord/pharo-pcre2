@@ -1,9 +1,22 @@
+"
+Abstract executable node of a pattern compiled by the Pharo backend.
+
+Running a node means sending executeIn:state:, which pushes whatever still has to run onto the task list of the state and answers the state to continue with, or nil when the node fails. Matching is therefore an explicit loop over tasks rather than Pharo recursion, and a node that has something to restore afterwards pushes a continuation node of its own.
+
+Nodes also answer the static facts the rest of the backend needs: length bounds for lookbehind, first-literal and start predicates for the start optimizations, whether the DFA matcher can run them, and how much runtime storage they take.
+"
 Class {
 	#name : 'PCRE2PatternNode',
 	#superclass : 'Object',
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
 }
+
+{ #category : 'testing' }
+PCRE2PatternNode class >> isAbstract [
+
+	^ self == PCRE2PatternNode
+]
 
 { #category : 'matching' }
 PCRE2PatternNode >> acceptIn: engine state: state [
@@ -12,24 +25,38 @@ PCRE2PatternNode >> acceptIn: engine state: state [
 ]
 
 { #category : 'optimization' }
+PCRE2PatternNode >> acceptsEveryCharacter [
+	"Whether this is the dot of a pattern compiled with dotall, which nothing in the subject refuses."
+
+	^ false
+]
+
+{ #category : 'optimization' }
+PCRE2PatternNode >> acceptsEveryCharacterButLineEnds [
+	"Whether this is the dot of a pattern compiled without dotall, which only a line terminator refuses."
+
+	^ false
+]
+
+{ #category : 'testing' }
 PCRE2PatternNode >> canAccept [
 
 	^ false
 ]
 
-{ #category : 'DFA matching' }
+{ #category : 'optimization' }
 PCRE2PatternNode >> canAutoPossess [
 
 	^ false
 ]
 
-{ #category : 'parsing' }
+{ #category : 'testing' }
 PCRE2PatternNode >> canBeCondition [
 
 	^ false
 ]
 
-{ #category : 'parsing' }
+{ #category : 'testing' }
 PCRE2PatternNode >> canBeRepeated [
 
 	^ true
@@ -59,7 +86,7 @@ PCRE2PatternNode >> executeIn: engine state: state [
 	self subclassResponsibility
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2PatternNode >> firstLiteral [
 
 	^ nil
@@ -71,7 +98,35 @@ PCRE2PatternNode >> firstLiteralPredicate [
 	^ self firstLiteral ifNotNil: [ self startPredicate ]
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
+PCRE2PatternNode >> isAnchoredIn: analysis [
+	"Whether a branch starting here can only match at one place, so that the engine never has to try again further along."
+
+	^ false
+]
+
+{ #category : 'optimization' }
+PCRE2PatternNode >> isSignificantForStart [
+	"Whether the start optimizations have to look at this node, or can pass over it as PCRE2 does."
+
+	^ true
+]
+
+{ #category : 'testing' }
+PCRE2PatternNode >> isSingleCharacter [
+	"Whether this node matches exactly one character and nothing else, which lets a repetition of it be counted off in one step."
+
+	^ false
+]
+
+{ #category : 'optimization' }
+PCRE2PatternNode >> isStartLineIn: analysis [
+	"Whether a branch starting here can only match at the start of a line, so that the engine can jump from one line to the next."
+
+	^ false
+]
+
+{ #category : 'accessing' }
 PCRE2PatternNode >> lengthBoundsUsing: groups names: names visited: visited [
 
 	^ {
@@ -79,25 +134,25 @@ PCRE2PatternNode >> lengthBoundsUsing: groups names: names visited: visited [
 		  self maximumLength }
 ]
 
-{ #category : 'DFA matching' }
+{ #category : 'optimization' }
 PCRE2PatternNode >> literalCharacter [
 
 	^ nil
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2PatternNode >> lookbehindBranches [
 
 	^ { self }
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2PatternNode >> maximumLength [
 
 	^ nil
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2PatternNode >> minimumLength [
 
 	^ 0
@@ -125,13 +180,23 @@ PCRE2PatternNode >> runtimeStorageSize [
 	^ 0
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2PatternNode >> startPredicate [
 
 	^ nil
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
+PCRE2PatternNode >> startPredicateOf: predicates [
+	"One predicate standing for a group of them. A single one answers for itself rather than through a collection walked once for every start position."
+
+	| tests |
+	predicates size = 1 ifTrue: [ ^ predicates anyOne ].
+	tests := predicates asArray.
+	^ [ :character | tests anySatisfy: [ :test | test value: character ] ]
+]
+
+{ #category : 'testing' }
 PCRE2PatternNode >> terminatesWithAccept [
 
 	^ false

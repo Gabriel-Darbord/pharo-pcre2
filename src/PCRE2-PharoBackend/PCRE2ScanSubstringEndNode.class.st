@@ -18,7 +18,7 @@ PCRE2ScanSubstringEndNode >> executeIn: engine state: state [
 	^ super executeIn: engine state: state
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2ScanSubstringEndNode >> previousSubject: aSubject [
 
 	previousSubject := aSubject

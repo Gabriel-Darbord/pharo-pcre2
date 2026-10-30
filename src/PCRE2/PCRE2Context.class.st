@@ -11,68 +11,68 @@ Class {
 	#package : 'PCRE2'
 }
 
-{ #category : 'backends' }
+{ #category : 'external resource management' }
 PCRE2Context >> autoRelease [
 
 	backend autoRelease
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Context >> backend [
 
 	^ backend
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Context >> backend: anImplementation [
 
 	backend ifNotNil: [ PCRE2Error signal: 'Create a new context to select a different backend' ].
 	backend := anImplementation
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Context >> codeUnitWidth [
 
 	^ backend codeUnitWidth
 ]
 
-{ #category : 'backends' }
+{ #category : 'library path' }
 PCRE2Context >> ffiLibraryName [
 
 	^ backend ffiLibraryName
 ]
 
-{ #category : 'backends' }
+{ #category : 'external resource management' }
 PCRE2Context >> finalize [
 
 	backend finalize
 ]
 
-{ #category : 'backends' }
+{ #category : 'external resource management' }
 PCRE2Context >> free [
 
 	backend free
 ]
 
-{ #category : 'backends' }
+{ #category : 'private' }
 PCRE2Context >> getHandle [
 
 	^ backend getHandle
 ]
 
-{ #category : 'backends' }
+{ #category : 'testing' }
 PCRE2Context >> isNull [
 
 	^ backend isNull
 ]
 
-{ #category : 'backends' }
+{ #category : 'copying' }
 PCRE2Context >> postCopy [
 
 	backend := backend copy
 ]
 
-{ #category : 'backends' }
+{ #category : 'persistence' }
 PCRE2Context >> prepareForShutdown [
 
 	backend prepareForShutdown

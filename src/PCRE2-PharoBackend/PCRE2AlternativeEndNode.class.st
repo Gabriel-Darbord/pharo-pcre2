@@ -1,3 +1,6 @@
+"
+Runtime continuation an alternation pushes behind each branch to restore the alternation scope that branch was entered in. Built while matching, never by the parser.
+"
 Class {
 	#name : 'PCRE2AlternativeEndNode',
 	#superclass : 'PCRE2PatternNode',
@@ -21,13 +24,13 @@ PCRE2AlternativeEndNode >> executeIn: engine state: state [
 	^ state
 ]
 
-{ #category : 'DFA matching' }
+{ #category : 'accessing' }
 PCRE2AlternativeEndNode >> maximumLength [
 
 	^ 0
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2AlternativeEndNode >> previous: frames [
 
 	previous := frames
@@ -39,7 +42,7 @@ PCRE2AlternativeEndNode >> runtimeStorageSize [
 	^ self sizeInMemory
 ]
 
-{ #category : 'DFA matching' }
+{ #category : 'optimization' }
 PCRE2AlternativeEndNode >> startPredicate [
 
 	^ [ :character | false ]

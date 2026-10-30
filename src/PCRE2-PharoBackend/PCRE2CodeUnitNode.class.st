@@ -11,13 +11,13 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2CodeUnitNode >> canAutoPossess [
 
 	^ true
 ]
 
-{ #category : 'matching' }
+{ #category : 'DFA matching' }
 PCRE2CodeUnitNode >> dfaError [
 
 	^ unicodeWideUnit
@@ -36,19 +36,19 @@ PCRE2CodeUnitNode >> executeIn: engine state: state [
 	^ state
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2CodeUnitNode >> maximumLength [
 
 	^ unicodeWideUnit ifFalse: [ 1 ]
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2CodeUnitNode >> minimumLength [
 
 	^ 1
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2CodeUnitNode >> unicodeWideUnit: boolean [
 
 	unicodeWideUnit := boolean

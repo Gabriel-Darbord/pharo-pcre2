@@ -1,14 +1,88 @@
 """Generate Unicode data, not Pharo source, from a pinned PCRE2 checkout.
 
-Install the output in PCRE2UnicodeData using Pharo MCP. No C code or test
-fixtures are embedded. Range lists contain inclusive, sorted pairs.
+Writes the data as JSON, and as the packed form PCRE2UnicodeData carries: the
+sections below as LEB128 varints, gzipped, then base64. Install that string in
+PCRE2UnicodeData class>>encoded using Pharo MCP; PCRE2UnicodeData class>>decode:
+reads the same section order. No C code or test fixtures are embedded. Range
+lists contain inclusive, sorted pairs.
 """
 import argparse
+import base64
 import collections
+import gzip
 import json
 import re
 import subprocess
 from pathlib import Path
+
+SECTIONS = ('version', 'propertyNames', 'properties', 'aliases',
+            'allowedProperties', 'folds', 'equivalents', 'scriptMasks',
+            'digitSets')
+
+
+def varint(value, out):
+    """Append value to out as LEB128, low 7 bits first, high bit for more."""
+    while True:
+        part = value & 0x7F
+        value >>= 7
+        out.append(part | 0x80 if value else part)
+        if not value:
+            return
+
+
+def text_section(lines, out):
+    body = '\n'.join(lines).encode('utf8')
+    varint(len(body), out)
+    out += body
+
+
+def range_section(flat, out):
+    """Inclusive pairs as (gap since the last end, length), both varints."""
+    varint(len(flat) // 2, out)
+    previous = 0
+    for index in range(0, len(flat), 2):
+        start, end = flat[index], flat[index + 1]
+        varint(start - previous, out)
+        varint(end - start, out)
+        previous = end
+
+
+def pack(data):
+    out = bytearray()
+    text_section([data['version']], out)
+    names = sorted(data['properties'])
+    text_section(names, out)
+    for name in names:
+        range_section(data['properties'][name], out)
+    text_section(['%s=%s' % pair for pair in sorted(data['aliases'].items())], out)
+    text_section(sorted(data['allowedProperties']), out)
+    for name in ('folds', 'digitSets'):
+        table = data[name]
+        varint(len(table), out)
+        previous = 0
+        for code in sorted(table, key=int):
+            varint(int(code) - previous, out)
+            # A digit set is stored as the digit value, which is never above 9.
+            varint(table[code] if name == 'folds' else int(code) - table[code], out)
+            previous = int(code)
+    equivalents = data['equivalents']
+    varint(len(equivalents), out)
+    previous = 0
+    for code in sorted(equivalents, key=int):
+        varint(int(code) - previous, out)
+        varint(len(equivalents[code]), out)
+        for each in equivalents[code]:
+            varint(each, out)
+        previous = int(code)
+    masks = data['scriptMasks']
+    varint(len(masks) // 3, out)
+    previous = 0
+    for index in range(0, len(masks), 3):
+        varint(masks[index] - previous, out)
+        varint(masks[index + 1] - masks[index], out)
+        varint(masks[index + 2], out)
+        previous = masks[index + 1]
+    return base64.b64encode(gzip.compress(bytes(out), 9)).decode('ascii')
 
 
 def normalized(name):
@@ -183,6 +257,10 @@ if __name__ == '__main__':
     parser.add_argument('--pcre2', type=Path, required=True)
     parser.add_argument('--revision', default='pcre2-10.49')
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--packed', type=Path,
+                        help='where to write the base64 string for PCRE2UnicodeData')
     args = parser.parse_args()
-    args.output.write_text(json.dumps(generate(args.pcre2, args.revision),
-                                     separators=(',', ':'), sort_keys=True))
+    data = generate(args.pcre2, args.revision)
+    args.output.write_text(json.dumps(data, separators=(',', ':'), sort_keys=True))
+    if args.packed:
+        args.packed.write_text(pack(data))

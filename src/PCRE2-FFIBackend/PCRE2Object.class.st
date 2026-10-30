@@ -45,13 +45,13 @@ PCRE2Object >> autoRelease [
 	FinalizationRegistry default add: self
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Object >> backend [
 
 	^ self
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Object >> codeUnitWidth [
 
 	^ self ffiLibraryName codeUnitWidth
@@ -64,7 +64,7 @@ PCRE2Object >> errorCode: errorCode [
 	PCRE2Error signal: (PCRE2 translateErrorCode: errorCode)
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2Object >> family [
 
 	^ #ffi
@@ -101,7 +101,7 @@ PCRE2Object >> prepareForShutdown [
 	^ self
 ]
 
-{ #category : 'backends' }
+{ #category : 'testing' }
 PCRE2Object >> requiresSessionRestore [
 
 	^ true

@@ -381,6 +381,13 @@ PCRE2 class >> errorCallout [
 ]
 
 { #category : 'errors' }
+PCRE2 class >> errorDFAInvalidUTF [
+	"DFA matching was asked to run a pattern compiled with PCRE2_MATCH_INVALID_UTF, which only the ordinary matching function supports."
+
+	^ -66
+]
+
+{ #category : 'errors' }
 PCRE2 class >> errorNoMatch [
 	"No match was found. This result is handled by the wrapper and does not signal."
 

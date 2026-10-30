@@ -1,3 +1,6 @@
+"
+Owns a C match-context handle for a public PCRE2MatchContext. Limits are written through to the library, while the JIT stack and the callout blocks are also held in the image because the library only keeps pointers to them. Width-specific subclasses contain the UFFI entry points.
+"
 Class {
 	#name : 'PCRE2MatchContextFFIBackend',
 	#superclass : 'PCRE2Object',
@@ -17,6 +20,12 @@ Class {
 	#category : 'PCRE2-FFIBackend',
 	#package : 'PCRE2-FFIBackend'
 }
+
+{ #category : 'testing' }
+PCRE2MatchContextFFIBackend class >> isAbstract [
+
+	^ self == PCRE2MatchContextFFIBackend
+]
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> calloutBlock: aBlock [
@@ -86,7 +95,7 @@ PCRE2MatchContextFFIBackend >> codeUnitWidth [
 	self subclassResponsibility
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'accessing' }
 PCRE2MatchContextFFIBackend >> depthLimit [
 
 	^ depthLimit
@@ -99,7 +108,7 @@ PCRE2MatchContextFFIBackend >> depthLimit: anInteger [
 	self setDepthLimit: (depthLimit := anInteger)
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'accessing' }
 PCRE2MatchContextFFIBackend >> heapLimit [
 
 	^ heapLimit
@@ -112,7 +121,7 @@ PCRE2MatchContextFFIBackend >> heapLimit: anInteger [
 	self setHeapLimit: (heapLimit := anInteger)
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'accessing' }
 PCRE2MatchContextFFIBackend >> jitStack [
 	"Assigned JIT stack, or nil when PCRE2 uses its default thread-local machine stack."
 
@@ -130,7 +139,7 @@ PCRE2MatchContextFFIBackend >> jitStack: aJITStack [
 	jitStack := aJITStack
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'accessing' }
 PCRE2MatchContextFFIBackend >> matchLimit [
 
 	^ matchLimit
@@ -143,7 +152,7 @@ PCRE2MatchContextFFIBackend >> matchLimit: anInteger [
 	self setMatchLimit: (matchLimit := anInteger)
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'accessing' }
 PCRE2MatchContextFFIBackend >> offsetLimit [
 
 	^ offsetLimit
@@ -156,7 +165,7 @@ PCRE2MatchContextFFIBackend >> offsetLimit: anInteger [
 	self setOffsetLimit: (offsetLimit := anInteger)
 ]
 
-{ #category : 'private - FFI' }
+{ #category : 'copying' }
 PCRE2MatchContextFFIBackend >> postCopy [
 
 	handle := self privateCopy.

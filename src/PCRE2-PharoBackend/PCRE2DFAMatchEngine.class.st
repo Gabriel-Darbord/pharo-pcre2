@@ -1,27 +1,31 @@
+"
+Engine for pcre2_dfa_match. It advances every alternative together instead of backtracking, so a node runs once per set of states rather than once per path, and it answers all the matches at a start position, shortest or longest first.
+
+It inherits the node execution and the choice stack of its superclass and replaces only the search, `allMatchesFrom:`. Nested assertions still run through the inherited backtracking loop, as PCRE2 does. It also keeps the continuations a restarted match resumes from, which is what makes a match over several subject chunks possible.
+"
 Class {
-	#name : 'PCRE2DFAMatcher',
-	#superclass : 'PCRE2BacktrackingMatcher',
+	#name : 'PCRE2DFAMatchEngine',
+	#superclass : 'PCRE2MatchEngine',
 	#instVars : [
 		'shortest',
 		'autoPossessEnabled',
 		'suppressPossession',
 		'restartStates',
 		'currentState',
-		'workspaceLimit',
-		'allowEmptyPartial'
+		'workspaceLimit'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
 }
 
 { #category : 'DFA matching' }
-PCRE2DFAMatcher >> allMatches: initialState [
+PCRE2DFAMatchEngine >> allMatches: initialState [
 
 	^ self allMatchesFrom: { initialState }
 ]
 
 { #category : 'matching' }
-PCRE2DFAMatcher >> allMatchesFrom: initialStates [
+PCRE2DFAMatchEngine >> allMatchesFrom: initialStates [
 
 	| seen queue results key state node savedCurrent |
 	seen := Set new.
@@ -56,14 +60,8 @@ PCRE2DFAMatcher >> allMatchesFrom: initialStates [
 	^ results sorted: [ :left :right | left position > right position ]
 ]
 
-{ #category : 'DFA matching' }
-PCRE2DFAMatcher >> allowEmptyPartial: aBoolean [
-
-	allowEmptyPartial := aBoolean
-]
-
-{ #category : 'DFA matching' }
-PCRE2DFAMatcher >> autoPossess: repeat state: state [
+{ #category : 'optimization' }
+PCRE2DFAMatchEngine >> autoPossess: repeat state: state [
 
 	| link predicate literal |
 	(autoPossessEnabled = true and: [ suppressPossession ~= true and: [ repeat greedy and: [ repeat child canAutoPossess ] ] ])
@@ -82,14 +80,14 @@ PCRE2DFAMatcher >> autoPossess: repeat state: state [
 	^ true
 ]
 
-{ #category : 'DFA matching' }
-PCRE2DFAMatcher >> autoPossessEnabled: boolean [
+{ #category : 'accessing' }
+PCRE2DFAMatchEngine >> autoPossessEnabled: boolean [
 
 	autoPossessEnabled := boolean
 ]
 
 { #category : 'callouts' }
-PCRE2DFAMatcher >> callout: site state: state [
+PCRE2DFAMatchEngine >> callout: site state: state [
 
 	| eventState result |
 	eventState := state copy
@@ -102,7 +100,7 @@ PCRE2DFAMatcher >> callout: site state: state [
 ]
 
 { #category : 'matching' }
-PCRE2DFAMatcher >> executeNode: node state: state [
+PCRE2DFAMatchEngine >> executeNode: node state: state [
 
 	| result hard |
 	node dfaError = 0 ifFalse: [ PCRE2MatchError signal: (PCRE2 translateErrorCode: node dfaError) ].
@@ -120,8 +118,8 @@ PCRE2DFAMatcher >> executeNode: node state: state [
 	^ result
 ]
 
-{ #category : 'DFA matching' }
-PCRE2DFAMatcher >> matchNode: node state: state propagate: mode [
+{ #category : 'matching' }
+PCRE2DFAMatchEngine >> matchNode: node state: state propagate: mode [
 
 	| savedChoices savedShortest nested results savedRestart nestedRestart |
 	mode = #atomic ifFalse: [ mode = #possess ifFalse: [ ^ super matchNode: node state: state propagate: mode ] ].
@@ -155,11 +153,10 @@ PCRE2DFAMatcher >> matchNode: node state: state propagate: mode [
 		  ifFalse: [ results last ]
 ]
 
-{ #category : 'DFA matching' }
-PCRE2DFAMatcher >> notePartial: state [
+{ #category : 'matching' }
+PCRE2DFAMatchEngine >> notePartial: state [
 
 	| continuation |
-	allowEmptyPartial = true ifTrue: [ earliestConsulted := candidateStart - 1 ].
 	super notePartial: state.
 	(partialState isNil or: [ currentState isNil ]) ifTrue: [ ^ self ].
 	continuation := ((currentState tasks first isKindOf: PCRE2GraphemeNode) and: [ state position > currentState position ])
@@ -173,8 +170,8 @@ PCRE2DFAMatcher >> notePartial: state [
 		restartStates add: continuation ]
 ]
 
-{ #category : 'DFA matching' }
-PCRE2DFAMatcher >> possessRepeat: node state: state [
+{ #category : 'optimization' }
+PCRE2DFAMatchEngine >> possessRepeat: node state: state [
 
 	| saved result |
 	saved := suppressPossession.
@@ -188,19 +185,25 @@ PCRE2DFAMatcher >> possessRepeat: node state: state [
 ]
 
 { #category : 'DFA matching' }
-PCRE2DFAMatcher >> restartStates [
+PCRE2DFAMatchEngine >> restartStates [
 
 	^ (restartStates ifNil: [ #(  ) ]) collect: [ :state | state copy restartAfter: subject size ]
 ]
 
-{ #category : 'DFA matching' }
-PCRE2DFAMatcher >> shortest: boolean [
+{ #category : 'optimization' }
+PCRE2DFAMatchEngine >> scansRepeats [
+
+	^ false
+]
+
+{ #category : 'accessing' }
+PCRE2DFAMatchEngine >> shortest: boolean [
 
 	shortest := boolean
 ]
 
-{ #category : 'DFA matching' }
-PCRE2DFAMatcher >> workspaceLimit: size [
+{ #category : 'accessing' }
+PCRE2DFAMatchEngine >> workspaceLimit: size [
 
 	workspaceLimit := size
 ]

@@ -1,3 +1,6 @@
+"
+Subroutine call to a group, by number as in (?1) or by name as in (?&name). The group matches on its own and the captures are restored on return, except for the groups the call asks to retain.
+"
 Class {
 	#name : 'PCRE2SubroutineNode',
 	#superclass : 'PCRE2PatternNode',
@@ -9,7 +12,7 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'optimization' }
+{ #category : 'testing' }
 PCRE2SubroutineNode >> canAccept [
 
 	^ true
@@ -45,7 +48,7 @@ PCRE2SubroutineNode >> executeIn: engine state: state [
 	^ state
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2SubroutineNode >> lengthBoundsUsing: groups names: names visited: visited [
 
 	| index target |
@@ -56,16 +59,16 @@ PCRE2SubroutineNode >> lengthBoundsUsing: groups names: names visited: visited [
 	^ target lengthBoundsUsing: groups names: names visited: visited
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2SubroutineNode >> reference [
 
 	^ reference
 ]
 
-{ #category : 'private' }
-PCRE2SubroutineNode >> reference: aValue [
+{ #category : 'accessing' }
+PCRE2SubroutineNode >> reference: aReference [
 
-	reference := aValue
+	reference := aReference
 ]
 
 { #category : 'accessing' }

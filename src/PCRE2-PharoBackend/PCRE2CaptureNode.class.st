@@ -1,3 +1,6 @@
+"
+Capturing group. Pushes the continuation that will record where the group ended, then its child.
+"
 Class {
 	#name : 'PCRE2CaptureNode',
 	#superclass : 'PCRE2PatternNode',
@@ -9,22 +12,22 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'optimization' }
+{ #category : 'testing' }
 PCRE2CaptureNode >> canAccept [
 
 	^ child canAccept
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CaptureNode >> child [
 
 	^ child
 ]
 
-{ #category : 'private' }
-PCRE2CaptureNode >> child: aValue [
+{ #category : 'accessing' }
+PCRE2CaptureNode >> child: aNode [
 
-	child := aValue
+	child := aNode
 ]
 
 { #category : 'matching' }
@@ -37,7 +40,7 @@ PCRE2CaptureNode >> executeIn: anEngine state: aState [
 	^ aState
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2CaptureNode >> firstLiteral [
 
 	^ child firstLiteral
@@ -49,19 +52,31 @@ PCRE2CaptureNode >> firstLiteralPredicate [
 	^ child firstLiteralPredicate
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CaptureNode >> index [
 
 	^ index
 ]
 
-{ #category : 'private' }
-PCRE2CaptureNode >> index: aValue [
+{ #category : 'accessing' }
+PCRE2CaptureNode >> index: anInteger [
 
-	index := aValue
+	index := anInteger
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
+PCRE2CaptureNode >> isAnchoredIn: analysis [
+
+	^ child isAnchoredIn: (analysis withinGroup: index)
+]
+
+{ #category : 'optimization' }
+PCRE2CaptureNode >> isStartLineIn: analysis [
+
+	^ child isStartLineIn: (analysis withinGroup: index)
+]
+
+{ #category : 'accessing' }
 PCRE2CaptureNode >> lengthBoundsUsing: groups names: names visited: visited [
 
 	(visited includes: self) ifTrue: [ ^ { 0. nil } ].
@@ -70,13 +85,13 @@ PCRE2CaptureNode >> lengthBoundsUsing: groups names: names visited: visited [
 			   yourself)
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2CaptureNode >> maximumLength [
 
 	^ child maximumLength
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2CaptureNode >> minimumLength [
 
 	^ child minimumLength
@@ -88,7 +103,7 @@ PCRE2CaptureNode >> requiredNode [
 	^ child requiredNode
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2CaptureNode >> startPredicate [
 
 	^ child startPredicate

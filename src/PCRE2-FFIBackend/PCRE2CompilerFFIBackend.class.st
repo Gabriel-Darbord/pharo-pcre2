@@ -29,7 +29,13 @@ PCRE2CompilerFFIBackend class >> for: aCompiler [
 	^ backendClass new compiler: aCompiler
 ]
 
-{ #category : 'backends' }
+{ #category : 'testing' }
+PCRE2CompilerFFIBackend class >> isAbstract [
+
+	^ self == PCRE2CompilerFFIBackend
+]
+
+{ #category : 'testing' }
 PCRE2CompilerFFIBackend class >> isAvailable [
 
 	^ LibPCRE2UTF8 isNativeLibraryAvailable
@@ -58,7 +64,7 @@ PCRE2CompilerFFIBackend >> compilePreparedInput: input [
 	^ (self matcherBackendClass fromHandle: (self compileBasicInput: input)) autoRelease
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2CompilerFFIBackend >> family [
 
 	^ #ffi

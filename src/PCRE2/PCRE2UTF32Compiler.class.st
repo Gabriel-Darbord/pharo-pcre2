@@ -8,7 +8,7 @@ Class {
 	#package : 'PCRE2'
 }
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2UTF32Compiler >> codeUnitWidth [
 
 	^ 32

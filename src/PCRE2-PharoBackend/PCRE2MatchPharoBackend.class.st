@@ -1,3 +1,6 @@
+"
+Match-data implementation for the Pharo backend. It holds the offsets vector, the last mark and the start index as ordinary image objects, and reports its sizes in terms of that representation rather than of C allocations.
+"
 Class {
 	#name : 'PCRE2MatchPharoBackend',
 	#superclass : 'Object',
@@ -17,19 +20,19 @@ PCRE2MatchPharoBackend >> autoRelease [
 	^ self
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2MatchPharoBackend >> codeUnitWidth [
 
 	^ codeUnitWidth
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2MatchPharoBackend >> codeUnitWidth: anInteger [
 
 	codeUnitWidth := anInteger
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2MatchPharoBackend >> family [
 
 	^ #pharo
@@ -83,28 +86,28 @@ PCRE2MatchPharoBackend >> isNull [
 	^ false
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2MatchPharoBackend >> mark [
 
 	^ mark
 ]
 
-{ #category : 'private' }
-PCRE2MatchPharoBackend >> mark: aValue [
+{ #category : 'accessing' }
+PCRE2MatchPharoBackend >> mark: aString [
 
-	mark := aValue
+	mark := aString
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2MatchPharoBackend >> offsets [
 
 	^ offsets
 ]
 
-{ #category : 'private' }
-PCRE2MatchPharoBackend >> offsets: aValue [
+{ #category : 'accessing' }
+PCRE2MatchPharoBackend >> offsets: anArray [
 
-	offsets := aValue
+	offsets := anArray
 ]
 
 { #category : 'accessing' }
@@ -121,14 +124,14 @@ PCRE2MatchPharoBackend >> requiresSessionRestore [
 	^ false
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2MatchPharoBackend >> startIndex [
 
 	^ startIndex
 ]
 
-{ #category : 'private' }
-PCRE2MatchPharoBackend >> startIndex: aValue [
+{ #category : 'accessing' }
+PCRE2MatchPharoBackend >> startIndex: anInteger [
 
-	startIndex := aValue
+	startIndex := anInteger
 ]

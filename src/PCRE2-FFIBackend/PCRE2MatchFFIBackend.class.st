@@ -8,6 +8,12 @@ Class {
 	#package : 'PCRE2-FFIBackend'
 }
 
+{ #category : 'testing' }
+PCRE2MatchFFIBackend class >> isAbstract [
+
+	^ self == PCRE2MatchFFIBackend
+]
+
 { #category : 'accessing' }
 PCRE2MatchFFIBackend >> getMark [
 

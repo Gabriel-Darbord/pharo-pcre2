@@ -9,11 +9,92 @@ Class {
 }
 
 { #category : 'private' }
+PCRE2PharoBackendTest >> assertCompiling: pattern options: compileOptions signals: errorCode at: offset [
+
+	[
+		self compile: pattern options: compileOptions.
+		self fail ]
+		on: PCRE2CompileError
+		do: [ :error |
+				self assert: error errorMessage equals: (PCRE2 translateErrorCode: errorCode).
+				self assert: error offset equals: offset ]
+]
+
+{ #category : 'private' }
 PCRE2PharoBackendTest >> compile: pattern [
 
 	^ PCRE2Compiler new
 		  backend: PCRE2CompilerPharoBackend;
 		  compile: pattern
+]
+
+{ #category : 'private' }
+PCRE2PharoBackendTest >> compile: pattern options: compileOptions [
+
+	^ PCRE2Compiler new
+		  backend: PCRE2CompilerPharoBackend;
+		  options: compileOptions;
+		  compile: pattern
+]
+
+{ #category : 'private' }
+PCRE2PharoBackendTest >> matchInvalidUTF: pattern in: bytes [
+	"The offsets of the first match over possibly malformed subject bytes, or nil."
+
+	| matcher data rc |
+	matcher := self compile: pattern options: PCRE2 matchInvalidUTF.
+	data := matcher newMatchData.
+	rc := matcher
+		      matchBytes: bytes
+		      from: 1
+		      to: bytes size
+		      into: data.
+	^ rc > 0 ifTrue: [ (data offsets first: rc * 2) asArray ]
+]
+
+{ #category : 'private' }
+PCRE2PharoBackendTest >> partialMatch: pattern in: bytes options: matchOptions [
+	"The result code and the first two offsets of one match attempt under partial matching."
+
+	^ self
+		  partialMatch: pattern
+		  in: bytes
+		  options: matchOptions
+		  compiled: 0
+]
+
+{ #category : 'private' }
+PCRE2PharoBackendTest >> partialMatch: pattern in: bytes options: matchOptions compiled: compileOptions [
+	"The result code and the first two offsets of one match attempt under partial matching, or no offsets when there was no match at all."
+
+	| matcher data rc |
+	matcher := self compile: pattern options: compileOptions.
+	data := matcher newMatchData.
+	rc := matcher
+		      matchBytes: bytes
+		      from: 1
+		      to: bytes size
+		      options: matchOptions
+		      into: data.
+	^ {
+		  rc.
+		  (data offsets size >= 2
+			   ifTrue: [ (data offsets first: 2) asArray ]
+			   ifFalse: [ #(  ) ]) }
+]
+
+{ #category : 'private' }
+PCRE2PharoBackendTest >> startPositionsOf: pattern in: subject [
+	"Where a match was attempted, as a callout at the head of the pattern saw it."
+
+	| matcher starts |
+	starts := OrderedCollection new.
+	matcher := self compile: pattern.
+	matcher context calloutBlock: [ :event |
+			starts add: event startMatch.
+			0 ].
+	matcher matches: subject.
+	^ starts asArray
 ]
 
 { #category : 'tests' }
@@ -43,6 +124,24 @@ PCRE2PharoBackendTest >> testAlternativeVerbNamesAndAcceptanceConstraints [
 	matcher := compiler compile: '^ (?(DEFINE) (..(*ACCEPT)|...) ) (?1)$'.
 	self deny: (matcher matches: 'abc').
 	self assert: ((compiler compile: 'a(*ACCEPT)??bc') matches: 'abc')
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testAnchoredStartOptimizationStillAppliesUnderPartialMatching [
+	"PCRE2 checks the first code unit at the one anchored start whether or not partial matching is on, so a subject with no room for it answers no match at all."
+
+	self
+		assert: (self
+				 partialMatch: '\bWORD\b'
+				 in: #[  ]
+				 options: PCRE2 partialSoft
+				 compiled: PCRE2 anchored)
+		equals: {
+				PCRE2 errorNoMatch.
+				#(  ) }.
+	self assert: (self partialMatch: '\bWORD\b' in: #[  ] options: PCRE2 partialSoft) equals: {
+			PCRE2 errorPartial.
+			#( 0 0 ) }
 ]
 
 { #category : 'tests' }
@@ -145,7 +244,7 @@ PCRE2PharoBackendTest >> testCalloutMetadataCallbacksAndBacktracking [
 	self assert: (matcher matches: 'ac' calloutsDo: [ :event |
 				 events add: event.
 				 0 ]).
-	self assert: (events collect: #number) asArray equals: #( 1 2 3 ).
+	self assert: (events collect: #number as: Array) equals: #( 1 2 3 ).
 	self assert: events first isStartMatch.
 	self assert: events last isBacktrack.
 	self should: [ matcher matches: 'ac' calloutsDo: [ :event | PCRE2 errorCallout ] ] raise: PCRE2MatchError.
@@ -181,6 +280,21 @@ PCRE2PharoBackendTest >> testCharacterClasses [
 	self assert: ((self compile: '[a-z\d]+') find: 'ABCabc123!') equals: 'abc123'.
 	self assert: ((self compile: '[^a-c]+') find: 'abXYZ') equals: 'XYZ'.
 	self assert: ((self compile: '[\x{41}-\x{5a}]+') find: 'aABC') equals: 'ABC'
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testCharacterClassesAgreeAboveAndBelowTheirTable [
+	"A class answers from a table for the codes that fit in one byte and from its predicate above them, so the two have to agree about every character, including the one on each side of the join."
+
+	| join high |
+	join := String with: (Character value: 16rFF) with: (Character value: 16r100).
+	high := String with: (Character value: 16rC9).
+	self assert: ((self compile: '[\x{ff}\x{100}]+' options: PCRE2 utf) find: join , 'b') equals: join.
+	self
+		assert: ((self compile: '[^\x{100}]+' options: PCRE2 utf) find: (String with: (Character value: 16r100)) , 'ab')
+		equals: 'ab'.
+	self assert: ((self compile: '[^a-z]+' options: PCRE2 utf) find: 'abc' , high) equals: high.
+	self assert: ((self compile: '[a-z]+' options: PCRE2 caseless) find: 'XYZ') equals: 'XYZ'
 ]
 
 { #category : 'tests' }
@@ -230,6 +344,62 @@ PCRE2PharoBackendTest >> testCompileContextLimits [
 	self should: [ compiler compile: '(((a)))' ] raise: PCRE2CompileError.
 	compiler context maxPatternLength: 3.
 	self should: [ compiler compile: 'abcd' ] raise: PCRE2CompileError
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testCompileDiagnosticLocations [
+
+	#( #( '(?<2>a)' 144 4 ) #( '(?<bad-name>a)' 142 6 ) #( '\k<missing>' 115 3 ) #( '(?(+10))' 115 4 ) #( 'x(?<=a+)' 125 1 )
+	   #( 'a{4,2}' 104 5 ) #( 'a{65536}' 105 7 ) #( '(?(VERSION<10)a|b)' 179 11 ) ) do: [ :example |
+			[
+				self compile: example first.
+				self fail ]
+				on: PCRE2CompileError
+				do: [ :error |
+						self assert: error errorMessage equals: (PCRE2 translateErrorCode: example second).
+						self assert: error offset equals: example third ] ].
+	{
+		(PCRE2UTF8Compiler -> 4).
+		(PCRE2UTF16Compiler -> 2).
+		(PCRE2UTF32Compiler -> 1) } do: [ :example |
+			[
+				example key new
+					backend: PCRE2CompilerPharoBackend;
+					options: PCRE2 utf;
+					compile: '😀(?<=a+)'.
+				self fail ]
+				on: PCRE2CompileError
+				do: [ :error | self assert: error offset equals: example value ] ]
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testCompileDiagnosticsUsePCRE2Messages [
+	"A rejected pattern reports the message and offset PCRE2 gives it, not a message of our own."
+
+	#( #( '[abcd' 106 5 ) #( 'a[]b' 106 4 ) #( '(abc' 114 4 ) #( '(?i' 114 3 ) #( '(?# abc' 118 7 ) #( '[:x:]' 112 5 )
+	   #( '[.x.]' 113 5 ) #( '[[.ch.]]' 113 7 ) #( '[a-[.xxx.]]+' 150 10 ) #( '[A-\BP-\RV-\X]' 107 5 ) #( '[\K]' 107 3 )
+	   #( '(?+-a)' 129 4 ) #( '(?P''abc''x)(?P<xyz>y)' 141 4 ) #( '(?P<x>eks)(?P<x>eccs)' 143 16 )
+	   #( '(?|(?<a>A)|(?<b>B))' 165 16 ) #( '(?R-:(?<)' 158 3 ) #( '(*XYZ)' 160 5 ) #( '(*LIMIT_MATCH=)abc' 160 14 )
+	   #( '^A\x{' 178 5 ) #( 'a\800000b' 161 8 ) #( '(a(?<=b(?1)))' 125 2 ) #( '(?<!a{65535}a{5})x' 187 0 )
+	   #( '12345(?<=\d{1,256})X' 200 5 ) #( '(?(DEFINE)a|b)' 154 3 ) #( '\p{Any' 146 6 ) #( '\p{Foo}' 147 7 ) #( '(?[( ' 106 5 )
+	   #( '(?[(' 114 4 ) ) do: [ :example |
+			self
+				assertCompiling: example first
+				options: 0
+				signals: example second
+				at: example third ].
+	#( #( '[a[B]' 212 5 ) #( '[a--[a]' 212 7 ) #( '[a--[a]--' 212 9 ) #( '[a[]' 106 4 ) #( '[a--[a' 106 6 ) #( '[a[b]c[d' 106 8 )
+	   #( '[a[:alpha:]' 106 11 ) ) do: [ :example |
+			self
+				assertCompiling: example first
+				options: PCRE2 altExtendedClass
+				signals: example second
+				at: example third ].
+	self
+		assertCompiling: '(*MARK:a\zb)z'
+		options: PCRE2 altVerbNames
+		signals: 140
+		at: 10
 ]
 
 { #category : 'tests' }
@@ -552,6 +722,27 @@ PCRE2PharoBackendTest >> testGreedyLazyAndPossessiveRepetition [
 ]
 
 { #category : 'tests' }
+PCRE2PharoBackendTest >> testGreedyRunsOfOneCharacterAreCountedThenGivenBack [
+	"A greedy repetition of a single character is counted off in one step and then given back a character at a time, which has to leave exactly the match that taking them one at a time would."
+
+	| match |
+	match := (self compile: '(a+)(a+)') findMatch: 'aaaa'.
+	self assert: (match groupAt: 1) equals: 'aaa'.
+	self assert: (match groupAt: 2) equals: 'a'.
+	self assert: ((self compile: 'a{2,4}b') find: 'aaaaab') equals: 'aaaab'.
+	self deny: ((self compile: 'a{2,4}b') search: 'ab').
+	self assert: ((self compile: '(.*)b') find: 'abcb') equals: 'abcb'.
+	self assert: ((self compile: 'a+?b') find: 'aaab') equals: 'aaab'.
+	"Giving a character back steps over a whole character, not one code unit of it."
+	match := (self compile: '(é+)é' options: PCRE2 utf) findMatch: 'ééé'.
+	self assert: (match groupAt: 1) equals: 'éé'.
+	"And a run that stops because the subject does still says so."
+	self assert: (self partialMatch: 'a+b' in: #[ 97 97 97 ] options: PCRE2 partialSoft) equals: {
+			PCRE2 errorPartial.
+			#( 0 3 ) }
+]
+
+{ #category : 'tests' }
 PCRE2PharoBackendTest >> testHeapBudgetAndMatchStorageDiagnostics [
 
 	| matcher match size |
@@ -580,6 +771,86 @@ PCRE2PharoBackendTest >> testInlineOptions [
 	self assert: ((self compile: '(?i:ab)c') find: 'ABc') equals: 'ABc'.
 	self deny: ((self compile: '(?i:ab)c') search: 'ABC').
 	self assert: ((self compile: '(?i)abc') matches: 'ABC')
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testInvalidUTFImpliesUTFAndIsRefusedByDFAMatching [
+	"PCRE2_MATCH_INVALID_UTF forces UTF mode, and only the ordinary matching function honours it."
+
+	| matcher data |
+	matcher := self compile: '.' options: PCRE2 matchInvalidUTF.
+	data := matcher newMatchData.
+	self
+		assert: (matcher
+				 matchBytes: #[ 195 169 ]
+				 from: 1
+				 to: 2
+				 into: data)
+		equals: 1.
+	self assert: (data offsets first: 2) equals: #( 0 2 ).
+	self
+		assert: (matcher
+				 dfaMatch: #[ 195 169 ]
+				 from: 0
+				 to: 2
+				 matchData: data
+				 workspace: (ByteArray new: 400)
+				 size: 100)
+		equals: PCRE2 errorDFAInvalidUTF
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testInvalidUTFStartOffsetMovesToTheNextCharacter [
+	"A start offset inside an invalid sequence is skipped, rather than reported as a bad offset."
+
+	| matcher data |
+	matcher := self compile: 'a' options: PCRE2 matchInvalidUTF.
+	data := matcher newMatchData.
+	1 to: 3 do: [ :start |
+			self
+				assert: (matcher
+						 matchBytes: #[ 128 128 97 ]
+						 from: start
+						 to: 3
+						 into: data)
+				equals: 1.
+			self assert: (data offsets first: 2) equals: #( 2 3 ) ]
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testInvalidUTFSubjectWithoutTheOptionIsAMatchError [
+	"Without PCRE2_MATCH_INVALID_UTF a malformed subject is still reported as the UTF error it is."
+
+	| matcher data |
+	matcher := self compile: 'b' options: PCRE2 utf.
+	data := matcher newMatchData.
+	self
+		should: [
+				matcher
+					matchBytes: #[ 97 255 98 ]
+					from: 1
+					to: 3
+					into: data ]
+		raise: PCRE2MatchError
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testInvalidUTFSubjectsAreMatchedFragmentByFragment [
+	"An invalid sequence matches nothing at all, not even a negated class, and no match crosses it."
+
+	| word |
+	self assert: (self matchInvalidUTF: 'b' in: #[ 97 255 98 ]) equals: #( 2 3 ).
+	self assert: (self matchInvalidUTF: '.' in: #[ 97 255 98 ]) equals: #( 0 1 ).
+	self assert: (self matchInvalidUTF: '[^x]+' in: #[ 97 255 98 ]) equals: #( 0 1 ).
+	self assert: (self matchInvalidUTF: '\p{Any}+' in: #[ 97 255 98 ]) equals: #( 0 1 ).
+	self assert: (self matchInvalidUTF: 'a.b' in: #[ 97 255 98 ]) isNil.
+	self assert: (self matchInvalidUTF: '(?<=a)b' in: #[ 97 255 98 ]) isNil.
+	self assert: (self matchInvalidUTF: '(?<!a)b' in: #[ 97 255 98 ]) equals: #( 2 3 ).
+	word := #[ 87 79 82 68 255 87 79 82 68 ].
+	self assert: (self matchInvalidUTF: '\bWORD\b' in: word) equals: #( 0 4 ).
+	self assert: (self matchInvalidUTF: '^WORD' in: word) equals: #( 0 4 ).
+	self assert: (self matchInvalidUTF: 'WORD\z' in: word) equals: #( 5 9 ).
+	self assert: (self matchInvalidUTF: '^WORD$' in: word) isNil
 ]
 
 { #category : 'tests' }
@@ -674,20 +945,21 @@ PCRE2PharoBackendTest >> testNamedCaptures [
 ]
 
 { #category : 'tests' }
+PCRE2PharoBackendTest >> testNamedRecursionConditionsPreferCaptures [
+
+	#( '(?<R>a)(?(R)b|c)' '(?<R0>a)(?(R0)b|c)' '(?<R12>a)(?(R12)b|c)' '(?<DEFINE>a)(?(''DEFINE'')b|c)' ) do: [ :pattern |
+			self assert: ((self compile: pattern) matches: 'ab').
+			self deny: ((self compile: pattern) matches: 'ac') ].
+	self assert: ((self compile: '(?(R12)b|c)(?<R12>a)') matches: 'ca').
+	self assert: ((self compile: '^(b(?1)?(?(R0)c|d))$') matches: 'bbcd')
+]
+
+{ #category : 'tests' }
 PCRE2PharoBackendTest >> testNamedSkipAndAtomicMarks [
 
 	self assert: ((self compile: 'a(*MARK:X)(*SKIP:X)(*F)|(.)') find: 'abc') equals: 'b'.
 	self assert: ((self compile: 'a(?>(*MARK:X))(*SKIP:X)(*F)|(.)') find: 'abc') equals: 'a'.
 	self assert: ((self compile: 'a(*MARK:X)') findMatch: 'a') mark equals: 'X'
-]
-
-{ #category : 'tests' }
-PCRE2PharoBackendTest >> testNativeMatchersDoNotEnterFFIRestoration [
-
-	| matcher manager |
-	matcher := self compile: 'a'.
-	self deny: matcher backend requiresSessionRestore.
-	self deny: matcher context backend requiresSessionRestore
 ]
 
 { #category : 'tests' }
@@ -749,6 +1021,24 @@ PCRE2PharoBackendTest >> testOpenCaptureBackreferenceUsesPreviousIteration [
 ]
 
 { #category : 'tests' }
+PCRE2PharoBackendTest >> testPackedUnicodeDataDecodesEverySection [
+	"Guards the packed literal against a change to the generator or the reader that quietly shifts a section."
+
+	| data |
+	data := PCRE2UnicodeData data.
+	self assert: PCRE2UnicodeData version equals: '17.0.0'.
+	self assert: (data at: 'properties') size equals: 489.
+	self assert: ((PCRE2UnicodeData rangesFor: 'gc:lu') first: 4) equals: #( 65 90 192 214 ).
+	self assert: (PCRE2UnicodeData rangesFor: 'gc:nosuchcategory') isNil.
+	self assert: ((data at: 'aliases') at: 'bc:arabicletter') equals: 'al'.
+	self assert: ((data at: 'allowedProperties') at: 'adlam').
+	self assert: (PCRE2UnicodeData fold: $K asInteger) equals: 107.
+	self assert: (PCRE2UnicodeData equivalents: $K asInteger) equals: #( 75 107 8490 ).
+	self assert: ((data at: 'digitSets') at: '118001') equals: 118000.
+	self assert: (data at: 'scriptMasks') size equals: 5646
+]
+
+{ #category : 'tests' }
 PCRE2PharoBackendTest >> testPartialMatchingAtEmptyBoundariesAndResetStarts [
 
 	| match |
@@ -760,6 +1050,100 @@ PCRE2PharoBackendTest >> testPartialMatchingAtEmptyBoundariesAndResetStarts [
 	self assert: match isPartial.
 	self assert: (match offsets first: 2) equals: #( 1 1 ).
 	self assert: ((self compile: '^$') findHardPartialMatch: '') isPartial
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testPartialMatchingReportsALoneCarriageReturnUnderCRLF [
+	"Under the CRLF convention a CR in the last position may yet become a line terminator, which PCRE2 counts as reaching the end."
+
+	self assert: (self partialMatch: '(*CRLF)(?m)a$' in: #[ 97 13 ] options: PCRE2 partialSoft) equals: {
+			PCRE2 errorPartial.
+			#( 0 2 ) }.
+	self assert: (self partialMatch: '(*CRLF)a\Z' in: #[ 97 13 ] options: PCRE2 partialSoft) equals: {
+			PCRE2 errorPartial.
+			#( 0 2 ) }.
+	self assert: (self partialMatch: '(*CRLF)a\Z' in: #[ 97 13 10 ] options: PCRE2 partialHard) equals: {
+			PCRE2 errorPartial.
+			#( 0 3 ) }
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testPartialMatchingReportsAssertionsThatWantedMoreSubject [
+	"A word boundary, and an assertion that held only because the subject ends where it does, are reasons PCRE2 answers a partial match rather than a match."
+
+	self assert: (self partialMatch: '\bWORD\b' in: #[  ] options: PCRE2 partialSoft) equals: {
+			PCRE2 errorPartial.
+			#( 0 0 ) }.
+	self assert: (self partialMatch: '\bWORD\b' in: #[ 87 79 82 68 ] options: PCRE2 partialHard) equals: {
+			PCRE2 errorPartial.
+			#( 0 4 ) }.
+	self assert: (self partialMatch: 'a\b' in: #[ 97 ] options: PCRE2 partialHard) equals: {
+			PCRE2 errorPartial.
+			#( 0 1 ) }.
+	self assert: (self partialMatch: 'a\b' in: #[ 97 ] options: PCRE2 partialSoft) equals: {
+			1.
+			#( 0 1 ) }.
+	self assert: (self partialMatch: 'ab\z' in: #[ 97 98 ] options: PCRE2 partialHard) equals: {
+			PCRE2 errorPartial.
+			#( 0 2 ) }.
+	self assert: (self partialMatch: 'b$' in: #[ 97 98 10 ] options: PCRE2 partialHard) equals: {
+			PCRE2 errorPartial.
+			#( 1 3 ) }.
+	self assert: (self partialMatch: '(?m)b$' in: #[ 97 98 10 99 100 ] options: PCRE2 partialHard) equals: {
+			1.
+			#( 1 2 ) }
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testPatternNodeIsTheOnlyAbstractNode [
+
+	self assert: PCRE2PatternNode isAbstract.
+	PCRE2PatternNode allSubclasses do: [ :node |
+			self deny: node isAbstract description: node name , ' is concrete'.
+			self
+				deny: (node lookupSelector: #executeIn:state:) == (PCRE2PatternNode >> #executeIn:state:)
+				description: node name , ' executes itself' ]
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testPatternsThatCanOnlyStartALineAreTriedAtLineStarts [
+	"A pattern every branch of which opens with a dot star outside dotall can only match at the start of the subject or just after a line terminator, so that is where PCRE2 tries it. The end of the subject counts, since a line can begin and end there."
+
+	self assert: (self startPositionsOf: '(?C1).*(?!)' in: (String lf join: #( 'aqaa' 'bqbb' 'cqcc' ))) equals: #( 0 5 10 14 ).
+	self assert: (self startPositionsOf: '(?C1)[abcq]*(?!)' in: 'abc') equals: #( 0 1 2 3 )
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testPharoContextAnswersThePublicProtocol [
+	"A public context message the Pharo backend cannot honour reports that it is unsupported, never a doesNotUnderstand."
+
+	| compiler regex copy |
+	compiler := PCRE2Compiler new backend: PCRE2CompilerPharoBackend.
+	regex := compiler compile: 'a'.
+	{
+		[ compiler context useCharacterTablesFromCurrentLocale ].
+		[ compiler context characterTables: PCRE2CompilerPharoBackend ].
+		[ compiler context clearCharacterTables ].
+		[ compiler context privateCopy ].
+		[ regex context privateCopy ].
+		[ regex context jitStack: nil ].
+		[ regex context clearJITStack ] } do: [ :probe |
+			[ probe value ]
+				on: Error
+				do: [ :error | self deny: (error isKindOf: MessageNotUnderstood) ] ].
+	self should: [ compiler context useCharacterTablesFromCurrentLocale ] raise: PCRE2UnsupportedFeature.
+	copy := compiler context privateCopy.
+	copy parensNestLimit: 7.
+	self deny: compiler context parensNestLimit equals: 7
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testPharoMatchersDoNotEnterFFIRestoration [
+
+	| matcher |
+	matcher := self compile: 'a'.
+	self deny: matcher backend requiresSessionRestore.
+	self deny: matcher context backend requiresSessionRestore
 ]
 
 { #category : 'tests' }

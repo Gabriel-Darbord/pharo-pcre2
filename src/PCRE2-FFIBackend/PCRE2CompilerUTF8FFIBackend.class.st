@@ -1,3 +1,6 @@
+"
+Compiles patterns through the 8-bit PCRE2 library.
+"
 Class {
 	#name : 'PCRE2CompilerUTF8FFIBackend',
 	#superclass : 'PCRE2CompilerFFIBackend',
@@ -12,7 +15,7 @@ PCRE2CompilerUTF8FFIBackend >> compile: pattern upTo: length errorCode: errorCod
 	self ffiCall: #(void *pcre2_compile_8(void *pattern, size_t length, uint32 options, IntHolder errorCode, SizeTHolder errorOffset, void *context))
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2CompilerUTF8FFIBackend >> compileContextClass [
 
 	^ PCRE2UTF8CompileContext
@@ -27,13 +30,13 @@ PCRE2CompilerUTF8FFIBackend >> createCompileContext [
 	self ffiCall: #(void *pcre2_compile_context_create_8(nil))
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2CompilerUTF8FFIBackend >> ffiLibraryName [
 
 	^ LibPCRE2UTF8
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2CompilerUTF8FFIBackend >> inputClass [
 
 	^ PCRE2UTF8Input

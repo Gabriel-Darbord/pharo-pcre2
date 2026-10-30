@@ -13,14 +13,20 @@ Class {
 	#package : 'PCRE2-FFIBackend'
 }
 
-{ #category : 'private - native' }
+{ #category : 'testing' }
+PCRE2MatcherFFIBackend class >> isAbstract [
+
+	^ self == PCRE2MatcherFFIBackend
+]
+
+{ #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> calloutSiteFromEnumerationBlock: anExternalAddress [
 	"Answer a static callout site decoded for this matcher's code-unit width."
 
 	^ PCRE2CalloutSite fromEnumerationBlock: anExternalAddress codeUnitWidth: self codeUnitWidth
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> calloutSitesDo: aBlock [
 	"Evaluate aBlock with each static callout site in this compiled pattern. This is passive metadata: it does not install a runtime callout or affect matching."
 
@@ -32,14 +38,14 @@ PCRE2MatcherFFIBackend >> calloutSitesDo: aBlock [
 	rc < 0 ifTrue: [ self errorCode: rc ]
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> codeUnitByteSize [
 	"Answer the number of bytes in one PCRE2 code unit for this matcher."
 
 	^ self codeUnitWidth // 8
 ]
 
-{ #category : 'backends' }
+{ #category : 'copying' }
 PCRE2MatcherFFIBackend >> copyWithCharacterTables [
 
 	| address |
@@ -48,14 +54,14 @@ PCRE2MatcherFFIBackend >> copyWithCharacterTables [
 	^ (self class fromHandle: address) autoRelease
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> errorCode: errorCode [
 
 	<debuggerCompleteToSender>
 	PCRE2MatchError signal: (PCRE2 translateErrorCode: errorCode)
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> info: option [
 	"Returns some information about the compiled pattern.
 	See class-side methods of PCRE2 starting with 'info' to find valid options."
@@ -87,7 +93,7 @@ PCRE2MatcherFFIBackend >> matcher: aMatcher [
 	matcher := aMatcher
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> nameTableCaptureIndexAt: entryOffset in: nameTableAddress [
 	"PCRE2-8 stores the capture index in the first two 8-bit code units; PCRE2-16/32 store it in the first native code unit."
 
@@ -97,7 +103,7 @@ PCRE2MatcherFFIBackend >> nameTableCaptureIndexAt: entryOffset in: nameTableAddr
 	^ self nameTableCodeUnitAt: entryOffset in: nameTableAddress
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> nameTableCodeUnitAt: codeUnitOffset in: nameTableAddress [
 	"Answer one native PCRE2 code unit from the name table. The offset is measured in code units, not bytes."
 
@@ -106,7 +112,7 @@ PCRE2MatcherFFIBackend >> nameTableCodeUnitAt: codeUnitOffset in: nameTableAddre
 	^ nameTableAddress uint32AtOffset: codeUnitOffset * self codeUnitByteSize
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> nameTableNameAt: entryOffset in: nameTableAddress [
 	"Decode the zero-terminated group name stored after the capture index in a native name-table entry."
 
@@ -145,13 +151,13 @@ PCRE2MatcherFFIBackend >> newMatchBackendWithOvectorSize: size [
 	^ (self matchBackendClass fromHandle: pointer) autoRelease
 ]
 
-{ #category : 'backends' }
+{ #category : 'instance creation' }
 PCRE2MatcherFFIBackend >> newMatchContext [
 
 	^ self ffiLibraryName uniqueInstance newMatchContext
 ]
 
-{ #category : 'backends' }
+{ #category : 'copying' }
 PCRE2MatcherFFIBackend >> postCopy [
 
 	self setHandle: self privateCopy.
@@ -166,7 +172,7 @@ PCRE2MatcherFFIBackend >> prepareForMatch [
 	context := matcher existingContext ifNotNil: [ :aContext | aContext backend ]
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> readNamedGroups [
 	"Read PCRE2's native name table into a sparse Array keyed by capture group number."
 
@@ -220,7 +226,7 @@ PCRE2MatcherFFIBackend >> restoreFrom: bytes [
 	self ffiLibraryName restore: { matcher } from: bytes
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> serialize [
 	"Serialize this matcher's compiled pattern, excluding JIT code.
 	This convenience method is less efficient than serializing same-width matchers in bulk, because PCRE2 repeats shared tables in each serialized blob."
@@ -228,7 +234,7 @@ PCRE2MatcherFFIBackend >> serialize [
 	^ self ffiLibraryName serialize: { self }
 ]
 
-{ #category : 'private - native' }
+{ #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> substituteBytes: subject replacement: replacement options: substituteOptions matchData: aPCRE2Match [
 	"Apply pcre2_substitute() to prepared subject bytes.
 	The SizeTHolder values are PCRE2 code-unit counts, while ByteArray storage is sized in bytes. Case callouts can make PCRE2 underestimate output size, so retry until the native call succeeds or fails for a reason other than output capacity."

@@ -1,3 +1,6 @@
+"
+Compiled-pattern implementation for the Pharo backend. It owns the node tree and the capture metadata the parser produced, and runs ordinary, DFA, substitution and callout matching over them.
+"
 Class {
 	#name : 'PCRE2MatcherPharoBackend',
 	#superclass : 'Object',
@@ -14,11 +17,23 @@ Class {
 		'calloutSites',
 		'patternMatchOptions',
 		'patternLimits',
-		'dfaStates'
+		'dfaStates',
+		'startLine',
+		'startCharacters',
+		'requiredCharacter',
+		'startCharacterTable',
+		'newlineConvention'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
 }
+
+{ #category : 'testing' }
+PCRE2MatcherPharoBackend >> allowsEmptyPartial [
+	"Whether PCRE2 counts a partial match that consumed nothing, which it does for a pattern that looks behind or can match an empty string."
+
+	^ self maximumLookbehind > 0 or: [ root minimumLength = 0 ]
+]
 
 { #category : 'matching' }
 PCRE2MatcherPharoBackend >> autoRelease [
@@ -30,6 +45,17 @@ PCRE2MatcherPharoBackend >> autoRelease [
 PCRE2MatcherPharoBackend >> calloutSitesDo: block [
 
 	calloutSites do: block
+]
+
+{ #category : 'matching' }
+PCRE2MatcherPharoBackend >> canStartAt: offset in: text [
+	"Whether a match could begin with the character at this offset, read from the table of the codes a match can start with."
+
+	| code |
+	offset >= text size ifTrue: [ ^ false ].
+	code := text codePointAtOffset: offset.
+	code > 255 ifTrue: [ ^ startCharacters value: (PCRE2CodeUnit fromInteger: code) ].
+	^ (startCharacterTable at: code + 1) = 1
 ]
 
 { #category : 'matching' }
@@ -114,9 +140,11 @@ PCRE2MatcherPharoBackend >> dfaMatch: bytes from: start to: length matchData: da
 	mapping := decoded second.
 	initial := start.
 	(start between: 0 and: text size) ifFalse: [ PCRE2MatchError signal: 'bad offset value' ].
+	"PCRE2 leaves invalid UTF subjects to the ordinary matching function."
+	self matchesInvalidUTF ifTrue: [ ^ PCRE2 errorDFAInvalidUTF ].
 	((options bitAnd: PCRE2 noUTFCheck) = 0 and: [ (text isBoundary: start) not ]) ifTrue: [
-		PCRE2MatchError signal: 'bad UTF offset' ].
-	engine := PCRE2DFAMatcher new
+		PCRE2MatchError signal: (PCRE2 translateErrorCode: -36) ].
+	engine := PCRE2DFAMatchEngine new
 		          subject: text
 		          root: root
 		          groups: groups
@@ -129,12 +157,12 @@ PCRE2MatcherPharoBackend >> dfaMatch: bytes from: start to: length matchData: da
 		          shortest: (options bitAnd: PCRE2 dfaShortest) ~= 0;
 		          autoPossessEnabled: (compileOptions bitAnd: PCRE2 noAutoPossess) = 0;
 		          workspaceLimit: workspaceSize;
-		          allowEmptyPartial: maximumLookbehind > 0.
+		          allowEmptyPartial: self allowsEmptyPartial.
 	lastIndex := (continuation isNotNil or: [ ((options bitOr: compileOptions) bitAnd: PCRE2 anchored) ~= 0 ])
 		             ifTrue: [ initial ]
 		             ifFalse: [ text size ].
-	minimum := (root lengthBoundsUsing: groups names: names visited: IdentitySet new) first.
-	(compileOptions bitAnd: PCRE2 firstLine) ~= 0 ifTrue: [ lastIndex := lastIndex min: (self firstLineEndIn: text) ].
+	minimum := self shortestMatchLength.
+	(compileOptions bitAnd: PCRE2 firstLine) ~= 0 ifTrue: [ lastIndex := lastIndex min: (self firstLineEndIn: text from: initial) ].
 	candidate := initial.
 	[ candidate <= lastIndex ] whileTrue: [
 			(continuation isNotNil or: [
@@ -183,13 +211,13 @@ PCRE2MatcherPharoBackend >> expand: expression match: match options: options [
 		  options: options
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2MatcherPharoBackend >> family [
 
 	^ #pharo
 ]
 
-{ #category : 'matching' }
+{ #category : 'library path' }
 PCRE2MatcherPharoBackend >> ffiLibraryName [
 
 	PCRE2UnsupportedFeature signal: 'The Pharo backend does not use a C library'
@@ -199,6 +227,26 @@ PCRE2MatcherPharoBackend >> ffiLibraryName [
 PCRE2MatcherPharoBackend >> finalize [
 
 	^ self
+]
+
+{ #category : 'invalid UTF' }
+PCRE2MatcherPharoBackend >> firstFragmentIn: text from: start [
+	"The lookbehind floor and the bounds of the fragment a match starting at this offset belongs to. A start offset inside an invalid sequence moves on to the next character, as PCRE2 specifies, and nothing may then be read behind that."
+
+	| total begin floor end |
+	total := text codeUnitCount.
+	begin := text characterStartFrom: start upTo: total.
+	floor := begin = start
+		         ifTrue: [ self lookbehindFloorIn: text at: begin ]
+		         ifFalse: [ begin ].
+	[
+		end := text invalidOffsetFrom: floor.
+		end isNotNil and: [ end < begin ] ] whileTrue: [ "The invalid sequence lies behind the match, in what a lookbehind could otherwise have reached."
+		floor := text characterStartFrom: end + 1 upTo: begin ].
+	^ {
+		  floor.
+		  begin.
+		  (end ifNil: [ total ]) }
 ]
 
 { #category : 'matching' }
@@ -211,6 +259,40 @@ PCRE2MatcherPharoBackend >> firstLineEndIn: text [
 			(convention lengthAt: offset + 1 in: text) > 0 ifTrue: [ ^ offset ].
 			offset := text nextOffsetFrom: offset ].
 	^ text size
+]
+
+{ #category : 'matching' }
+PCRE2MatcherPharoBackend >> firstLineEndIn: text from: start [
+
+	| offset |
+	offset := start.
+	[ offset < text size ] whileTrue: [
+			(newlineConvention lengthAt: offset + 1 in: text) > 0 ifTrue: [ ^ offset ].
+			offset := text nextOffsetFrom: offset ].
+	^ text size
+]
+
+{ #category : 'invalid UTF' }
+PCRE2MatcherPharoBackend >> fragmentAfter: offset in: text [
+	"The lookbehind floor and the bounds of the next non-empty fragment of valid UTF, which begins past the invalid sequence at this offset, or nil when the subject has none left. A later fragment cannot be entered from behind, so its floor is its start."
+
+	| total begin end |
+	total := text codeUnitCount.
+	end := offset.
+	[
+		begin := text characterStartFrom: end + 1 upTo: total.
+		begin >= total ifTrue: [ ^ nil ].
+		end := text invalidOffsetFrom: begin.
+		end ifNil: [
+				^ {
+					  begin.
+					  begin.
+					  total } ].
+		end > begin ifTrue: [
+				^ {
+					  begin.
+					  begin.
+					  end } ] ] repeat
 ]
 
 { #category : 'matching' }
@@ -248,9 +330,34 @@ PCRE2MatcherPharoBackend >> isNull [
 ]
 
 { #category : 'matching' }
+PCRE2MatcherPharoBackend >> lineStartFrom: offset in: text matchStart: origin [
+	"The first position at or after this one that follows a line terminator, giving up at the end of the subject. A pattern every branch of which starts at a line start is only ever tried there, except at the offset the caller asked to match from, which is always tried as it stands."
+
+	| position |
+	offset <= origin ifTrue: [ ^ offset ].
+	position := offset.
+	[ position < text size and: [ (newlineConvention lengthEndingAt: position in: text) = 0 ] ] whileTrue: [
+		position := text nextOffsetFrom: position ].
+	^ position
+]
+
+{ #category : 'invalid UTF' }
+PCRE2MatcherPharoBackend >> lookbehindFloorIn: text at: offset [
+	"How far behind the start of a match a lookbehind may still read: as many characters as the pattern's longest one, which is how PCRE2 bounds the subject it checks."
+
+	| floor remaining |
+	floor := offset.
+	remaining := self maximumLookbehind.
+	[ remaining > 0 and: [ floor > 0 ] ] whileTrue: [
+			floor := text previousOffsetFrom: floor.
+			remaining := remaining - 1 ].
+	^ floor
+]
+
+{ #category : 'matching' }
 PCRE2MatcherPharoBackend >> match: bytes from: start to: length options: matchOptions matchData: matchData [
 
-	| decoded text mapping initial engine state result anchored lastIndex converted rc allowed offsetLimit candidate startPredicate required |
+	| decoded text mapping allowed |
 	allowed := PCRE2 anchored | PCRE2 endAnchored | PCRE2 notBOL | PCRE2 notEOL | PCRE2 notEmpty | PCRE2 notEmptyAtStart
 	           | PCRE2 noJIT | PCRE2 disableRecurseloopCheck | PCRE2 noUTFCheck | PCRE2 copyMatchedSubject | PCRE2 partialSoft
 	           | PCRE2 partialHard.
@@ -259,15 +366,64 @@ PCRE2MatcherPharoBackend >> match: bytes from: start to: length options: matchOp
 	decoded := self textAndOffsetsFor: bytes length: length.
 	text := decoded first.
 	mapping := decoded second.
-	initial := start.
 	(start between: 0 and: text size) ifFalse: [ PCRE2MatchError signal: 'bad offset value' ].
+	self matchesInvalidUTF ifTrue: [
+			^ self
+				  matchFragmentsIn: text
+				  from: start
+				  mapping: mapping
+				  options: matchOptions
+				  matchData: matchData ].
 	((matchOptions bitAnd: PCRE2 noUTFCheck) = 0 and: [ (text isBoundary: start) not ]) ifTrue: [
-		PCRE2MatchError signal: 'bad UTF offset' ].
-	((compileOptions bitAnd: PCRE2 noStartOptimize) = 0 and: [ (matchOptions bitAnd: PCRE2 partialSoft | PCRE2 partialHard) = 0 ])
-		ifTrue: [
-				required := root requiredNode.
-				(required isNotNil and: [ (text anySatisfy: required predicate) not ]) ifTrue: [ ^ PCRE2 errorNoMatch ] ].
-	engine := PCRE2BacktrackingMatcher new
+		PCRE2MatchError signal: (PCRE2 translateErrorCode: -36) ].
+	^ self
+		  matchIn: text
+		  from: start
+		  matchStart: start
+		  mapping: mapping
+		  options: matchOptions
+		  matchData: matchData
+]
+
+{ #category : 'invalid UTF' }
+PCRE2MatcherPharoBackend >> matchFragmentsIn: text from: start mapping: mapping options: matchOptions matchData: matchData [
+	"PCRE2_MATCH_INVALID_UTF reads the subject as fragments of valid UTF separated by invalid sequences. An invalid sequence is a barrier no match may cross, so each fragment is matched in turn as if it were the whole subject, except that an internal edge is neither the start nor the end of a line. Only the last fragment may answer a partial match."
+
+	| total fragment end options rc |
+	total := text codeUnitCount.
+	fragment := self firstFragmentIn: text from: start.
+	options := matchOptions.
+	[
+		end := fragment third.
+		rc := self
+			      matchIn: (text fragmentFrom: fragment first to: end)
+			      from: fragment second
+			      matchStart: start
+			      mapping: mapping
+			      options: (end < total
+					       ifTrue: [ options bitOr: PCRE2 notEOL ]
+					       ifFalse: [ options ])
+			      matchData: matchData.
+		end < total and: [ rc = PCRE2 errorNoMatch or: [ rc = PCRE2 errorPartial ] ] ] whileTrue: [
+			fragment := self fragmentAfter: end in: text.
+			fragment ifNil: [
+					matchData offsets atAllPut: PCRE2 unsetOffset.
+					^ PCRE2 errorNoMatch ].
+			options := matchOptions bitOr: PCRE2 notBOL ].
+	^ rc
+]
+
+{ #category : 'matching' }
+PCRE2MatcherPharoBackend >> matchIn: text from: begin matchStart: origin mapping: mapping options: matchOptions matchData: matchData [
+	"Search text, which may be one fragment of a larger subject, for a match beginning at or after begin. What \G and PCRE2_NOT_EMPTY_AT_START pin themselves to is origin, the offset the caller asked to match from."
+
+	| engine state result anchored lastIndex converted rc offsetLimit candidate filtering jumpsToLineStarts optimizing |
+	optimizing := (compileOptions bitAnd: PCRE2 noStartOptimize) = 0 and: [
+		              (matchOptions bitAnd: PCRE2 partialSoft | PCRE2 partialHard) = 0 ].
+	(optimizing and: [
+		 requiredCharacter isNotNil and: [ (text anyCodeSatisfy: [ :code | requiredCharacter acceptsCode: code ]) not ] ]) ifTrue: [
+		^ PCRE2 errorNoMatch ].
+	engine := PCRE2MatchEngine new
 		          subject: text
 		          root: root
 		          groups: groups
@@ -275,26 +431,30 @@ PCRE2MatcherPharoBackend >> match: bytes from: start to: length options: matchOp
 		          limit: self matchLimit;
 		          depthLimit: self depthLimit;
 		          heapLimit: self heapLimit;
-		          initialPosition: initial;
+		          allowEmptyPartial: self allowsEmptyPartial;
+		          initialPosition: origin;
 		          matchOptions: (matchOptions bitOr: ((compileOptions bitAnd: PCRE2 endAnchored) bitOr: patternMatchOptions)).
 	engine calloutBlock: matcher context backend calloutBlock mapping: mapping.
 	anchored := ((matchOptions bitOr: compileOptions) bitAnd: PCRE2 anchored) ~= 0.
 	offsetLimit := matcher context offsetLimit.
 	offsetLimit ifNotNil: [
-			(compileOptions bitAnd: PCRE2 useOffsetLimit) = 0 ifTrue: [
-				PCRE2MatchError signal: 'offset limit is not enabled for this pattern' ] ].
+		(compileOptions bitAnd: PCRE2 useOffsetLimit) = 0 ifTrue: [ PCRE2MatchError signal: (PCRE2 translateErrorCode: -56) ] ].
 	lastIndex := anchored
-		             ifTrue: [ initial ]
+		             ifTrue: [ begin ]
 		             ifFalse: [ text size ].
 	offsetLimit ifNotNil: [ lastIndex := lastIndex min: offsetLimit ].
-	startPredicate := ((compileOptions bitAnd: PCRE2 noStartOptimize) = 0 and: [
-		                   (matchOptions bitAnd: PCRE2 partialSoft | PCRE2 partialHard) = 0 ]) ifTrue: [
-		                  root firstLiteralPredicate ifNil: [ root startPredicate ] ].
-	(compileOptions bitAnd: PCRE2 firstLine) ~= 0 ifTrue: [ lastIndex := lastIndex min: (self firstLineEndIn: text) ].
-	candidate := initial.
+	(compileOptions bitAnd: PCRE2 firstLine) ~= 0 ifTrue: [ lastIndex := lastIndex min: (self firstLineEndIn: text from: begin) ].
+	"PCRE2 looks either for the characters a match can start with or for a line start, never for both, and it keeps the first of them to itself while matching partially."
+	jumpsToLineStarts := startLine and: [ anchored not ].
+	filtering := startCharacters isNotNil and: [
+			             jumpsToLineStarts not and: [
+					             (compileOptions bitAnd: PCRE2 noStartOptimize) = 0 and: [
+						             anchored or: [ (matchOptions bitAnd: PCRE2 partialSoft | PCRE2 partialHard) = 0 ] ] ] ].
+	candidate := jumpsToLineStarts
+		             ifTrue: [ self lineStartFrom: begin in: text matchStart: origin ]
+		             ifFalse: [ begin ].
 	[ candidate <= lastIndex ] whileTrue: [
-			(startPredicate isNil or: [
-				 root minimumLength = 0 or: [ candidate < text size and: [ startPredicate value: (text at: candidate + 1) ] ] ]) ifTrue: [
+			(filtering not or: [ self canStartAt: candidate in: text ]) ifTrue: [
 					state := PCRE2MatchState new
 						         position: candidate;
 						         captures: (Array new: captureCount + 1 * 2 withAll: PCRE2 unsetOffset).
@@ -320,7 +480,9 @@ PCRE2MatcherPharoBackend >> match: bytes from: start to: length options: matchOp
 								  ifFalse: [ rc ] ].
 					engine hardPartialFound ifTrue: [ ^ self storePartial: engine partialState mapping: mapping into: matchData ].
 					engine committed ifTrue: [ ^ PCRE2 errorNoMatch ] ].
-			candidate := (text nextOffsetFrom: candidate) max: (engine skipPosition ifNil: [ 0 ]) ].
+			candidate := text nextOffsetFrom: candidate.
+			engine skipPosition ifNotNil: [ :skip | candidate := candidate max: skip ].
+			jumpsToLineStarts ifTrue: [ candidate := self lineStartFrom: candidate in: text matchStart: origin ] ].
 	engine partialState ifNotNil: [ :partial | ^ self storePartial: partial mapping: mapping into: matchData ].
 	matchData mark: engine lastMark.
 	^ PCRE2 errorNoMatch
@@ -332,10 +494,17 @@ PCRE2MatcherPharoBackend >> matchLimit [
 	^ matcher context matchLimit min: (patternLimits at: #match ifAbsent: [ matcher context matchLimit ])
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2MatcherPharoBackend >> matcher: aMatcher [
 
 	matcher := aMatcher
+]
+
+{ #category : 'testing' }
+PCRE2MatcherPharoBackend >> matchesInvalidUTF [
+	"Whether PCRE2_MATCH_INVALID_UTF was compiled in, making an invalid sequence in the subject a barrier rather than an error."
+
+	^ (compileOptions bitAnd: PCRE2 matchInvalidUTF) ~= 0
 ]
 
 { #category : 'matching' }
@@ -344,13 +513,13 @@ PCRE2MatcherPharoBackend >> maximumLookbehind [
 	^ maximumLookbehind ifNil: [ 0 ]
 ]
 
-{ #category : 'backends' }
+{ #category : 'instance creation' }
 PCRE2MatcherPharoBackend >> newMatchBackend [
 
 	^ self newMatchBackendWithOvectorSize: captureCount + 1
 ]
 
-{ #category : 'backends' }
+{ #category : 'instance creation' }
 PCRE2MatcherPharoBackend >> newMatchBackendWithOvectorSize: size [
 
 	^ PCRE2MatchPharoBackend new
@@ -358,7 +527,7 @@ PCRE2MatcherPharoBackend >> newMatchBackendWithOvectorSize: size [
 		  offsets: (Array new: size * 2 withAll: PCRE2 unsetOffset)
 ]
 
-{ #category : 'backends' }
+{ #category : 'instance creation' }
 PCRE2MatcherPharoBackend >> newMatchContext [
 
 	| contextClass |
@@ -445,6 +614,7 @@ PCRE2MatcherPharoBackend >> restartDFAFrom: workspace [
 
 { #category : 'matching' }
 PCRE2MatcherPharoBackend >> root: aNode parser: parser [
+	"The start optimizations are worked out here rather than per match: the tree does not change once it is compiled, which is also when PCRE2 studies it."
 
 	root := aNode.
 	patternLimits := parser patternLimits.
@@ -452,16 +622,30 @@ PCRE2MatcherPharoBackend >> root: aNode parser: parser [
 	calloutSites := parser calloutSites.
 	maximumLookbehind := parser maximumLookbehind.
 	newlineMode := parser newlineMode.
+	newlineConvention := PCRE2NewlineConvention new mode: newlineMode.
 	bsrMode := parser bsrMode.
 	captureCount := parser captureCount.
 	names := parser names.
-	groups := parser groups
+	groups := parser groups.
+	startLine := parser startLine.
+	requiredCharacter := root requiredNode.
+	startCharacters := root minimumLength = 0
+		                   ifTrue: [ nil ]
+		                   ifFalse: [ root firstLiteralPredicate ifNil: [ root startPredicate ] ].
+	startCharacterTable := startCharacters ifNotNil: [ PCRE2CharacterNode tableFor: startCharacters ]
 ]
 
 { #category : 'matching' }
 PCRE2MatcherPharoBackend >> serialize [
 
 	PCRE2UnsupportedFeature signal: 'C bytecode serialization is specific to the FFI backend'
+]
+
+{ #category : 'DFA matching' }
+PCRE2MatcherPharoBackend >> shortestMatchLength [
+	"The least a match can be, in characters. It is compared against a count of code units, which only makes the bound safer."
+
+	^ (root lengthBoundsUsing: groups names: names visited: IdentitySet new) first
 ]
 
 { #category : 'matching' }
@@ -605,7 +789,7 @@ PCRE2MatcherPharoBackend >> textAndOffsetsFor: bytes length: length [
 		PCRE2MatchError signal: 'bad subject length' ].
 	input := matcher preparedInputFor: (bytes copyFrom: 1 to: effectiveLength * matcher codeUnitByteSize).
 	utf := (compileOptions bitAnd: PCRE2 utf) ~= 0.
-	utf ifTrue: [ PCRE2CodeUnitText validateUTF: input bytes width: self codeUnitWidth ].
+	(utf and: [ self matchesInvalidUTF not ]) ifTrue: [ PCRE2CodeUnitText validateUTF: input bytes width: self codeUnitWidth ].
 	subject := PCRE2SubjectText new bytes: input bytes width: self codeUnitWidth utf: utf.
 	^ {
 		  subject.

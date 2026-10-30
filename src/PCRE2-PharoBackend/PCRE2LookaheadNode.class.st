@@ -1,3 +1,6 @@
+"
+Lookahead assertion, positive or negative. It is atomic by default; the non-atomic forms keep their choice points so the enclosing pattern can backtrack into them.
+"
 Class {
 	#name : 'PCRE2LookaheadNode',
 	#superclass : 'PCRE2PatternNode',
@@ -10,28 +13,28 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2LookaheadNode >> atomic: boolean [
 
 	atomic := boolean
 ]
 
-{ #category : 'matching' }
+{ #category : 'testing' }
 PCRE2LookaheadNode >> canBeCondition [
 
 	^ atomic ~= false
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2LookaheadNode >> child [
 
 	^ child
 ]
 
-{ #category : 'private' }
-PCRE2LookaheadNode >> child: aValue [
+{ #category : 'accessing' }
+PCRE2LookaheadNode >> child: aNode [
 
-	child := aValue
+	child := aNode
 ]
 
 { #category : 'matching' }
@@ -71,7 +74,20 @@ PCRE2LookaheadNode >> executeIn: engine state: state [
 	^ state
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
+PCRE2LookaheadNode >> isAnchoredIn: analysis [
+	"A branch that opens with a positive lookahead starts wherever the lookahead does. A negative one says nothing."
+
+	^ positive and: [ child isAnchoredIn: analysis withinAssertion ]
+]
+
+{ #category : 'optimization' }
+PCRE2LookaheadNode >> isStartLineIn: analysis [
+
+	^ positive and: [ child isStartLineIn: analysis withinAssertion ]
+]
+
+{ #category : 'accessing' }
 PCRE2LookaheadNode >> maximumLength [
 
 	^ 0
@@ -93,19 +109,19 @@ PCRE2LookaheadNode >> nonAtomicIn: engine state: state [
 	^ state
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2LookaheadNode >> positive [
 
 	^ positive
 ]
 
-{ #category : 'private' }
-PCRE2LookaheadNode >> positive: aValue [
+{ #category : 'accessing' }
+PCRE2LookaheadNode >> positive: aBoolean [
 
-	positive := aValue
+	positive := aBoolean
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2LookaheadNode >> startPredicate [
 
 	^ [ :character | false ]

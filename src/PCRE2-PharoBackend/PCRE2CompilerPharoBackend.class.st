@@ -26,7 +26,7 @@ PCRE2CompilerPharoBackend >> compileBasicInput: input [
 	PCRE2UnsupportedFeature signal: 'The Pharo backend does not produce C handles'
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2CompilerPharoBackend >> compileContextClass [
 
 	compiler codeUnitWidth = 8 ifTrue: [ ^ PCRE2UTF8CompileContext ].
@@ -40,20 +40,19 @@ PCRE2CompilerPharoBackend >> compilePreparedInput: input [
 
 	| parser tree flags allowed context implementation literalOptions |
 	flags := compiler options.
+	"PCRE2_MATCH_INVALID_UTF is about the subject, but it implies UTF for the pattern too."
+	(flags bitAnd: PCRE2 matchInvalidUTF) ~= 0 ifTrue: [ flags := flags bitOr: PCRE2 utf ].
 	allowed := PCRE2 caseless | PCRE2 dotAll | PCRE2 multiline | PCRE2 ungreedy | PCRE2 extended | PCRE2 utf | PCRE2 ucp
 	           | PCRE2 anchored | PCRE2 endAnchored | PCRE2 noAutoCapture | PCRE2 dupNames | PCRE2 literal | PCRE2 dollarEndOnly
 	           | PCRE2 noStartOptimize | PCRE2 useOffsetLimit | PCRE2 noAutoPossess | PCRE2 noDotstarAnchor | PCRE2 matchUnsetBackref
 	           | PCRE2 extendedMore | PCRE2 altCircumflex | PCRE2 autoCallout | PCRE2 neverUTF | PCRE2 neverUCP
 	           | PCRE2 neverBackslashC | PCRE2 firstLine | PCRE2 noUTFCheck | PCRE2 altBSUX | PCRE2 allowEmptyClass
-	           | PCRE2 altExtendedClass | PCRE2 altVerbNames.
-	(flags bitAnd: (allowed bitOr: PCRE2 matchInvalidUTF) bitInvert) ~= 0 ifTrue: [
-		PCRE2CompileError signal: (PCRE2 translateErrorCode: 117) in: input at: 0 ].
+	           | PCRE2 altExtendedClass | PCRE2 altVerbNames | PCRE2 matchInvalidUTF.
+	(flags bitAnd: allowed bitInvert) ~= 0 ifTrue: [ PCRE2CompileError signal: (PCRE2 translateErrorCode: 117) in: input at: 0 ].
 	literalOptions := PCRE2 anchored | PCRE2 autoCallout | PCRE2 caseless | PCRE2 endAnchored | PCRE2 firstLine | PCRE2 literal
 	                  | PCRE2 matchInvalidUTF | PCRE2 noStartOptimize | PCRE2 noUTFCheck | PCRE2 useOffsetLimit | PCRE2 utf.
 	((flags bitAnd: PCRE2 literal) ~= 0 and: [ (flags bitAnd: literalOptions bitInvert) ~= 0 ]) ifTrue: [
 		PCRE2CompileError signal: (PCRE2 translateErrorCode: 192) in: input at: 0 ].
-	(flags bitAnd: allowed bitInvert) ~= 0 ifTrue: [
-		PCRE2UnsupportedFeature signal: 'Compile options are not yet implemented by the Pharo backend' ].
 	parser := PCRE2PatternParser new codeUnitWidth: compiler codeUnitWidth.
 	context := compiler existingContext.
 	context ifNotNil: [
@@ -91,13 +90,13 @@ PCRE2CompilerPharoBackend >> compilePreparedInput: input [
 	^ implementation
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2CompilerPharoBackend >> family [
 
 	^ #pharo
 ]
 
-{ #category : 'backends' }
+{ #category : 'instance creation' }
 PCRE2CompilerPharoBackend >> newCompileContext [
 
 	^ self compileContextClass new backend: (PCRE2ContextPharoBackend new codeUnitWidth: compiler codeUnitWidth)

@@ -1,3 +1,6 @@
+"
+Compile- and match-context implementation for the Pharo backend. It keeps the newline convention, BSR mode, limits, options, optimization directives and callout blocks as ordinary image state, so it owns no external handle and has nothing to free or to restore when a session resumes.
+"
 Class {
 	#name : 'PCRE2ContextPharoBackend',
 	#superclass : 'Object',
@@ -41,7 +44,7 @@ PCRE2ContextPharoBackend >> backend [
 	^ self
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> bsr [
 
 	^ bsr
@@ -54,28 +57,28 @@ PCRE2ContextPharoBackend >> bsr: value [
 	bsr := value
 ]
 
-{ #category : 'callouts' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> calloutBlock [
 
 	^ calloutBlock
 ]
 
-{ #category : 'callouts' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> calloutBlock: block [
 
 	calloutBlock := block
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> characterTables [
 
 	^ nil
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> characterTables: tables [
 
-	tables ifNotNil: [ PCRE2UnsupportedFeature signal: 'Locale character tables are specific to the FFI backend' ]
+	tables ifNotNil: [ self signalLocaleTablesUnsupported ]
 ]
 
 { #category : 'callouts' }
@@ -84,13 +87,13 @@ PCRE2ContextPharoBackend >> clearCallout [
 	calloutBlock := nil
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> clearCharacterTables [
 
 	^ self
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> clearJITStack [
 
 	^ self
@@ -108,19 +111,19 @@ PCRE2ContextPharoBackend >> clearSubstituteCaseCallout [
 	substituteCaseCalloutBlock := nil
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> codeUnitWidth [
 
 	^ codeUnitWidth
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> codeUnitWidth: anInteger [
 
 	codeUnitWidth := anInteger
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> depthLimit [
 
 	^ depthLimit
@@ -134,7 +137,7 @@ PCRE2ContextPharoBackend >> depthLimit: anInteger [
 	depthLimit := anInteger
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> family [
 
 	^ #pharo
@@ -152,7 +155,7 @@ PCRE2ContextPharoBackend >> free [
 	^ self
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> heapLimit [
 
 	^ heapLimit
@@ -183,19 +186,19 @@ PCRE2ContextPharoBackend >> isNull [
 	^ false
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> jitStack [
 
 	^ nil
 ]
 
-{ #category : 'backends' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> jitStack: stack [
 
 	stack ifNotNil: [ PCRE2UnsupportedFeature signal: 'PCRE2 JIT stacks are specific to the FFI backend' ]
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> matchLimit [
 
 	^ matchLimit
@@ -209,43 +212,43 @@ PCRE2ContextPharoBackend >> matchLimit: anInteger [
 	matchLimit := anInteger
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> maxPatternCompiledLength [
 
 	^ maxPatternCompiledLength
 ]
 
-{ #category : 'private' }
-PCRE2ContextPharoBackend >> maxPatternCompiledLength: aValue [
+{ #category : 'accessing' }
+PCRE2ContextPharoBackend >> maxPatternCompiledLength: anInteger [
 
-	maxPatternCompiledLength := aValue
+	maxPatternCompiledLength := anInteger
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> maxPatternLength [
 
 	^ maxPatternLength
 ]
 
-{ #category : 'private' }
-PCRE2ContextPharoBackend >> maxPatternLength: aValue [
+{ #category : 'accessing' }
+PCRE2ContextPharoBackend >> maxPatternLength: anInteger [
 
-	maxPatternLength := aValue
+	maxPatternLength := anInteger
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> maxVarLookbehind [
 
 	^ maxVarLookbehind
 ]
 
-{ #category : 'private' }
-PCRE2ContextPharoBackend >> maxVarLookbehind: aValue [
+{ #category : 'accessing' }
+PCRE2ContextPharoBackend >> maxVarLookbehind: anInteger [
 
-	maxVarLookbehind := aValue
+	maxVarLookbehind := anInteger
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> newline [
 
 	^ newline
@@ -258,16 +261,16 @@ PCRE2ContextPharoBackend >> newline: value [
 	newline := value
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> offsetLimit [
 
 	^ offsetLimit
 ]
 
-{ #category : 'private' }
-PCRE2ContextPharoBackend >> offsetLimit: aValue [
+{ #category : 'accessing' }
+PCRE2ContextPharoBackend >> offsetLimit: anInteger [
 
-	offsetLimit := aValue
+	offsetLimit := anInteger
 ]
 
 { #category : 'configuration' }
@@ -304,22 +307,29 @@ PCRE2ContextPharoBackend >> options: flags [
 	options := flags
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> parensNestLimit [
 
 	^ parensNestLimit
 ]
 
-{ #category : 'private' }
-PCRE2ContextPharoBackend >> parensNestLimit: aValue [
+{ #category : 'accessing' }
+PCRE2ContextPharoBackend >> parensNestLimit: anInteger [
 
-	parensNestLimit := aValue
+	parensNestLimit := anInteger
 ]
 
-{ #category : 'backends' }
+{ #category : 'persistence' }
 PCRE2ContextPharoBackend >> prepareForShutdown [
 
 	^ self
+]
+
+{ #category : 'copying' }
+PCRE2ContextPharoBackend >> privateCopy [
+	"The Pharo backend holds its settings in the image, so a copy of the backend is the whole private copy."
+
+	^ self copy
 ]
 
 { #category : 'configuration' }
@@ -328,16 +338,22 @@ PCRE2ContextPharoBackend >> removeOptions: flags [
 	self options: (self options bitAnd: flags bitInvert)
 ]
 
-{ #category : 'backends' }
+{ #category : 'testing' }
 PCRE2ContextPharoBackend >> requiresSessionRestore [
 
 	^ false
 ]
 
-{ #category : 'backends' }
+{ #category : 'persistence' }
 PCRE2ContextPharoBackend >> restoreAfterStartup [
 
 	^ self
+]
+
+{ #category : 'private' }
+PCRE2ContextPharoBackend >> signalLocaleTablesUnsupported [
+
+	PCRE2UnsupportedFeature signal: 'Locale character tables are specific to the FFI backend'
 ]
 
 { #category : 'configuration' }
@@ -351,26 +367,32 @@ PCRE2ContextPharoBackend >> startOptimizationEnabled [
 	^ enabled
 ]
 
-{ #category : 'callouts' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> substituteCalloutBlock [
 
 	^ substituteCalloutBlock
 ]
 
-{ #category : 'callouts' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> substituteCalloutBlock: block [
 
 	substituteCalloutBlock := block
 ]
 
-{ #category : 'callouts' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> substituteCaseCalloutBlock [
 
 	^ substituteCaseCalloutBlock
 ]
 
-{ #category : 'callouts' }
+{ #category : 'accessing' }
 PCRE2ContextPharoBackend >> substituteCaseCalloutBlock: block [
 
 	substituteCaseCalloutBlock := block
+]
+
+{ #category : 'accessing' }
+PCRE2ContextPharoBackend >> useCharacterTablesFromCurrentLocale [
+
+	self signalLocaleTablesUnsupported
 ]

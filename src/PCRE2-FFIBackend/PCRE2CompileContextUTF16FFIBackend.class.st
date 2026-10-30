@@ -1,3 +1,6 @@
+"
+Owns a compile-context handle of the 16-bit PCRE2 library.
+"
 Class {
 	#name : 'PCRE2CompileContextUTF16FFIBackend',
 	#superclass : 'PCRE2CompileContextFFIBackend',

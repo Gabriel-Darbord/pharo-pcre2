@@ -1,3 +1,6 @@
+"
+Callout. Hands its callout site to the engine, which invokes the callout block and obeys the integer the block answers.
+"
 Class {
 	#name : 'PCRE2CalloutNode',
 	#superclass : 'PCRE2PatternNode',
@@ -8,7 +11,7 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'parsing' }
+{ #category : 'testing' }
 PCRE2CalloutNode >> canBeRepeated [
 
 	^ false
@@ -20,19 +23,25 @@ PCRE2CalloutNode >> executeIn: engine state: state [
 	^ engine callout: site state: state
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
+PCRE2CalloutNode >> isSignificantForStart [
+
+	^ false
+]
+
+{ #category : 'accessing' }
 PCRE2CalloutNode >> maximumLength [
 
 	^ 0
 ]
 
-{ #category : 'matching' }
+{ #category : 'accessing' }
 PCRE2CalloutNode >> site: calloutSite [
 
 	site := calloutSite
 ]
 
-{ #category : 'matching' }
+{ #category : 'optimization' }
 PCRE2CalloutNode >> startPredicate [
 
 	^ [ :character | false ]

@@ -1,3 +1,6 @@
+"
+The literal characters of a \Q...\E sequence. A quantifier written after it applies to its last character only, as it does in PCRE2.
+"
 Class {
 	#name : 'PCRE2QuotedSequenceNode',
 	#superclass : 'PCRE2SequenceNode',
@@ -7,8 +10,9 @@ Class {
 
 { #category : 'parsing' }
 PCRE2QuotedSequenceNode >> repeatMinimum: minimum maximum: maximum greedy: greedy [
+	"A quantifier after \Q...\E applies to the last quoted character, so the sequence itself is what the parser keeps."
 
-	children isEmpty ifTrue: [ PCRE2CompileError signal: 'quantifier does not follow a repeatable item' ].
+	children ifEmpty: [ PCRE2CompileError signal: 'quantifier does not follow a repeatable item' ].
 	children at: children size put: (children last repeatMinimum: minimum maximum: maximum greedy: greedy).
 	^ self
 ]
