@@ -13,6 +13,13 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
+{ #category : 'generating' }
+PCRE2BackreferenceNode >> byteReference [
+	"The group number this compares against, or nil when a written matcher cannot decide the reference. One by name is resolved from which of several groups of that name took part, a caseless one needs the case folding the engine has, and an unset group matching nothing is a second way of matching this does not write."
+
+	^ (reference isInteger and: [ (options bitAnd: PCRE2 caseless | PCRE2 matchUnsetBackref) = 0 ]) ifTrue: [ reference ]
+]
+
 { #category : 'DFA matching' }
 PCRE2BackreferenceNode >> dfaError [
 
@@ -117,4 +124,14 @@ PCRE2BackreferenceNode >> sameText: first as: second [
 									  as: (second at: index)
 									  unicode: (options bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0
 									  extraOptions: (extraOptions ifNil: [ 0 ]) ] ] ]
+]
+
+{ #category : 'generating' }
+PCRE2BackreferenceNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+
+	^ aGenerator
+		  writeBackreference: self byteReference
+		  at: position
+		  indent: level
+		  then: aBlock
 ]

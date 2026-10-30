@@ -38,6 +38,13 @@ PCRE2PatternNode >> acceptsEveryCharacterButLineEnds [
 	^ false
 ]
 
+{ #category : 'generating' }
+PCRE2PatternNode >> asciiTable [
+	"The lookup table the written matcher reads to decide whether this item accepts a byte, or nil for an item that is not one character, or one a table cannot describe. Only the entries under 128 are ever read: a written matcher hands the match back to the engine as soon as it meets a higher byte."
+
+	^ nil
+]
+
 { #category : 'testing' }
 PCRE2PatternNode >> canAccept [
 
@@ -200,4 +207,23 @@ PCRE2PatternNode >> startPredicateOf: predicates [
 PCRE2PatternNode >> terminatesWithAccept [
 
 	^ false
+]
+
+{ #category : 'generating' }
+PCRE2PatternNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+	"Write this item into a generated matcher, with the block writing everything that follows it. A node a table describes is one character and is written as one test; the rest of the tree answers for itself, and what nothing answers for is left to the engine."
+
+	^ self asciiTable ifNil: [ aGenerator refuse ] ifNotNil: [ :table |
+			  aGenerator
+				  writeSingle: table
+				  at: position
+				  indent: level
+				  then: aBlock ]
+]
+
+{ #category : 'generating' }
+PCRE2PatternNode >> writePossessivelyInto: aGenerator at: position indent: level then: aBlock [
+	"Only a repetition can be made possessive, so anything else under a possessive quantifier is a shape this does not know."
+
+	^ aGenerator refuse
 ]

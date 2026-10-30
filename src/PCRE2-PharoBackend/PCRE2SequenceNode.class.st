@@ -143,3 +143,13 @@ PCRE2SequenceNode >> startPredicate [
 			child minimumLength > 0 ifTrue: [ ^ self startPredicateOf: predicates ] ].
 	^ self startPredicateOf: predicates
 ]
+
+{ #category : 'generating' }
+PCRE2SequenceNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+
+	^ aGenerator
+		  writeSequence: children
+		  at: position
+		  indent: level
+		  then: aBlock
+]

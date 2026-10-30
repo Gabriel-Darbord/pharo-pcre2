@@ -27,10 +27,17 @@ PCRE2CharacterNode class >> tableFor: aPredicate [
 
 { #category : 'matching' }
 PCRE2CharacterNode >> acceptsCode: code [
-	"Whether this item matches the character with this code. A class answers from its table for the codes that fit in one byte, which is where almost every character of a subject lands."
+	"Whether this item matches the character with this code. A class answers from its table for the codes that fit in one byte, which is where almost every character of a subject lands. The table holds small integers, so the answer asks for the same object rather than for an equal one, which is a test and not a message send."
 
 	(table isNil or: [ code > 255 ]) ifTrue: [ ^ predicate value: (PCRE2CodeUnit fromInteger: code) ].
-	^ (table at: code + 1) = 1
+	^ (table at: code + 1) == 1
+]
+
+{ #category : 'generating' }
+PCRE2CharacterNode >> asciiTable [
+	"A class that was tabulated at compile time answers its own table; a single literal is asked for one now, which costs 256 tests once for a pattern that is written."
+
+	^ table ifNil: [ self class tableFor: predicate ]
 ]
 
 { #category : 'optimization' }
@@ -140,6 +147,13 @@ PCRE2CharacterNode >> requiredNode [
 PCRE2CharacterNode >> startPredicate [
 
 	^ predicate
+]
+
+{ #category : 'accessing' }
+PCRE2CharacterNode >> table [
+	"The codes under 256 this item accepts, or nil when it has none because it is a single literal."
+
+	^ table
 ]
 
 { #category : 'optimization' }

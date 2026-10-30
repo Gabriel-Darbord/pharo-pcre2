@@ -1520,6 +1520,35 @@ PCRE2PharoBackendTest >> testWideUTFValidation [
 ]
 
 { #category : 'tests' }
+PCRE2PharoBackendTest >> testWrittenMatchingAgreesWithTheEngine [
+	"A pattern whose shape allows it is matched by a method written for that pattern alone. It reads the subject one byte at a time, so a byte it cannot judge sends the whole match back to the engine, which answers the same thing more slowly."
+
+	| accented |
+	self assert: (self compile: '[a-z]+ing') backend generatedMethod isNotNil.
+	self assert: ((self compile: '[a-z]+ing') find: 'the thing is testing now') equals: 'thing'.
+	self assert: ((self compile: 'a{2,4}b') find: 'aaaaab') equals: 'aaaab'.
+	self assert: ((self compile: '[0-9]++x') find: 'a123x') equals: '123x'.
+	self assert: ((self compile: '[a-z]*9') find: 'abc9') equals: 'abc9'.
+	self assert: ((self compile: 'a+?b') find: 'aaab') equals: 'aaab'.
+	self assert: ((self compile: '(a)(b)') find: 'xaby') equals: 'ab'.
+	self assert: ((self compile: 'foo|barbaz') find: 'xbarbazy') equals: 'barbaz'.
+	self assert: ((self compile: '\bword\b') find: 'a word here') equals: 'word'.
+	self assert: ((self compile: '(?>a+)b') find: 'aaab') equals: 'aaab'.
+	self assert: ((self compile: '(?:ab){2,3}c') find: 'ababababc') equals: 'abababc'.
+	self assert: ((self compile: '(ab|cd)+x') find: 'yabcdabx') equals: 'abcdabx'.
+	self assert: ((self compile: '(\w+) \1') find: 'say the the end') equals: 'the the'.
+	self assert: ((self compile: '(?<=\$)\d+') find: 'cost $42 now') equals: '42'.
+	self assert: ((self compile: '(a)?(?(1)b|c)') find: 'xxc') equals: 'c'.
+	accented := String with: (Character value: 233).
+	self assert: ((self compile: '[a-z]+' options: PCRE2 utf) find: accented , 'abc') equals: 'abc'.
+	self assert: ((self compile: '[a-z]+' options: PCRE2 utf) find: 'abc' , accented) equals: 'abc'.
+	"Nothing is written for a shape it does not know, and the engine answers as before."
+	self assert: (self compile: '(a)(?1)') backend generatedMethod isNil.
+	self assert: (self compile: 'a(*ACCEPT)b') backend generatedMethod isNil.
+	self assert: ((self compile: '(a)(?1)') find: 'xaay') equals: 'aa'
+]
+
+{ #category : 'tests' }
 PCRE2PharoBackendTest >> testZeroWidthCaptureProgressAndEmptyCapturingRepeats [
 
 	self assert: ((self compile: '\A(?:(?=(\1.|))){1,3}\1\z') matches: 'ab').

@@ -14,6 +14,12 @@ Class {
 }
 
 { #category : 'accessing' }
+PCRE2LookaheadNode >> atomic [
+
+	^ atomic
+]
+
+{ #category : 'accessing' }
 PCRE2LookaheadNode >> atomic: boolean [
 
 	atomic := boolean
@@ -125,4 +131,14 @@ PCRE2LookaheadNode >> positive: aBoolean [
 PCRE2LookaheadNode >> startPredicate [
 
 	^ [ :character | false ]
+]
+
+{ #category : 'generating' }
+PCRE2LookaheadNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+
+	^ aGenerator
+		  writeLookahead: self
+		  at: position
+		  indent: level
+		  then: aBlock
 ]

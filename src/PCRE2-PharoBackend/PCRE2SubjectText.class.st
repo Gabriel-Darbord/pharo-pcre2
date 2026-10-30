@@ -155,6 +155,13 @@ PCRE2SubjectText >> isBoundary: offset [
 ]
 
 { #category : 'accessing' }
+PCRE2SubjectText >> isByteWide [
+	"Whether one code unit is one byte and the window is the whole subject, which is what a matcher reading the storage directly needs."
+
+	^ width = 8 and: [ floor = 0 and: [ limit = bytes size ] ]
+]
+
+{ #category : 'accessing' }
 PCRE2SubjectText >> lookbehindStartsMinimum: minimum maximum: maximum at: target [
 
 	| result offset distance |
@@ -233,4 +240,11 @@ PCRE2SubjectText >> startsCharacterAt: offset [
 	width = 8 ifTrue: [ ^ ((self codeUnitAtOffset: offset) bitAnd: 192) ~= 128 ].
 	width = 16 ifTrue: [ ^ ((self codeUnitAtOffset: offset) between: 16rDC00 and: 16rDFFF) not ].
 	^ true
+]
+
+{ #category : 'accessing' }
+PCRE2SubjectText >> storage [
+	"The raw code units. Only a matcher that knows the width should read them."
+
+	^ bytes
 ]

@@ -69,6 +69,23 @@ PCRE2BackendParityTest >> matchInvalidUTF: pattern in: bytes [
 ]
 
 { #category : 'private' }
+PCRE2BackendParityTest >> offsetsOf: pattern in: subject [
+	"The offsets of the first match, group by group, or an empty collection when there is none."
+
+	| matcher data rc |
+	matcher := self compile: pattern.
+	data := matcher newMatchData.
+	rc := matcher
+		      matchBytes: subject asByteArray
+		      from: 1
+		      to: subject size
+		      into: data.
+	^ rc > 0
+		  ifTrue: [ (data offsets first: rc * 2) asArray ]
+		  ifFalse: [ #(  ) ]
+]
+
+{ #category : 'private' }
 PCRE2BackendParityTest >> partialMatch: pattern in: bytes options: matchOptions [
 	"The result code and the first two offsets of one match attempt under partial matching."
 
@@ -234,4 +251,143 @@ PCRE2BackendParityTest >> testPatternsThatCanOnlyMatchInOnePlaceAreAnchored [
 		self assert: (self anchorsItsOwnStart: pattern) description: pattern ].
 	#( 'abc' '(?m)^abc' '^a|b' '.*x' '(^ab)*' '(?s)(.*)x\1' '(?s).*(*PRUNE)x' '(?s)(?>.*)x' '(*ACCEPT:XX)^abc' ) do: [ :pattern |
 		self deny: (self anchorsItsOwnStart: pattern) description: pattern ]
+]
+
+{ #category : 'tests' }
+PCRE2BackendParityTest >> testTheBackendsAgreeOnTheShapesAWrittenMatcherKnows [
+	"The Pharo backend writes a method of its own for the shapes of pattern it knows how to write, and the engine matches the rest. One of each shape is matched here, so that what is written answers what the C library answers."
+
+	| unset lines trailing cases |
+	unset := PCRE2 unsetOffset.
+	lines := String streamContents: [ :out |
+			         out
+				         nextPutAll: 'one';
+				         lf;
+				         nextPutAll: 'two' ].
+	trailing := String streamContents: [ :out |
+			            out
+				            nextPutAll: 'one two';
+				            lf ].
+	cases := {
+		         {
+			         '(\w+)@(\w+)\.(\w+)'.
+			         'mail bob@host.org here'.
+			         #( 5 17 5 8 9 13 14 17 ) }.
+		         {
+			         '(foo|bar|baz)qux'.
+			         'xxbazquxyy'.
+			         #( 2 8 2 5 ) }.
+		         {
+			         '^(\w+)\s+(\w+)$'.
+			         'hello world'.
+			         #( 0 11 0 5 6 11 ) }.
+		         {
+			         '(?m)^(\w+)$'.
+			         lines.
+			         #( 0 3 0 3 ) }.
+		         {
+			         '\b(cat|dog)\b'.
+			         'a dogs dog here'.
+			         #( 7 10 7 10 ) }.
+		         {
+			         'a(?=bc)(\w)'.
+			         'ab abc'.
+			         #( 3 5 4 5 ) }.
+		         {
+			         '(\w+)(?!\d)x'.
+			         'aa1x bbx'.
+			         #( 0 4 0 3 ) }.
+		         {
+			         '(?>a+)ab'.
+			         'aaab'.
+			         #(  ) }.
+		         {
+			         'a+?(b+)'.
+			         'aaabbb'.
+			         #( 0 6 3 6 ) }.
+		         {
+			         '(?:ab){2,3}(c)'.
+			         'abababc'.
+			         #( 0 7 6 7 ) }.
+		         {
+			         '(x)?(y)'.
+			         'zy'.
+			         {
+				         1.
+				         2.
+				         unset.
+				         unset.
+				         1.
+				         2 } }.
+		         {
+			         '((a)|(b))c'.
+			         'bc'.
+			         {
+				         0.
+				         2.
+				         0.
+				         1.
+				         unset.
+				         unset.
+				         0.
+				         1 } }.
+		         {
+			         '(?i)(hello)'.
+			         'say HeLLo'.
+			         #( 4 9 4 9 ) }.
+		         {
+			         '\d{2,4}-(\d\d)'.
+			         'ab 1234-56'.
+			         #( 3 10 8 10 ) }.
+		         {
+			         '(a*)(b*)c'.
+			         'aabbc'.
+			         #( 0 5 0 2 2 4 ) }.
+		         {
+			         '^\s*(\S+)\s*$'.
+			         '   word   '.
+			         #( 0 10 3 7 ) }.
+		         {
+			         '(?:(a)|b)+c'.
+			         'abc'.
+			         #( 0 3 0 1 ) }.
+		         {
+			         '\Aabc\z'.
+			         'abc'.
+			         #( 0 3 ) }.
+		         {
+			         '(\w+)\Z'.
+			         trailing.
+			         #( 4 7 4 7 ) }.
+		         {
+			         '[-+]?(\d+)(?:\.(\d+))?'.
+			         'v -12.75 end'.
+			         #( 2 8 3 5 6 8 ) }.
+		         {
+			         '(ab|cd)+x'.
+			         'yabcdabx'.
+			         #( 1 8 5 7 ) }.
+		         {
+			         '(\w+) \1'.
+			         'say the the end'.
+			         #( 4 11 4 7 ) }.
+		         {
+			         '(?<=\$)\d+'.
+			         'cost $42 now'.
+			         #( 6 8 ) }.
+		         {
+			         '(?<!\d)\d\d\d(?!\d)'.
+			         'a1234 b567 c'.
+			         #( 7 10 ) }.
+		         {
+			         '(a)?(?(1)b|c)'.
+			         'xxc'.
+			         #( 2 3 ) }.
+		         {
+			         '(\()?[^()]+(?(1)\))'.
+			         'a(bc)d'.
+			         #( 0 1 ) } }.
+	self
+		assert: (cases collect: [ :case | self offsetsOf: case first in: case second ])
+		equals: (cases collect: [ :case | case third asArray ])
 ]

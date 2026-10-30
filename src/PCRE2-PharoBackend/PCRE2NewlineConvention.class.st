@@ -65,3 +65,13 @@ PCRE2NewlineConvention >> mode: value [
 
 	mode := value
 ]
+
+{ #category : 'accessing' }
+PCRE2NewlineConvention >> singleTerminator [
+	"The one byte this convention ends a line with, or nil when it has more than one or reads two characters to decide. What reads a line end as one byte can be written into a matcher; the rest is left to the engine."
+
+	mode = PCRE2 newlineLF ifTrue: [ ^ 10 ].
+	mode = PCRE2 newlineCR ifTrue: [ ^ 13 ].
+	mode = PCRE2 newlineNul ifTrue: [ ^ 0 ].
+	^ nil
+]

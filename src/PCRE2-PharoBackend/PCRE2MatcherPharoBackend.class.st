@@ -22,7 +22,9 @@ Class {
 		'startCharacters',
 		'requiredCharacter',
 		'startCharacterTable',
-		'newlineConvention'
+		'newlineConvention',
+		'generatedMethod',
+		'generatedOffsets'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
@@ -45,6 +47,20 @@ PCRE2MatcherPharoBackend >> autoRelease [
 PCRE2MatcherPharoBackend >> calloutSitesDo: block [
 
 	calloutSites do: block
+]
+
+{ #category : 'generated matching' }
+PCRE2MatcherPharoBackend >> canRunGeneratedIn: text options: matchOptions [
+	"Whether the written method can answer this match on its own. It knows the shapes of pattern it was written for and nothing else, so everything it does not know is refused here rather than guessed at."
+
+	| refused |
+	refused := PCRE2 partialSoft | PCRE2 partialHard | PCRE2 notEmpty | PCRE2 notEmptyAtStart | PCRE2 notBOL | PCRE2 notEOL
+	           | PCRE2 endAnchored.
+	^ text isByteWide and: [
+			  matcher context backend calloutBlock isNil and: [
+					  ((matchOptions bitOr: patternMatchOptions) bitAnd: refused) = 0 and: [
+							  (compileOptions bitAnd: PCRE2 endAnchored | PCRE2 firstLine) = 0 and: [
+								  self limitsAreDefault and: [ self generatedMethod isNotNil ] ] ] ] ]
 ]
 
 { #category : 'matching' }
@@ -301,6 +317,16 @@ PCRE2MatcherPharoBackend >> free [
 	^ self
 ]
 
+{ #category : 'generated matching' }
+PCRE2MatcherPharoBackend >> generatedMethod [
+	"The method written for this pattern, or nil when its shape does not allow one. Written and compiled on first use, so a pattern that is never matched never pays for it."
+
+	generatedMethod == #pending ifTrue: [
+			generatedMethod := self writtenMethod.
+			generatedOffsets := Array new: captureCount + 1 * 2 ].
+	^ generatedMethod
+]
+
 { #category : 'matching' }
 PCRE2MatcherPharoBackend >> heapLimit [
 
@@ -327,6 +353,16 @@ PCRE2MatcherPharoBackend >> info: option [
 PCRE2MatcherPharoBackend >> isNull [
 
 	^ false
+]
+
+{ #category : 'generated matching' }
+PCRE2MatcherPharoBackend >> limitsAreDefault [
+	"Whether nothing has asked this match for a limit of its own. The written method keeps no count of its work and allocates nothing to bound, so a pattern or a context that sets a limit is left to the engine, which does both."
+
+	patternLimits ifNotEmpty: [ ^ false ].
+	^ self matchLimit = PCRE2ContextPharoBackend defaultMatchLimit and: [
+		  self depthLimit = PCRE2ContextPharoBackend defaultDepthLimit and: [
+			  self heapLimit = PCRE2ContextPharoBackend defaultHeapLimit ] ]
 ]
 
 { #category : 'matching' }
@@ -417,12 +453,29 @@ PCRE2MatcherPharoBackend >> matchFragmentsIn: text from: start mapping: mapping 
 PCRE2MatcherPharoBackend >> matchIn: text from: begin matchStart: origin mapping: mapping options: matchOptions matchData: matchData [
 	"Search text, which may be one fragment of a larger subject, for a match beginning at or after begin. What \G and PCRE2_NOT_EMPTY_AT_START pin themselves to is origin, the offset the caller asked to match from."
 
-	| engine state result anchored lastIndex converted rc offsetLimit candidate filtering jumpsToLineStarts optimizing |
+	| engine state result anchored lastIndex converted rc offsetLimit candidate filtering jumpsToLineStarts optimizing generated |
 	optimizing := (compileOptions bitAnd: PCRE2 noStartOptimize) = 0 and: [
 		              (matchOptions bitAnd: PCRE2 partialSoft | PCRE2 partialHard) = 0 ].
 	(optimizing and: [
 		 requiredCharacter isNotNil and: [ (text anyCodeSatisfy: [ :code | requiredCharacter acceptsCode: code ]) not ] ]) ifTrue: [
 		^ PCRE2 errorNoMatch ].
+	anchored := ((matchOptions bitOr: compileOptions) bitAnd: PCRE2 anchored) ~= 0.
+	offsetLimit := matcher context offsetLimit.
+	offsetLimit ifNotNil: [
+		(compileOptions bitAnd: PCRE2 useOffsetLimit) = 0 ifTrue: [ PCRE2MatchError signal: (PCRE2 translateErrorCode: -56) ] ].
+	lastIndex := anchored
+		             ifTrue: [ begin ]
+		             ifFalse: [ text size ].
+	offsetLimit ifNotNil: [ lastIndex := lastIndex min: offsetLimit ].
+	(compileOptions bitAnd: PCRE2 firstLine) ~= 0 ifTrue: [ lastIndex := lastIndex min: (self firstLineEndIn: text from: begin) ].
+	(self canRunGeneratedIn: text options: matchOptions) ifTrue: [
+			generated := self
+				             runGeneratedIn: text
+				             from: begin
+				             to: lastIndex
+				             mapping: mapping
+				             matchData: matchData.
+			generated ifNotNil: [ ^ generated ] ].
 	engine := PCRE2MatchEngine new
 		          subject: text
 		          root: root
@@ -435,15 +488,6 @@ PCRE2MatcherPharoBackend >> matchIn: text from: begin matchStart: origin mapping
 		          initialPosition: origin;
 		          matchOptions: (matchOptions bitOr: ((compileOptions bitAnd: PCRE2 endAnchored) bitOr: patternMatchOptions)).
 	engine calloutBlock: matcher context backend calloutBlock mapping: mapping.
-	anchored := ((matchOptions bitOr: compileOptions) bitAnd: PCRE2 anchored) ~= 0.
-	offsetLimit := matcher context offsetLimit.
-	offsetLimit ifNotNil: [
-		(compileOptions bitAnd: PCRE2 useOffsetLimit) = 0 ifTrue: [ PCRE2MatchError signal: (PCRE2 translateErrorCode: -56) ] ].
-	lastIndex := anchored
-		             ifTrue: [ begin ]
-		             ifFalse: [ text size ].
-	offsetLimit ifNotNil: [ lastIndex := lastIndex min: offsetLimit ].
-	(compileOptions bitAnd: PCRE2 firstLine) ~= 0 ifTrue: [ lastIndex := lastIndex min: (self firstLineEndIn: text from: begin) ].
 	"PCRE2 looks either for the characters a match can start with or for a line start, never for both, and it keeps the first of them to itself while matching partially."
 	jumpsToLineStarts := startLine and: [ anchored not ].
 	filtering := startCharacters isNotNil and: [
@@ -614,7 +658,7 @@ PCRE2MatcherPharoBackend >> restartDFAFrom: workspace [
 
 { #category : 'matching' }
 PCRE2MatcherPharoBackend >> root: aNode parser: parser [
-	"The start optimizations are worked out here rather than per match: the tree does not change once it is compiled, which is also when PCRE2 studies it."
+	"The start optimizations are worked out here rather than per match: the tree does not change once it is compiled, which is also when PCRE2 studies it. The written method waits for the first match that could use it."
 
 	root := aNode.
 	patternLimits := parser patternLimits.
@@ -632,7 +676,38 @@ PCRE2MatcherPharoBackend >> root: aNode parser: parser [
 	startCharacters := root minimumLength = 0
 		                   ifTrue: [ nil ]
 		                   ifFalse: [ root firstLiteralPredicate ifNil: [ root startPredicate ] ].
-	startCharacterTable := startCharacters ifNotNil: [ PCRE2CharacterNode tableFor: startCharacters ]
+	startCharacterTable := startCharacters ifNotNil: [ PCRE2CharacterNode tableFor: startCharacters ].
+	generatedMethod := #pending
+]
+
+{ #category : 'generated matching' }
+PCRE2MatcherPharoBackend >> runGeneratedIn: text from: begin to: last mapping: mapping matchData: matchData [
+	"Run the written method over the subject bytes, or answer nil when it meets a byte it cannot judge and the engine has to take over. A group that did not take part comes back as a negative offset, which is how the written method says what PCRE2 calls unset."
+
+	| answer count |
+	answer := generatedMethod valueWithReceiver: self arguments: {
+			          begin.
+			          last.
+			          text storage.
+			          generatedOffsets }.
+	answer ifNil: [ ^ nil ].
+	answer ifFalse: [
+			matchData mark: nil.
+			^ PCRE2 errorNoMatch ].
+	count := 1.
+	1 to: captureCount do: [ :index | (generatedOffsets at: index * 2 + 2) >= 0 ifTrue: [ count := index + 1 ] ].
+	1 to: (generatedOffsets size min: matchData offsets size) do: [ :index |
+			| offset |
+			offset := generatedOffsets at: index.
+			matchData offsets at: index put: (offset < 0
+					 ifTrue: [ PCRE2 unsetOffset ]
+					 ifFalse: [ mapping at: offset + 1 ]) ].
+	matchData
+		startIndex: (mapping at: (generatedOffsets at: 1) + 1);
+		mark: nil.
+	^ count > matchData getCount
+		  ifTrue: [ 0 ]
+		  ifFalse: [ count ]
 ]
 
 { #category : 'matching' }
@@ -817,6 +892,23 @@ PCRE2MatcherPharoBackend >> transformCase: text mode: mode [
 				  ifFalse: [ event defaultTransformedText ] ].
 	unicode := (compileOptions bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0.
 	^ text collect: [ :character | PCRE2UnicodeData case: character upper: mode = #upper unicode: unicode ]
+]
+
+{ #category : 'generated matching' }
+PCRE2MatcherPharoBackend >> writtenMethod [
+	"A method matching this pattern alone, or nil when the pattern is a shape the generator does not know. A pattern that can only begin a line needs the byte that ends one, or the written search would try every position where the engine tries a few. A method the compiler will not take, because the pattern nests deeper or wants more locals than a method has room for, is one more size the generator cannot know in advance, so it is offered and the engine keeps the pattern when it is refused."
+
+	| terminator source |
+	terminator := startLine ifTrue: [ newlineConvention singleTerminator ifNil: [ ^ nil ] ].
+	source := PCRE2MatchGenerator sourceFor: root captures: captureCount lineStart: terminator.
+	source ifNil: [ ^ nil ].
+	^ [
+		  OpalCompiler new
+			  class: self class;
+			  source: source;
+			  compile ]
+		  on: Error
+		  do: [ :error | nil ]
 ]
 
 { #category : 'matching' }

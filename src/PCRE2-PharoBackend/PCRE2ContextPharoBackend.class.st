@@ -26,6 +26,24 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
+{ #category : 'defaults' }
+PCRE2ContextPharoBackend class >> defaultDepthLimit [
+
+	^ 10000000
+]
+
+{ #category : 'defaults' }
+PCRE2ContextPharoBackend class >> defaultHeapLimit [
+
+	^ 20000000
+]
+
+{ #category : 'defaults' }
+PCRE2ContextPharoBackend class >> defaultMatchLimit [
+
+	^ 10000000
+]
+
 { #category : 'configuration' }
 PCRE2ContextPharoBackend >> addOptions: flags [
 
@@ -171,9 +189,9 @@ PCRE2ContextPharoBackend >> heapLimit: value [
 { #category : 'initialization' }
 PCRE2ContextPharoBackend >> initialize [
 
-	matchLimit := 10000000.
-	depthLimit := 10000000.
-	heapLimit := 20000000.
+	matchLimit := self class defaultMatchLimit.
+	depthLimit := self class defaultDepthLimit.
+	heapLimit := self class defaultHeapLimit.
 	newline := PCRE2 newlineLF.
 	bsr := PCRE2 bsrUnicode.
 	parensNestLimit := 250.

@@ -33,6 +33,18 @@ PCRE2DotNode >> acceptsEveryCharacterButLineEnds [
 	^ dotAll not
 ]
 
+{ #category : 'generating' }
+PCRE2DotNode >> asciiTable [
+	"The dot accepts every byte but the line terminators of its convention, which a table can say as long as the convention decides from one character."
+
+	| table excluded |
+	table := ByteArray new: 256 withAll: 1.
+	dotAll ifTrue: [ ^ table ].
+	excluded := self excludedNewlineCodes ifNil: [ ^ nil ].
+	excluded do: [ :code | table at: code + 1 put: 0 ].
+	^ table
+]
+
 { #category : 'optimization' }
 PCRE2DotNode >> canAutoPossess [
 
@@ -69,6 +81,20 @@ PCRE2DotNode >> countIn: anEngine from: offset limit: maximum [
 		  count.
 		  position.
 		  read }
+]
+
+{ #category : 'generating' }
+PCRE2DotNode >> excludedNewlineCodes [
+	"The codes under 128 this convention counts as a line terminator, or nil when it reads more than one character to decide, as CRLF does."
+
+	| mode |
+	mode := convention mode.
+	mode = PCRE2 newlineLF ifTrue: [ ^ #( 10 ) ].
+	mode = PCRE2 newlineCR ifTrue: [ ^ #( 13 ) ].
+	mode = PCRE2 newlineNul ifTrue: [ ^ #( 0 ) ].
+	mode = PCRE2 newlineAnyCRLF ifTrue: [ ^ #( 10 13 ) ].
+	mode = PCRE2 newlineAny ifTrue: [ ^ #( 10 11 12 13 ) ].
+	^ nil
 ]
 
 { #category : 'matching' }

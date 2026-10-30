@@ -107,7 +107,7 @@ PCRE2PatternParser >> asciiInlineOption [
 	^ PCRE2 extraAsciiBsd | PCRE2 extraAsciiBss | PCRE2 extraAsciiBsw | PCRE2 extraAsciiDigit | PCRE2 extraAsciiPosix
 ]
 
-{ #category : 'parsing - assertions' }
+{ #category : 'parsing' }
 PCRE2PatternParser >> assertion: kind [
 	"The node for one zero-width position assertion. Its predicate is chosen here, once, so matching never asks again which kind it is."
 
@@ -115,6 +115,7 @@ PCRE2PatternParser >> assertion: kind [
 	^ PCRE2AssertionNode new
 		  kind: kind;
 		  multiline: (options bitAnd: PCRE2 multiline) ~= 0;
+		  byteTest: (self byteTestFor: kind);
 		  predicate: (self assertionPredicateFor: kind)
 ]
 
@@ -232,6 +233,57 @@ PCRE2PatternParser >> branchResetRestoring: savedOptions [
 PCRE2PatternParser >> bsrMode [
 
 	^ bsr
+]
+
+{ #category : 'parsing' }
+PCRE2PatternParser >> byteConditionFor: callouts constant: constantFalse numbered: aNumber version: aVersion [
+	"What a written matcher can ask of a conditional's condition, or nil when it cannot ask it. A condition already settled while the pattern was read leaves one branch, and a group number is one offset to look at; a recursion, a name shared by several groups, and a lookaround condition are all answered from how the match is going."
+
+	callouts ifNotEmpty: [ ^ nil ].
+	constantFalse ifTrue: [ ^ #( #never ) ].
+	aVersion ifNotNil: [ ^ #( #always ) ].
+	aNumber ifNil: [ ^ nil ].
+	^ {
+		  #groupSet.
+		  aNumber }
+]
+
+{ #category : 'parsing' }
+PCRE2PatternParser >> byteTestFor: kind [
+	"How a written matcher can decide this assertion by reading bytes, or nil when it cannot. The options that change what an assertion means are read here, where they are known, rather than carried into the generator."
+
+	| terminator multiline |
+	kind = #beginSubject ifTrue: [ ^ #( #atStart ) ].
+	kind = #endSubject ifTrue: [ ^ #( #atEnd ) ].
+	(#( wordBoundary notWordBoundary ) includes: kind) ifTrue: [
+			^ {
+				  #wordBoundary.
+				  (kind = #wordBoundary).
+				  (PCRE2CharacterNode tableFor: (self predicateFor: $w)) } ].
+	multiline := (options bitAnd: PCRE2 multiline) ~= 0.
+	(kind = #beginLine and: [ multiline not ]) ifTrue: [ ^ #( #atStart ) ].
+	(kind = #endLine and: [ multiline not and: [ (options bitAnd: PCRE2 dollarEndOnly) ~= 0 ] ]) ifTrue: [ ^ #( #atEnd ) ].
+	terminator := self singleNewlineCode ifNil: [ ^ nil ].
+	kind = #beginLine ifTrue: [
+			^ {
+				  #afterTerminator.
+				  terminator.
+				  ((options bitAnd: PCRE2 altCircumflex) ~= 0) } ].
+	kind = #endBeforeFinalNewline ifTrue: [
+			^ {
+				  #beforeFinalTerminator.
+				  terminator } ].
+	kind = #endLine ifTrue: [
+			^ multiline
+				  ifTrue: [
+						  {
+							  #beforeTerminator.
+							  terminator } ]
+				  ifFalse: [
+						  {
+							  #beforeFinalTerminator.
+							  terminator } ] ].
+	^ nil
 ]
 
 { #category : 'callouts' }
@@ -487,7 +539,7 @@ PCRE2PatternParser >> conditionalAssertionAllowingCallout: allowCallout [
 	^ self group
 ]
 
-{ #category : 'parsing - groups' }
+{ #category : 'parsing' }
 PCRE2PatternParser >> conditionalRestoring: savedOptions [
 
 	| condition yes no assertion reference text prefix conditionStart delimiter quoted recursion knownNames unsupported definition groupStart constantFalse elseWritten version |
@@ -590,6 +642,11 @@ PCRE2PatternParser >> conditionalRestoring: savedOptions [
 		  assertion: assertion;
 		  hasElse: elseWritten;
 		  neverRuns: (constantFalse and: [ elseWritten not ]);
+		  byteCondition: (self
+				   byteConditionFor: prefix
+				   constant: constantFalse
+				   numbered: ((reference isInteger and: [ text isNil ]) ifTrue: [ reference ])
+				   version: version);
 		  condition: condition then: yes else: no
 ]
 
@@ -2094,6 +2151,13 @@ PCRE2PatternParser >> sequence [
 					 stringStart: nil
 					 position: position) ].
 	^ PCRE2SequenceNode new children: nodes asArray
+]
+
+{ #category : 'parsing' }
+PCRE2PatternParser >> singleNewlineCode [
+	"The one byte this pattern's newline convention ends a line with, or nil when a written matcher cannot decide a line end by reading one byte."
+
+	^ newlineConvention singleTerminator
 ]
 
 { #category : 'scanning' }

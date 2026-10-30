@@ -15,6 +15,12 @@ Class {
 }
 
 { #category : 'accessing' }
+PCRE2LookbehindNode >> atomic [
+
+	^ atomic
+]
+
+{ #category : 'accessing' }
 PCRE2LookbehindNode >> atomic: boolean [
 
 	atomic := boolean
@@ -24,6 +30,12 @@ PCRE2LookbehindNode >> atomic: boolean [
 PCRE2LookbehindNode >> branchBounds: bounds [
 
 	branchBounds := bounds
+]
+
+{ #category : 'accessing' }
+PCRE2LookbehindNode >> branches [
+
+	^ branches
 ]
 
 { #category : 'accessing' }
@@ -138,6 +150,12 @@ PCRE2LookbehindNode >> nonAtomicIn: engine state: state [
 ]
 
 { #category : 'accessing' }
+PCRE2LookbehindNode >> positive [
+
+	^ positive
+]
+
+{ #category : 'accessing' }
 PCRE2LookbehindNode >> positive: aBoolean [
 
 	positive := aBoolean
@@ -147,4 +165,14 @@ PCRE2LookbehindNode >> positive: aBoolean [
 PCRE2LookbehindNode >> startPredicate [
 
 	^ [ :character | false ]
+]
+
+{ #category : 'generating' }
+PCRE2LookbehindNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+
+	^ aGenerator
+		  writeLookbehind: self
+		  at: position
+		  indent: level
+		  then: aBlock
 ]

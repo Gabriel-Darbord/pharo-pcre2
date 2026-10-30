@@ -124,3 +124,13 @@ PCRE2AlternativeNode >> startPredicate [
 	(predicates includes: nil) ifTrue: [ ^ nil ].
 	^ self startPredicateOf: predicates
 ]
+
+{ #category : 'generating' }
+PCRE2AlternativeNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+
+	^ aGenerator
+		  writeAlternation: children
+		  at: position
+		  indent: level
+		  then: aBlock
+]

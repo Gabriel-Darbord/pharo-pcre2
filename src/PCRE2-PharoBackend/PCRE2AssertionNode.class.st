@@ -7,11 +7,25 @@ Class {
 	#instVars : [
 		'predicate',
 		'kind',
-		'multiline'
+		'multiline',
+		'byteTest'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
 }
+
+{ #category : 'accessing' }
+PCRE2AssertionNode >> byteTest [
+	"How a written matcher can decide this assertion by reading bytes, or nil when it cannot. Chosen when the pattern is parsed, where the options that change what the assertion means are known."
+
+	^ byteTest
+]
+
+{ #category : 'accessing' }
+PCRE2AssertionNode >> byteTest: anArray [
+
+	byteTest := anArray
+]
 
 { #category : 'testing' }
 PCRE2AssertionNode >> canBeRepeated [
@@ -74,4 +88,14 @@ PCRE2AssertionNode >> startPredicate [
 
 	(#( wordBoundary notWordBoundary ) includes: kind) ifTrue: [ ^ [ :character | false ] ].
 	^ (kind = #beginLine and: [ multiline not ]) ifTrue: [ [ :character | false ] ]
+]
+
+{ #category : 'generating' }
+PCRE2AssertionNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+
+	^ aGenerator
+		  writeAssertion: byteTest
+		  at: position
+		  indent: level
+		  then: aBlock
 ]

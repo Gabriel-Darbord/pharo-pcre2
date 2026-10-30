@@ -15,7 +15,8 @@ Class {
 		'prefix',
 		'assertion',
 		'hasElse',
-		'neverRuns'
+		'neverRuns',
+		'byteCondition'
 	],
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
@@ -25,6 +26,19 @@ Class {
 PCRE2ConditionalNode >> assertion: aNode [
 
 	assertion := aNode
+]
+
+{ #category : 'accessing' }
+PCRE2ConditionalNode >> byteCondition [
+	"What a written matcher can ask of this condition, or nil when it cannot ask it: a recursion or a name shared by several groups is answered from how the match is going, and a lookaround condition runs a whole assertion."
+
+	^ byteCondition
+]
+
+{ #category : 'accessing' }
+PCRE2ConditionalNode >> byteCondition: anArray [
+
+	byteCondition := anArray
 ]
 
 { #category : 'testing' }
@@ -66,6 +80,12 @@ PCRE2ConditionalNode >> dfaError [
 PCRE2ConditionalNode >> dfaUnsupported: boolean [
 
 	dfaUnsupported := boolean
+]
+
+{ #category : 'accessing' }
+PCRE2ConditionalNode >> elseBranch [
+
+	^ elseBranch
 ]
 
 { #category : 'matching' }
@@ -137,4 +157,20 @@ PCRE2ConditionalNode >> neverRuns: aBoolean [
 PCRE2ConditionalNode >> prefix: nodes [
 
 	prefix := nodes
+]
+
+{ #category : 'accessing' }
+PCRE2ConditionalNode >> thenBranch [
+
+	^ thenBranch
+]
+
+{ #category : 'generating' }
+PCRE2ConditionalNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+
+	^ aGenerator
+		  writeConditional: self
+		  at: position
+		  indent: level
+		  then: aBlock
 ]

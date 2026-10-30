@@ -100,6 +100,12 @@ PCRE2AtomicNode >> minimumLength [
 ]
 
 { #category : 'accessing' }
+PCRE2AtomicNode >> possessive [
+
+	^ possessive
+]
+
+{ #category : 'accessing' }
 PCRE2AtomicNode >> possessive: aBoolean [
 
 	possessive := aBoolean
@@ -115,4 +121,23 @@ PCRE2AtomicNode >> requiredNode [
 PCRE2AtomicNode >> startPredicate [
 
 	^ child startPredicate
+]
+
+{ #category : 'generating' }
+PCRE2AtomicNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+	"A possessive quantifier is the repetition it was written on; an atomic group is a group that keeps the first way it found of matching."
+
+	^ possessive = true
+		  ifTrue: [
+				  child
+					  writePossessivelyInto: aGenerator
+					  at: position
+					  indent: level
+					  then: aBlock ]
+		  ifFalse: [
+				  aGenerator
+					  writeAtomic: child
+					  at: position
+					  indent: level
+					  then: aBlock ]
 ]
