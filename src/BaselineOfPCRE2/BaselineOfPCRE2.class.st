@@ -34,6 +34,5 @@ BaselineOfPCRE2 >> baseline: spec [
 			spec group: 'Tests' with: #( 'FFITests' 'PharoTests' 'BackendTests' ).
 			"Metacello loads the group named 'default' when none is given."
 			spec group: 'default' with: #( 'Core' 'Pharo' ).
-			spec group: 'Default' with: #( 'default' ).
 			spec group: 'All' with: #( 'Backends' 'Tools' 'Tests' ) ]
 ]

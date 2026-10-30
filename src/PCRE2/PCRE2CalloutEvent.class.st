@@ -68,7 +68,7 @@ PCRE2CalloutEvent >> flags [
 { #category : 'testing' }
 PCRE2CalloutEvent >> hasString [
 
-	^ string notNil
+	^ string isNotNil
 ]
 
 { #category : 'initialization' }

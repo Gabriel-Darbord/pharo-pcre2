@@ -24,7 +24,7 @@ Class {
 { #category : 'testing' }
 PCRE2CalloutSite >> hasString [
 
-	^ string notNil
+	^ string isNotNil
 ]
 
 { #category : 'testing' }

@@ -162,12 +162,6 @@ PCRE2Compiler >> compile: pattern [
 	^ matcher
 ]
 
-{ #category : 'private' }
-PCRE2Compiler >> compile: pattern upTo: length errorCode: errorCode errorOffset: errorOffset [
-
-	self subclassResponsibility
-]
-
 { #category : 'compiling' }
 PCRE2Compiler >> compileBasic: pattern [
 	"Creates a regex matcher from a pattern and returns its external address."

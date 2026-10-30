@@ -41,6 +41,13 @@ PCRE2CompilerFFIBackend class >> isAvailable [
 	^ LibPCRE2UTF8 isNativeLibraryAvailable
 ]
 
+{ #category : 'private' }
+PCRE2CompilerFFIBackend >> compile: pattern upTo: length errorCode: errorCode errorOffset: errorOffset [
+	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
+
+	self subclassResponsibility
+]
+
 { #category : 'compiling' }
 PCRE2CompilerFFIBackend >> compileBasicInput: input [
 

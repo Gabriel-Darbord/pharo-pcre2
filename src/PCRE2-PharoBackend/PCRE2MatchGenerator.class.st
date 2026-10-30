@@ -262,8 +262,8 @@ PCRE2MatchGenerator >> sourceAround: aString stops: stops [
 	^ String streamContents: [ :out |
 			  out
 				  nextPutAll: 'matchFrom: begin to: last in: bytes into: offsets';
-				  lf;
-				  lf;
+				  cr;
+				  cr;
 				  tab;
 				  nextPutAll: '| size start byte'.
 			  tables do: [ :each |
@@ -276,13 +276,13 @@ PCRE2MatchGenerator >> sourceAround: aString stops: stops [
 						  nextPutAll: name ].
 			  out
 				  nextPutAll: ' |';
-				  lf;
+				  cr;
 				  tab;
 				  nextPutAll: 'size := bytes size.';
-				  lf;
+				  cr;
 				  tab;
 				  nextPutAll: 'start := begin.';
-				  lf.
+				  cr.
 			  tables do: [ :each |
 					  out
 						  tab;
@@ -290,7 +290,7 @@ PCRE2MatchGenerator >> sourceAround: aString stops: stops [
 						  nextPutAll: ' := ';
 						  print: each value;
 						  nextPut: $.;
-						  lf ].
+						  cr ].
 			  1 to: captures do: [ :index |
 					  out
 						  tab;
@@ -298,23 +298,23 @@ PCRE2MatchGenerator >> sourceAround: aString stops: stops [
 						  nextPutAll: ' := -1. ';
 						  nextPutAll: (self captureEnd: index);
 						  nextPutAll: ' := -1.';
-						  lf ].
+						  cr ].
 			  out
 				  tab;
 				  nextPutAll: '[ start <= last ] whileTrue: [';
-				  lf;
+				  cr;
 				  nextPutAll: aString.
 			  stops ifFalse: [
 					  out
 						  nextPut: $.;
-						  lf;
+						  cr;
 						  tab;
 						  tab;
 						  nextPutAll: 'start := start + 1'.
 					  lineStart ifNotNil: [
 							  out
 								  nextPut: $.;
-								  lf;
+								  cr;
 								  tab;
 								  tab;
 								  nextPutAll: '[ start < size and: [ (bytes byteAt: start) ~~ ';
@@ -322,7 +322,7 @@ PCRE2MatchGenerator >> sourceAround: aString stops: stops [
 								  nextPutAll: ' ] ] whileTrue: [ start := start + 1 ]' ] ].
 			  out
 				  nextPutAll: ' ].';
-				  lf;
+				  cr;
 				  tab;
 				  nextPutAll: '^ false' ]
 ]
@@ -421,7 +421,7 @@ PCRE2MatchGenerator >> writeAlternation: children at: position indent: level the
 					index > 1 ifTrue: [
 							stream
 								nextPut: $.;
-								lf ].
+								cr ].
 					stops := index = 1
 						         ifTrue: [
 								         branch
@@ -461,7 +461,7 @@ PCRE2MatchGenerator >> writeAssertion: aTest at: position indent: level then: aB
 		nextPutAll: (self tabs: level);
 		nextPutAll: condition;
 		nextPutAll: ' ifTrue: [';
-		lf.
+		cr.
 	aBlock value: position value: level + 1.
 	stream nextPutAll: ' ]'.
 	^ false
@@ -482,7 +482,7 @@ PCRE2MatchGenerator >> writeAtomic: aNode at: position indent: level then: aBloc
 		nextPutAll: ' := false. ';
 		nextPutAll: held;
 		nextPutAll: ' := 0.';
-		lf.
+		cr.
 	outer := guard.
 	guard := flag.
 	stops := aNode
@@ -502,11 +502,11 @@ PCRE2MatchGenerator >> writeAtomic: aNode at: position indent: level then: aBloc
 	stops ifTrue: [ ^ self refuse ].
 	stream
 		nextPut: $.;
-		lf;
+		cr;
 		nextPutAll: tabs;
 		nextPutAll: flag;
 		nextPutAll: ' ifTrue: [';
-		lf.
+		cr.
 	aBlock value: held value: level + 1.
 	stream nextPutAll: ' ]'.
 	^ false
@@ -533,7 +533,7 @@ PCRE2MatchGenerator >> writeBackreference: index at: position indent: level then
 		nextPutAll: ' - ';
 		nextPutAll: start;
 		nextPut: $.;
-		lf;
+		cr;
 		nextPutAll: tabs;
 		nextPut: $(;
 		nextPutAll: start;
@@ -542,14 +542,14 @@ PCRE2MatchGenerator >> writeBackreference: index at: position indent: level then
 		nextPutAll: ' + ';
 		nextPutAll: span;
 		nextPutAll: ' <= size ]) ifTrue: [';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		nextPutAll: same;
 		nextPutAll: ' := true. ';
 		nextPutAll: step;
 		nextPutAll: ' := 0.';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		nextPutAll: '[ ';
@@ -559,7 +559,7 @@ PCRE2MatchGenerator >> writeBackreference: index at: position indent: level then
 		nextPutAll: ' < ';
 		nextPutAll: span;
 		nextPutAll: ' ] ] whileTrue: [';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		tab;
@@ -568,12 +568,12 @@ PCRE2MatchGenerator >> writeBackreference: index at: position indent: level then
 		nextPutAll: ' + ';
 		nextPutAll: step;
 		nextPutAll: ' + 1.';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		tab;
 		nextPutAll: 'byte > 127 ifTrue: [ ^ nil ].';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		tab;
@@ -587,12 +587,12 @@ PCRE2MatchGenerator >> writeBackreference: index at: position indent: level then
 		nextPutAll: ' := ';
 		nextPutAll: step;
 		nextPutAll: ' + 1 ].';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		nextPutAll: same;
 		nextPutAll: ' ifTrue: [';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		tab;
@@ -602,7 +602,7 @@ PCRE2MatchGenerator >> writeBackreference: index at: position indent: level then
 		nextPutAll: ' + ';
 		nextPutAll: span;
 		nextPut: $.;
-		lf.
+		cr.
 	aBlock value: hold value: level + 3.
 	stream nextPutAll: ' ] ]'.
 	^ false
@@ -636,7 +636,7 @@ PCRE2MatchGenerator >> writeCapture: aNode at: position indent: level then: aBlo
 					  nextPutAll: ' := ';
 					  nextPutAll: finish;
 					  nextPut: $.;
-					  lf;
+					  cr;
 					  nextPutAll: tabs;
 					  nextPutAll: start;
 					  nextPutAll: ' := ';
@@ -646,13 +646,13 @@ PCRE2MatchGenerator >> writeCapture: aNode at: position indent: level then: aBlo
 					  nextPutAll: ' := ';
 					  nextPutAll: next;
 					  nextPut: $.;
-					  lf.
+					  cr.
 				  (aBlock value: next value: deeper)
 					  ifTrue: [ true ]
 					  ifFalse: [
 							  stream
 								  nextPut: $.;
-								  lf;
+								  cr;
 								  nextPutAll: tabs;
 								  nextPutAll: start;
 								  nextPutAll: ' := ';
@@ -689,7 +689,7 @@ PCRE2MatchGenerator >> writeConditional: aNode at: position indent: level then: 
 		nextPutAll: tabs;
 		nextPutAll: (self captureEnd: test second);
 		nextPutAll: ' >= 0 ifTrue: [';
-		lf.
+		cr.
 	taken := aNode thenBranch
 		         writeInto: self
 		         at: position
@@ -697,7 +697,7 @@ PCRE2MatchGenerator >> writeConditional: aNode at: position indent: level then: 
 		         then: aBlock.
 	stream
 		nextPutAll: ' ] ifFalse: [';
-		lf.
+		cr.
 	missed := aNode elseBranch
 		          writeInto: self
 		          at: position
@@ -736,7 +736,7 @@ PCRE2MatchGenerator >> writeCopy: ordinal of: aNode at: position indent: level t
 			(aBlock value: position value: level) ifTrue: [ ^ true ].
 			stream
 				nextPut: $.;
-				lf.
+				cr.
 			^ self
 				  writeGuarded: [ :where :deeper |
 						  aNode child
@@ -766,7 +766,7 @@ PCRE2MatchGenerator >> writeCopy: ordinal of: aNode at: position indent: level t
 	stops ifTrue: [ ^ true ].
 	stream
 		nextPut: $.;
-		lf.
+		cr.
 	^ self writeGuarded: aBlock at: position indent: level
 ]
 
@@ -800,7 +800,7 @@ PCRE2MatchGenerator >> writeGreedyRun: aNode at: position indent: level then: aB
 	guard ifNotNil: [ stream nextPutAll: ' ]' ].
 	stream
 		nextPutAll: ' ] whileTrue: [';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		nextPutAll: hold;
@@ -815,7 +815,7 @@ PCRE2MatchGenerator >> writeGreedyRun: aNode at: position indent: level then: aB
 		nextPutAll: ' := ';
 		nextPutAll: count;
 		nextPutAll: ' - 1.';
-		lf.
+		cr.
 	aBlock value: hold value: level + 2.
 	stream nextPutAll: ' ]'.
 	^ false
@@ -830,7 +830,7 @@ PCRE2MatchGenerator >> writeGuarded: aBlock at: position indent: level [
 		nextPutAll: (self tabs: level);
 		nextPutAll: guard;
 		nextPutAll: ' ifFalse: [';
-		lf.
+		cr.
 	aBlock value: position value: level + 1.
 	stream nextPutAll: ' ]'.
 	^ false
@@ -859,12 +859,12 @@ PCRE2MatchGenerator >> writeLazyRun: aNode at: position indent: level then: aBlo
 		nextPutAll: ' >= ';
 		print: aNode minimum;
 		nextPutAll: ' ifTrue: [';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		nextPutAll: more;
 		nextPutAll: ' := true.';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		nextPutAll: '[ ';
@@ -876,7 +876,7 @@ PCRE2MatchGenerator >> writeLazyRun: aNode at: position indent: level then: aBlo
 				nextPutAll: ' not ]' ].
 	stream
 		nextPutAll: ' ] whileTrue: [';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		tab;
@@ -884,7 +884,7 @@ PCRE2MatchGenerator >> writeLazyRun: aNode at: position indent: level then: aBlo
 		nextPutAll: ' := ';
 		nextPutAll: run;
 		nextPut: $.;
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		tab;
@@ -896,7 +896,7 @@ PCRE2MatchGenerator >> writeLazyRun: aNode at: position indent: level then: aBlo
 				 counter: count
 				 position: run);
 		nextPut: $.;
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		tab;
@@ -910,11 +910,11 @@ PCRE2MatchGenerator >> writeLazyRun: aNode at: position indent: level then: aBlo
 		nextPutAll: ' := ';
 		nextPutAll: count;
 		nextPutAll: ' + 1 ].';
-		lf.
+		cr.
 	aBlock value: hold value: level + 3.
 	stream
 		nextPutAll: ' ].';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		nextPut: $(;
@@ -936,7 +936,7 @@ PCRE2MatchGenerator >> writeLookahead: aNode at: position indent: level then: aB
 		nextPutAll: tabs;
 		nextPutAll: flag;
 		nextPutAll: ' := false.';
-		lf.
+		cr.
 	outer := guard.
 	guard := flag.
 	stops := aNode child
@@ -953,13 +953,13 @@ PCRE2MatchGenerator >> writeLookahead: aNode at: position indent: level then: aB
 	stops ifTrue: [ ^ self refuse ].
 	stream
 		nextPut: $.;
-		lf;
+		cr;
 		nextPutAll: tabs;
 		nextPutAll: flag;
 		nextPutAll: (aNode positive
 				 ifTrue: [ ' ifTrue: [' ]
 				 ifFalse: [ ' ifFalse: [' ]);
-		lf.
+		cr.
 	aBlock value: position value: level + 1.
 	stream nextPutAll: ' ]'.
 	^ false
@@ -984,7 +984,7 @@ PCRE2MatchGenerator >> writeLookbehind: aNode at: position indent: level then: a
 		nextPutAll: tabs;
 		nextPutAll: flag;
 		nextPutAll: ' := false.';
-		lf.
+		cr.
 	outer := guard.
 	guard := flag.
 	aNode branches do: [ :branch |
@@ -992,7 +992,7 @@ PCRE2MatchGenerator >> writeLookbehind: aNode at: position indent: level then: a
 				nextPutAll: tabs;
 				nextPutAll: flag;
 				nextPutAll: ' ifFalse: [';
-				lf;
+				cr;
 				nextPutAll: tabs;
 				tab;
 				nextPutAll: base;
@@ -1001,12 +1001,12 @@ PCRE2MatchGenerator >> writeLookbehind: aNode at: position indent: level then: a
 				nextPutAll: ' - ';
 				print: (aNode minimumLengthFor: branch);
 				nextPut: $.;
-				lf;
+				cr;
 				nextPutAll: tabs;
 				tab;
 				nextPutAll: base;
 				nextPutAll: ' >= 0 ifTrue: [';
-				lf.
+				cr.
 			branch
 				writeInto: self
 				at: base
@@ -1019,7 +1019,7 @@ PCRE2MatchGenerator >> writeLookbehind: aNode at: position indent: level then: a
 						false ].
 			stream
 				nextPutAll: ' ] ].';
-				lf ].
+				cr ].
 	guard := outer.
 	failed ifTrue: [ ^ false ].
 	stream
@@ -1028,7 +1028,7 @@ PCRE2MatchGenerator >> writeLookbehind: aNode at: position indent: level then: a
 		nextPutAll: (aNode positive
 				 ifTrue: [ ' ifTrue: [' ]
 				 ifFalse: [ ' ifFalse: [' ]);
-		lf.
+		cr.
 	aBlock value: position value: level + 1.
 	stream nextPutAll: ' ]'.
 	^ false
@@ -1075,14 +1075,14 @@ PCRE2MatchGenerator >> writePossessiveRun: aNode at: position indent: level then
 		nextPutAll: ' >= ';
 		print: aNode minimum;
 		nextPutAll: ' ifTrue: [';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		nextPutAll: hold;
 		nextPutAll: ' := ';
 		nextPutAll: run;
 		nextPut: $.;
-		lf.
+		cr.
 	aBlock value: hold value: level + 2.
 	stream nextPutAll: ' ]'.
 	^ false
@@ -1110,7 +1110,7 @@ PCRE2MatchGenerator >> writeRecursiveRepeat: aNode at: position indent: level th
 					        nextPutAll: ' < ';
 					        print: maximum;
 					        nextPutAll: ' ifTrue: [';
-					        lf ].
+					        cr ].
 		        aNode child
 			        writeInto: self
 			        at: where
@@ -1140,7 +1140,7 @@ PCRE2MatchGenerator >> writeRecursiveRepeat: aNode at: position indent: level th
 			        nextPutAll: ' >= ';
 			        print: aNode minimum;
 			        nextPutAll: ' ifTrue: [';
-			        lf.
+			        cr.
 		        aBlock value: where value: deeper + 1.
 		        stream nextPutAll: ' ]'.
 		        false ].
@@ -1153,13 +1153,13 @@ PCRE2MatchGenerator >> writeRecursiveRepeat: aNode at: position indent: level th
 				self writeGuarded: turn at: param indent: level + 1.
 				stream
 					nextPut: $.;
-					lf.
+					cr.
 				self writeGuarded: rest at: param indent: level + 1 ]
 		ifFalse: [
 				self writeGuarded: rest at: param indent: level + 1.
 				stream
 					nextPut: $.;
-					lf.
+					cr.
 				self writeGuarded: turn at: param indent: level + 1 ].
 	stream := held.
 	inner := locals allButFirst: mark.
@@ -1169,13 +1169,13 @@ PCRE2MatchGenerator >> writeRecursiveRepeat: aNode at: position indent: level th
 		nextPutAll: tabs;
 		nextPutAll: count;
 		nextPutAll: ' := 0.';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		nextPutAll: name;
 		nextPutAll: ' := [ :';
 		nextPutAll: param;
 		nextPutAll: ' |';
-		lf.
+		cr.
 	inner ifNotEmpty: [
 			stream
 				nextPutAll: tabs;
@@ -1187,7 +1187,7 @@ PCRE2MatchGenerator >> writeRecursiveRepeat: aNode at: position indent: level th
 						nextPutAll: each ].
 			stream
 				nextPutAll: ' |';
-				lf ].
+				cr ].
 	stream
 		nextPutAll: tabs;
 		tab;
@@ -1195,10 +1195,10 @@ PCRE2MatchGenerator >> writeRecursiveRepeat: aNode at: position indent: level th
 		nextPutAll: ' > ';
 		print: self turnLimit;
 		nextPutAll: ' ifTrue: [ ^ nil ].';
-		lf;
+		cr;
 		nextPutAll: body contents;
 		nextPutAll: ' ].';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		nextPutAll: name;
 		nextPutAll: ' value: ';
@@ -1249,7 +1249,7 @@ PCRE2MatchGenerator >> writeRunUpTo: maximum ranges: ranges from: position inden
 		nextPutAll: '. ';
 		nextPutAll: count;
 		nextPutAll: ' := 0.';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		nextPutAll: '[ ';
 		nextPutAll: (self
@@ -1258,7 +1258,7 @@ PCRE2MatchGenerator >> writeRunUpTo: maximum ranges: ranges from: position inden
 				 counter: count
 				 position: run);
 		nextPutAll: ' ] whileTrue: [';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		nextPutAll: run;
@@ -1269,12 +1269,12 @@ PCRE2MatchGenerator >> writeRunUpTo: maximum ranges: ranges from: position inden
 		nextPutAll: ' := ';
 		nextPutAll: count;
 		nextPutAll: ' + 1 ].';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		nextPut: $(;
 		nextPutAll: (self fallbackConditionWithMaximum: maximum counter: count position: run);
 		nextPutAll: ') ifTrue: [ ^ nil ].';
-		lf.
+		cr.
 	^ Array with: run with: count
 ]
 
@@ -1309,22 +1309,22 @@ PCRE2MatchGenerator >> writeSingle: table at: position indent: level then: aBloc
 		nextPutAll: tabs;
 		nextPutAll: position;
 		nextPutAll: ' < size ifTrue: [';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		nextPutAll: 'byte := bytes byteAt: ';
 		nextPutAll: position;
 		nextPutAll: ' + 1.';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		nextPutAll: 'byte > 127 ifTrue: [ ^ nil ].';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		tab;
 		nextPutAll: (self testFor: ranges on: 'byte');
 		nextPutAll: ' ifTrue: [';
-		lf.
+		cr.
 	aBlock value: (self offsetAfter: position) value: level + 2.
 	stream nextPutAll: ' ] ]'.
 	^ false
@@ -1339,12 +1339,12 @@ PCRE2MatchGenerator >> writeSuccessAt: position indent: level [
 	stream
 		nextPutAll: tabs;
 		nextPutAll: 'offsets at: 1 put: start.';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		nextPutAll: 'offsets at: 2 put: ';
 		nextPutAll: position;
 		nextPut: $.;
-		lf.
+		cr.
 	1 to: captures do: [ :index |
 			stream
 				nextPutAll: tabs;
@@ -1357,7 +1357,7 @@ PCRE2MatchGenerator >> writeSuccessAt: position indent: level [
 				nextPutAll: ' put: ';
 				nextPutAll: (self captureEnd: index);
 				nextPut: $.;
-				lf ].
+				cr ].
 	stream
 		nextPutAll: tabs;
 		nextPutAll: '^ true'.
@@ -1403,7 +1403,7 @@ PCRE2MatchGenerator >> writeWordBoundary: aTest at: position indent: level then:
 		nextPutAll: ' > 0 ifTrue: [ bytes byteAt: ';
 		nextPutAll: position;
 		nextPutAll: ' ] ifFalse: [ -1 ].';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		nextPutAll: after;
 		nextPutAll: ' := ';
@@ -1411,14 +1411,14 @@ PCRE2MatchGenerator >> writeWordBoundary: aTest at: position indent: level then:
 		nextPutAll: ' < size ifTrue: [ bytes byteAt: ';
 		nextPutAll: position;
 		nextPutAll: ' + 1 ] ifFalse: [ -1 ].';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		nextPut: $(;
 		nextPutAll: before;
 		nextPutAll: ' > 127 or: [ ';
 		nextPutAll: after;
 		nextPutAll: ' > 127 ]) ifTrue: [ ^ nil ].';
-		lf;
+		cr;
 		nextPutAll: tabs;
 		nextPut: $(;
 		nextPutAll: (self testFor: ranges on: before);
@@ -1427,7 +1427,7 @@ PCRE2MatchGenerator >> writeWordBoundary: aTest at: position indent: level then:
 		nextPutAll: ') == ';
 		nextPutAll: aTest second printString;
 		nextPutAll: ' ifTrue: [';
-		lf.
+		cr.
 	aBlock value: position value: level + 1.
 	stream nextPutAll: ' ]'.
 	^ false

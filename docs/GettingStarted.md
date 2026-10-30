@@ -1,14 +1,45 @@
 # Getting Started
 
-## Load
+## Install
 
-Load the baseline from the `src` directory. A plain `load` gives the `default` group: the shared API and the Pharo backend, which runs in the image and needs nothing installed on the host. Everything on this page works with that.
+```smalltalk
+Metacello new
+  githubUser: 'Gabriel-Darbord' project: 'pharo-pcre2' commitish: 'main' path: 'src';
+  baseline: 'PCRE2';
+  load
+```
 
-Load the `FFI` group as well for the faster backend, the glob and POSIX pattern conversions, JIT, locale character tables and C serialization. That one needs the native PCRE2 8-bit library, which on common systems comes from `libpcre2-dev` or `brew install pcre2`, and you can ask it for its version from Pharo:
+That loads the `default` group: the shared API and the Pharo backend, which runs in the image and needs nothing installed on the host. Everything on this page works with it.
+
+| group | loads |
+| --- | --- |
+| `default` | `PCRE2` and `PCRE2-PharoBackend` |
+| `Core` | `PCRE2` alone |
+| `Pharo` | the Pharo backend |
+| `FFI` | the FFI backend |
+| `Backends` | both backends |
+| `Tools` | the trace and debugger tools |
+| `Tests` | every test package |
+| `All` | both backends, tools and tests |
+
+Pass a group to `load:`, for instance `load: 'FFI'` or `load: #( 'FFI' 'Pharo' )`.
+
+### The FFI backend
+
+The `FFI` group adds the faster backend, the glob and POSIX pattern conversions, JIT, locale character tables and C serialization. It needs the native PCRE2 8-bit library on the host:
+
+```sh
+sudo apt install libpcre2-dev   # Linux
+brew install pcre2              # macOS
+```
+
+Its UTF-16 and UTF-32 APIs also use `libpcre2-16` and `libpcre2-32` when present. Ask the library for its version from Pharo:
 
 ```smalltalk
 LibPCRE2UTF8 config: PCRE2 configVersion
 ```
+
+[Backends.md](Backends.md) explains how a backend is chosen and what the Pharo one does not do yet.
 
 ## Compile a Pattern
 
@@ -36,8 +67,8 @@ match := matcher findMatch: 'size=42'.
 match groupAt: 0.          "size=42"
 match groupAt: 1.          "size"
 match groupNamed: 'value'. "42"
-match matchDataSize.       "native PCRE2 match-data bytes"
-match heapframesSize.      "native heap-frame bytes"
+match matchDataSize.       "match-data bytes the backend holds"
+match heapframesSize.      "heap-frame bytes the match data retains"
 ```
 
 ## Enumerate Matches
@@ -66,7 +97,7 @@ Replacement strings use PCRE2 substitution syntax unless you call one of the `wi
 
 ## Convert Other Pattern Styles
 
-Use PCRE2's conversion helpers when the input pattern is a glob or POSIX regular expression:
+With the `FFI` group loaded, use PCRE2's conversion helpers when the input pattern is a glob or POSIX regular expression:
 
 ```smalltalk
 matcher := (LibPCRE2UTF8 convertGlob: '*.st') asPerlCompatibleRegex.
