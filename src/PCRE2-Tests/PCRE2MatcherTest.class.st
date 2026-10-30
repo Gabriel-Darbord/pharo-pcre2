@@ -615,6 +615,17 @@ PCRE2MatcherTest >> testRecompile [
 ]
 
 { #category : 'tests' }
+PCRE2MatcherTest >> testRegexAPILastCharFollowsTheStream [
+
+	| regex stream |
+	regex := 'fox' asPerlCompatibleRegex.
+	self assert: regex lastChar isNil.
+	stream := 'a fox b' readStream.
+	self assert: (regex searchStream: stream).
+	self assert: regex lastChar equals: $x
+]
+
+{ #category : 'tests' }
 PCRE2MatcherTest >> testRegexAPIMatchEnumerationCompatibility [
 
 	| collected regex seen |
@@ -626,6 +637,117 @@ PCRE2MatcherTest >> testRegexAPIMatchEnumerationCompatibility [
 	self assert: seen asArray equals: #( 'one' 'two' ).
 	collected := regex matchesIn: 'one two' collect: [ :match | match asUppercase ].
 	self assert: collected asArray equals: #( 'ONE' 'TWO' )
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testRegexAPIStreamCopyCompatibility [
+
+	| regex |
+	regex := '\d+' asPerlCompatibleRegex.
+	self
+		assert: (String streamContents: [ :out | regex copyStream: 'a1b22c' readStream to: out replacingMatchesWith: 'N' ])
+		equals: 'aNbNc'.
+	self
+		assert: (String streamContents: [ :out |
+				 regex copyStream: 'a1b22c' readStream to: out translatingMatchesUsing: [ :match | match , match ] ])
+		equals: 'a11b2222c'
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testRegexAPIStreamEnumerationCompatibility [
+
+	| regex seen |
+	regex := '\w+' asPerlCompatibleRegex.
+	self assert: (regex matchesOnStream: 'one two three' readStream) asArray equals: #( 'one' 'two' 'three' ).
+	seen := OrderedCollection new.
+	regex matchesOnStream: 'one two' readStream do: [ :match | seen add: match ].
+	self assert: seen asArray equals: #( 'one' 'two' ).
+	self
+		assert: (regex matchesOnStream: 'one two' readStream collect: [ :match | match asUppercase ]) asArray
+		equals: #( 'ONE' 'TWO' )
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testRegexAPIStreamMatchingCompatibility [
+
+	| regex stream |
+	regex := '\w+' asPerlCompatibleRegex.
+	self assert: (regex matchesStream: 'hello' readStream).
+	self deny: (regex matchesStream: 'hello there' readStream).
+	stream := 'hello there' readStream.
+	self assert: (regex matchesStreamPrefix: stream).
+	self assert: stream position equals: 5.
+	stream := 'hello there' readStream.
+	self deny: ('\d+' asPerlCompatibleRegex matchesStreamPrefix: stream).
+	self assert: stream position equals: 0
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testRegexAPIStreamPositionsCountCharacters [
+
+	| regex stream |
+	regex := 'd' asPerlCompatibleRegex.
+	stream := 'héllo d' readStream.
+	self assert: (regex searchStream: stream).
+	self assert: stream position equals: 7.
+	self assert: (regex subBeginning: 1) equals: #( 6 ).
+	self assert: (regex subEnd: 1) equals: #( 7 )
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testRegexAPIStreamSearchCompatibility [
+
+	| regex stream |
+	regex := 'fox' asPerlCompatibleRegex.
+	stream := 'xx fox yy' readStream.
+	self assert: (regex searchStream: stream).
+	self assert: stream position equals: 6.
+	self assert: stream upToEnd equals: ' yy'.
+	stream := 'xx yy' readStream.
+	self deny: (regex searchStream: stream).
+	self assert: stream atEnd
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testRegexAPISubexpressionCompatibility [
+
+	| regex |
+	regex := '(a+)(b)' asPerlCompatibleRegex.
+	self assert: regex subexpressionCount equals: 3.
+	self assert: regex supportsSubexpressions.
+	self assert: (regex search: 'xxaabyy').
+	self assert: regex lastResult.
+	self assert: (regex subexpression: 1) equals: 'aab'.
+	self assert: (regex subexpression: 2) equals: 'aa'.
+	self assert: (regex subexpression: 3) equals: 'b'.
+	self assert: (regex subexpressions: 2) equals: #( 'aa' ).
+	self assert: (regex subBeginning: 1) equals: #( 2 ).
+	self assert: (regex subEnd: 1) equals: #( 5 ).
+	self assert: (regex subBeginning: 2) equals: #( 2 )
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testRegexAPISubexpressionIsNilForAGroupThatDidNotTakePart [
+
+	| regex |
+	regex := '(a)|(b)' asPerlCompatibleRegex.
+	self assert: (regex search: 'b').
+	self assert: (regex subexpression: 2) isNil.
+	self assert: (regex subexpression: 3) equals: 'b'.
+	self assert: (regex subBeginning: 2) equals: #(  )
+]
+
+{ #category : 'tests' }
+PCRE2MatcherTest >> testRegexAPISubexpressionsAreEmptyWithoutAMatch [
+
+	| regex |
+	regex := 'zz' asPerlCompatibleRegex.
+	self deny: (regex search: 'abc').
+	self deny: regex lastResult.
+	self assert: (regex subexpression: 1) isNil.
+	self assert: (regex subexpressions: 1) equals: #(  ).
+	self assert: (regex subBeginning: 1) equals: #(  ).
+	self assert: (regex subEnd: 1) equals: #(  )
 ]
 
 { #category : 'tests' }

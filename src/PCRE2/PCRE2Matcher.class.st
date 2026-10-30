@@ -13,7 +13,9 @@ Class {
 		'options',
 		'nameTable',
 		'backend',
-		'patternInput'
+		'patternInput',
+		'lastMatch',
+		'lastStream'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -200,6 +202,20 @@ PCRE2Matcher >> copy: subject translatingMatchesUsing: aBlock [
 		  copy: input
 		  matchesDo: [ :ws :utfSubject :start :end |
 		  ws nextPutAll: (aBlock value: (input decodeBytes: (utfSubject copyFrom: start to: end))) ]
+]
+
+{ #category : 'match enumeration' }
+PCRE2Matcher >> copyStream: aStream to: aWriteStream replacingMatchesWith: aString [
+	"Equivalent of RxMatcher >> #copyStream:to:replacingMatchesWith:. Copies what is left of the stream onto aWriteStream, writing aString in place of each match."
+
+	aWriteStream nextPutAll: (self copy: aStream upToEnd replacingMatchesWith: aString)
+]
+
+{ #category : 'match enumeration' }
+PCRE2Matcher >> copyStream: aStream to: aWriteStream translatingMatchesUsing: aBlock [
+	"Equivalent of RxMatcher >> #copyStream:to:translatingMatchesUsing:. Copies what is left of the stream onto aWriteStream, writing aBlock's value for each match in its place."
+
+	aWriteStream nextPutAll: (self copy: aStream upToEnd translatingMatchesUsing: aBlock)
 ]
 
 { #category : 'copying' }
@@ -596,6 +612,24 @@ PCRE2Matcher >> jitMatch: subject from: start to: end options: matchOptions matc
 		  matchData: matchData backend
 ]
 
+{ #category : 'accessing' }
+PCRE2Matcher >> lastChar [
+	"Equivalent of RxMatcher >> #lastChar. Answers the character before the position of the stream the last stream match read, or nil when no stream has been matched."
+
+	^ lastStream ifNotNil: [ :aStream |
+			  aStream position > 0 ifTrue: [
+					  aStream
+						  skip: -1;
+						  next ] ]
+]
+
+{ #category : 'accessing' }
+PCRE2Matcher >> lastResult [
+	"Equivalent of RxMatcher >> #lastResult. Answers whether the last match attempt succeeded."
+
+	^ lastMatch isNotNil
+]
+
 { #category : 'querying' }
 PCRE2Matcher >> mark [
 	"Matchers no longer keep the last match. Query mark on the returned PCRE2Match."
@@ -781,10 +815,10 @@ PCRE2Matcher >> matches: subject [
 	| input match |
 	input := self preparedInputFor: subject.
 	match := self matchBytes: input bytes from: 1 to: input size.
-	match ifNil: [ ^ false ].
-	match isPartial ifTrue: [ ^ false ].
-	match offsetsDo: [ :start :end | ^ start == 1 and: [ end == input size ] ].
-	^ false
+	(match isNil or: [ match isPartial ]) ifTrue: [ ^ self rememberMatch: nil ].
+	match input: input.
+	match offsetsDo: [ :start :end | ^ self rememberMatch: ((start == 1 and: [ end == input size ]) ifTrue: [ match ]) ].
+	^ self rememberMatch: nil
 ]
 
 { #category : 'callouts' }
@@ -818,6 +852,36 @@ PCRE2Matcher >> matchesIn: subject do: aBlock [
 	self findAll: subject do: aBlock
 ]
 
+{ #category : 'match enumeration' }
+PCRE2Matcher >> matchesOnStream: aStream [
+	"Equivalent of RxMatcher >> #matchesOnStream:. Answers every matching substring left in the stream."
+
+	| result |
+	result := OrderedCollection new.
+	self matchesOnStream: aStream do: [ :match | result add: match ].
+	^ result
+]
+
+{ #category : 'match enumeration' }
+PCRE2Matcher >> matchesOnStream: aStream collect: aBlock [
+	"Equivalent of RxMatcher >> #matchesOnStream:collect:. Answers aBlock's value for every matching substring left in the stream."
+
+	| result |
+	result := OrderedCollection new.
+	self matchesOnStream: aStream do: [ :match | result add: (aBlock value: match) ].
+	^ result
+]
+
+{ #category : 'match enumeration' }
+PCRE2Matcher >> matchesOnStream: aStream do: aBlock [
+	"Equivalent of RxMatcher >> #matchesOnStream:do:. Reads what is left of the stream and evaluates aBlock with each matching substring, leaving the stream at its end. The subexpression accessors report on each match in turn while aBlock runs."
+
+	lastStream := aStream.
+	self findAllMatches: aStream upToEnd do: [ :match |
+			self rememberMatch: match.
+			aBlock value: match readMatch ]
+]
+
 { #category : 'matching' }
 PCRE2Matcher >> matchesPrefix: subject [
 	"Returns whether the regex completely matches the start of the subject."
@@ -825,10 +889,10 @@ PCRE2Matcher >> matchesPrefix: subject [
 	| input match |
 	input := self preparedInputFor: subject.
 	match := self matchBytes: input bytes from: 1 to: input size.
-	match ifNil: [ ^ false ].
-	match isPartial ifTrue: [ ^ false ].
-	match offsetsDo: [ :start :end | ^ start == 1 ].
-	^ false
+	(match isNil or: [ match isPartial ]) ifTrue: [ ^ self rememberMatch: nil ].
+	match input: input.
+	match offsetsDo: [ :start :end | ^ self rememberMatch: (start == 1 ifTrue: [ match ]) ].
+	^ self rememberMatch: nil
 ]
 
 { #category : 'callouts' }
@@ -836,6 +900,27 @@ PCRE2Matcher >> matchesPrefix: subject calloutsDo: calloutBlock [
 	"Answer whether the subject prefix matches while invoking calloutBlock for runtime PCRE2 callouts."
 
 	^ self withCallout: calloutBlock do: [ :callbackMatcher | callbackMatcher matchesPrefix: subject ]
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> matchesStream: aStream [
+	"Equivalent of RxMatcher >> #matchesStream:. Answers whether the regex matches everything left in the stream."
+
+	^ (self matchesStreamPrefix: aStream) and: [ aStream atEnd ]
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> matchesStreamPrefix: aStream [
+	"Equivalent of RxMatcher >> #matchesStreamPrefix:. Reads what is left of the stream and matches the regex against its start, leaving the stream just after the match, or where it was when there is none. The stream must be positionable."
+
+	| start |
+	lastStream := aStream.
+	start := aStream position.
+	(self matchesPrefix: aStream upToEnd) ifFalse: [
+			aStream position: start.
+			^ false ].
+	aStream position: start + (self subEnd: 1) first.
+	^ true
 ]
 
 { #category : 'match enumeration' }
@@ -945,6 +1030,19 @@ PCRE2Matcher >> privateCopyWithCharacterTables [
 ]
 
 { #category : 'private' }
+PCRE2Matcher >> rangeOfSubexpression: subIndex [
+	"Answer the 1-based Pharo character range the subexpression last matched, or nil when it did not take part. Index 1 is the whole match, as in RxMatcher."
+
+	| offsets |
+	lastMatch ifNil: [ ^ nil ].
+	(subIndex between: 1 and: lastMatch count) ifFalse: [ ^ nil ].
+	offsets := lastMatch offsetsAt: subIndex.
+	"unsetOffset is larger than a SmallInteger, so this comparison cannot be an identity test"
+	offsets first = PCRE2 unsetOffset ifTrue: [ ^ nil ].
+	^ lastMatch input characterRangeFromStartOffset: offsets first endOffset: offsets second
+]
+
+{ #category : 'private' }
 PCRE2Matcher >> readNamedGroups [
 
 	^ backend readNamedGroups
@@ -997,6 +1095,14 @@ PCRE2Matcher >> recordMatchResult: rc in: aPCRE2Match [
 	self errorCode: rc
 ]
 
+{ #category : 'private' }
+PCRE2Matcher >> rememberMatch: aMatchOrNil [
+	"Keep the match that the RxMatcher-compatible accessors report on, and answer whether there was one."
+
+	lastMatch := aMatchOrNil.
+	^ aMatchOrNil isNotNil
+]
+
 { #category : 'persistence' }
 PCRE2Matcher >> restoreFrom: bytes [
 
@@ -1015,7 +1121,7 @@ PCRE2Matcher >> restoreJITIfNeeded [
 PCRE2Matcher >> search: subject [
 	"Returns whether the regex matches anywhere in the subject."
 
-	^ (self findMatch: subject) notNil
+	^ self rememberMatch: (self findMatch: subject)
 ]
 
 { #category : 'callouts' }
@@ -1023,6 +1129,18 @@ PCRE2Matcher >> search: subject calloutsDo: calloutBlock [
 	"Answer whether the subject contains a match while invoking calloutBlock for runtime PCRE2 callouts."
 
 	^ self withCallout: calloutBlock do: [ :callbackMatcher | callbackMatcher search: subject ]
+]
+
+{ #category : 'matching' }
+PCRE2Matcher >> searchStream: aStream [
+	"Equivalent of RxMatcher >> #searchStream:. Reads what is left of the stream and searches it, leaving the stream just after the match, or at the end when there is none. The stream must be positionable."
+
+	| start |
+	lastStream := aStream.
+	start := aStream position.
+	(self search: aStream upToEnd) ifFalse: [ ^ false ].
+	aStream position: start + (self subEnd: 1) first.
+	^ true
 ]
 
 { #category : 'persistence' }
@@ -1074,6 +1192,51 @@ PCRE2Matcher >> startIndex [
 	"Matchers no longer keep the last match. Query startIndex on the returned PCRE2Match."
 
 	self error: 'PCRE2Matcher no longer keeps the last match; query startIndex on the returned PCRE2Match'
+]
+
+{ #category : 'private' }
+PCRE2Matcher >> stringOfSubexpression: subIndex [
+	"Answer what the subexpression last matched, or nil when it did not take part. Index 1 is the whole match, as in RxMatcher."
+
+	(self rangeOfSubexpression: subIndex) ifNil: [ ^ nil ].
+	^ subIndex == 1
+		  ifTrue: [ lastMatch readMatch ]
+		  ifFalse: [ lastMatch groupAt: subIndex - 1 ]
+]
+
+{ #category : 'accessing' }
+PCRE2Matcher >> subBeginning: subIndex [
+	"Equivalent of RxMatcher >> #subBeginning:. Answers an array holding the 0-based character position where the subexpression last started, empty when it did not take part. PCRE2 keeps only the last match of a subexpression, so the answer never holds more than one position."
+
+	^ (self rangeOfSubexpression: subIndex) ifNil: [ #(  ) ] ifNotNil: [ :range | Array with: range first - 1 ]
+]
+
+{ #category : 'accessing' }
+PCRE2Matcher >> subEnd: subIndex [
+	"Equivalent of RxMatcher >> #subEnd:. Answers an array holding the 0-based character position just after the subexpression's last match, empty when it did not take part."
+
+	^ (self rangeOfSubexpression: subIndex) ifNil: [ #(  ) ] ifNotNil: [ :range | Array with: range last ]
+]
+
+{ #category : 'accessing' }
+PCRE2Matcher >> subexpression: subIndex [
+	"Equivalent of RxMatcher >> #subexpression:. Answers what the subexpression matched in the last match attempt, or nil when it did not take part. Index 1 is the whole match."
+
+	^ self stringOfSubexpression: subIndex
+]
+
+{ #category : 'accessing' }
+PCRE2Matcher >> subexpressionCount [
+	"Equivalent of RxMatcher >> #subexpressionCount. The whole match counts as the first subexpression, as it does in Rx."
+
+	^ (self info: PCRE2 infoCaptureCount) + 1
+]
+
+{ #category : 'accessing' }
+PCRE2Matcher >> subexpressions: subIndex [
+	"Equivalent of RxMatcher >> #subexpressions:. PCRE2 keeps only the last match of a subexpression, so the answer never holds more than one string where Rx can answer one per repetition."
+
+	^ (self stringOfSubexpression: subIndex) ifNil: [ #(  ) ] ifNotNil: [ :string | Array with: string ]
 ]
 
 { #category : 'private' }
@@ -1334,6 +1497,13 @@ PCRE2Matcher >> substitutionOptions [
 	"Answer matcher options that are safe to pass to pcre2_substitute_*(). Partial matching options are not valid for substitution."
 
 	^ options bitAnd: (PCRE2 partialSoft | PCRE2 partialHard) bitInvert
+]
+
+{ #category : 'testing' }
+PCRE2Matcher >> supportsSubexpressions [
+	"Equivalent of RxMatcher >> #supportsSubexpressions."
+
+	^ true
 ]
 
 { #category : 'private' }
