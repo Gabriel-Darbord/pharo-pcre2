@@ -49,21 +49,21 @@ PCRE2MatcherTest >> testASCIISubjectFastPath [
 { #category : 'tests' }
 PCRE2MatcherTest >> testAllInfo [
 
-	| regex infos |
-	regex := '' asPerlCompatibleRegex.
-	infos := regex allInfo.
-
-	self assert: infos size equals: 27.
-	self assert: (infos at: PCRE2 infoAllOptions + 1) equals: PCRE2 utf.
-	self assert: (infos at: PCRE2 infoArgOptions + 1) equals: PCRE2 utf.
-	self assert: (infos at: PCRE2 infoBackrefMax + 1) equals: 0.
-	self assert: (infos at: PCRE2 infoCaptureCount + 1) equals: 0.
-	self assert: (infos at: PCRE2 infoMatchEmpty + 1) equals: 1.
-	self assert: (infos at: PCRE2 infoNameCount + 1) equals: 0.
-	self assert: (infos at: PCRE2 infoSize + 1) > 0.
-	self assert: (infos at: PCRE2 infoJITSize + 1) >= 0.
-	self assert: (infos at: PCRE2 infoFrameSize + 1) > 0.
-	self assert: (infos at: PCRE2 infoNewline + 1) isInteger
+	PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [
+			| regex infos |
+			regex := '' asPerlCompatibleRegex.
+			infos := regex allInfo.
+			self assert: infos size equals: 27.
+			self assert: (infos at: PCRE2 infoAllOptions + 1) equals: PCRE2 utf.
+			self assert: (infos at: PCRE2 infoArgOptions + 1) equals: PCRE2 utf.
+			self assert: (infos at: PCRE2 infoBackrefMax + 1) equals: 0.
+			self assert: (infos at: PCRE2 infoCaptureCount + 1) equals: 0.
+			self assert: (infos at: PCRE2 infoMatchEmpty + 1) equals: 1.
+			self assert: (infos at: PCRE2 infoNameCount + 1) equals: 0.
+			self assert: (infos at: PCRE2 infoSize + 1) > 0.
+			self assert: (infos at: PCRE2 infoJITSize + 1) >= 0.
+			self assert: (infos at: PCRE2 infoFrameSize + 1) > 0.
+			self assert: (infos at: PCRE2 infoNewline + 1) isInteger ]
 ]
 
 { #category : 'tests' }
@@ -110,22 +110,19 @@ PCRE2MatcherTest >> testCallerManagedMatchDataCanBeReused [
 { #category : 'tests' }
 PCRE2MatcherTest >> testCompileJIT [
 
-	| regex originalCompiler optionsJIT |
-	regex := '' asPerlCompatibleRegex.
-	originalCompiler := regex compiler.
-	optionsJIT := PCRE2 jitPartialHard.
-
-	self deny: originalCompiler optionsJIT equals: optionsJIT.
-
-	regex compileJIT: optionsJIT.
-
-	self deny: regex compiler identicalTo: originalCompiler.
-	self assert: regex compiler optionsJIT identicalTo: optionsJIT.
-	self assert: regex isJIT.
-
-	regex isJIT: false.
-	regex compileJIT.
-	self assert: regex isJIT
+	PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [
+			| regex originalCompiler optionsJIT |
+			regex := '' asPerlCompatibleRegex.
+			originalCompiler := regex compiler.
+			optionsJIT := PCRE2 jitPartialHard.
+			self deny: originalCompiler optionsJIT equals: optionsJIT.
+			regex compileJIT: optionsJIT.
+			self deny: regex compiler identicalTo: originalCompiler.
+			self assert: regex compiler optionsJIT identicalTo: optionsJIT.
+			self assert: regex isJIT.
+			regex isJIT: false.
+			regex compileJIT.
+			self assert: regex isJIT ]
 ]
 
 { #category : 'tests' }
@@ -339,18 +336,16 @@ PCRE2MatcherTest >> testFindWithGroups [
 { #category : 'tests' }
 PCRE2MatcherTest >> testInfo [
 
-	| regex infoFrameSize infoNameTable infoJITSize |
-	regex := '' asPerlCompatibleRegex.
-
-	infoFrameSize := regex info: PCRE2 infoFrameSize.
-	self assert: infoFrameSize > 0.
-
-	infoNameTable := regex info: PCRE2 infoNameTable.
-	self assert: infoNameTable size equals: ExternalAddress wordSize.
-	self deny: (infoNameTable allSatisfy: #isZero).
-
-	infoJITSize := regex info: PCRE2 infoJITSize.
-	self assert: infoJITSize >= 0
+	PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [
+			| regex infoFrameSize infoNameTable infoJITSize |
+			regex := '' asPerlCompatibleRegex.
+			infoFrameSize := regex info: PCRE2 infoFrameSize.
+			self assert: infoFrameSize > 0.
+			infoNameTable := regex info: PCRE2 infoNameTable.
+			self assert: infoNameTable size equals: ExternalAddress wordSize.
+			self deny: (infoNameTable allSatisfy: #isZero).
+			infoJITSize := regex info: PCRE2 infoJITSize.
+			self assert: infoJITSize >= 0 ]
 ]
 
 { #category : 'tests' }

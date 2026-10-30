@@ -1,10 +1,10 @@
 # Getting Started
 
-## Load and Check the Native Library
+## Load
 
-Load the baseline from the `src` directory and make sure the host has the native PCRE2 8-bit library installed. On common systems this comes from `libpcre2-dev` or `brew install pcre2`.
+Load the baseline from the `src` directory. A plain `load` gives the `default` group: the shared API and the Pharo backend, which runs in the image and needs nothing installed on the host. Everything on this page works with that.
 
-You can ask the library for its version from Pharo:
+Load the `FFI` group as well for the faster backend, the glob and POSIX pattern conversions, JIT, locale character tables and C serialization. That one needs the native PCRE2 8-bit library, which on common systems comes from `libpcre2-dev` or `brew install pcre2`, and you can ask it for its version from Pharo:
 
 ```smalltalk
 LibPCRE2UTF8 config: PCRE2 configVersion

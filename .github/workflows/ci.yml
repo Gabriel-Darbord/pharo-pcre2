@@ -15,7 +15,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        smalltalk: [ Pharo64-12, Pharo64-13, Pharo64-14 ]
+        smalltalk: [ Pharo64-12, Pharo64-13, Pharo64-14, Pharo64-15 ]
     name: ${{ matrix.smalltalk }}
     steps:
       - uses: actions/checkout@v7
@@ -28,11 +28,28 @@ jobs:
         shell: bash
         timeout-minutes: 15
       - name: Coveralls
-        if: ${{ success() && matrix.smalltalk == 'Pharo64-13' }}
+        if: ${{ success() && matrix.smalltalk == 'Pharo64-14' }}
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           file: ./coverage/lcov.info
           format: lcov
-          flag-name: Pharo64-13
+          flag-name: Pharo64-14
           fail-on-error: false
+
+  pharo-only:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        smalltalk: [ Pharo64-12, Pharo64-13, Pharo64-14, Pharo64-15 ]
+    name: ${{ matrix.smalltalk }} without the C library
+    steps:
+      - uses: actions/checkout@v7
+      - uses: hpi-swa/setup-smalltalkCI@v1
+        with:
+          smalltalk-image: ${{ matrix.smalltalk }}
+      - name: Load and test the Pharo backend with no PCRE2 installed
+        run: smalltalkci -s ${{ matrix.smalltalk }} .smalltalk-pharo-only.ston
+        shell: bash
+        timeout-minutes: 15

@@ -34,19 +34,22 @@ PCRE2Compiler class >> default [
 
 { #category : 'accessing' }
 PCRE2Compiler class >> defaultBackend [
+	"The backend new compilers use. The Pharo implementation is preferred because it needs no native library; the FFI backend takes over when the Pharo one is not loaded."
 
 	^ DefaultBackend ifNil: [
 			  Smalltalk globals
-				  at: #PCRE2CompilerFFIBackend
-				  ifAbsent: [ Smalltalk globals at: #PCRE2CompilerPharoBackend ifAbsent: [ PCRE2Error signal: 'No PCRE2 backend is loaded' ] ] ]
+				  at: #PCRE2CompilerPharoBackend
+				  ifAbsent: [ Smalltalk globals at: #PCRE2CompilerFFIBackend ifAbsent: [ PCRE2Error signal: 'No PCRE2 backend is loaded' ] ] ]
 ]
 
 { #category : 'accessing' }
-PCRE2Compiler class >> defaultBackend: aBackendClass [
+PCRE2Compiler class >> defaultBackend: aBackendClassOrNil [
+	"Pin the backend new compilers use. nil restores the automatic choice."
 
-	(aBackendClass isBehavior and: [ aBackendClass inheritsFrom: PCRE2CompilerBackend ]) ifFalse: [
-		PCRE2Error signal: 'Expected a PCRE2 compiler backend class' ].
-	DefaultBackend := aBackendClass.
+	aBackendClassOrNil ifNotNil: [
+			(aBackendClassOrNil isBehavior and: [ aBackendClassOrNil inheritsFrom: PCRE2CompilerBackend ]) ifFalse: [
+				PCRE2Error signal: 'Expected a PCRE2 compiler backend class' ] ].
+	DefaultBackend := aBackendClassOrNil.
 	default := nil.
 	SupportsJIT := nil
 ]
@@ -118,6 +121,16 @@ PCRE2Compiler class >> startUp: resuming [
 PCRE2Compiler class >> supportsJIT [
 
 	^ SupportsJIT ifNil: [ SupportsJIT := self new backend supportsJIT ]
+]
+
+{ #category : 'accessing' }
+PCRE2Compiler class >> withDefaultBackend: aBackendClass do: aBlock [
+	"Evaluate aBlock with aBackendClass as the default backend, restoring what was pinned before, including nothing at all."
+
+	| previous |
+	previous := DefaultBackend.
+	self defaultBackend: aBackendClass.
+	^ aBlock ensure: [ self defaultBackend: previous ]
 ]
 
 { #category : 'accessing' }

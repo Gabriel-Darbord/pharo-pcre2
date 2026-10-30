@@ -55,30 +55,27 @@ PCRE2BackendIntegrationTest >> testCrossBackendContextsAndMatchDataAreRejected [
 { #category : 'tests' }
 PCRE2BackendIntegrationTest >> testFFIContextRestoreDoesNotFollowTheGlobalDefault [
 
-	| original context |
-	original := PCRE2Compiler defaultBackend.
+	| context |
 	context := (PCRE2Compiler new backend: PCRE2CompilerFFIBackend) context.
 	context newline: PCRE2 newlineCR.
 	context free.
 	context getHandle beNull.
-	[
-		PCRE2Compiler defaultBackend: PCRE2CompilerPharoBackend.
-		context restoreAfterStartup.
-		self deny: context isNull.
-		self assert: context newline equals: PCRE2 newlineCR ] ensure: [ PCRE2Compiler defaultBackend: original ]
+	PCRE2Compiler withDefaultBackend: PCRE2CompilerPharoBackend do: [
+			context restoreAfterStartup.
+			self deny: context isNull.
+			self assert: context newline equals: PCRE2 newlineCR ]
 ]
 
 { #category : 'tests' }
 PCRE2BackendIntegrationTest >> testTemporaryCompilersPreserveTheSelectedBackend [
 
-	| original matcher trace |
-	original := PCRE2Compiler defaultBackend.
+	| matcher |
 	matcher := PCRE2Compiler new
 		           backend: PCRE2CompilerFFIBackend;
 		           compile: 'a'.
-	[
-		PCRE2Compiler defaultBackend: PCRE2CompilerPharoBackend.
-		trace := matcher traceMatch: 'a'.
-		self assert: trace match readMatch equals: 'a'.
-		self assert: (matcher backend isKindOf: PCRE2MatcherFFIBackend) ] ensure: [ PCRE2Compiler defaultBackend: original ]
+	PCRE2Compiler withDefaultBackend: PCRE2CompilerPharoBackend do: [
+			| trace |
+			trace := matcher traceMatch: 'a'.
+			self assert: trace match readMatch equals: 'a'.
+			self assert: (matcher backend isKindOf: PCRE2MatcherFFIBackend) ]
 ]

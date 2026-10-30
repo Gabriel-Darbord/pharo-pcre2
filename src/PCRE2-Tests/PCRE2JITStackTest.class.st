@@ -8,6 +8,13 @@ Class {
 	#package : 'PCRE2-Tests'
 }
 
+{ #category : 'running' }
+PCRE2JITStackTest >> runCase [
+	"JIT stacks are an FFI facility, so run every case on that backend whatever the image default is."
+
+	^ PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [ super runCase ]
+]
+
 { #category : 'private' }
 PCRE2JITStackTest >> skipIfJITUnsupported [
 

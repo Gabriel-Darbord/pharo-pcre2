@@ -10,6 +10,13 @@ Class {
 	#package : 'PCRE2-Tests'
 }
 
+{ #category : 'running' }
+PCRE2SessionManagerTest >> runCase [
+	"Serialization and session restoration are FFI facilities, so run every case on that backend whatever the image default is."
+
+	^ PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [ super runCase ]
+]
+
 { #category : 'tests' }
 PCRE2SessionManagerTest >> testClassSideConfigurationToggles [
 

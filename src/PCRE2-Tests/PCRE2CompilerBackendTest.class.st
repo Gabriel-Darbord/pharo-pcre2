@@ -31,13 +31,6 @@ PCRE2CompilerBackendTest >> testExplicitBackendPropagatesToMatches [
 ]
 
 { #category : 'tests' }
-PCRE2CompilerBackendTest >> testFFIIsTheDefault [
-
-	self assert: PCRE2Compiler defaultBackend equals: PCRE2CompilerFFIBackend.
-	self assert: (PCRE2Compiler new backend isKindOf: PCRE2CompilerFFIBackend)
-]
-
-{ #category : 'tests' }
 PCRE2CompilerBackendTest >> testMatchResultsRemainIndependent [
 
 	| matcher first second |
@@ -66,4 +59,11 @@ PCRE2CompilerBackendTest >> testRecompiledMatcherSurvivesCollectionOfTemporaryHa
 	matcher recompile.
 	Smalltalk garbageCollect.
 	self assert: (matcher matches: 'aaa')
+]
+
+{ #category : 'tests' }
+PCRE2CompilerBackendTest >> testThePharoBackendIsTheDefault [
+
+	self assert: PCRE2Compiler defaultBackend equals: PCRE2CompilerPharoBackend.
+	self assert: (PCRE2Compiler new backend isKindOf: PCRE2CompilerPharoBackend)
 ]

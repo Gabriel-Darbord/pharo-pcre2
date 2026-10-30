@@ -35,22 +35,20 @@ PCRE2CompilerTest >> assertInvalidPattern: aString [
 { #category : 'tests' }
 PCRE2CompilerTest >> testCompileContextCharacterTables [
 
-	| compiler context contextCopy regex tables |
-	tables := LibPCRE2UTF8 newCharacterTables.
-	compiler := PCRE2Compiler new.
-	context := compiler context.
-	context characterTables: tables.
-
-	self assert: context characterTables identicalTo: tables.
-	regex := compiler compile: '\w+'.
-	self assert: (regex matches: 'abc').
-
-	contextCopy := context copy.
-	self deny: contextCopy identicalTo: context.
-	self assert: contextCopy characterTables identicalTo: tables.
-
-	context clearCharacterTables.
-	self assert: context characterTables isNil
+	PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [
+			| compiler context contextCopy regex tables |
+			tables := LibPCRE2UTF8 newCharacterTables.
+			compiler := PCRE2Compiler new.
+			context := compiler context.
+			context characterTables: tables.
+			self assert: context characterTables identicalTo: tables.
+			regex := compiler compile: '\w+'.
+			self assert: (regex matches: 'abc').
+			contextCopy := context copy.
+			self deny: contextCopy identicalTo: context.
+			self assert: contextCopy characterTables identicalTo: tables.
+			context clearCharacterTables.
+			self assert: context characterTables isNil ]
 ]
 
 { #category : 'tests' }
@@ -211,16 +209,16 @@ PCRE2CompilerTest >> testCompileContextParensNestLimit [
 { #category : 'tests' }
 PCRE2CompilerTest >> testCompileContextRejectsCharacterTablesFromDifferentWidth [
 
-	| context tables |
-	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ self skip ].
-	context := PCRE2Compiler new context.
-	tables := LibPCRE2UTF16 newCharacterTables.
-
-	self
-		should: [ context characterTables: tables ]
-		raise: PCRE2Error
-		withExceptionDo: [ :ex | self assert: (ex messageText includesSubstring: 'same PCRE2 library width') ].
-	self assert: context characterTables isNil
+	LibPCRE2 supports16BitCodeUnitWidth ifFalse: [ ^ self skip ].
+	PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [
+			| context tables |
+			context := PCRE2Compiler new context.
+			tables := LibPCRE2UTF16 newCharacterTables.
+			self
+				should: [ context characterTables: tables ]
+				raise: PCRE2Error
+				withExceptionDo: [ :ex | self assert: (ex messageText includesSubstring: 'same PCRE2 library width') ].
+			self assert: context characterTables isNil ]
 ]
 
 { #category : 'tests' }
@@ -260,17 +258,17 @@ PCRE2CompilerTest >> testCompilerClassConveniencesAndEagerJITToggle [
 { #category : 'tests' }
 PCRE2CompilerTest >> testCopyWithCharacterTables [
 
-	| compiler copy regex |
-	compiler := PCRE2Compiler new.
-	compiler context useCharacterTablesFromCurrentLocale.
-	regex := compiler compile: '\w+'.
-	regex options: PCRE2 notEmpty.
-	copy := regex copyWithCharacterTables.
-
-	self deny: copy identicalTo: regex.
-	self assert: copy class equals: regex class.
-	self assert: copy options equals: regex options.
-	self assert: (copy matches: 'abc')
+	PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [
+			| compiler copy regex |
+			compiler := PCRE2Compiler new.
+			compiler context useCharacterTablesFromCurrentLocale.
+			regex := compiler compile: '\w+'.
+			regex options: PCRE2 notEmpty.
+			copy := regex copyWithCharacterTables.
+			self deny: copy identicalTo: regex.
+			self assert: copy class equals: regex class.
+			self assert: copy options equals: regex options.
+			self assert: (copy matches: 'abc') ]
 ]
 
 { #category : 'tests' }

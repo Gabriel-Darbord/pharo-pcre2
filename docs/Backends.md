@@ -16,10 +16,10 @@ Both implementation packages depend on the shared `PCRE2` package. The shared pa
 | `FFITests` | Existing binding and tool tests |
 | `PharoTests` | Pharo implementation tests without the FFI backend |
 | `BackendTests` | Coexistence and ownership tests requiring both implementations |
-| `Default` | FFI and tools |
+| `default` | Shared API and `PCRE2-PharoBackend`, which is what a plain `load` gives |
 | `All` | Both implementations, tools, and all tests |
 
-For example, use `load: 'Pharo'` or `load: #( 'FFI' 'Pharo' )` in the Metacello load expression. Only the FFI backend requires a host PCRE2 library.
+For example, use `load: 'Pharo'` or `load: #( 'FFI' 'Pharo' )` in the Metacello load expression. Only the FFI backend requires a host PCRE2 library, so the default load needs nothing installed. Metacello looks for a group named `default` in lower case; `Default` is kept as an alias for it.
 
 ## Selection
 
@@ -41,7 +41,11 @@ PCRE2Compiler defaultBackend: PCRE2CompilerFFIBackend.
 
 A compiler captures its default when created. Changing the default invalidates the cached default compiler but does not modify existing compilers, patterns, contexts, or results. Choose a different compiler backend before creating its context. Compile a new matcher to change an existing pattern's implementation.
 
-FFI is preferred when both implementations are loaded. A Pharo-only installation uses Pharo. Failure to load or use the C library does not trigger a runtime fallback. Switching the project's default to Pharo is deferred until compatibility has been demonstrated; loading the implementation does not promote it automatically.
+The Pharo implementation is preferred when both are loaded, because it is the one that works everywhere: it needs no C library, so the automatic choice never depends on what is installed on the host. An FFI-only installation uses FFI. Failure to load or use the C library does not trigger a runtime fallback.
+
+`PCRE2Compiler defaultBackend: nil` restores that automatic choice, and `PCRE2Compiler withDefaultBackend: aBackendClass do: aBlock` changes it for the duration of a block and puts back whatever was pinned before, including nothing at all.
+
+The Pharo implementation does not yet have full parity with the C library, so where the two differ the FFI backend remains the reference. The next section says what the gaps are.
 
 UTF-8, UTF-16, and UTF-32 compilers share this selection protocol. Raw offsets count the selected encoding's code units. `matchingRangesIn:` answers Pharo character ranges. Contexts and reusable match data must have the correct role, implementation, and width.
 

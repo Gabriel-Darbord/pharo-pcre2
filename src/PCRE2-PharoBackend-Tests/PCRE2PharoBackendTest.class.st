@@ -586,15 +586,15 @@ PCRE2PharoBackendTest >> testDFASoftPartialKeepsTheFirstCandidate [
 { #category : 'tests' }
 PCRE2PharoBackendTest >> testDefaultChangesOnlyAffectNewCompilers [
 
-	| original compiler matcher |
+	| original compiler |
 	original := PCRE2Compiler defaultBackend.
 	compiler := PCRE2Compiler new.
-	[
-		PCRE2Compiler defaultBackend: PCRE2CompilerPharoBackend.
-		matcher := '\d+' asPerlCompatibleRegex.
-		self assert: matcher backend class equals: PCRE2MatcherPharoBackend.
-		self assert: (compiler backend isKindOf: original).
-		self assert: (matcher matches: '42') ] ensure: [ PCRE2Compiler defaultBackend: original ]
+	PCRE2Compiler withDefaultBackend: PCRE2CompilerPharoBackend do: [
+			| matcher |
+			matcher := '\d+' asPerlCompatibleRegex.
+			self assert: matcher backend class equals: PCRE2MatcherPharoBackend.
+			self assert: (compiler backend isKindOf: original).
+			self assert: (matcher matches: '42') ]
 ]
 
 { #category : 'tests' }

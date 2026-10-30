@@ -1,0 +1,13 @@
+SmalltalkCISpec {
+  #loading : [
+    SCIMetacelloLoadSpec {
+      #baseline : 'PCRE2',
+      #directory : 'src',
+      #load : [ 'PharoTests' ],
+      #platforms : [ #pharo ]
+    }
+  ],
+  #testing : {
+    #packages : [ 'PCRE2-PharoBackend-Tests' ]
+  }
+}

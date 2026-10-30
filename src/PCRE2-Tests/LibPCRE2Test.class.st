@@ -10,6 +10,13 @@ Class {
 	#package : 'PCRE2-Tests'
 }
 
+{ #category : 'running' }
+LibPCRE2Test >> runCase [
+	"This class tests the native library binding, so run every case on the FFI backend whatever the image default is."
+
+	^ PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [ super runCase ]
+]
+
 { #category : 'tests' }
 LibPCRE2Test >> testConfig [
 
