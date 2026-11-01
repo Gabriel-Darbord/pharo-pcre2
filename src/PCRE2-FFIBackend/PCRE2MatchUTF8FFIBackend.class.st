@@ -9,15 +9,15 @@ Class {
 }
 
 { #category : 'private - FFI' }
-PCRE2MatchUTF8FFIBackend >> ffiLibraryName [
+PCRE2MatchUTF8FFIBackend >> basicFree [
 
-	^ LibPCRE2UTF8
+	self ffiCall: #(void pcre2_match_data_free_8(self))
 ]
 
 { #category : 'private - FFI' }
-PCRE2MatchUTF8FFIBackend >> free [
+PCRE2MatchUTF8FFIBackend >> ffiLibraryName [
 
-	self ffiCall: #(void pcre2_match_data_free_8(self))
+	^ LibPCRE2UTF8
 ]
 
 { #category : 'private - FFI' }

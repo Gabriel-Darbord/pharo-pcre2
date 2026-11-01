@@ -29,6 +29,15 @@ PCRE2CharacterTables class >> tableByteSize [
 	^ 1088
 ]
 
+{ #category : 'external resource management' }
+PCRE2CharacterTables >> basicFree [
+	"Free the native character tables according to the allocator that produced them."
+
+	usesPCRE2Allocator
+		ifTrue: [ self ffiLibraryName uniqueInstance freeCharacterTables: self ]
+		ifFalse: [ handle free ]
+]
+
 { #category : 'documentation' }
 PCRE2CharacterTables >> codeUnitWidth [
 	"Answer the PCRE2 library width that allocated these tables."
@@ -57,16 +66,6 @@ PCRE2CharacterTables >> copyPersistedBytesToNativeMemory [
 	pointer isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to restore character tables' ].
 	1 to: persistedBytes size do: [ :index | pointer uint8AtOffset: index - 1 put: (persistedBytes at: index) ].
 	^ pointer
-]
-
-{ #category : 'external resource management' }
-PCRE2CharacterTables >> free [
-	"Free the native character tables according to the allocator that produced them."
-
-	self isNull ifTrue: [ ^ self ].
-	usesPCRE2Allocator
-		ifTrue: [ self ffiLibraryName uniqueInstance freeCharacterTables: self ]
-		ifFalse: [ handle free ]
 ]
 
 { #category : 'initialization' }

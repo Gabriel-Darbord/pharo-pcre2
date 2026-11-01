@@ -9,6 +9,14 @@ Class {
 }
 
 { #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> basicFree [
+	"This function frees the memory occupied by a match context, using the memory freeing function from the general context with which it was created, or free() if that was not set.
+	If the argument is NULL, the function returns immediately without doing anything. "
+
+	self ffiCall: #(void pcre2_match_context_free_8(self))
+]
+
+{ #category : 'private - FFI' }
 PCRE2MatchContextUTF8FFIBackend >> codeUnitWidth [
 
 	^ 8
@@ -18,14 +26,6 @@ PCRE2MatchContextUTF8FFIBackend >> codeUnitWidth [
 PCRE2MatchContextUTF8FFIBackend >> ffiLibraryName [
 
 	^ LibPCRE2UTF8
-]
-
-{ #category : 'private - FFI' }
-PCRE2MatchContextUTF8FFIBackend >> free [
-	"This function frees the memory occupied by a match context, using the memory freeing function from the general context with which it was created, or free() if that was not set.
-	If the argument is NULL, the function returns immediately without doing anything. "
-
-	self ffiCall: #(void pcre2_match_context_free_8(self))
 ]
 
 { #category : 'private - FFI' }

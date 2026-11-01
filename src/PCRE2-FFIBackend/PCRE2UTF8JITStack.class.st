@@ -16,6 +16,13 @@ PCRE2UTF8JITStack class >> freeUnusedMemory [
 	^ LibPCRE2UTF8 jitFreeUnusedMemory
 ]
 
+{ #category : 'external resource management' }
+PCRE2UTF8JITStack >> basicFree [
+	"Free this libpcre2-8 JIT stack. The caller must ensure no active or future match context still points to it."
+
+	self ffiCall: #(void pcre2_jit_stack_free_8(self))
+]
+
 { #category : 'private' }
 PCRE2UTF8JITStack >> codeUnitWidth [
 
@@ -33,11 +40,4 @@ PCRE2UTF8JITStack >> createWithStartSize: anInitialSize maxSize: aMaximumSize [
 PCRE2UTF8JITStack >> ffiLibraryName [
 
 	^ LibPCRE2UTF8
-]
-
-{ #category : 'external resource management' }
-PCRE2UTF8JITStack >> free [
-	"Free this libpcre2-8 JIT stack. The caller must ensure no active or future match context still points to it."
-
-	self ffiCall: #(void pcre2_jit_stack_free_8(self))
 ]

@@ -9,6 +9,14 @@ Class {
 }
 
 { #category : 'private - FFI' }
+PCRE2CompileContextUTF16FFIBackend >> basicFree [
+	"This function frees the memory occupied by a compile context.
+	If the argument is NULL, the function returns immediately without doing anything."
+
+	self ffiCall: #(void pcre2_compile_context_free_16(self))
+]
+
+{ #category : 'private - FFI' }
 PCRE2CompileContextUTF16FFIBackend >> compilerClass [
 
 	^ PCRE2UTF16Compiler
@@ -18,14 +26,6 @@ PCRE2CompileContextUTF16FFIBackend >> compilerClass [
 PCRE2CompileContextUTF16FFIBackend >> ffiLibraryName [
 
 	^ LibPCRE2UTF16
-]
-
-{ #category : 'private - FFI' }
-PCRE2CompileContextUTF16FFIBackend >> free [
-	"This function frees the memory occupied by a compile context.
-	If the argument is NULL, the function returns immediately without doing anything."
-
-	self ffiCall: #(void pcre2_compile_context_free_16(self))
 ]
 
 { #category : 'private - FFI' }

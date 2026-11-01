@@ -10,17 +10,17 @@ Class {
 	#package : 'PCRE2-FFIBackend'
 }
 
+{ #category : 'external resource management' }
+PCRE2UTF16ConvertContext >> basicFree [
+	"Free the native UTF-16 convert context. PCRE2 ignores NULL."
+
+	self ffiCall: #(void pcre2_convert_context_free_16(self))
+]
+
 { #category : 'library path' }
 PCRE2UTF16ConvertContext >> ffiLibraryName [
 
 	^ LibPCRE2UTF16
-]
-
-{ #category : 'external resource management' }
-PCRE2UTF16ConvertContext >> free [
-	"Free the native UTF-16 convert context. PCRE2 ignores NULL."
-
-	self ffiCall: #(void pcre2_convert_context_free_16(self))
 ]
 
 { #category : 'private' }

@@ -8,6 +8,12 @@ Class {
 	#package : 'PCRE2-FFIBackend'
 }
 
+{ #category : 'private' }
+PCRE2MatcherUTF8FFIBackend >> basicFree [
+
+	self ffiCall: #(void pcre2_code_free_8(self))
+]
+
 { #category : 'private - FFI' }
 PCRE2MatcherUTF8FFIBackend >> codeUnitWidth [
 	"Answer the PCRE2 code-unit width used by this matcher."
@@ -56,12 +62,6 @@ PCRE2MatcherUTF8FFIBackend >> enumerateCalloutsWith: callback [
 PCRE2MatcherUTF8FFIBackend >> ffiLibraryName [
 
 	^ LibPCRE2UTF8
-]
-
-{ #category : 'private' }
-PCRE2MatcherUTF8FFIBackend >> free [
-
-	self ffiCall: #(void pcre2_code_free_8(self))
 ]
 
 { #category : 'private' }

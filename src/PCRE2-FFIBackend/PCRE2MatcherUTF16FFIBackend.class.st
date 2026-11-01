@@ -8,6 +8,12 @@ Class {
 	#package : 'PCRE2-FFIBackend'
 }
 
+{ #category : 'private' }
+PCRE2MatcherUTF16FFIBackend >> basicFree [
+
+	self ffiCall: #(void pcre2_code_free_16(self))
+]
+
 { #category : 'private - FFI' }
 PCRE2MatcherUTF16FFIBackend >> codeUnitWidth [
 
@@ -58,12 +64,6 @@ PCRE2MatcherUTF16FFIBackend >> enumerateCalloutsWith: callback [
 PCRE2MatcherUTF16FFIBackend >> ffiLibraryName [
 
 	^ LibPCRE2UTF16
-]
-
-{ #category : 'private' }
-PCRE2MatcherUTF16FFIBackend >> free [
-
-	self ffiCall: #(void pcre2_code_free_16(self))
 ]
 
 { #category : 'private' }

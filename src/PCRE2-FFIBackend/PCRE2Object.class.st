@@ -51,6 +51,13 @@ PCRE2Object >> backend [
 	^ self
 ]
 
+{ #category : 'external resource management' }
+PCRE2Object >> basicFree [
+	"Hand this object's memory back to the library. Called by free, which has already checked the handle and nulls it afterwards."
+
+	self subclassResponsibility
+]
+
 { #category : 'accessing' }
 PCRE2Object >> codeUnitWidth [
 
@@ -79,14 +86,20 @@ PCRE2Object >> ffiLibraryName [
 { #category : 'finalization' }
 PCRE2Object >> finalize [
 
-	self free.
-	handle beNull
+	self free
 ]
 
 { #category : 'external resource management' }
 PCRE2Object >> free [
+	"Free the external object and leave the handle null.
 
-	self subclassResponsibility
+	Nulling is the point. isNull is what every guard in the library asks before it touches an external object, and a handle that still carries the address of freed memory makes that question answer wrongly: the guard waves the object through and the read goes to memory the allocator has taken back. Freeing twice is also a crash, and the null is what makes the second free a no-op.
+
+	basicFree is the call to the library. Subclasses implement that, not this."
+
+	self isNull ifTrue: [ ^ self ].
+	self basicFree.
+	handle beNull
 ]
 
 { #category : 'initialization' }
