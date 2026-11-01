@@ -70,6 +70,28 @@ PCRE2MatchTest >> testLastMatchIndex [
 ]
 
 { #category : 'tests' }
+PCRE2MatchTest >> testMarkOutlivesTheCompiledPatternItPointedInto [
+	"A match keeps no reference to its matcher, so the pattern its mark pointed into can go while the match is still around. This is the guarantee a caller gets: the name is the match's own, and freeing the pattern cannot change it.
+
+	It is a statement of the contract, not a detector of the defect it came from. Reading a freed block answers whatever now occupies it, which on a good day is still the old name, so this passed about as often as it failed before the mark was captured early. testMatchTakesItsMarkWhileTheAttemptIsBeingRecorded is what fails if the capture goes away."
+
+	| match regex recycled |
+	regex := 'a(*MARK:HELLO)b' asPerlCompatibleRegex.
+	match := regex findMatch: 'ab'.
+	regex backend finalize.
+
+	recycled := (1 to: 400) collect: [ :index |
+			            (String streamContents: [ :out |
+					             out
+						             nextPutAll: 'x(*MARK:ZZZZZZZZZZZZZZZZ';
+						             print: index;
+						             nextPutAll: ')y[a-z]+\d{2,4}(foo|bar|baz)' ]) asPerlCompatibleRegex ].
+
+	self assert: match mark equals: 'HELLO'.
+	self assert: recycled size equals: 400
+]
+
+{ #category : 'tests' }
 PCRE2MatchTest >> testMatchDataDiagnosticsSurvivePersistence [
 
 	| heapframesSize match matchDataSize |
@@ -91,6 +113,22 @@ PCRE2MatchTest >> testMatchDataDiagnosticsSurvivePersistence [
 	self assert: match isPersistent.
 	self assert: match matchDataSize equals: matchDataSize.
 	self assert: match heapframesSize equals: heapframesSize
+]
+
+{ #category : 'tests' }
+PCRE2MatchTest >> testMatchTakesItsMarkWhileTheAttemptIsBeingRecorded [
+	"pcre2_get_mark answers a pointer into the compiled pattern, not into the match data, so the name has to be read while that pattern is alive. Reading the slot rather than sending #mark is the point of the test: the name must already be there before anyone asks for it."
+
+	| match regex |
+	regex := 'a(*MARK:HELLO)b' asPerlCompatibleRegex.
+	match := regex findMatch: 'ab'.
+	self assert: (match instVarNamed: 'mark') equals: 'HELLO'.
+
+	"An attempt that ends on no mark has to record that too, or a later read would go back to the pointer to find out."
+	regex := 'ab' asPerlCompatibleRegex.
+	match := regex findMatch: 'ab'.
+	self assert: (match instVarNamed: 'mark') equals: ''.
+	self assert: match mark equals: nil
 ]
 
 { #category : 'tests' }

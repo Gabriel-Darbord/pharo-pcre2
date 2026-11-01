@@ -70,6 +70,18 @@ PCRE2Match >> captureIndexesNamed: groupName [
 	^ indexes asArray
 ]
 
+{ #category : 'private' }
+PCRE2Match >> captureMark [
+	"Take the MARK name this attempt ended on, while the pattern that holds it is still there to be read.
+
+	On the C backend the name is not in the match data: pcre2_match stores Fecode + 2, a pointer into the compiled pattern, and pcre2_get_mark hands that pointer back. Nothing here keeps the matcher alive, so once its pattern is freed the pointer dangles, and reading the name off it walks freed memory until it meets a zero. That is a crash when the page has gone and a wrong answer when the block has been reused. So the name is taken once, at the end of the attempt that produced it.
+
+	An attempt that ended on no mark records the empty string rather than nil, so that a later read answers from here instead of going back to the pointer."
+
+	backend isNull ifTrue: [ ^ mark := '' ].
+	^ mark := self getMark
+]
+
 { #category : 'accessing' }
 PCRE2Match >> count [
 	"Number of subpatterns plus one for the whole pattern"
@@ -235,11 +247,12 @@ PCRE2Match >> input: aPreparedInput [
 
 { #category : 'private' }
 PCRE2Match >> invalidateResult [
+	"Drop what the last attempt produced. The mark is cleared to the empty string rather than to nil, because nil would send the next read back to a pointer that may no longer be good; see captureMark."
 
 	isPersistent := false.
 	startIndex := nil.
 	offsets := nil.
-	mark := nil.
+	mark := ''.
 	resultCode := nil.
 	heapframesSize := nil
 ]
@@ -278,10 +291,12 @@ PCRE2Match >> lastMatchIndex [
 
 { #category : 'accessing' }
 PCRE2Match >> mark [
+	"Answer the MARK name this match ended on, or nil when it ended on none.
 
-	mark ifNotNil: [ ^ mark ].
-	backend isNull ifTrue: [ ^ nil ].
-	^ mark := self getMark ifEmpty: [ nil ]
+	The name was taken when the attempt was recorded; captureMark says why it cannot wait until now. The capture below is for a match that has never run, whose match data carries the null mark pcre2_match_data_create gave it."
+
+	mark ifNil: [ self captureMark ].
+	^ mark ifEmpty: [ nil ]
 ]
 
 { #category : 'diagnostics' }
@@ -424,11 +439,12 @@ PCRE2Match >> readSubjectFrom: start to: end [
 
 { #category : 'initialization' }
 PCRE2Match >> reset [
+	"Empty this match so it can be run again. The mark is cleared to the empty string rather than to nil, because nil would send the next read back to a pointer that may no longer be good; see captureMark."
 
 	isPersistent := false.
 	startIndex := nil.
 	offsets := nil.
-	mark := nil.
+	mark := ''.
 	subject := nil.
 	decoder := nil.
 	input := nil.
@@ -447,9 +463,10 @@ PCRE2Match >> resultCode [
 
 { #category : 'private' }
 PCRE2Match >> resultCode: anInteger [
-	"Record the raw PCRE2 result code for this match attempt."
+	"Record the raw PCRE2 result code for this match attempt, and take the MARK name with it: every match path ends here, with the matcher still in hand, and captureMark says why that is the only safe moment."
 
-	resultCode := anInteger
+	resultCode := anInteger.
+	self captureMark
 ]
 
 { #category : 'accessing' }
