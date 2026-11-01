@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.0 — unreleased
+## 2.0.0 — 2026-11-01
 
 Pharo-pcre2 gains a second implementation: a regular-expression engine written in Pharo. It needs no C library, it is what a plain install now uses, and it sits behind the same public API as the existing binding. The C binding is unchanged in behaviour and is still there for the facilities only it can offer.
 
