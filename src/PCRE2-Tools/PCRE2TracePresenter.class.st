@@ -114,7 +114,7 @@ PCRE2TracePresenter >> contextExcerptFor: sourceString from: startIndex to: stop
 
 { #category : 'layout' }
 PCRE2TracePresenter >> defaultLayout [
-	"The source panes and the timeline share the height, and each row fills the width. Giving the source row a fixed height left it laid out at its natural width too, which is what used to leave the top right of the window empty."
+	"Two rows of two columns, and the columns line up between them. A child given a fixed size on one axis is laid out at its natural size on the other, so a fixed height inside one column makes that column demand its natural width and pushes the split off the one above: the two context panes carry the same fixed height as each other and stay aligned, while Event details carries none, because Captures opposite it carries none either."
 
 	| bottomPane detailsPane patternPane sourcePane subjectPane |
 	patternPane := SpBoxLayout newTopToBottom
@@ -137,7 +137,7 @@ PCRE2TracePresenter >> defaultLayout [
 	detailsPane := SpBoxLayout newTopToBottom
 		               spacing: 4;
 		               add: (self labelledPresenter: capturesTable label: 'Captures' help: self capturesHelpString);
-		               add: (self labelledPresenter: detailsText label: 'Event details' help: self eventDetailsHelpString) height: 130;
+		               add: (self labelledPresenter: detailsText label: 'Event details' help: self eventDetailsHelpString);
 		               yourself.
 	bottomPane := SpBoxLayout newLeftToRight
 		              spacing: 6;

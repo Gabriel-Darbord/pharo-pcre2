@@ -559,6 +559,19 @@ PCRE2DebugSessionTest >> testTracePresenterCanSelectEquivalentStepInsideGroup [
 ]
 
 { #category : 'tests' }
+PCRE2DebugSessionTest >> testTracePresenterColumnsLineUpBetweenItsTwoRows [
+	"The trace pane is two rows of two columns. The split between the columns is at the same place in both rows, so the panes read as a grid rather than as four boxes."
+
+	| presenter edges |
+	presenter := PCRE2TracePresenter on: ('(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch: 'caterpillar').
+	self layOut: presenter in: 1000 @ 700.
+	edges := [ :aPresenter | aPresenter adapter widget bounds ].
+
+	self assert: (edges value: presenter stepsTable) right equals: (edges value: presenter patternText) right.
+	self assert: (edges value: presenter capturesTable) left equals: (edges value: presenter subjectText) left
+]
+
+{ #category : 'tests' }
 PCRE2DebugSessionTest >> testTracePresenterContextEllipsesUseMetaColor [
 
 	| callout context excerptStart presenter source title titleLine trailingStart |
