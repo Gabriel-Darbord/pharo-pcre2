@@ -95,6 +95,19 @@ For character ranges, use `matchingRangesIn:`. Ranges are translated back from P
 
 Replacement strings use PCRE2 substitution syntax unless you call one of the `withLiteral:` variants.
 
+## Debug a Pattern
+
+With the `Tools` group loaded, the debugger records an instrumented match and walks it step by step. It runs on either backend.
+
+```smalltalk
+PCRE2DebuggerPresenter open.                            "nothing in it yet"
+'\d+' openPerlCompatibleRegexDebugger.                  "a pattern, no subject"
+'\d+' openPerlCompatibleRegexDebuggerOn: 'a1 b22'.      "both"
+'\d+' asPerlCompatibleRegex openDebuggerOn: 'a1 b22'.   "from a compiled matcher"
+```
+
+Pattern and subject stay editable in the window. *Trace all* records a whole match at once; *Step* and *Continue* run the same instrumented matcher under your control.
+
 ## Convert Other Pattern Styles
 
 With the `FFI` group loaded, use PCRE2's conversion helpers when the input pattern is a glob or POSIX regular expression:

@@ -50,6 +50,14 @@ PCRE2DebugSessionTest >> emptyTraceRecorder [
 ]
 
 { #category : 'helpers' }
+PCRE2DebugSessionTest >> highlightedIndexesOf: aText [
+	"Answer the character positions aText gives a background colour to."
+
+	^ (1 to: aText size) select: [ :index |
+		  (aText attributesAt: index) anySatisfy: [ :attribute | attribute isKindOf: TextBackgroundColor ] ]
+]
+
+{ #category : 'helpers' }
 PCRE2DebugSessionTest >> liveSessionOn: patternString subject: subjectString do: aBlock [
 	"Evaluate aBlock with a session in live-stepping mode, and stop the run afterwards whatever happens."
 
@@ -57,6 +65,17 @@ PCRE2DebugSessionTest >> liveSessionOn: patternString subject: subjectString do:
 	session := PCRE2DebugSession pattern: patternString subject: subjectString.
 	session executionMode: #stepLive.
 	^ [ aBlock value: session ] ensure: [ session abortLiveRun ]
+]
+
+{ #category : 'helpers' }
+PCRE2DebugSessionTest >> navigationButtonsOf: aDebuggerPresenter do: aBlock [
+	"Evaluate aBlock with each of the four buttons that walk a recorded trace."
+
+	{
+		aDebuggerPresenter firstButton.
+		aDebuggerPresenter previousButton.
+		aDebuggerPresenter nextButton.
+		aDebuggerPresenter lastButton } do: aBlock
 ]
 
 { #category : 'running' }
@@ -137,6 +156,17 @@ PCRE2DebugSessionTest >> testDebugSessionStepLiveRunSelectsNewestRecordedStep [
 ]
 
 { #category : 'tests' }
+PCRE2DebugSessionTest >> testDebuggerCanBeBuiltFromEveryEntryPoint [
+	"Each way in builds a session with the pattern and subject it was given, and nothing it was not."
+
+	self assert: (PCRE2DebuggerPresenter onPattern: '' subject: '') session pattern equals: ''.
+	self assert: (PCRE2DebuggerPresenter onPattern: 'ab' subject: '') session pattern equals: 'ab'.
+	self assert: (PCRE2DebuggerPresenter onPattern: 'ab' subject: '') session subject equals: ''.
+	self assert: (PCRE2DebuggerPresenter onPattern: '' subject: 'cd') session subject equals: 'cd'.
+	self assert: (PCRE2DebuggerPresenter onPattern: 'ab' subject: 'cd') session subject equals: 'cd'
+]
+
+{ #category : 'tests' }
 PCRE2DebugSessionTest >> testDebuggerPatternInputWrapsAndScrollsAsMultilineText [
 
 	| presenter session |
@@ -146,6 +176,31 @@ PCRE2DebugSessionTest >> testDebuggerPatternInputWrapsAndScrollsAsMultilineText 
 	self assert: presenter patternInput isWrapWord.
 	self assert: presenter patternInput hasScrollBars.
 	self assert: presenter patternInput text asString equals: session pattern
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testDebuggerPresenterEnablesOnlyWhatCanBeDoneWithoutATrace [
+
+	| presenter |
+	presenter := PCRE2DebuggerPresenter onPattern: 'ab' subject: 'ab'.
+	self assert: presenter runButton isEnabled.
+	self assert: presenter stepButton isEnabled.
+	self assert: presenter continueButton isEnabled.
+	self deny: presenter pauseButton isEnabled.
+	self deny: presenter abortButton isEnabled.
+	self navigationButtonsOf: presenter do: [ :button | self deny: button isEnabled ]
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testDebuggerPresenterEnablesTraceNavigationOnceThereIsATrace [
+
+	| presenter |
+	presenter := PCRE2DebuggerPresenter onPattern: '(cat|cater)' subject: 'cater'.
+	presenter runTrace.
+	self assert: presenter session stepCount > 0.
+	self navigationButtonsOf: presenter do: [ :button | self assert: button isEnabled ].
+	self deny: presenter pauseButton isEnabled.
+	self deny: presenter abortButton isEnabled
 ]
 
 { #category : 'tests' }
@@ -190,6 +245,20 @@ PCRE2DebugSessionTest >> testDebuggerPresenterLiveControlsUseTracePresenter [
 		self deny: presenter continueButton help isEmpty.
 		self deny: presenter pauseButton help isEmpty.
 		self deny: presenter abortButton help isEmpty ] ensure: [ session abortLiveRun ]
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testDebuggerPresenterOpensWithNoPatternOrSubject [
+
+	| presenter |
+	presenter := PCRE2DebuggerPresenter onPattern: '' subject: ''.
+	self assert: presenter session pattern equals: ''.
+	self assert: presenter session subject equals: ''.
+	self assert: presenter patternInput text equals: ''.
+	self assert: presenter subjectText text equals: ''.
+	self deny: presenter session hasTrace.
+	self assert: presenter session stepCount equals: 0.
+	self assert: presenter session statusString equals: 'No trace yet.'
 ]
 
 { #category : 'tests' }
@@ -247,6 +316,15 @@ PCRE2DebugSessionTest >> testDebuggerPresenterUsesSession [
 	self assert: session selectedStep isNotNil.
 	self assert: session selectedStepIndex equals: 1.
 	self assert: presenter tracePresenter trace equals: session trace
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testDebuggerPresenterWindowCarriesATitle [
+
+	| presenter |
+	presenter := PCRE2DebuggerPresenter onPattern: 'ab' subject: 'ab'.
+	self assert: presenter asWindow title equals: PCRE2DebuggerPresenter title.
+	self assert: PCRE2DebuggerPresenter title equals: 'PCRE2 Debugger'
 ]
 
 { #category : 'tests' }
@@ -573,6 +651,26 @@ PCRE2DebugSessionTest >> testTracePresenterMainPresentersHaveHelpText [
 	widgets do: [ :each |
 			self deny: each help isNil.
 			self deny: each help isEmpty ]
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testTracePresenterMovesTheRenderedHighlightWhenAnotherStepIsSelected [
+	"From one step to the next the traced pattern keeps the same characters and changes only its highlighting. This asserts on the text the widget ended up holding rather than on the text the presenter was handed, because a widget given a text equal to the one it already has redraws nothing, and then the first step's highlighting would stay on screen for the whole trace."
+
+	| atFirst atLast presenter steps textMorph |
+	presenter := PCRE2TracePresenter on: ('(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch: 'caterpillar').
+	presenter build.
+	steps := presenter trace steps.
+	textMorph := presenter patternText adapter widget textMorph.
+
+	presenter selectedStep: steps first.
+	atFirst := self highlightedIndexesOf: textMorph text.
+	presenter selectedStep: steps last.
+	atLast := self highlightedIndexesOf: textMorph text.
+
+	self deny: atFirst isEmpty.
+	self deny: atLast isEmpty.
+	self deny: atFirst equals: atLast
 ]
 
 { #category : 'tests' }

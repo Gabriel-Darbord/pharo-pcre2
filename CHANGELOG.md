@@ -20,6 +20,7 @@ Pharo-pcre2 gains a second implementation: a regular-expression engine written i
 - `PCRE2Compiler class>>withDefaultBackend:do:` scopes a backend change to a block, and `defaultBackend: nil` restores the automatic choice.
 - `PCRE2Compiler class>>supportsCodeUnitWidth:` answers whether the backend in use can match at a given width, so callers no longer have to ask `LibPCRE2` and thereby assume the C binding.
 - `PCRE2UnsupportedFeature`, raised for syntax and options an implementation does not provide, separately from `PCRE2CompileError`.
+- The pattern debugger opens without being given anything: `PCRE2DebuggerPresenter open`, `openOnPattern:`, `openOnSubject:` and `openOnPattern:subject:`, which now answers the debugger rather than its window so a caller can go on driving it. `onPattern:subject:` builds one without opening a window.
 - Baseline groups `Pharo`, `Backends`, `PharoTests`, `ToolsTests` and `BackendTests`, beside the existing `Core`, `FFI`, `Tools`, `FFITests`, `Tests` and `All`.
 - CI runs three installs — default, FFI-only, and everything with the C library — across Pharo 12, 13, 14 and 15.
 
@@ -28,6 +29,8 @@ Pharo-pcre2 gains a second implementation: a regular-expression engine written i
 - The debugger and trace tools (`PCRE2-Tools`) run on either backend, and their tests now run once per loaded implementation: `PCRE2DebugSessionPharoBackendTest` in a default install, and `PCRE2DebugSessionFFIBackendTest` beside it when the C binding is there. Neither the tools nor their tests need the FFI backend to load any more.
 - The Pharo backend accepts every option PCRE2 defines for `pcre2_substitute`; `PCRE2_COPY_MATCHED_SUBJECT` and `PCRE2_DISABLE_RECURSELOOP_CHECK` used to be refused. An option bit PCRE2 does not define is still refused, and now says so rather than claiming the option is unimplemented.
 - `PCRE2TraceRecorder` keeps one trace snapshot until an event changes it, instead of rebuilding the whole trace for every question a presenter asks.
+- The debugger window is titled and carries an icon, rather than opening as "Unnamed Window". Its buttons are enabled only when they can do something: pausing and aborting need a run in flight, and the four trace-navigation buttons need a trace.
+- The debugger's control rows no longer crop their buttons' labels, and the trace pane no longer overflows the window: "Trace all", "Step", "Continue", "Pause" and "Abort" were drawn blank, and the traced pattern and its context were laid out partly outside the pane that holds them.
 - The public `PCRE2Matcher` and `PCRE2Match` no longer declare the ten width-dispatch methods that only the FFI backend implements; they live on `PCRE2MatcherFFIBackend` and `PCRE2MatchFFIBackend`.
 - `README.md` advertises the library; installation and usage moved to `docs/GettingStarted.md`.
 

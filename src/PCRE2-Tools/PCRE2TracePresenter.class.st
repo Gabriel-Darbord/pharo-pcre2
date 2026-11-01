@@ -128,8 +128,8 @@ PCRE2TracePresenter >> defaultLayout [
 		               add: (self labelledPresenter: subjectContextText label: 'Subject context' help: self subjectContextHelpString)
 		               height: 88;
 		               yourself.
-	sourcePane := SpPanedLayout newLeftToRight
-		              positionOfSlider: 50 percent;
+	sourcePane := SpBoxLayout newLeftToRight
+		              spacing: 6;
 		              add: patternPane;
 		              add: subjectPane;
 		              yourself.
@@ -138,15 +138,15 @@ PCRE2TracePresenter >> defaultLayout [
 		               add: (self labelledPresenter: capturesTable label: 'Captures' help: self capturesHelpString);
 		               add: (self labelledPresenter: detailsText label: 'Event details' help: self eventDetailsHelpString) height: 130;
 		               yourself.
-	bottomPane := SpPanedLayout newLeftToRight
-		              positionOfSlider: 70 percent;
+	bottomPane := SpBoxLayout newLeftToRight
+		              spacing: 6;
 		              add: (self labelledPresenter: stepsTable label: 'Trace timeline' help: self traceTimelineHelpString);
 		              add: detailsPane;
 		              yourself.
 	^ SpBoxLayout newTopToBottom
 		  borderWidth: 8;
 		  spacing: 6;
-		  add: statusLabel height: 24;
+		  add: statusLabel expand: false;
 		  add: sourcePane height: 270;
 		  add: bottomPane;
 		  yourself
@@ -253,6 +253,7 @@ PCRE2TracePresenter >> detailsTextForStep: aTraceStep [
 
 { #category : 'updating' }
 PCRE2TracePresenter >> display: aTextOrString inTextPresenter: aTextPresenter [
+	"Show this text in the presenter. From one step to the next the traced pattern and subject keep the same characters and change only their highlighting, and a text widget handed a text equal to the one it holds redraws nothing, so clearing it first is what makes the new highlighting appear. Call this from the UI process, where no redraw can land on the empty text in between."
 
 	aTextPresenter text asString = aTextOrString asString ifTrue: [ aTextPresenter text: '' ].
 	aTextPresenter text: aTextOrString

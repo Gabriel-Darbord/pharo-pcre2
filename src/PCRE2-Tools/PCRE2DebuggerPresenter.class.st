@@ -31,10 +31,42 @@ Class {
 	#tag : 'Presenters'
 }
 
+{ #category : 'instance creation' }
+PCRE2DebuggerPresenter class >> onPattern: patternString subject: subjectString [
+	"Answer a debugger on a pattern and a subject, without opening a window."
+
+	^ self on: (PCRE2DebugSession pattern: patternString subject: subjectString)
+]
+
+{ #category : 'opening' }
+PCRE2DebuggerPresenter class >> open [
+	"Open the debugger with nothing in it. A pattern and a subject can be typed into the window."
+
+	^ self openOnPattern: '' subject: ''
+]
+
+{ #category : 'opening' }
+PCRE2DebuggerPresenter class >> openOnPattern: patternString [
+	"Open the debugger on a pattern, leaving the subject to be typed into the window."
+
+	^ self openOnPattern: patternString subject: ''
+]
+
 { #category : 'opening' }
 PCRE2DebuggerPresenter class >> openOnPattern: patternString subject: subjectString [
+	"Open the debugger on a pattern and a subject, and answer the debugger itself rather than its window, so the caller can go on driving it."
 
-	^ (self on: (PCRE2DebugSession pattern: patternString subject: subjectString)) open
+	| presenter |
+	presenter := self onPattern: patternString subject: subjectString.
+	presenter open.
+	^ presenter
+]
+
+{ #category : 'opening' }
+PCRE2DebuggerPresenter class >> openOnSubject: subjectString [
+	"Open the debugger on a subject, leaving the pattern to be typed into the window."
+
+	^ self openOnPattern: '' subject: subjectString
 ]
 
 { #category : 'specs' }
@@ -102,43 +134,49 @@ PCRE2DebuggerPresenter >> defaultLayout [
 		              spacing: 6;
 		              add: 'Max steps' expand: false;
 		              add: maximumStepsInput width: 90;
-		              add: runButton width: 120;
+		              add: runButton expand: false;
 		              yourself.
 	liveRow := SpBoxLayout newLeftToRight
 		           spacing: 6;
-		           add: stepButton width: 80;
-		           add: continueButton width: 100;
-		           add: pauseButton width: 80;
-		           add: abortButton width: 80;
+		           add: stepButton;
+		           add: continueButton;
+		           add: pauseButton;
+		           add: abortButton;
 		           yourself.
 	navigationRow := SpBoxLayout newLeftToRight
 		                 spacing: 6;
-		                 add: firstButton width: 36;
-		                 add: previousButton width: 36;
+		                 add: firstButton width: 40;
+		                 add: previousButton width: 40;
 		                 add: stepLabel;
-		                 add: nextButton width: 36;
-		                 add: lastButton width: 36;
+		                 add: nextButton width: 40;
+		                 add: lastButton width: 40;
 		                 yourself.
 	controls := SpBoxLayout newTopToBottom
-		            spacing: 4;
-		            add: optionsRow height: 32;
-		            add: liveRow height: 32;
-		            add: navigationRow height: 32;
+		            spacing: 6;
+		            add: optionsRow expand: false;
+		            add: liveRow expand: false;
+		            add: navigationRow expand: false;
 		            yourself.
 	editorPane := SpBoxLayout newTopToBottom
 		              borderWidth: 8;
 		              spacing: 6;
-		              add: 'Input pattern' height: 20;
-		              add: patternInput height: 72;
-		              add: 'Input subject' height: 20;
+		              add: 'Input pattern' expand: false;
+		              add: patternInput;
+		              add: 'Input subject' expand: false;
 		              add: subjectText;
-		              add: controls height: 104;
+		              add: controls expand: false;
 		              yourself.
 	^ SpPanedLayout newLeftToRight
 		  positionOfSlider: 35 percent;
 		  add: editorPane;
 		  add: tracePresenter;
 		  yourself
+]
+
+{ #category : 'accessing' }
+PCRE2DebuggerPresenter >> firstButton [
+
+	^ firstButton
 ]
 
 { #category : 'actions' }
@@ -244,8 +282,27 @@ PCRE2DebuggerPresenter >> initializeWindow: aWindowPresenter [
 
 	super initializeWindow: aWindowPresenter.
 	aWindowPresenter
-		initialExtent: 1200 @ 680;
-		initialPosition: 20 @ 40
+		title: self class title;
+		windowIcon: (self iconNamed: #smallFind);
+		initialExtent: 1200 @ 720
+]
+
+{ #category : 'accessing' }
+PCRE2DebuggerPresenter >> lastButton [
+
+	^ lastButton
+]
+
+{ #category : 'accessing' }
+PCRE2DebuggerPresenter >> maximumStepsInput [
+
+	^ maximumStepsInput
+]
+
+{ #category : 'accessing' }
+PCRE2DebuggerPresenter >> nextButton [
+
+	^ nextButton
 ]
 
 { #category : 'accessing' }
@@ -273,6 +330,12 @@ PCRE2DebuggerPresenter >> pauseLiveRun [
 	self refreshFromSession
 ]
 
+{ #category : 'accessing' }
+PCRE2DebuggerPresenter >> previousButton [
+
+	^ previousButton
+]
+
 { #category : 'updating' }
 PCRE2DebuggerPresenter >> refreshFromSession [
 
@@ -290,23 +353,34 @@ PCRE2DebuggerPresenter >> refreshFromSession [
 
 { #category : 'updating' }
 PCRE2DebuggerPresenter >> refreshModeControls [
+	"Enable only what can be done right now: starting a run needs no run in flight, pausing needs one, aborting needs one that has not ended, and walking the trace needs a trace to walk."
 
+	| liveRun running hasSteps |
+	liveRun := session liveRun.
+	running := session liveRunState = #running.
+	hasSteps := session stepCount > 0.
+	runButton enabled: running not.
+	stepButton enabled: running not.
+	continueButton enabled: running not.
+	pauseButton enabled: running.
+	abortButton enabled: (liveRun isNotNil and: [ liveRun isFinished not ]).
 	{
-		runButton.
-		stepButton.
-		continueButton.
-		pauseButton.
-		abortButton.
 		firstButton.
 		previousButton.
 		nextButton.
-		lastButton } do: [ :button | button ifNotNil: [ button enabled: true ] ]
+		lastButton } do: [ :button | button enabled: hasSteps ]
 ]
 
 { #category : 'updating' }
 PCRE2DebuggerPresenter >> refreshStepStatus [
 
 	stepLabel label: session stepStatusString
+]
+
+{ #category : 'accessing' }
+PCRE2DebuggerPresenter >> runButton [
+
+	^ runButton
 ]
 
 { #category : 'actions' }
@@ -343,6 +417,12 @@ PCRE2DebuggerPresenter >> setModelBeforeInitialization: aPCRE2DebugSession [
 PCRE2DebuggerPresenter >> stepButton [
 
 	^ stepButton
+]
+
+{ #category : 'accessing' }
+PCRE2DebuggerPresenter >> stepLabel [
+
+	^ stepLabel
 ]
 
 { #category : 'actions' }
