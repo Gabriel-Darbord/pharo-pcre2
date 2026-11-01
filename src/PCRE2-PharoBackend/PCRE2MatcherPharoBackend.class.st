@@ -239,7 +239,7 @@ PCRE2MatcherPharoBackend >> ffiLibraryName [
 	PCRE2UnsupportedFeature signal: 'The Pharo backend does not use a C library'
 ]
 
-{ #category : 'matching' }
+{ #category : 'finalization' }
 PCRE2MatcherPharoBackend >> finalize [
 
 	^ self

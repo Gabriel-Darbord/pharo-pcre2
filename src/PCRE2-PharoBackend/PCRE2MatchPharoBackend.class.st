@@ -38,7 +38,7 @@ PCRE2MatchPharoBackend >> family [
 	^ #pharo
 ]
 
-{ #category : 'accessing' }
+{ #category : 'finalization' }
 PCRE2MatchPharoBackend >> finalize [
 
 	^ self

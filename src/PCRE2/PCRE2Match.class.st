@@ -109,7 +109,7 @@ PCRE2Match >> ffiLibraryName [
 	^ backend ffiLibraryName
 ]
 
-{ #category : 'external resource management' }
+{ #category : 'finalization' }
 PCRE2Match >> finalize [
 
 	backend finalize
@@ -211,7 +211,7 @@ PCRE2Match >> groupsByName [
 	| groups |
 	groups := Dictionary new.
 	self namedGroups do: [ :name |
-		(name notNil and: [ (groups includesKey: name) not ]) ifTrue: [ groups at: name put: (self groupNamed: name) ] ].
+		(name isNotNil and: [ (groups includesKey: name) not ]) ifTrue: [ groups at: name put: (self groupNamed: name) ] ].
 	^ groups
 ]
 
@@ -266,7 +266,7 @@ PCRE2Match >> invalidateResult [
 PCRE2Match >> isComplete [
 	"Answer whether PCRE2 returned a complete match result."
 
-	^ resultCode notNil and: [ resultCode > 0 ]
+	^ resultCode isNotNil and: [ resultCode > 0 ]
 ]
 
 { #category : 'testing' }

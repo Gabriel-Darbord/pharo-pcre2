@@ -112,6 +112,13 @@ PCRE2MatchTrace >> input [
 ]
 
 { #category : 'testing' }
+PCRE2MatchTrace >> isFinished [
+	"A recorded trace is whole by the time anyone can ask. A live run answers this for real."
+
+	^ true
+]
+
+{ #category : 'testing' }
 PCRE2MatchTrace >> isFullMatch [
 	"Answer whether the complete match spans the prepared subject input."
 
@@ -124,14 +131,14 @@ PCRE2MatchTrace >> isFullMatch [
 PCRE2MatchTrace >> isMatch [
 	"Answer whether the traced attempt produced a complete match."
 
-	^ match notNil and: [ match isComplete ]
+	^ match isNotNil and: [ match isComplete ]
 ]
 
 { #category : 'testing' }
 PCRE2MatchTrace >> isPartial [
 	"Answer whether the traced attempt produced a partial match."
 
-	^ match notNil and: [ match isPartial ]
+	^ match isNotNil and: [ match isPartial ]
 ]
 
 { #category : 'accessing' }

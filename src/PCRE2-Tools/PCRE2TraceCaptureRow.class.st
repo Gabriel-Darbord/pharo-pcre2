@@ -34,7 +34,7 @@ PCRE2TraceCaptureRow >> displayRange [
 
 	range ifNil: [ ^ 'unset' ].
 	range isEmpty ifTrue: [ ^ range first asString , ' (empty)' ].
-	^ range first asString , '-' , range last asString
+	^ String streamContents: [ :stream | stream << range first asString << '-' << range last asString ]
 ]
 
 { #category : 'accessing' }

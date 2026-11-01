@@ -115,7 +115,7 @@ PCRE2LiveDebugRun >> handleMatchResult: resultCode match: matchData [
 { #category : 'testing' }
 PCRE2LiveDebugRun >> hasActiveProcess [
 
-	^ process notNil and: [ process isTerminated not ]
+	^ process isNotNil and: [ process isTerminated not ]
 ]
 
 { #category : 'initialization' }

@@ -466,7 +466,7 @@ PCRE2UnicodeData class >> readVarintFrom: stream [
 	^ value
 ]
 
-{ #category : 'accessing' }
+{ #category : 'class initialization' }
 PCRE2UnicodeData class >> reset [
 
 	Data := nil

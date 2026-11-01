@@ -161,7 +161,7 @@ PCRE2ContextPharoBackend >> family [
 	^ #pharo
 ]
 
-{ #category : 'configuration' }
+{ #category : 'finalization' }
 PCRE2ContextPharoBackend >> finalize [
 
 	^ self

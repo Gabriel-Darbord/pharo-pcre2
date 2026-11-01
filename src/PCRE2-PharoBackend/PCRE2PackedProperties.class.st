@@ -19,10 +19,10 @@ Class {
 PCRE2PackedProperties >> at: property ifAbsent: aBlock [
 	"Answer the inclusive ranges of this property, unpacking them on first use."
 
-	^ cache at: property ifAbsent: [
+	^ cache at: property ifAbsentPut: [
 			  | offset |
 			  offset := offsets at: property ifAbsent: [ ^ aBlock value ].
-			  cache at: property put: (PCRE2UnicodeData readRangesFrom: (ReadStream on: bytes from: offset + 1 to: bytes size)) ]
+			  PCRE2UnicodeData readRangesFrom: (ReadStream on: bytes from: offset + 1 to: bytes size) ]
 ]
 
 { #category : 'initialization' }

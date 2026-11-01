@@ -50,7 +50,8 @@ PCRE2TracePresenter >> applySourceHighlightTo: aText range: anInterval [
 PCRE2TracePresenter >> calloutLabelForRow: aTraceStepRow [
 
 	aTraceStepRow isGroup ifFalse: [ ^ aTraceStepRow firstStep debuggerCalloutLabel ].
-	^ aTraceStepRow firstStep debuggerCalloutLabel , ' x' , aTraceStepRow size asString
+	^ String streamContents: [ :stream |
+		  stream << aTraceStepRow firstStep debuggerCalloutLabel << ' x' << aTraceStepRow size asString ]
 ]
 
 { #category : 'display' }
@@ -456,7 +457,7 @@ PCRE2TracePresenter >> quotedSnippet: aString [
 						         ifFalse: [ stream nextPut: character ] ] ].
 	limit := 18.
 	clean size > limit ifTrue: [ clean := (clean copyFrom: 1 to: limit - 3) , '...' ].
-	^ '"' , clean , '"'
+	^ String streamContents: [ :stream | stream << '"' << clean << '"' ]
 ]
 
 { #category : 'display' }
@@ -467,7 +468,7 @@ PCRE2TracePresenter >> rangeLabelFor: anIntervalOrNil in: sourceString [
 			anIntervalOrNil first > sourceString size ifTrue: [ ^ 'end' ].
 			^ 'at ' , anIntervalOrNil first asString ].
 	anIntervalOrNil first = anIntervalOrNil last ifTrue: [ ^ anIntervalOrNil first asString ].
-	^ anIntervalOrNil first asString , '-' , anIntervalOrNil last asString
+	^ String streamContents: [ :stream | stream << anIntervalOrNil first asString << '-' << anIntervalOrNil last asString ]
 ]
 
 { #category : 'accessing' }
@@ -488,7 +489,7 @@ PCRE2TracePresenter >> selectedRow: aTraceStepRowOrNil [
 
 	selectedRow := aTraceStepRowOrNil.
 	selectedStep := selectedRow ifNotNil: [ selectedRow representativeStep ].
-	(stepsTable notNil and: [ selectedRow notNil and: [ stepsTable selectedItem ~~ selectedRow ] ]) ifTrue: [
+	(stepsTable isNotNil and: [ selectedRow isNotNil and: [ stepsTable selectedItem ~~ selectedRow ] ]) ifTrue: [
 		stepsTable selectItem: selectedRow ].
 	self updateSelectedStep
 ]
@@ -504,7 +505,7 @@ PCRE2TracePresenter >> selectedStep: aTraceStepOrNil [
 
 	selectedStep := aTraceStepOrNil.
 	selectedRow := nil.
-	(stepsTable notNil and: [ selectedStep notNil ]) ifTrue: [
+	(stepsTable isNotNil and: [ selectedStep isNotNil ]) ifTrue: [
 			selectedRow := self rowForStep: selectedStep ifAbsent: [ nil ].
 			selectedRow ifNotNil: [
 					stepsTable selectItem: selectedRow.
@@ -562,7 +563,7 @@ PCRE2TracePresenter >> sourceContextRangeFor: sourceString range: anIntervalOrNi
 PCRE2TracePresenter >> sourceContextTextFor: sourceObject range: anIntervalOrNil title: titleString callout: calloutString [
 
 	| excerpt excerptEnd excerptStart hasLeadingEllipsis hasTrailingEllipsis highlightInterval range source start stop text titleLine |
-	titleLine := titleString , ' | ' , calloutString.
+	titleLine := String streamContents: [ :stream | stream << titleString << ' | ' << calloutString ].
 	source := self oneLineSourceFor: sourceObject.
 	anIntervalOrNil ifNil: [ ^ titleLine asText ].
 	range := self sourceContextRangeFor: source range: anIntervalOrNil.
@@ -595,7 +596,7 @@ PCRE2TracePresenter >> sourceLabelFor: sourceObject range: anIntervalOrNil [
 	label := self rangeLabelFor: anIntervalOrNil in: source.
 	snippet := self textFrom: source range: anIntervalOrNil.
 	snippet ifEmpty: [ ^ label ].
-	^ label , ' ' , (self quotedSnippet: snippet)
+	^ String streamContents: [ :stream | stream << label << ' ' << (self quotedSnippet: snippet) ]
 ]
 
 { #category : 'layout' }
@@ -699,13 +700,13 @@ PCRE2TracePresenter >> trace: aPCRE2MatchTraceOrNil [
 	stepsTable ifNotNil: [ self updatePresenter ]
 ]
 
-{ #category : 'display' }
+{ #category : 'private' }
 PCRE2TracePresenter >> traceStatusString [
 
 	| rowCount |
 	trace ifNil: [ ^ 'No trace.' ].
 	rowCount := (self stepRowsForSteps: trace steps) size.
-	((trace respondsTo: #isFinished) and: [ trace isFinished not ]) ifTrue: [
+	trace isFinished ifFalse: [
 			^ String streamContents: [ :stream |
 					  stream
 						  nextPutAll: 'Live trace';

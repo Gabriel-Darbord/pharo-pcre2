@@ -204,14 +204,13 @@ PCRE2MatcherFFIBackend >> readNamedGroups [
 	^ table
 ]
 
-{ #category : 'compiling' }
+{ #category : 'private' }
 PCRE2MatcherFFIBackend >> recompiledBy: compiler pattern: pattern [
 
-	| handle |
-	handle := compiler compileBasic: pattern.
+	| compiled |
+	compiled := compiler compileBasic: pattern.
 	self finalize.
-	self setHandle: handle.
-	^ self
+	self setHandle: compiled
 ]
 
 { #category : 'accessing' }

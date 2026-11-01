@@ -49,6 +49,12 @@ PCRE2CompileError >> signal: anErrorMessage in: input at: codeUnitOffset [
 	pattern := input displayFrom: 1 to: input size.
 	head := input displayFrom: 1 to: (codeUnitOffset min: input size).
 	tail := input displayFrom: codeUnitOffset + 1 to: input size.
-	self messageText: errorMessage , ': ' , head , '(*ERROR)' , tail.
+	self messageText: (String streamContents: [ :stream |
+				 stream
+					 nextPutAll: errorMessage;
+					 nextPutAll: ': ';
+					 nextPutAll: head;
+					 nextPutAll: '(*ERROR)';
+					 nextPutAll: tail ]).
 	self signal
 ]

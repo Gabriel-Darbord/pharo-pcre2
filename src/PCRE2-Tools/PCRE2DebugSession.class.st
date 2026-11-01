@@ -119,13 +119,13 @@ PCRE2DebugSession >> firstStep [
 { #category : 'testing' }
 PCRE2DebugSession >> hasError [
 
-	^ lastError notNil
+	^ lastError isNotNil
 ]
 
 { #category : 'testing' }
 PCRE2DebugSession >> hasTrace [
 
-	^ trace notNil
+	^ trace isNotNil
 ]
 
 { #category : 'initialization' }

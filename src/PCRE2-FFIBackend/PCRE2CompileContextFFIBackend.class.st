@@ -264,7 +264,13 @@ PCRE2CompileContextFFIBackend >> requireSupportedFeature: featureName since: ver
 	"Fail before calling an FFI entry point that may not exist in older PCRE2 10.x runtimes."
 
 	aBoolean ifTrue: [ ^ self ].
-	PCRE2Error signal: featureName , ' requires PCRE2 ' , versionString , ' or newer; loaded ' , self ffiLibraryName versionString
+	PCRE2Error signal: (String streamContents: [ :stream |
+				 stream
+					 nextPutAll: featureName;
+					 nextPutAll: ' requires PCRE2 ';
+					 nextPutAll: versionString;
+					 nextPutAll: ' or newer; loaded ';
+					 nextPutAll: self ffiLibraryName versionString ])
 ]
 
 { #category : 'persistence' }

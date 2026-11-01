@@ -36,7 +36,7 @@ PCRE2TraceStepRow >> includesStep: aTraceStep [
 PCRE2TraceStepRow >> indexLabel [
 
 	self isGroup ifFalse: [ ^ self firstStep index asString ].
-	^ self firstStep index asString , '-' , self lastStep index asString
+	^ String streamContents: [ :stream | stream << self firstStep index asString << '-' << self lastStep index asString ]
 ]
 
 { #category : 'initialization' }
@@ -56,7 +56,7 @@ PCRE2TraceStepRow >> isGroup [
 PCRE2TraceStepRow >> kindLabel [
 
 	self isGroup ifFalse: [ ^ self firstStep debuggerKindLabel ].
-	^ self firstStep debuggerKindLabel , ' x' , self size asString
+	^ String streamContents: [ :stream | stream << self firstStep debuggerKindLabel << ' x' << self size asString ]
 ]
 
 { #category : 'accessing' }

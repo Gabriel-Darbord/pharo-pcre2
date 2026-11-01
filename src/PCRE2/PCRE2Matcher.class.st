@@ -377,7 +377,7 @@ PCRE2Matcher >> ffiLibraryName [
 	^ backend ffiLibraryName
 ]
 
-{ #category : 'external resource management' }
+{ #category : 'finalization' }
 PCRE2Matcher >> finalize [
 
 	backend finalize
@@ -1165,7 +1165,7 @@ PCRE2Matcher >> split: subject indicesDo: aBlock [
 	lastEndCharacterCount := 0.
 	nextStart := 1.
 	subjectEnd := input characterCountUpToCodeUnitOffset: input size.
-	[ nextStart <= (input size + 1) and: [ (match := self matchBytes: input bytes from: nextStart to: input size) notNil ] ]
+	[ nextStart <= (input size + 1) and: [ (match := self matchBytes: input bytes from: nextStart to: input size) isNotNil ] ]
 		whileTrue: [
 				| endCharacterCount endOffset offsets startCharacterCount startOffset |
 				offsets := match offsetsAt: 1.

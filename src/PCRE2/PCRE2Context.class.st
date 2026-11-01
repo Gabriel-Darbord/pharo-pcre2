@@ -42,7 +42,7 @@ PCRE2Context >> ffiLibraryName [
 	^ backend ffiLibraryName
 ]
 
-{ #category : 'external resource management' }
+{ #category : 'finalization' }
 PCRE2Context >> finalize [
 
 	backend finalize

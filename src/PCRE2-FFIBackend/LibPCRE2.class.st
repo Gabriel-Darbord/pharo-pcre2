@@ -124,7 +124,7 @@ LibPCRE2 class >> isAbstract [
 { #category : 'testing' }
 LibPCRE2 class >> isNativeLibraryAvailable [
 
-	^ self uniqueInstance nativeLibraryPath notNil
+	^ self uniqueInstance nativeLibraryPath isNotNil
 ]
 
 { #category : 'JIT' }
@@ -320,13 +320,23 @@ LibPCRE2 >> assertCompatibleLibrary [
 	"Fail early when the loaded native library does not match the assumptions of this binding."
 
 	self versionMajor = self class requiredMajorVersion ifFalse: [
-			PCRE2Error signal:
-				'Unsupported PCRE2 major version ' , self versionMajor asString , ' from ' , self versionString
-				, '. This binding targets PCRE2 ' , self class requiredMajorVersion asString , '.x' ].
+			PCRE2Error signal: (String streamContents: [ :stream |
+						 stream
+							 nextPutAll: 'Unsupported PCRE2 major version ';
+							 print: self versionMajor;
+							 nextPutAll: ' from ';
+							 nextPutAll: self versionString;
+							 nextPutAll: '. This binding targets PCRE2 ';
+							 print: self class requiredMajorVersion;
+							 nextPutAll: '.x' ]) ].
 	self supportsCodeUnitWidth ifFalse: [
-			PCRE2Error signal:
-				'The loaded ' , self class libraryBasename , ' library was not compiled with ' , self codeUnitWidth asString
-				, '-bit code unit support' ].
+			PCRE2Error signal: (String streamContents: [ :stream |
+						 stream
+							 nextPutAll: 'The loaded ';
+							 nextPutAll: self class libraryBasename;
+							 nextPutAll: ' library was not compiled with ';
+							 print: self codeUnitWidth;
+							 nextPutAll: '-bit code unit support' ]) ].
 	self supportsUnicode ifFalse: [ PCRE2Error signal: 'The loaded PCRE2 library was not compiled with Unicode support' ]
 ]
 

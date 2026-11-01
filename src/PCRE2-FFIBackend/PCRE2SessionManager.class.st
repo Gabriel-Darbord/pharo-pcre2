@@ -129,7 +129,7 @@ PCRE2SessionManager >> cacheMatchers [
 PCRE2SessionManager >> canDeserializeSerializedMatchers [
 	"Serialized PCRE2 bytecode is only a cache. Use it only when the saved runtime signature still matches."
 
-	^ serializedMatchers notNil and: [ serializedSignature = self class serializationSignature ]
+	^ serializedMatchers isNotNil and: [ serializedSignature = self class serializationSignature ]
 ]
 
 { #category : 'enumerating' }
