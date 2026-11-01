@@ -128,6 +128,7 @@ PCRE2DebuggerPresenter >> continueLiveRun [
 
 { #category : 'layout' }
 PCRE2DebuggerPresenter >> defaultLayout [
+	"Every row takes its natural height and every child its share of the width. A child given a width or a height in a box is laid out at its natural size on the other axis too, which is what used to crop the buttons' labels and leave the trace pane short of the window."
 
 	| controls editorPane liveRow navigationRow optionsRow |
 	optionsRow := SpBoxLayout newLeftToRight
@@ -145,11 +146,11 @@ PCRE2DebuggerPresenter >> defaultLayout [
 		           yourself.
 	navigationRow := SpBoxLayout newLeftToRight
 		                 spacing: 6;
-		                 add: firstButton width: 40;
-		                 add: previousButton width: 40;
+		                 add: firstButton;
+		                 add: previousButton;
 		                 add: stepLabel;
-		                 add: nextButton width: 40;
-		                 add: lastButton width: 40;
+		                 add: nextButton;
+		                 add: lastButton;
 		                 yourself.
 	controls := SpBoxLayout newTopToBottom
 		            spacing: 6;

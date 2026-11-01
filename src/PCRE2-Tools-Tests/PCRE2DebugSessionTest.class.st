@@ -58,6 +58,17 @@ PCRE2DebugSessionTest >> highlightedIndexesOf: aText [
 ]
 
 { #category : 'helpers' }
+PCRE2DebugSessionTest >> layOut: aPresenter in: anExtent [
+	"Build aPresenter's widget at this size and settle its layout, so the test can read where things ended up without opening a window."
+
+	| morph |
+	morph := aPresenter build.
+	morph extent: anExtent.
+	morph fullBounds.
+	^ morph
+]
+
+{ #category : 'helpers' }
 PCRE2DebugSessionTest >> liveSessionOn: patternString subject: subjectString do: aBlock [
 	"Evaluate aBlock with a session in live-stepping mode, and stop the run afterwards whatever happens."
 
@@ -164,6 +175,21 @@ PCRE2DebugSessionTest >> testDebuggerCanBeBuiltFromEveryEntryPoint [
 	self assert: (PCRE2DebuggerPresenter onPattern: 'ab' subject: '') session subject equals: ''.
 	self assert: (PCRE2DebuggerPresenter onPattern: '' subject: 'cd') session subject equals: 'cd'.
 	self assert: (PCRE2DebuggerPresenter onPattern: 'ab' subject: 'cd') session subject equals: 'cd'
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testDebuggerControlsFitInsideItsWindow [
+	"The row of trace-navigation buttons is the last thing in the editor column, and it has to fit: a button laid out at its natural height rather than its row's pushed it past the bottom of the window."
+
+	| bottom presenter |
+	presenter := PCRE2DebuggerPresenter onPattern: '(cat|cater)' subject: 'cater'.
+	bottom := (self layOut: presenter in: 1200 @ 720) bounds bottom.
+
+	{
+		presenter firstButton.
+		presenter lastButton.
+		presenter stepButton.
+		presenter runButton } do: [ :button | self assert: button adapter widget bounds bottom <= bottom ]
 ]
 
 { #category : 'tests' }
@@ -705,6 +731,22 @@ PCRE2DebugSessionTest >> testTracePresenterRefreshPreservesSelectedStep [
 
 	presenter trace: trace.
 	self assert: presenter selectedStep index equals: selectedStep index
+]
+
+{ #category : 'tests' }
+PCRE2DebugSessionTest >> testTracePresenterRowsFillTheWidthOfTheirPane [
+	"Every row of the trace pane reaches the same right edge. A child given a fixed width or height in a box is laid out at its natural size on the other axis too, which used to leave the right of the pane empty."
+
+	| presenter rightEdge statusRight |
+	presenter := PCRE2TracePresenter on: ('(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch: 'caterpillar').
+	self layOut: presenter in: 1000 @ 700.
+	rightEdge := [ :aPresenter | aPresenter adapter widget bounds right ].
+	statusRight := rightEdge value: presenter statusLabel.
+
+	self assert: (rightEdge value: presenter subjectText) equals: statusRight.
+	self assert: (rightEdge value: presenter subjectContextText) equals: statusRight.
+	self assert: (rightEdge value: presenter capturesTable) equals: statusRight.
+	self assert: (rightEdge value: presenter detailsText) equals: statusRight
 ]
 
 { #category : 'tests' }

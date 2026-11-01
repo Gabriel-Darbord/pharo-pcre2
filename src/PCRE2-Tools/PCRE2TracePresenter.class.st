@@ -114,6 +114,7 @@ PCRE2TracePresenter >> contextExcerptFor: sourceString from: startIndex to: stop
 
 { #category : 'layout' }
 PCRE2TracePresenter >> defaultLayout [
+	"The source panes and the timeline share the height, and each row fills the width. Giving the source row a fixed height left it laid out at its natural width too, which is what used to leave the top right of the window empty."
 
 	| bottomPane detailsPane patternPane sourcePane subjectPane |
 	patternPane := SpBoxLayout newTopToBottom
@@ -147,7 +148,7 @@ PCRE2TracePresenter >> defaultLayout [
 		  borderWidth: 8;
 		  spacing: 6;
 		  add: statusLabel expand: false;
-		  add: sourcePane height: 270;
+		  add: sourcePane;
 		  add: bottomPane;
 		  yourself
 ]
@@ -347,16 +348,16 @@ PCRE2TracePresenter >> initializeStepsTable [
 				 width: 75;
 				 beNotExpandable;
 				 yourself);
+		"The pattern snippet is the longest and the most variable of the five, so it takes whatever width the others leave, and widening the pane widens it. A width here would pin it instead, and with every column pinned the table keeps its own width whatever the pane does, which cuts the last column off."
 		addColumn: ((SpStringTableColumn title: 'Pattern' evaluated: [ :row | self patternLabelForRow: row ])
-				 width: 120;
-				 beNotExpandable;
+				 beExpandable;
 				 yourself);
 		addColumn: ((SpStringTableColumn title: 'Subject range' evaluated: [ :row | self subjectLabelForRow: row ])
 				 width: 90;
 				 beNotExpandable;
 				 yourself);
 		addColumn: ((SpStringTableColumn title: 'Callout' evaluated: [ :row | self calloutLabelForRow: row ])
-				 width: 70;
+				 width: 90;
 				 beNotExpandable;
 				 yourself)
 ]
