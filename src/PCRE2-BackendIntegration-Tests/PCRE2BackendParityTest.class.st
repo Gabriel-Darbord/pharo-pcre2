@@ -254,6 +254,25 @@ PCRE2BackendParityTest >> testPatternsThatCanOnlyMatchInOnePlaceAreAnchored [
 ]
 
 { #category : 'tests' }
+PCRE2BackendParityTest >> testSubstituteAcceptsEveryOptionPCRE2DefinesForIt [
+	"Both backends must take every option pcre2_substitute defines. copyMatchedSubject and disableRecurseloopCheck change nothing observable here, but refusing them would make a caller that sets them fail on one backend only."
+
+	| matcher options |
+	matcher := self compile: '\d+'.
+	options := PCRE2 substituteGlobal | PCRE2 copyMatchedSubject | PCRE2 disableRecurseloopCheck.
+	self assert: (matcher substitute: 'a1 b22 c333' with: '#' options: options) equals: 'a# b# c#'
+]
+
+{ #category : 'tests' }
+PCRE2BackendParityTest >> testSubstituteRefusesAnOptionBitPCRE2DoesNotDefine [
+
+	| matcher undefined |
+	matcher := self compile: '\d+'.
+	undefined := 1 bitShift: 40.
+	self should: [ matcher substitute: 'a1' with: '#' options: undefined ] raise: Error
+]
+
+{ #category : 'tests' }
 PCRE2BackendParityTest >> testTheBackendsAgreeOnTheShapesAWrittenMatcherKnows [
 	"The Pharo backend writes a method of its own for the shapes of pattern it knows how to write, and the engine matches the rest. One of each shape is matched here, so that what is written answers what the C library answers."
 

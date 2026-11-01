@@ -54,6 +54,27 @@ PCRE2MatcherFFIBackend >> copyWithCharacterTables [
 	^ (self class fromHandle: address) autoRelease
 ]
 
+{ #category : 'private' }
+PCRE2MatcherFFIBackend >> createMatchDataFromPattern [
+	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
+
+	self subclassResponsibility
+]
+
+{ #category : 'private' }
+PCRE2MatcherFFIBackend >> createMatchDataWithOvectorSize: ovectorSize [
+	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
+
+	self subclassResponsibility
+]
+
+{ #category : 'private' }
+PCRE2MatcherFFIBackend >> enumerateCalloutsWith: callback [
+	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
+
+	self subclassResponsibility
+]
+
 { #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> errorCode: errorCode [
 
@@ -85,6 +106,13 @@ PCRE2MatcherFFIBackend >> info: option [
 		^ (buffer allSatisfy: [ :byte | byte == 0 ]) ifFalse: [ buffer ] ].
 	"info is a uint32 in all other cases"
 	^ buffer uint32AtOffset: 0
+]
+
+{ #category : 'private' }
+PCRE2MatcherFFIBackend >> info: what output: where [
+	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
+
+	self subclassResponsibility
 ]
 
 { #category : 'accessing' }
@@ -172,6 +200,20 @@ PCRE2MatcherFFIBackend >> prepareForMatch [
 	context := matcher existingContext ifNotNil: [ :aContext | aContext backend ]
 ]
 
+{ #category : 'private' }
+PCRE2MatcherFFIBackend >> privateCopy [
+	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
+
+	self subclassResponsibility
+]
+
+{ #category : 'private' }
+PCRE2MatcherFFIBackend >> privateCopyWithCharacterTables [
+	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
+
+	self subclassResponsibility
+]
+
 { #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> readNamedGroups [
 	"Read PCRE2's native name table into a sparse Array keyed by capture group number."
@@ -231,6 +273,13 @@ PCRE2MatcherFFIBackend >> serialize [
 	This convenience method is less efficient than serializing same-width matchers in bulk, because PCRE2 repeats shared tables in each serialized blob."
 
 	^ self ffiLibraryName serialize: { self }
+]
+
+{ #category : 'private' }
+PCRE2MatcherFFIBackend >> substitute: subject from: start to: end options: substituteOptions matchData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
+	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
+
+	self subclassResponsibility
 ]
 
 { #category : 'private - FFI' }

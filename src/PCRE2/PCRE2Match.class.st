@@ -134,33 +134,15 @@ PCRE2Match >> getHandle [
 ]
 
 { #category : 'private' }
-PCRE2Match >> getHeapframesSize [
-
-	self subclassResponsibility
-]
-
-{ #category : 'private' }
 PCRE2Match >> getMark [
 
 	^ backend getMark
 ]
 
 { #category : 'private' }
-PCRE2Match >> getMarkPointer [
-
-	self subclassResponsibility
-]
-
-{ #category : 'private' }
 PCRE2Match >> getMatchDataSize [
 
 	^ backend getMatchDataSize
-]
-
-{ #category : 'private' }
-PCRE2Match >> getOffsets [
-
-	self subclassResponsibility
 ]
 
 { #category : 'private' }

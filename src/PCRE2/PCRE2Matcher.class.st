@@ -231,18 +231,6 @@ PCRE2Matcher >> copyWithCharacterTables [
 ]
 
 { #category : 'private' }
-PCRE2Matcher >> createMatchDataFromPattern [
-
-	self subclassResponsibility
-]
-
-{ #category : 'private' }
-PCRE2Matcher >> createMatchDataWithOvectorSize: ovectorSize [
-
-	self subclassResponsibility
-]
-
-{ #category : 'private' }
 PCRE2Matcher >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
 
 	self subclassResponsibility
@@ -350,12 +338,6 @@ PCRE2Matcher >> dfaMatches: subject workspaceSize: workspaceSize ovectorSize: ov
 	^ (self dfaMatch: subject workspaceSize: workspaceSize ovectorSize: ovectorSize)
 		  ifNil: [ #(  ) ]
 		  ifNotNil: [ :match | match readMatches ]
-]
-
-{ #category : 'private' }
-PCRE2Matcher >> enumerateCalloutsWith: callback [
-
-	self subclassResponsibility
 ]
 
 { #category : 'error handling' }
@@ -556,12 +538,6 @@ PCRE2Matcher >> getHandle [
 PCRE2Matcher >> info: option [
 
 	^ backend info: option
-]
-
-{ #category : 'private' }
-PCRE2Matcher >> info: what output: where [
-
-	self subclassResponsibility
 ]
 
 { #category : 'initialization' }
@@ -1018,18 +994,6 @@ PCRE2Matcher >> preparedInputFor: aStringOrInput [
 ]
 
 { #category : 'private' }
-PCRE2Matcher >> privateCopy [
-
-	self subclassResponsibility
-]
-
-{ #category : 'private' }
-PCRE2Matcher >> privateCopyWithCharacterTables [
-
-	self subclassResponsibility
-]
-
-{ #category : 'private' }
 PCRE2Matcher >> rangeOfSubexpression: subIndex [
 	"Answer the 1-based Pharo character range the subexpression last matched, or nil when it did not take part. Index 1 is the whole match, as in RxMatcher."
 
@@ -1237,12 +1201,6 @@ PCRE2Matcher >> subexpressions: subIndex [
 	"Equivalent of RxMatcher >> #subexpressions:. PCRE2 keeps only the last match of a subexpression, so the answer never holds more than one string where Rx can answer one per repetition."
 
 	^ (self stringOfSubexpression: subIndex) ifNil: [ #(  ) ] ifNotNil: [ :string | Array with: string ]
-]
-
-{ #category : 'private' }
-PCRE2Matcher >> substitute: subject from: start to: end options: substituteOptions matchData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
-
-	self subclassResponsibility
 ]
 
 { #category : 'matching' }

@@ -1,5 +1,5 @@
 "
-Experimental Pharo implementation of PCRE2 compilation. Parses patterns into executable Pharo nodes, with no C library calls. Unsupported syntax and options signal PCRE2UnsupportedFeature.
+Pharo implementation of PCRE2 compilation. Parses patterns into executable Pharo nodes, with no C library calls. An option bit PCRE2 does not define signals PCRE2UnsupportedFeature, and so does a facility that only the C binding can provide, such as JIT or a C handle.
 "
 Class {
 	#name : 'PCRE2CompilerPharoBackend',
@@ -68,7 +68,7 @@ PCRE2CompilerPharoBackend >> compilePreparedInput: input [
 				  | PCRE2 extraAsciiBsd | PCRE2 extraAsciiBss | PCRE2 extraAsciiBsw | PCRE2 extraAsciiPosix | PCRE2 extraAsciiDigit
 				  | PCRE2 extraCaselessRestrict | PCRE2 extraMatchLine | PCRE2 extraMatchWord | PCRE2 extraPythonOctal | PCRE2 extraNoBs0
 				  | PCRE2 extraNeverCallout | PCRE2 extraTurkishCasing | PCRE2 extraAllowLookaroundBsk) bitInvert) ~= 0 ifTrue: [
-				PCRE2UnsupportedFeature signal: 'Extra compile options are not yet implemented by the Pharo backend' ].
+				PCRE2UnsupportedFeature signal: 'Unknown extra compile option bits' ].
 			parser extraOptions: context options.
 			context maxPatternLength ifNotNil: [ :length |
 					input size > length ifTrue: [

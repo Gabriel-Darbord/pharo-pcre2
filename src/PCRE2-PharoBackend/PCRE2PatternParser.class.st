@@ -2392,12 +2392,6 @@ PCRE2PatternParser >> unicodeEscape [
 ]
 
 { #category : 'signalling' }
-PCRE2PatternParser >> unsupported: feature [
-
-	PCRE2UnsupportedFeature signal: 'Pharo backend does not yet support ' , feature
-]
-
-{ #category : 'signalling' }
 PCRE2PatternParser >> unterminatedClassExpressionCode [
 	"PCRE2 blames the open parenthesis only while nothing at all follows it."
 

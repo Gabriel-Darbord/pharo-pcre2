@@ -150,7 +150,7 @@ PCRE2MatcherPharoBackend >> dfaMatch: bytes from: start to: length matchData: da
 	           | PCRE2 dfaShortest | PCRE2 dfaRestart | PCRE2 noUTFCheck | PCRE2 partialSoft | PCRE2 partialHard
 	           | PCRE2 copyMatchedSubject.
 	(options bitAnd: allowed bitInvert) ~= 0 ifTrue: [
-		PCRE2UnsupportedFeature signal: 'These DFA options are not yet implemented by the Pharo backend' ].
+		PCRE2UnsupportedFeature signal: 'Unknown DFA match option bits' ].
 	decoded := self textAndOffsetsFor: bytes length: length.
 	text := decoded first.
 	mapping := decoded second.
@@ -398,7 +398,7 @@ PCRE2MatcherPharoBackend >> match: bytes from: start to: length options: matchOp
 	           | PCRE2 noJIT | PCRE2 disableRecurseloopCheck | PCRE2 noUTFCheck | PCRE2 copyMatchedSubject | PCRE2 partialSoft
 	           | PCRE2 partialHard.
 	(matchOptions bitAnd: allowed bitInvert) ~= 0 ifTrue: [
-		PCRE2UnsupportedFeature signal: 'Match options are not yet implemented by the Pharo backend' ].
+		PCRE2UnsupportedFeature signal: 'Unknown match option bits' ].
 	decoded := self textAndOffsetsFor: bytes length: length.
 	text := decoded first.
 	mapping := decoded second.
@@ -741,12 +741,12 @@ PCRE2MatcherPharoBackend >> substituteBytes: subject replacement: replacement op
 
 	| allowed matchFlags input text replacementInput expression matches replacementOnly lastEnd count stopped callback outputOffset |
 	matchFlags := PCRE2 anchored | PCRE2 endAnchored | PCRE2 notBOL | PCRE2 notEOL | PCRE2 notEmpty | PCRE2 notEmptyAtStart
-	              | PCRE2 noJIT.
+	              | PCRE2 noJIT | PCRE2 disableRecurseloopCheck | PCRE2 copyMatchedSubject.
 	allowed := matchFlags | PCRE2 substituteGlobal | PCRE2 substituteLiteral | PCRE2 substituteUnsetEmpty
 	           | PCRE2 substituteUnknownUnset | PCRE2 substituteReplacementOnly | PCRE2 substituteOverflowLength
 	           | PCRE2 substituteExtended | PCRE2 substituteMatched.
 	(flags bitAnd: allowed bitInvert) ~= 0 ifTrue: [
-		PCRE2UnsupportedFeature signal: 'These substitution options are not yet implemented by the Pharo backend' ].
+		PCRE2UnsupportedFeature signal: 'Unknown substitution option bits' ].
 	input := matcher preparedInputFor: subject.
 	text := input readFrom: 1 to: input size.
 	text isString ifFalse: [ text := text asString ].
@@ -809,7 +809,8 @@ PCRE2MatcherPharoBackend >> substitutionMatches: input options: flags matchData:
 	| temporary matches first count start next rc extra |
 	temporary := matcher copy.
 	temporary options: (flags bitAnd:
-			 PCRE2 anchored | PCRE2 endAnchored | PCRE2 notBOL | PCRE2 notEOL | PCRE2 notEmpty | PCRE2 notEmptyAtStart | PCRE2 noJIT).
+			 PCRE2 anchored | PCRE2 endAnchored | PCRE2 notBOL | PCRE2 notEOL | PCRE2 notEmpty | PCRE2 notEmptyAtStart | PCRE2 noJIT
+			 | PCRE2 disableRecurseloopCheck).
 	(flags bitAnd: PCRE2 substituteMatched) = 0 ifTrue: [
 			^ (flags bitAnd: PCRE2 substituteGlobal) ~= 0
 				  ifTrue: [ temporary findAllMatches: input ]

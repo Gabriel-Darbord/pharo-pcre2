@@ -79,3 +79,11 @@ PCRE2BackendIntegrationTest >> testTemporaryCompilersPreserveTheSelectedBackend 
 			self assert: trace match readMatch equals: 'a'.
 			self assert: (matcher backend isKindOf: PCRE2MatcherFFIBackend) ]
 ]
+
+{ #category : 'tests' }
+PCRE2BackendIntegrationTest >> testThePharoBackendIsTheDefault [
+	"With both implementations loaded, the automatic choice is the one that needs no C library."
+
+	self assert: PCRE2Compiler defaultBackend equals: PCRE2CompilerPharoBackend.
+	self assert: (PCRE2Compiler new backend isKindOf: PCRE2CompilerPharoBackend)
+]

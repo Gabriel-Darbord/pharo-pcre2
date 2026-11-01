@@ -1,5 +1,7 @@
 "
-Protects backend ownership and the FFI default while the public API remains unchanged.
+Protects backend ownership through the FFI backend: that a compiler's backend choice reaches its matchers and matches, that it cannot be changed once a context exists, and that the public objects stay ordinary Pharo objects rather than external references.
+
+Which backend an image picks when several are loaded belongs in PCRE2BackendIntegrationTest, which loads only when they both are.
 "
 Class {
 	#name : 'PCRE2CompilerBackendTest',
@@ -59,11 +61,4 @@ PCRE2CompilerBackendTest >> testRecompiledMatcherSurvivesCollectionOfTemporaryHa
 	matcher recompile.
 	Smalltalk garbageCollect.
 	self assert: (matcher matches: 'aaa')
-]
-
-{ #category : 'tests' }
-PCRE2CompilerBackendTest >> testThePharoBackendIsTheDefault [
-
-	self assert: PCRE2Compiler defaultBackend equals: PCRE2CompilerPharoBackend.
-	self assert: (PCRE2Compiler new backend isKindOf: PCRE2CompilerPharoBackend)
 ]

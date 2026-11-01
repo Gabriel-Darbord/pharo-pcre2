@@ -1,5 +1,7 @@
 "
-Public compiler facade. New compilers capture the configured default backend; backend: explicitly selects an implementation before context creation. Width-specific subclasses preserve the UTF-8/16/32 input API. FFI remains the default when loaded; the Pharo implementation is experimental.
+Public compiler facade. New compilers capture the configured default backend; backend: explicitly selects an implementation before context creation. Width-specific subclasses preserve the UTF-8/16/32 input API.
+
+The default is the Pharo implementation, which needs no C library, and falls back to the FFI one in an image where only that is loaded. defaultBackend: pins a choice for the image, nil restores the automatic one, and withDefaultBackend:do: scopes a change to a block.
 "
 Class {
 	#name : 'PCRE2Compiler',
@@ -115,6 +117,13 @@ PCRE2Compiler class >> startUp: resuming [
 	SupportsJIT := false.
 	default := nil.
 	resuming ifTrue: [ self nativeLibraryAvailable ifTrue: [ SupportsJIT := self new backend supportsJIT ] ]
+]
+
+{ #category : 'testing' }
+PCRE2Compiler class >> supportsCodeUnitWidth: anInteger [
+	"Answer whether the backend new compilers use can match at the given code-unit width."
+
+	^ self defaultBackend supportsCodeUnitWidth: anInteger
 ]
 
 { #category : 'accessing' }

@@ -41,6 +41,16 @@ PCRE2CompilerFFIBackend class >> isAvailable [
 	^ LibPCRE2UTF8 isNativeLibraryAvailable
 ]
 
+{ #category : 'testing' }
+PCRE2CompilerFFIBackend class >> supportsCodeUnitWidth: anInteger [
+	"Answer whether the host PCRE2 build provides the library for this code-unit width. The 16-bit and 32-bit libraries are optional and are often left out."
+
+	anInteger = 8 ifTrue: [ ^ LibPCRE2 supports8BitCodeUnitWidth ].
+	anInteger = 16 ifTrue: [ ^ LibPCRE2 supports16BitCodeUnitWidth ].
+	anInteger = 32 ifTrue: [ ^ LibPCRE2 supports32BitCodeUnitWidth ].
+	^ false
+]
+
 { #category : 'private' }
 PCRE2CompilerFFIBackend >> compile: pattern upTo: length errorCode: errorCode errorOffset: errorOffset [
 	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
