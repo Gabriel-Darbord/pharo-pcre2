@@ -293,9 +293,9 @@ PCRE2Match >> lastMatchIndex [
 PCRE2Match >> mark [
 	"Answer the MARK name this match ended on, or nil when it ended on none.
 
-	The name was taken when the attempt was recorded; captureMark says why it cannot wait until now. The capture below is for a match that has never run, whose match data carries the null mark pcre2_match_data_create gave it."
+	This never asks the library. The name is a pointer into the compiled pattern, good only inside the attempt that produced it, so captureMark takes it then and every later read is answered from here. A match that has not completed an attempt has no name to give, and nil is the honest answer: going back to the pointer to find out is exactly what made the shutdown sweep read freed memory."
 
-	mark ifNil: [ self captureMark ].
+	mark ifNil: [ ^ nil ].
 	^ mark ifEmpty: [ nil ]
 ]
 

@@ -190,6 +190,22 @@ PCRE2MatchTest >> testOffsetsAt [
 ]
 
 { #category : 'tests' }
+PCRE2MatchTest >> testOnlyTheAttemptItselfAsksTheLibraryForAMark [
+	"The MARK name is a pointer into the compiled pattern, so there is exactly one moment at which it can be read: inside the attempt that produced it. Any other sender of #getMark is a lazy read waiting to happen, and a lazy read is what walked freed memory when shutdown asked every match in the image for its mark.
+
+	A match that never completed an attempt answers nil rather than going to look."
+
+	| senders matcher |
+	senders := (PCRE2Match methods
+		            select: [ :method | method selector ~= #getMark and: [ method messages includes: #getMark ] ]
+		            thenCollect: [ :method | method selector ]) asSet.
+	self assertCollection: senders hasSameElements: #( #captureMark ).
+
+	matcher := 'a(*MARK:HELLO)b' asPerlCompatibleRegex.
+	self assert: matcher newMatchData mark equals: nil
+]
+
+{ #category : 'tests' }
 PCRE2MatchTest >> testRememberedSubjectRequiredForLateQueries [
 
 	| regex input match |
