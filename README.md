@@ -18,7 +18,7 @@ Two interchangeable backends sit behind the same API. The default one executes e
 - **Nothing to install.** The default backend is ordinary Pharo code, so a load works on any image and any host.
 - **Faster when it matters.** The Pharo backend writes a method for the patterns it can and runs it compiled; the FFI backend hands the work to the C library.
 - **Bounded.** A match limit stops a pathological pattern instead of letting it run away with the image.
-- **A drop-in for Rx.** A matcher answers the whole public protocol of Pharo's `RxMatcher`, streams included.
+- **A drop-in for Rx.** A matcher answers the whole public protocol of Pharo's `RxMatcher`, so code written against `Regex-Core` runs unchanged.
 - **Beyond matching**: splitting, substitution with PCRE2 replacement syntax, partial and DFA matching, prepared subjects for repeated matching, UTF-8, UTF-16 and UTF-32, callouts, and a trace debugger.
 
 ## Documentation
@@ -36,4 +36,4 @@ Developed on Pharo 14 and targeting Pharo 15. Pharo 12, 13, 14 and 15 are verifi
 
 ## License
 
-MIT. The bundled Unicode data is under the [Unicode License V3](docs/Unicode-LICENSE.txt), and the property-name and error-message catalogs under the [PCRE2 license](docs/PCRE2-LICENCE.md).
+MIT, with the bundled [Unicode](docs/Unicode-LICENSE.txt) and [PCRE2](docs/PCRE2-LICENCE.md) data under their own permissive licences.
