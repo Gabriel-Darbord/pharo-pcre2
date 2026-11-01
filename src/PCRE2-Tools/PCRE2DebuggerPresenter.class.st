@@ -128,9 +128,11 @@ PCRE2DebuggerPresenter >> continueLiveRun [
 
 { #category : 'layout' }
 PCRE2DebuggerPresenter >> defaultLayout [
-	"Every row takes its natural height and every child its share of the width. A child given a width or a height in a box is laid out at its natural size on the other axis too, which is what used to crop the buttons' labels and leave the trace pane short of the window."
+	"Every row takes its natural height and every child its share of the width. A child given a width or a height in a box is laid out at its natural size on the other axis too, which is what used to crop the buttons' labels and leave the trace pane short of the window.
 
-	| controls editorPane liveRow navigationRow optionsRow |
+	The three control rows sit in this column directly rather than in a box of their own. Up to Pharo 13 a box layout's natural height leaves out its own spacing, so a nested box added at its natural height is asked for less room than it takes: the rows were given 84 points and used 96, and the twelve points they overran pushed the navigation buttons four points below the bottom of the window. A row's horizontal spacing does not enter its height, so the rows are safe to nest; a column of them is not."
+
+	| editorPane liveRow navigationRow optionsRow |
 	optionsRow := SpBoxLayout newLeftToRight
 		              spacing: 6;
 		              add: 'Max steps' expand: false;
@@ -152,12 +154,6 @@ PCRE2DebuggerPresenter >> defaultLayout [
 		                 add: nextButton;
 		                 add: lastButton;
 		                 yourself.
-	controls := SpBoxLayout newTopToBottom
-		            spacing: 6;
-		            add: optionsRow expand: false;
-		            add: liveRow expand: false;
-		            add: navigationRow expand: false;
-		            yourself.
 	editorPane := SpBoxLayout newTopToBottom
 		              borderWidth: 8;
 		              spacing: 6;
@@ -165,7 +161,9 @@ PCRE2DebuggerPresenter >> defaultLayout [
 		              add: patternInput;
 		              add: 'Input subject' expand: false;
 		              add: subjectText;
-		              add: controls expand: false;
+		              add: optionsRow expand: false;
+		              add: liveRow expand: false;
+		              add: navigationRow expand: false;
 		              yourself.
 	^ SpPanedLayout newLeftToRight
 		  positionOfSlider: 35 percent;
