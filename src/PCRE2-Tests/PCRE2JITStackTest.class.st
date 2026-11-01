@@ -3,7 +3,7 @@ Tests for explicit PCRE2 JIT stack ownership and match-context assignment.
 "
 Class {
 	#name : 'PCRE2JITStackTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

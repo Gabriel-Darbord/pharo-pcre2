@@ -5,7 +5,7 @@ The suite protects the option tables used to explain and validate compile, match
 "
 Class {
 	#name : 'PCRE2Test',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }
@@ -30,9 +30,15 @@ PCRE2Test >> testAbstractClassDeclarations [
 		                   PCRE2JITStack.
 		                   PCRE2Match.
 		                   PCRE2MatchContext.
-		                   PCRE2Matcher }.
+		                   PCRE2Matcher.
+		                   PCRE2CompilerBackend.
+		                   PCRE2CompilerFFIBackend.
+		                   PCRE2CompileContextFFIBackend.
+		                   PCRE2MatchContextFFIBackend.
+		                   PCRE2MatchFFIBackend.
+		                   PCRE2MatcherFFIBackend }.
 
-	abstractClasses do: [ :each | self assert: each isAbstract ]
+	abstractClasses do: [ :each | self assert: each isAbstract description: each name , ' is abstract' ]
 ]
 
 { #category : 'tests' }
@@ -68,6 +74,7 @@ PCRE2Test >> testAllOptions [
 					              (16777216 -> #extendedMore).
 					              (33554432 -> #literal).
 					              (67108864 -> #matchInvalidUTF).
+					              (134217728 -> #altExtendedClass).
 					              (536870912 -> #endAnchored).
 					              (1073741824 -> #noUTFCheck).
 					              (2147483648 -> #anchored) })).
@@ -135,9 +142,17 @@ PCRE2Test >> testAllOptions [
 ]
 
 { #category : 'tests' }
+PCRE2Test >> testCurrentDiagnosticCodes [
+
+	self assert: (PCRE2 translateErrorCode: 198) equals: 'octal digit missing after \0 (PCRE2_EXTRA_NO_BS0 is set)'.
+	self assert: (PCRE2 translateErrorCode: 207) equals: 'extended character class nesting is too deep'.
+	self assert: (PCRE2 translateErrorCode: -75) equals: 'disallowed use of \K in lookaround'
+]
+
+{ #category : 'tests' }
 PCRE2Test >> testOptionsFor [
 
-	self assert: (PCRE2 optionsFor: #compile) size equals: 30.
+	self assert: (PCRE2 optionsFor: #compile) size equals: 31.
 	self assert: (PCRE2 optionsFor: #jit_compile) size equals: 3.
 	self assert: (PCRE2 optionsFor: #match) size equals: 12.
 	self assert: (PCRE2 optionsFor: #jit_match) size equals: 8.

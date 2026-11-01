@@ -5,7 +5,7 @@ Tracing compiles a temporary matcher with automatic callouts and no JIT so debug
 "
 Class {
 	#name : 'PCRE2MatchTraceTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

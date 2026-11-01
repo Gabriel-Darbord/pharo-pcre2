@@ -16,13 +16,27 @@ BaselineOfPCRE2 >> baseline: spec [
 	<baseline>
 	spec for: #common do: [
 			spec package: 'PCRE2'.
+			spec package: 'PCRE2-FFIBackend' with: [ spec requires: #( 'PCRE2' ) ].
+			spec package: 'PCRE2-PharoBackend' with: [ spec requires: #( 'PCRE2' ) ].
 			spec package: 'PCRE2-Tools' with: [ spec requires: #( 'PCRE2' ) ].
-			spec package: 'PCRE2-Tests' with: [ spec requires: #( 'PCRE2' ) ].
-			spec package: 'PCRE2-Tools-Tests' with: [ spec requires: #( 'PCRE2-Tools' ) ].
-
+			spec package: 'PCRE2-Tests' with: [ spec requires: #( 'PCRE2-FFIBackend' ) ].
+			spec package: 'PCRE2-PharoBackend-Tests' with: [ spec requires: #( 'PCRE2-PharoBackend' ) ].
+			"The tools run on either backend, so their tests only need the one a plain install gets."
+			spec package: 'PCRE2-Tools-Tests' with: [ spec requires: #( 'PCRE2-Tools' 'PCRE2-PharoBackend' ) ].
+			spec
+				package: 'PCRE2-BackendIntegration-Tests'
+				with: [ spec requires: #( 'PCRE2-FFIBackend' 'PCRE2-PharoBackend' 'PCRE2-Tools' ) ].
 			spec group: 'Core' with: #( 'PCRE2' ).
+			spec group: 'FFI' with: #( 'PCRE2-FFIBackend' ).
+			spec group: 'Pharo' with: #( 'PCRE2-PharoBackend' ).
+			spec group: 'Backends' with: #( 'FFI' 'Pharo' ).
 			spec group: 'Tools' with: #( 'PCRE2-Tools' ).
-			spec group: 'Tests' with: #( 'PCRE2-Tests' 'PCRE2-Tools-Tests' ).
-			spec group: 'Default' with: #( 'Core' 'Tools' ).
-			spec group: 'All' with: #( 'Core' 'Tools' 'Tests' ) ]
+			spec group: 'FFITests' with: #( 'PCRE2-Tests' ).
+			spec group: 'PharoTests' with: #( 'PCRE2-PharoBackend-Tests' ).
+			spec group: 'ToolsTests' with: #( 'PCRE2-Tools-Tests' ).
+			spec group: 'BackendTests' with: #( 'PCRE2-BackendIntegration-Tests' ).
+			spec group: 'Tests' with: #( 'FFITests' 'PharoTests' 'ToolsTests' 'BackendTests' ).
+			"Metacello loads the group named 'default' when none is given."
+			spec group: 'default' with: #( 'Core' 'Pharo' ).
+			spec group: 'All' with: #( 'Backends' 'Tools' 'Tests' ) ]
 ]

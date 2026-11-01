@@ -1,14 +1,45 @@
 # Getting Started
 
-## Load and Check the Native Library
+## Install
 
-Load the baseline from the `src` directory and make sure the host has the native PCRE2 8-bit library installed. On common systems this comes from `libpcre2-dev` or `brew install pcre2`.
+```smalltalk
+Metacello new
+  githubUser: 'Gabriel-Darbord' project: 'pharo-pcre2' commitish: 'main' path: 'src';
+  baseline: 'PCRE2';
+  load
+```
 
-You can ask the library for its version from Pharo:
+That loads the `default` group: the shared API and the Pharo backend, which runs in the image and needs nothing installed on the host. Everything on this page works with it.
+
+| group | loads |
+| --- | --- |
+| `default` | `PCRE2` and `PCRE2-PharoBackend` |
+| `Core` | `PCRE2` alone, which has no engine and cannot compile a pattern |
+| `Pharo` | the Pharo backend |
+| `FFI` | the FFI backend |
+| `Backends` | both backends |
+| `Tools` | the trace and debugger tools |
+| `Tests` | every test package |
+| `All` | both backends, tools and tests |
+
+Pass a group to `load:`, for instance `load: 'FFI'` or `load: #( 'FFI' 'Pharo' )`.
+
+### The FFI backend
+
+The `FFI` group adds the faster backend, the glob and POSIX pattern conversions, JIT, locale character tables and C serialization. It needs the native PCRE2 8-bit library on the host:
+
+```sh
+sudo apt install libpcre2-dev   # Linux
+brew install pcre2              # macOS
+```
+
+Its UTF-16 and UTF-32 APIs also use `libpcre2-16` and `libpcre2-32` when present. Ask the library for its version from Pharo:
 
 ```smalltalk
 LibPCRE2UTF8 config: PCRE2 configVersion
 ```
+
+[Backends.md](Backends.md) explains how a backend is chosen and what the Pharo one does not do yet.
 
 ## Compile a Pattern
 
@@ -36,8 +67,8 @@ match := matcher findMatch: 'size=42'.
 match groupAt: 0.          "size=42"
 match groupAt: 1.          "size"
 match groupNamed: 'value'. "42"
-match matchDataSize.       "native PCRE2 match-data bytes"
-match heapframesSize.      "native heap-frame bytes"
+match matchDataSize.       "match-data bytes the backend holds"
+match heapframesSize.      "heap-frame bytes the match data retains"
 ```
 
 ## Enumerate Matches
@@ -64,9 +95,22 @@ For character ranges, use `matchingRangesIn:`. Ranges are translated back from P
 
 Replacement strings use PCRE2 substitution syntax unless you call one of the `withLiteral:` variants.
 
+## Debug a Pattern
+
+With the `Tools` group loaded, the debugger records an instrumented match and walks it step by step. It runs on either backend.
+
+```smalltalk
+PCRE2DebuggerPresenter open.                            "nothing in it yet"
+'\d+' openPerlCompatibleRegexDebugger.                  "a pattern, no subject"
+'\d+' openPerlCompatibleRegexDebuggerOn: 'a1 b22'.      "both"
+'\d+' asPerlCompatibleRegex openDebuggerOn: 'a1 b22'.   "from a compiled matcher"
+```
+
+Pattern and subject stay editable in the window. *Trace all* records a whole match at once; *Step* and *Continue* run the same instrumented matcher under your control.
+
 ## Convert Other Pattern Styles
 
-Use PCRE2's conversion helpers when the input pattern is a glob or POSIX regular expression:
+With the `FFI` group loaded, use PCRE2's conversion helpers when the input pattern is a glob or POSIX regular expression:
 
 ```smalltalk
 matcher := (LibPCRE2UTF8 convertGlob: '*.st') asPerlCompatibleRegex.

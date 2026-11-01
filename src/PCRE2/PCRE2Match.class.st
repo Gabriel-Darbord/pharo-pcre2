@@ -1,13 +1,9 @@
 "
-Abstract superclass for PCRE2 match data.
-
-Concrete subclasses bind the native match-data accessors for PCRE2's 8-bit, 16-bit, and 32-bit APIs. This class stores shared result state: result code, offsets, remembered subject/input, decoder, named-capture metadata, persistence state, and cached native memory diagnostics.
-
-Use match objects to inspect captures after matching. Persistent matches copy native offset data into Pharo memory, cache native diagnostics, and release the native match-data handle.
+Standalone match results with numbered and named captures, encoded offsets, and remembered subject input. A backend owns the result representation. FFI results can be materialized before image shutdown; Pharo results already live entirely in the image.
 "
 Class {
 	#name : 'PCRE2Match',
-	#superclass : 'PCRE2Object',
+	#superclass : 'Object',
 	#instVars : [
 		'count',
 		'isPersistent',
@@ -20,7 +16,8 @@ Class {
 		'nameTable',
 		'resultCode',
 		'matchDataSize',
-		'heapframesSize'
+		'heapframesSize',
+		'backend'
 	],
 	#category : 'PCRE2',
 	#package : 'PCRE2'
@@ -32,6 +29,37 @@ PCRE2Match class >> isAbstract [
 	^ self == PCRE2Match
 ]
 
+{ #category : 'external resource management' }
+PCRE2Match >> autoRelease [
+
+	backend autoRelease
+]
+
+{ #category : 'accessing' }
+PCRE2Match >> backend [
+
+	^ backend
+]
+
+{ #category : 'accessing' }
+PCRE2Match >> backend: anImplementation [
+
+	backend ifNotNil: [ PCRE2Error signal: 'Match results cannot change backend' ].
+	backend := anImplementation
+]
+
+{ #category : 'persistence' }
+PCRE2Match >> cacheForSnapshot [
+
+	self
+		count;
+		matchDataSize;
+		heapframesSize;
+		startIndex;
+		mark;
+		offsets
+]
+
 { #category : 'private' }
 PCRE2Match >> captureIndexesNamed: groupName [
 	"Answer all capture group numbers associated with groupName. Duplicate names are preserved in capture order."
@@ -40,6 +68,18 @@ PCRE2Match >> captureIndexesNamed: groupName [
 	indexes := OrderedCollection new.
 	self namedGroups keysAndValuesDo: [ :captureIndex :name | name = groupName ifTrue: [ indexes add: captureIndex ] ].
 	^ indexes asArray
+]
+
+{ #category : 'private' }
+PCRE2Match >> captureMark [
+	"Take the MARK name this attempt ended on, while the pattern that holds it is still there to be read.
+
+	On the C backend the name is not in the match data: pcre2_match stores Fecode + 2, a pointer into the compiled pattern, and pcre2_get_mark hands that pointer back. Nothing here keeps the matcher alive, so once its pattern is freed the pointer dangles, and reading the name off it walks freed memory until it meets a zero. That is a crash when the page has gone and a wrong answer when the block has been reused. So the name is taken once, at the end of the attempt that produced it.
+
+	An attempt that ended on no mark records the empty string rather than nil, so that a later read answers from here instead of going back to the pointer."
+
+	backend isNull ifTrue: [ ^ mark := '' ].
+	^ mark := self getMark
 ]
 
 { #category : 'accessing' }
@@ -62,19 +102,10 @@ PCRE2Match >> decoder [
 	^ decoder
 ]
 
-{ #category : 'accessing' }
+{ #category : 'enumerating' }
 PCRE2Match >> endOffsetAt: pairIndex [
-	"Return the zero-based exclusive PCRE2 code-unit end offset for the requested ovector pair. PCRE2 stores ovector entries as PCRE2_SIZE values; keep the 32/64-bit primitive fast paths because this accessor is used by match-result readers."
 
-	| index wordSize |
-	index := 2 * (pairIndex - 1) + 1. "to 0-based"
-	offsets isArray ifTrue: [ ^ offsets at: index + 1 ].
-
-	offsets ifNil: [ offsets := self getOffsets ].
-	wordSize := ExternalAddress wordSize.
-	wordSize == 8 ifTrue: [ ^ offsets uint64AtOffset: 8 * index ].
-	wordSize == 4 ifTrue: [ ^ offsets uint32AtOffset: 4 * index ].
-	^ offsets platformSizeTAt: wordSize * index + 1
+	^ (self offsetsAt: pairIndex) second
 ]
 
 { #category : 'private' }
@@ -84,47 +115,52 @@ PCRE2Match >> ensureSubjectAvailable [
 		self error: 'This match does not remember a subject; use readMatch: or readMatches: with an explicit subject' ]
 ]
 
-{ #category : 'private' }
-PCRE2Match >> getCount [
+{ #category : 'library path' }
+PCRE2Match >> ffiLibraryName [
 
-	self subclassResponsibility
+	^ backend ffiLibraryName
+]
+
+{ #category : 'finalization' }
+PCRE2Match >> finalize [
+
+	backend finalize
+]
+
+{ #category : 'external resource management' }
+PCRE2Match >> free [
+
+	backend free
 ]
 
 { #category : 'private' }
-PCRE2Match >> getHeapframesSize [
+PCRE2Match >> getCount [
 
-	self subclassResponsibility
+	^ backend getCount
+]
+
+{ #category : 'private' }
+PCRE2Match >> getHandle [
+
+	^ backend getHandle
 ]
 
 { #category : 'private' }
 PCRE2Match >> getMark [
-	"Answer the last MARK/PRUNE/THEN name as a Pharo string, or an empty string when PCRE2 reports no mark."
 
-	^ (PCRE2CalloutSite zeroTerminatedStringFrom: self getMarkPointer codeUnitWidth: self ffiLibraryName codeUnitWidth) ifNil: [ '' ]
-]
-
-{ #category : 'private' }
-PCRE2Match >> getMarkPointer [
-
-	self subclassResponsibility
+	^ backend getMark
 ]
 
 { #category : 'private' }
 PCRE2Match >> getMatchDataSize [
 
-	self subclassResponsibility
-]
-
-{ #category : 'private' }
-PCRE2Match >> getOffsets [
-
-	self subclassResponsibility
+	^ backend getMatchDataSize
 ]
 
 { #category : 'private' }
 PCRE2Match >> getStartIndex [
 
-	self subclassResponsibility
+	^ backend getStartIndex
 ]
 
 { #category : 'group access' }
@@ -169,7 +205,7 @@ PCRE2Match >> groupsByName [
 	| groups |
 	groups := Dictionary new.
 	self namedGroups do: [ :name |
-		(name notNil and: [ (groups includesKey: name) not ]) ifTrue: [ groups at: name put: (self groupNamed: name) ] ].
+		(name isNotNil and: [ (groups includesKey: name) not ]) ifTrue: [ groups at: name put: (self groupNamed: name) ] ].
 	^ groups
 ]
 
@@ -180,13 +216,12 @@ PCRE2Match >> groupsNamed: groupName [
 	^ (self captureIndexesNamed: groupName) collect: [ :captureIndex | self groupAt: captureIndex ]
 ]
 
-{ #category : 'diagnostics' }
+{ #category : 'accessing' }
 PCRE2Match >> heapframesSize [
-	"Answer the native heap-frame memory retained by this match-data block, in bytes, or nil when the loaded PCRE2 runtime does not expose this diagnostic. The value is cached so persistent matches can still report it after freeing the native handle."
 
 	heapframesSize ifNotNil: [ ^ heapframesSize ].
-	self ffiLibraryName supportsMatchDataHeapframesSize ifFalse: [ ^ nil ].
-	^ heapframesSize := self getHeapframesSize
+	backend isNull ifTrue: [ ^ nil ].
+	^ heapframesSize := backend heapframesSize
 ]
 
 { #category : 'initialization' }
@@ -210,11 +245,29 @@ PCRE2Match >> input: aPreparedInput [
 	decoder := aPreparedInput decoder
 ]
 
+{ #category : 'private' }
+PCRE2Match >> invalidateResult [
+	"Drop what the last attempt produced. The mark is cleared to the empty string rather than to nil, because nil would send the next read back to a pointer that may no longer be good; see captureMark."
+
+	isPersistent := false.
+	startIndex := nil.
+	offsets := nil.
+	mark := ''.
+	resultCode := nil.
+	heapframesSize := nil
+]
+
 { #category : 'testing' }
 PCRE2Match >> isComplete [
 	"Answer whether PCRE2 returned a complete match result."
 
-	^ resultCode notNil and: [ resultCode > 0 ]
+	^ resultCode isNotNil and: [ resultCode > 0 ]
+]
+
+{ #category : 'testing' }
+PCRE2Match >> isNull [
+
+	^ backend isNull
 ]
 
 { #category : 'testing' }
@@ -224,31 +277,26 @@ PCRE2Match >> isPartial [
 	^ resultCode = PCRE2 errorPartial
 ]
 
-{ #category : 'testing' }
+{ #category : 'persistence' }
 PCRE2Match >> isPersistent [
 
-	^ isPersistent
+	^ isPersistent or: [ backend isNull ]
 ]
 
 { #category : 'enumerating' }
 PCRE2Match >> lastMatchIndex [
-	"Return the zero-based exclusive PCRE2 code-unit end offset of the full match. This is ovector[1], stored by PCRE2 as PCRE2_SIZE/size_t, so read it with the same fixed-width fast paths used by the other ovector accessors."
 
-	| wordSize |
-	^ isPersistent
-		  ifTrue: [ offsets at: 2 ]
-		  ifFalse: [
-				  offsets ifNil: [ offsets := self getOffsets ].
-				  wordSize := ExternalAddress wordSize.
-				  wordSize == 8 ifTrue: [ ^ offsets uint64AtOffset: 8 ].
-				  wordSize == 4 ifTrue: [ ^ offsets uint32AtOffset: 4 ].
-				  offsets platformSizeTAt: wordSize + 1 ]
+	^ self endOffsetAt: 1
 ]
 
 { #category : 'accessing' }
 PCRE2Match >> mark [
+	"Answer the MARK name this match ended on, or nil when it ended on none.
 
-	^ mark ifNil: [ mark := self getMark ifEmpty: [ nil ] ]
+	This never asks the library. The name is a pointer into the compiled pattern, good only inside the attempt that produced it, so captureMark takes it then and every later read is answered from here. A match that has not completed an attempt has no name to give, and nil is the honest answer: going back to the pointer to find out is exactly what made the shutdown sweep read freed memory."
+
+	mark ifNil: [ ^ nil ].
+	^ mark ifEmpty: [ nil ]
 ]
 
 { #category : 'diagnostics' }
@@ -288,68 +336,23 @@ PCRE2Match >> offsets [
 	^ offsets := copy
 ]
 
-{ #category : 'accessing' }
+{ #category : 'enumerating' }
 PCRE2Match >> offsetsAt: pairIndex [
-	"Return the requested raw ovector pair as zero-based {start. exclusiveEnd}. PCRE2 stores each entry as PCRE2_SIZE; the fixed-width branches are intentional hot-path reads, with platformSizeTAt: kept only as an unusual-platform fallback."
 
-	| index wordSize |
-	index := 2 * (pairIndex - 1). "to 0-based"
-	offsets isArray ifTrue: [
+	offsets ifNotNil: [
 			^ {
-				  (offsets at: index + 1).
-				  (offsets at: index + 2) } ].
-
-	offsets ifNil: [ offsets := self getOffsets ].
-	wordSize := ExternalAddress wordSize.
-	wordSize == 8 ifTrue: [
-			^ {
-				  (offsets uint64AtOffset: 8 * index).
-				  (offsets uint64AtOffset: 8 * (index + 1)) } ].
-	wordSize == 4 ifTrue: [
-			^ {
-				  (offsets uint32AtOffset: 4 * index).
-				  (offsets uint32AtOffset: 4 * (index + 1)) } ].
-	^ {
-		  (offsets platformSizeTAt: wordSize * index + 1).
-		  (offsets platformSizeTAt: wordSize * (index + 1) + 1) }
+				  (offsets at: 2 * pairIndex - 1).
+				  (offsets at: 2 * pairIndex) } ].
+	^ backend offsetsAt: pairIndex
 ]
 
 { #category : 'enumerating' }
 PCRE2Match >> offsetsDo: aBlock [
-	"Iterate ovector pairs as 1-based inclusive code-unit indexes over the prepared input storage. Starts are PCRE2 zero-based offsets plus one; exclusive ends already have the same numeric value as inclusive 1-based ends."
 
-	| wordSize |
-	offsets isArray ifTrue: [ "offsets have already been copied to a local array"
-			1 to: self count do: [ :pairIndex |
-					| index |
-					index := 2 * (pairIndex - 1).
-					aBlock value: (offsets at: index + 1) + 1 value: (offsets at: index + 2) ].
-			^ self ].
-
-	offsets ifNil: [ offsets := self getOffsets ]. "PCRE2 ovector: pairs of zero-based code-unit offsets"
-	wordSize := ExternalAddress wordSize.
-
-	wordSize == 8 ifTrue: [
-			1 to: self count do: [ :i |
-					| start end |
-					start := (offsets uint64AtOffset: 16 * (i - 1)) + 1.
-					end := offsets uint64AtOffset: 16 * i - 8.
-					aBlock value: start value: end ].
-			^ self ].
-
-	wordSize == 4 ifTrue: [
-			1 to: self count do: [ :i |
-					| start end |
-					start := (offsets uint32AtOffset: 8 * (i - 1)) + 1.
-					end := offsets uint32AtOffset: 8 * i - 4.
-					aBlock value: start value: end ].
-			^ self ].
-
-	1 to: self count do: [ :i |
-			| start end |
-			start := (offsets platformSizeTAt: 2 * wordSize * (i - 1) + 1) + 1.
-			end := offsets platformSizeTAt: wordSize * (2 * i - 1) + 1.
-			aBlock value: start value: end ]
+	1 to: self count do: [ :index |
+			| pair |
+			pair := self offsetsAt: index.
+			aBlock value: pair first + 1 value: pair second ]
 ]
 
 { #category : 'accessing' }
@@ -361,14 +364,9 @@ PCRE2Match >> ovectorCount [
 
 { #category : 'persistence' }
 PCRE2Match >> prepareForShutdown [
-	"Copy native code-unit offset data and diagnostics into Pharo memory, then release my external match-data handle. Named-group metadata is already Pharo-side state."
 
-	self count.
-	self matchDataSize.
-	self heapframesSize.
-	offsets isArray ifFalse: [ "copy external data into local memory" self offsets ].
-	self free.
-	handle beNull.
+	self cacheForSnapshot.
+	backend finalize.
 	isPersistent := true
 ]
 
@@ -441,11 +439,12 @@ PCRE2Match >> readSubjectFrom: start to: end [
 
 { #category : 'initialization' }
 PCRE2Match >> reset [
+	"Empty this match so it can be run again. The mark is cleared to the empty string rather than to nil, because nil would send the next read back to a pointer that may no longer be good; see captureMark."
 
 	isPersistent := false.
 	startIndex := nil.
 	offsets := nil.
-	mark := nil.
+	mark := ''.
 	subject := nil.
 	decoder := nil.
 	input := nil.
@@ -464,9 +463,10 @@ PCRE2Match >> resultCode [
 
 { #category : 'private' }
 PCRE2Match >> resultCode: anInteger [
-	"Record the raw PCRE2 result code for this match attempt."
+	"Record the raw PCRE2 result code for this match attempt, and take the MARK name with it: every match path ends here, with the matcher still in hand, and captureMark says why that is the only safe moment."
 
-	resultCode := anInteger
+	resultCode := anInteger.
+	self captureMark
 ]
 
 { #category : 'accessing' }
@@ -476,19 +476,10 @@ PCRE2Match >> startIndex [
 	^ startIndex ifNil: [ startIndex := self getStartIndex + 1 ]
 ]
 
-{ #category : 'accessing' }
+{ #category : 'enumerating' }
 PCRE2Match >> startOffsetAt: pairIndex [
-	"Return the zero-based inclusive PCRE2 code-unit start offset for the requested ovector pair. PCRE2 exposes the ovector as PCRE2_SIZE*, mapped here to size_t; the 32/64-bit branches deliberately use primitive fixed-width reads because platformSizeTAt: is too slow for this hot path."
 
-	| index wordSize |
-	index := 2 * (pairIndex - 1). "to 0-based"
-	offsets isArray ifTrue: [ ^ offsets at: index + 1 ].
-
-	offsets ifNil: [ offsets := self getOffsets ].
-	wordSize := ExternalAddress wordSize.
-	wordSize == 8 ifTrue: [ ^ offsets uint64AtOffset: 8 * index ].
-	wordSize == 4 ifTrue: [ ^ offsets uint32AtOffset: 4 * index ].
-	^ offsets platformSizeTAt: wordSize * index + 1
+	^ (self offsetsAt: pairIndex) first
 ]
 
 { #category : 'accessing' }

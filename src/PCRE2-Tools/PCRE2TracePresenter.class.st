@@ -50,7 +50,8 @@ PCRE2TracePresenter >> applySourceHighlightTo: aText range: anInterval [
 PCRE2TracePresenter >> calloutLabelForRow: aTraceStepRow [
 
 	aTraceStepRow isGroup ifFalse: [ ^ aTraceStepRow firstStep debuggerCalloutLabel ].
-	^ aTraceStepRow firstStep debuggerCalloutLabel , ' x' , aTraceStepRow size asString
+	^ String streamContents: [ :stream |
+		  stream << aTraceStepRow firstStep debuggerCalloutLabel << ' x' << aTraceStepRow size asString ]
 ]
 
 { #category : 'display' }
@@ -113,6 +114,7 @@ PCRE2TracePresenter >> contextExcerptFor: sourceString from: startIndex to: stop
 
 { #category : 'layout' }
 PCRE2TracePresenter >> defaultLayout [
+	"Two rows of two columns, and the columns line up between them. A child given a fixed size on one axis is laid out at its natural size on the other, so a fixed height inside one column makes that column demand its natural width and pushes the split off the one above: the two context panes carry the same fixed height as each other and stay aligned, while Event details carries none, because Captures opposite it carries none either."
 
 	| bottomPane detailsPane patternPane sourcePane subjectPane |
 	patternPane := SpBoxLayout newTopToBottom
@@ -127,26 +129,26 @@ PCRE2TracePresenter >> defaultLayout [
 		               add: (self labelledPresenter: subjectContextText label: 'Subject context' help: self subjectContextHelpString)
 		               height: 88;
 		               yourself.
-	sourcePane := SpPanedLayout newLeftToRight
-		              positionOfSlider: 50 percent;
+	sourcePane := SpBoxLayout newLeftToRight
+		              spacing: 6;
 		              add: patternPane;
 		              add: subjectPane;
 		              yourself.
 	detailsPane := SpBoxLayout newTopToBottom
 		               spacing: 4;
 		               add: (self labelledPresenter: capturesTable label: 'Captures' help: self capturesHelpString);
-		               add: (self labelledPresenter: detailsText label: 'Event details' help: self eventDetailsHelpString) height: 130;
+		               add: (self labelledPresenter: detailsText label: 'Event details' help: self eventDetailsHelpString);
 		               yourself.
-	bottomPane := SpPanedLayout newLeftToRight
-		              positionOfSlider: 70 percent;
+	bottomPane := SpBoxLayout newLeftToRight
+		              spacing: 6;
 		              add: (self labelledPresenter: stepsTable label: 'Trace timeline' help: self traceTimelineHelpString);
 		              add: detailsPane;
 		              yourself.
 	^ SpBoxLayout newTopToBottom
 		  borderWidth: 8;
 		  spacing: 6;
-		  add: statusLabel height: 24;
-		  add: sourcePane height: 270;
+		  add: statusLabel expand: false;
+		  add: sourcePane;
 		  add: bottomPane;
 		  yourself
 ]
@@ -252,6 +254,7 @@ PCRE2TracePresenter >> detailsTextForStep: aTraceStep [
 
 { #category : 'updating' }
 PCRE2TracePresenter >> display: aTextOrString inTextPresenter: aTextPresenter [
+	"Show this text in the presenter. From one step to the next the traced pattern and subject keep the same characters and change only their highlighting, and a text widget handed a text equal to the one it holds redraws nothing, so clearing it first is what makes the new highlighting appear. Call this from the UI process, where no redraw can land on the empty text in between."
 
 	aTextPresenter text asString = aTextOrString asString ifTrue: [ aTextPresenter text: '' ].
 	aTextPresenter text: aTextOrString
@@ -269,7 +272,7 @@ PCRE2TracePresenter >> flushProgressRun: pendingSteps into: rows [
 	pendingSteps ifEmpty: [ ^ self ].
 	pendingSteps size >= self minimumProgressRunSizeForGrouping
 		ifTrue: [ rows add: (PCRE2TraceStepRow steps: pendingSteps) ]
-		ifFalse: [ pendingSteps do: [ :step | rows add: (PCRE2TraceStepRow steps: { step }) ] ].
+		ifFalse: [ rows addAll: (pendingSteps collect: [ :step | PCRE2TraceStepRow steps: { step } ]) ].
 	pendingSteps removeAll
 ]
 
@@ -345,16 +348,16 @@ PCRE2TracePresenter >> initializeStepsTable [
 				 width: 75;
 				 beNotExpandable;
 				 yourself);
+		"The pattern snippet is the longest and the most variable of the five, so it takes whatever width the others leave, and widening the pane widens it. A width here would pin it instead, and with every column pinned the table keeps its own width whatever the pane does, which cuts the last column off."
 		addColumn: ((SpStringTableColumn title: 'Pattern' evaluated: [ :row | self patternLabelForRow: row ])
-				 width: 120;
-				 beNotExpandable;
+				 beExpandable;
 				 yourself);
 		addColumn: ((SpStringTableColumn title: 'Subject range' evaluated: [ :row | self subjectLabelForRow: row ])
 				 width: 90;
 				 beNotExpandable;
 				 yourself);
 		addColumn: ((SpStringTableColumn title: 'Callout' evaluated: [ :row | self calloutLabelForRow: row ])
-				 width: 70;
+				 width: 90;
 				 beNotExpandable;
 				 yourself)
 ]
@@ -389,14 +392,15 @@ PCRE2TracePresenter >> minimumProgressRunSizeForGrouping [
 
 { #category : 'display' }
 PCRE2TracePresenter >> oneLineSourceFor: sourceObject [
+	"Answer the source on a single line, so a line terminator inside a pattern cannot break a table row."
 
 	| source |
 	source := sourceObject ifNil: [ '' ] ifNotNil: [ sourceObject asString ].
 	^ String streamContents: [ :stream |
 			  source do: [ :character |
-					  (character = Character cr or: [ character = Character lf ])
-						  ifTrue: [ stream nextPut: Character space ]
-						  ifFalse: [ stream nextPut: character ] ] ]
+					  stream nextPut: ((character = Character cr or: [ character = Character lf ])
+							   ifTrue: [ Character space ]
+							   ifFalse: [ character ]) ] ]
 ]
 
 { #category : 'layout' }
@@ -456,7 +460,7 @@ PCRE2TracePresenter >> quotedSnippet: aString [
 						         ifFalse: [ stream nextPut: character ] ] ].
 	limit := 18.
 	clean size > limit ifTrue: [ clean := (clean copyFrom: 1 to: limit - 3) , '...' ].
-	^ '"' , clean , '"'
+	^ String streamContents: [ :stream | stream << '"' << clean << '"' ]
 ]
 
 { #category : 'display' }
@@ -467,7 +471,7 @@ PCRE2TracePresenter >> rangeLabelFor: anIntervalOrNil in: sourceString [
 			anIntervalOrNil first > sourceString size ifTrue: [ ^ 'end' ].
 			^ 'at ' , anIntervalOrNil first asString ].
 	anIntervalOrNil first = anIntervalOrNil last ifTrue: [ ^ anIntervalOrNil first asString ].
-	^ anIntervalOrNil first asString , '-' , anIntervalOrNil last asString
+	^ String streamContents: [ :stream | stream << anIntervalOrNil first asString << '-' << anIntervalOrNil last asString ]
 ]
 
 { #category : 'accessing' }
@@ -488,7 +492,7 @@ PCRE2TracePresenter >> selectedRow: aTraceStepRowOrNil [
 
 	selectedRow := aTraceStepRowOrNil.
 	selectedStep := selectedRow ifNotNil: [ selectedRow representativeStep ].
-	(stepsTable notNil and: [ selectedRow notNil and: [ stepsTable selectedItem ~~ selectedRow ] ]) ifTrue: [
+	(stepsTable isNotNil and: [ selectedRow isNotNil and: [ stepsTable selectedItem ~~ selectedRow ] ]) ifTrue: [
 		stepsTable selectItem: selectedRow ].
 	self updateSelectedStep
 ]
@@ -504,7 +508,7 @@ PCRE2TracePresenter >> selectedStep: aTraceStepOrNil [
 
 	selectedStep := aTraceStepOrNil.
 	selectedRow := nil.
-	(stepsTable notNil and: [ selectedStep notNil ]) ifTrue: [
+	(stepsTable isNotNil and: [ selectedStep isNotNil ]) ifTrue: [
 			selectedRow := self rowForStep: selectedStep ifAbsent: [ nil ].
 			selectedRow ifNotNil: [
 					stepsTable selectItem: selectedRow.
@@ -512,7 +516,7 @@ PCRE2TracePresenter >> selectedStep: aTraceStepOrNil [
 	self updateSelectedStep
 ]
 
-{ #category : 'initialization' }
+{ #category : 'accessing - model' }
 PCRE2TracePresenter >> setModelBeforeInitialization: aPCRE2MatchTrace [
 
 	trace := aPCRE2MatchTrace
@@ -562,7 +566,7 @@ PCRE2TracePresenter >> sourceContextRangeFor: sourceString range: anIntervalOrNi
 PCRE2TracePresenter >> sourceContextTextFor: sourceObject range: anIntervalOrNil title: titleString callout: calloutString [
 
 	| excerpt excerptEnd excerptStart hasLeadingEllipsis hasTrailingEllipsis highlightInterval range source start stop text titleLine |
-	titleLine := titleString , ' | ' , calloutString.
+	titleLine := String streamContents: [ :stream | stream << titleString << ' | ' << calloutString ].
 	source := self oneLineSourceFor: sourceObject.
 	anIntervalOrNil ifNil: [ ^ titleLine asText ].
 	range := self sourceContextRangeFor: source range: anIntervalOrNil.
@@ -595,7 +599,7 @@ PCRE2TracePresenter >> sourceLabelFor: sourceObject range: anIntervalOrNil [
 	label := self rangeLabelFor: anIntervalOrNil in: source.
 	snippet := self textFrom: source range: anIntervalOrNil.
 	snippet ifEmpty: [ ^ label ].
-	^ label , ' ' , (self quotedSnippet: snippet)
+	^ String streamContents: [ :stream | stream << label << ' ' << (self quotedSnippet: snippet) ]
 ]
 
 { #category : 'layout' }
@@ -699,13 +703,13 @@ PCRE2TracePresenter >> trace: aPCRE2MatchTraceOrNil [
 	stepsTable ifNotNil: [ self updatePresenter ]
 ]
 
-{ #category : 'display' }
+{ #category : 'private' }
 PCRE2TracePresenter >> traceStatusString [
 
 	| rowCount |
 	trace ifNil: [ ^ 'No trace.' ].
 	rowCount := (self stepRowsForSteps: trace steps) size.
-	((trace respondsTo: #isFinished) and: [ trace isFinished not ]) ifTrue: [
+	trace isFinished ifFalse: [
 			^ String streamContents: [ :stream |
 					  stream
 						  nextPutAll: 'Live trace';
@@ -746,7 +750,7 @@ PCRE2TracePresenter >> traceTimelineHelpString [
 	^ 'Callout events in execution order. Automatic rows may group repeated progress events.'
 ]
 
-{ #category : 'updating' }
+{ #category : 'initialization' }
 PCRE2TracePresenter >> updatePresenter [
 
 	| matchingStep previousStep rows |

@@ -1,5 +1,7 @@
 # API Overview
 
+Both implementations answer the same public objects, so everything below works whichever one is loaded. A plain install runs on the Pharo backend; `PCRE2Compiler new backend: PCRE2CompilerFFIBackend` picks the C library instead. Where the two differ, [Backends.md](Backends.md) is the reference: it lists what the Pharo backend does not do and which facilities below are FFI-only.
+
 ## Creating Matchers
 
 ```smalltalk
@@ -47,6 +49,37 @@ matcher := PCRE2UTF16Compiler new compile: pattern.
 - `findAll:` answers all matched texts.
 - `matchesIn:do:` and `matchesIn:collect:` enumerate matched texts.
 - `matchingRangesIn:` answers 1-based Pharo character ranges.
+
+## Rx Compatibility
+
+A matcher answers the whole public protocol of Pharo's own `RxMatcher`, so code written against
+`Regex-Core` runs unchanged once its matcher comes from here. Beyond the messages listed above:
+
+- `matchesStream:`, `matchesStreamPrefix:` and `searchStream:` match a positionable stream, leaving
+  it just after the match.
+- `matchesOnStream:`, `matchesOnStream:do:` and `matchesOnStream:collect:` enumerate a stream.
+- `copyStream:to:replacingMatchesWith:` and `copyStream:to:translatingMatchesUsing:` copy a stream
+  onto a write stream, rewriting each match.
+- `subexpression:`, `subexpressions:`, `subexpressionCount`, `subBeginning:` and `subEnd:` report on
+  the last match attempt, counting the whole match as subexpression 1. Positions are 0-based
+  character positions, and the end is exclusive.
+- `lastResult`, `lastChar` and `supportsSubexpressions` round out the protocol.
+
+```smalltalk
+| regex stream |
+regex := '\w+' asPerlCompatibleRegex.
+stream := 'one two' readStream.
+regex searchStream: stream.
+regex subexpression: 1.  "'one'"
+stream position.         "3"
+```
+
+Three differences are worth knowing. The stream messages read what is left of the stream rather than
+matching incrementally, so the stream must be positionable. PCRE2 keeps only the last match of a
+subexpression, so `subexpressions:`, `subBeginning:` and `subEnd:` answer at most one element where
+Rx answers one per repetition, and they answer an `Array` rather than an `OrderedCollection`. A
+group that did not take part answers `nil` and an empty collection, where Rx reports a neighbouring
+group's marker.
 
 `PCRE2Match` keeps enough data to query captures after matching:
 

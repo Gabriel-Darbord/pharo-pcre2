@@ -1,0 +1,131 @@
+"
+Owns a match-context handle of the 8-bit PCRE2 library.
+"
+Class {
+	#name : 'PCRE2MatchContextUTF8FFIBackend',
+	#superclass : 'PCRE2MatchContextFFIBackend',
+	#category : 'PCRE2-FFIBackend',
+	#package : 'PCRE2-FFIBackend'
+}
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> basicFree [
+	"This function frees the memory occupied by a match context, using the memory freeing function from the general context with which it was created, or free() if that was not set.
+	If the argument is NULL, the function returns immediately without doing anything. "
+
+	self ffiCall: #(void pcre2_match_context_free_8(self))
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> codeUnitWidth [
+
+	^ 8
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> ffiLibraryName [
+
+	^ LibPCRE2UTF8
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> privateCopy [
+	"This function makes a new copy of a match context, using the memory allocation function that was used for the original context.
+	The result is NULL if the memory cannot be obtained.
+	pcre2_match_context *pcre2_match_context_copy_8(pcre2_match_context *mcontext)"
+
+	self ffiCall: #(void *pcre2_match_context_copy_8(self))
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> setCalloutCallback: callback [
+	"Set the runtime match callout function for this context.
+	int pcre2_set_callout_8(pcre2_match_context *mcontext, int (*callout_function)(pcre2_callout_block *, void *), void *callout_data)"
+
+	self ffiCall: #(int pcre2_set_callout_8(self, FFICallback callback, nil))
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> setDepthLimit: value [
+	"This function sets the backtracking depth limit field in a match context. The result is always zero.
+	int pcre2_set_depth_limit(pcre2_match_context *mcontext, uint32_t value)"
+
+	self ffiCall: #(int pcre2_set_depth_limit_8(self, uint32 value))
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> setHeapLimit: value [
+	"This function sets the heap limit field in a match context. The result is always zero.
+	int pcre2_set_heap_limit(pcre2_match_context *mcontext, uint32_t value)"
+
+	self ffiCall: #(int pcre2_set_heap_limit_8(self, uint32 value))
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> setJITStack: aJITStack [
+	"Assign a libpcre2-8 JIT stack to this match context. Passing NULL as callback tells PCRE2 that callback data is the stack pointer."
+
+	self ffiCall: #(void pcre2_jit_stack_assign_8(self, nil, void *aJITStack))
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> setMatchLimit: value [
+	"This function sets the match limit field in a match context. The result is always zero.
+	int pcre2_set_match_limit(pcre2_match_context *mcontext, uint32_t value)"
+
+	self ffiCall: #(int pcre2_set_match_limit_8(self, uint32 value))
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> setOffsetLimit: value [
+	"Set the match-context offset limit as a zero-based PCRE2-8 code-unit offset."
+
+	self ffiCall: #(int pcre2_set_offset_limit_8(self, size_t value))
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> setSubstituteCalloutCallback: callback [
+	"Set the runtime substitution callout function for this context.
+	int pcre2_set_substitute_callout_8(pcre2_match_context *mcontext, int (*callout_function)(pcre2_substitute_callout_block *, void *), void *callout_data)"
+
+	self ffiCall: #(int pcre2_set_substitute_callout_8(self, FFICallback callback, nil))
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> setSubstituteCaseCalloutCallback: callback [
+	"Set the runtime substitution case callout function for this context.
+	int pcre2_set_substitute_case_callout_8(pcre2_match_context *mcontext, PCRE2_SIZE (*callout_function)(PCRE2_SPTR, PCRE2_SIZE, PCRE2_UCHAR *, PCRE2_SIZE, int, void *), void *callout_data)"
+
+	self ffiCall: #(int pcre2_set_substitute_case_callout_8(self, FFICallback callback, nil))
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> unsetCalloutCallback [
+	"Clear the runtime match callout function for this context.
+	int pcre2_set_callout_8(pcre2_match_context *mcontext, NULL, NULL)"
+
+	self ffiCall: #(int pcre2_set_callout_8(self, nil, nil))
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> unsetJITStack [
+	"Clear the explicit libpcre2-8 JIT stack assignment."
+
+	self ffiCall: #(void pcre2_jit_stack_assign_8(self, nil, nil))
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> unsetSubstituteCalloutCallback [
+	"Clear the runtime substitution callout function for this context.
+	int pcre2_set_substitute_callout_8(pcre2_match_context *mcontext, NULL, NULL)"
+
+	self ffiCall: #(int pcre2_set_substitute_callout_8(self, nil, nil))
+]
+
+{ #category : 'private - FFI' }
+PCRE2MatchContextUTF8FFIBackend >> unsetSubstituteCaseCalloutCallback [
+	"Clear the runtime substitution case callout function for this context.
+	int pcre2_set_substitute_case_callout_8(pcre2_match_context *mcontext, NULL, NULL)"
+
+	self ffiCall: #(int pcre2_set_substitute_case_callout_8(self, nil, nil))
+]

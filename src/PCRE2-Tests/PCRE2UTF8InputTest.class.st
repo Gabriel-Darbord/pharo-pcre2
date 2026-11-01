@@ -5,7 +5,7 @@ The suite covers ASCII direct storage, non-ASCII encoding, WideString encoding, 
 "
 Class {
 	#name : 'PCRE2UTF8InputTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }
@@ -62,6 +62,18 @@ PCRE2UTF8InputTest >> testByteArrayCanCreateReusableUTF8Input [
 ]
 
 { #category : 'tests' }
+PCRE2UTF8InputTest >> testByteOrderMarkIsOrdinaryInputData [
+	"A leading byte order mark is text like any other, not an encoding declaration to be dropped."
+
+	| text input |
+	text := (Character value: 16rFEFF) asString.
+	input := text asPCRE2UTF8Input.
+	self assert: (input readFrom: 1 to: input size) equals: text.
+	self assert: (input decodeBytes: input bytes) equals: text.
+	self assert: (input nextMatchStartOffsetAfter: 0) equals: 3
+]
+
+{ #category : 'tests' }
 PCRE2UTF8InputTest >> testCharacterRangeTranslationHandlesUTF8CodeUnitOffsets [
 
 	| input subject |
@@ -107,6 +119,15 @@ PCRE2UTF8InputTest >> testNonASCIIByteStringIsEncoded [
 	self deny: input bytes identicalTo: subject.
 	self assert: input bytes equals: (ZnUTF8Encoder default encodeString: subject).
 	self assert: input decoder class equals: ZnUTF8Encoder
+]
+
+{ #category : 'tests' }
+PCRE2UTF8InputTest >> testPartialCodeUnitSliceCannotBeDecoded [
+
+	| input |
+	input := 'é' asPCRE2UTF8Input.
+	self should: [ input readFrom: 1 to: 1 ] raise: ZnCharacterEncodingError.
+	self assert: (input readFrom: 1 to: 2) equals: 'é'
 ]
 
 { #category : 'tests' }

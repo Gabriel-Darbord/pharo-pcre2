@@ -5,7 +5,7 @@ These checks verify that the loaded library exposes the expected runtime configu
 "
 Class {
 	#name : 'LibPCRE2Test',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

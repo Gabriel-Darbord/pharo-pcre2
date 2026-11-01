@@ -5,7 +5,7 @@ These tests focus on the Pharo-level API layered over pcre2_substitute_8: global
 "
 Class {
 	#name : 'PCRE2SubstitutionTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

@@ -203,6 +203,13 @@ PCRE2CodeUnitWidthTest >> regexFor: aString [
 	^ self compiler compile: aString
 ]
 
+{ #category : 'running' }
+PCRE2CodeUnitWidthTest >> runCase [
+	"Run on the FFI backend whatever the image default is, as PCRE2FFITestCase does for the rest of this package. This class cannot inherit that, because it is parametrized."
+
+	^ PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [ super runCase ]
+]
+
 { #category : 'private' }
 PCRE2CodeUnitWidthTest >> skipIfUnsupported [
 
@@ -291,21 +298,20 @@ PCRE2CodeUnitWidthTest >> testCapturesAndNamedGroupsReadFromInput [
 { #category : 'tests' }
 PCRE2CodeUnitWidthTest >> testCharacterTablesAndCopyWithTables [
 
-	| compiler copy regex |
 	self skipIfUnsupported.
-
-	compiler := self compiler.
-	compiler context useCharacterTablesFromCurrentLocale.
-	regex := compiler compile: '\w+'.
-	regex options: PCRE2 notEmpty.
-	copy := regex copyWithCharacterTables.
-
-	self assert: regex class equals: matcherClass.
-	self deny: copy identicalTo: regex.
-	self assert: copy class equals: matcherClass.
-	self assert: copy options equals: regex options.
-	self assert: (regex matches: 'abc').
-	self assert: (copy matches: 'abc')
+	PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [
+			| compiler copy regex |
+			compiler := self compiler.
+			compiler context useCharacterTablesFromCurrentLocale.
+			regex := compiler compile: '\w+'.
+			regex options: PCRE2 notEmpty.
+			copy := regex copyWithCharacterTables.
+			self assert: regex class equals: matcherClass.
+			self deny: copy identicalTo: regex.
+			self assert: copy class equals: matcherClass.
+			self assert: copy options equals: regex options.
+			self assert: (regex matches: 'abc').
+			self assert: (copy matches: 'abc') ]
 ]
 
 { #category : 'tests' }
@@ -501,21 +507,19 @@ PCRE2CodeUnitWidthTest >> testInputDecodesLeadingByteSlice [
 { #category : 'tests' }
 PCRE2CodeUnitWidthTest >> testJITStackCanBeAssignedToMatchContext [
 
-	| regex stack |
 	self skipIfUnsupported.
-	LibPCRE2 supportsJIT ifFalse: [ self skip ].
-
-	stack := jitStackClass default.
-	regex := self regexFor: 'a+'.
-	regex compileJIT.
-	regex context jitStack: stack.
-
-	self assert: regex context jitStack identicalTo: stack.
-	self assert: (regex find: 'baaa') equals: 'aaa'.
-
-	regex context clearJITStack.
-	self assert: regex context jitStack isNil.
-	self assert: (regex find: 'baaa') equals: 'aaa'
+	LibPCRE2 supportsJIT ifFalse: [ ^ self skip ].
+	PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [
+			| regex stack |
+			stack := jitStackClass default.
+			regex := self regexFor: 'a+'.
+			regex compileJIT.
+			regex context jitStack: stack.
+			self assert: regex context jitStack identicalTo: stack.
+			self assert: (regex find: 'baaa') equals: 'aaa'.
+			regex context clearJITStack.
+			self assert: regex context jitStack isNil.
+			self assert: (regex find: 'baaa') equals: 'aaa' ]
 ]
 
 { #category : 'tests' }
@@ -599,19 +603,17 @@ PCRE2CodeUnitWidthTest >> testMatchDataDiagnosticsUseNativeAPI [
 { #category : 'tests' }
 PCRE2CodeUnitWidthTest >> testMatcherSerializationConvenienceRoundTrip [
 
-	| bytes regex |
 	self skipIfUnsupported.
-
-	regex := self regexFor: 'é+'.
-	bytes := regex serialize.
-
-	regex finalize.
-	self assert: regex isNull.
-	regex restoreFrom: bytes.
-
-	self deny: regex isNull.
-	self assert: regex class equals: matcherClass.
-	self assert: (regex matches: 'éé')
+	PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [
+			| bytes regex |
+			regex := self regexFor: 'é+'.
+			bytes := regex serialize.
+			regex finalize.
+			self assert: regex isNull.
+			regex restoreFrom: bytes.
+			self deny: regex isNull.
+			self assert: regex class equals: matcherClass.
+			self assert: (regex matches: 'éé') ]
 ]
 
 { #category : 'tests' }

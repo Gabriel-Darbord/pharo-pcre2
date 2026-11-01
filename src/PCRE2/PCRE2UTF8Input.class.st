@@ -85,10 +85,9 @@ PCRE2UTF8Input >> characterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitO
 ]
 
 { #category : 'decoding' }
-PCRE2UTF8Input >> decodeBytes: aByteCollection [
-	"Decode a UTF-8 byte slice that came from my byte storage."
+PCRE2UTF8Input >> decodeBytes: collection [
 
-	^ decoder ifNil: [ aByteCollection ] ifNotNil: [ decoder decodeBytes: aByteCollection ]
+	^ decoder ifNil: [ collection ] ifNotNil: [ (self class bytes: collection decoder: decoder) readFrom: 1 to: collection size ]
 ]
 
 { #category : 'decoding' }
@@ -96,12 +95,11 @@ PCRE2UTF8Input >> decodeBytesFrom: start to: end [
 	"Decode a 1-based inclusive byte range from my UTF-8 storage without copying that range first."
 
 	| byteStream |
-	byteStream := bytes readStream.
-	byteStream position: start - 1.
+	byteStream := ReadStream on: bytes from: start to: end.
 	^ String streamContents: [ :stream |
 			  [ byteStream position < end ] whileTrue: [
 					  | codePoint |
-					  codePoint := decoder nextCodePointFromStream: byteStream.
+					  codePoint := self nextCodePointFromStream: byteStream.
 					  (codePoint > 255 and: [ stream originalContents isWideString not ]) ifTrue: [
 							  | position wideString |
 							  position := stream position.
@@ -118,13 +116,24 @@ PCRE2UTF8Input >> decoder [
 ]
 
 { #category : 'decoding' }
-PCRE2UTF8Input >> nextFromStream: aStream [
-	"Answer the next character from a stream over my UTF-8 byte storage."
+PCRE2UTF8Input >> nextCodePointFromStream: stream [
+	"PCRE2 treats U+FEFF as subject data; Zinc's decoder discards it."
 
-	^ decoder ifNil: [ aStream next ] ifNotNil: [ decoder nextFromStream: aStream ]
+	| position |
+	(stream peek = 239 and: [ stream size - stream position >= 3 ]) ifTrue: [
+			position := stream position.
+			(stream next: 3) asByteArray = #[ 239 187 191 ] ifTrue: [ ^ 16rFEFF ].
+			stream position: position ].
+	^ decoder nextCodePointFromStream: stream
 ]
 
-{ #category : 'matching' }
+{ #category : 'decoding' }
+PCRE2UTF8Input >> nextFromStream: stream [
+
+	^ decoder ifNil: [ stream next ] ifNotNil: [ Character value: (self nextCodePointFromStream: stream) ]
+]
+
+{ #category : 'decoding' }
 PCRE2UTF8Input >> nextMatchStartOffsetAfter: zeroBasedOffset [
 	"Answer the next zero-based PCRE2-8 code-unit offset after one Pharo character, or one past the end."
 
@@ -133,7 +142,7 @@ PCRE2UTF8Input >> nextMatchStartOffsetAfter: zeroBasedOffset [
 	decoder ifNil: [ ^ zeroBasedOffset + 1 ].
 	stream := ReadStream on: bytes.
 	stream position: zeroBasedOffset.
-	decoder nextFromStream: stream.
+	self nextFromStream: stream.
 	^ stream position
 ]
 

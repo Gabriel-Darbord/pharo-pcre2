@@ -72,7 +72,7 @@ PCRE2TraceStep >> fullMatchRange [
 { #category : 'testing' }
 PCRE2TraceStep >> hasSite [
 
-	^ site notNil
+	^ site isNotNil
 ]
 
 { #category : 'accessing' }

@@ -5,7 +5,9 @@ Users normally open it through the String convenience method:
 
     'pattern' openPerlCompatibleRegexDebuggerOn: 'subject'.
 
-The session stores editable pattern and subject strings, trace results, current step selection, live-run state, and the compiler used to choose the PCRE2 code-unit width. Trace-all mode records a completed PCRE2MatchTrace. Step-live mode delegates execution to PCRE2LiveDebugRun, which records callout events without suspending inside the native callback.
+The session stores editable pattern and subject strings, trace results, current step selection, live-run state, and the compiler that fixes which backend and which code-unit width the run uses. Trace-all mode records a completed PCRE2MatchTrace. Step-live mode delegates execution to PCRE2LiveDebugRun, which records callout events without suspending inside the callout block.
+
+Everything here goes through the public PCRE2 protocol, so a session debugs a pattern the same way whichever backend compiled it.
 "
 Class {
 	#name : 'PCRE2DebugSession',
@@ -119,13 +121,13 @@ PCRE2DebugSession >> firstStep [
 { #category : 'testing' }
 PCRE2DebugSession >> hasError [
 
-	^ lastError notNil
+	^ lastError isNotNil
 ]
 
 { #category : 'testing' }
 PCRE2DebugSession >> hasTrace [
 
-	^ trace notNil
+	^ trace isNotNil
 ]
 
 { #category : 'initialization' }
@@ -176,7 +178,7 @@ PCRE2DebugSession >> liveStatusString [
 						  nextPutAll: ' | steps ';
 						  print: self stepCount;
 						  nextPutAll: ' | events ';
-						  print: trace events size.
+						  print: trace eventCount.
 					  trace isFinished ifTrue: [
 							  stream
 								  nextPutAll: ' | result code ';
@@ -381,7 +383,7 @@ PCRE2DebugSession >> statusString [
 			  self traceWasLimited ifTrue: [
 					  stream
 						  nextPutAll: ' shown of ';
-						  print: trace events size ].
+						  print: trace eventCount ].
 			  trace matchedString ifNotNil: [ :matched |
 					  stream
 						  nextPutAll: ' | matched ';
@@ -390,8 +392,10 @@ PCRE2DebugSession >> statusString [
 
 { #category : 'stepping' }
 PCRE2DebugSession >> stepCount [
+	"Answer how many steps are shown. Steps are built on demand, so count the recorded events rather than building them to ask their size."
 
-	^ self steps size
+	trace ifNil: [ ^ 0 ].
+	^ maximumSteps min: trace eventCount
 ]
 
 { #category : 'live debugging' }
@@ -462,7 +466,7 @@ PCRE2DebugSession >> trace [
 PCRE2DebugSession >> traceWasLimited [
 
 	trace ifNil: [ ^ false ].
-	^ trace events size > maximumSteps
+	^ trace eventCount > maximumSteps
 ]
 
 { #category : 'live debugging' }

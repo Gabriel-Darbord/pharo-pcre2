@@ -71,6 +71,14 @@ PCRE2 class >> altCircumflex [
 ]
 
 { #category : 'options' }
+PCRE2 class >> altExtendedClass [
+	"Enable UTS#18 nested character classes and doubled set operators."
+
+	<pcre2Option: #( compile )>
+	^ 16r08000000
+]
+
+{ #category : 'options' }
 PCRE2 class >> altVerbNames [
 	"Process backslashes in verb names"
 
@@ -373,6 +381,13 @@ PCRE2 class >> errorCallout [
 ]
 
 { #category : 'errors' }
+PCRE2 class >> errorDFAInvalidUTF [
+	"DFA matching was asked to run a pattern compiled with PCRE2_MATCH_INVALID_UTF, which only the ordinary matching function supports."
+
+	^ -66
+]
+
+{ #category : 'errors' }
 PCRE2 class >> errorNoMatch [
 	"No match was found. This result is handled by the wrapper and does not signal."
 
@@ -540,6 +555,34 @@ PCRE2 class >> extraMatchWord [
 	However, it is ignored if PCRE2_EXTRA_MATCH_LINE is also set."
 
 	^ 16r00000004
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraNeverCallout [
+	"Reject callouts in the pattern."
+
+	^ 16r00008000
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraNoBs0 [
+	"Reject backslash zero escapes."
+
+	^ 16r00004000
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraPythonOctal [
+	"Use Python rules to distinguish octal escapes from numeric backreferences."
+
+	^ 16r00002000
+]
+
+{ #category : 'options' }
+PCRE2 class >> extraTurkishCasing [
+	"Use Turkish Unicode case equivalences."
+
+	^ 16r00010000
 ]
 
 { #category : 'options' }
@@ -742,75 +785,9 @@ PCRE2 class >> infoSize [
 
 { #category : 'class initialization' }
 PCRE2 class >> initialize [
-	"Match errors (-1 -> NOMATCH) and (-2 -> PARTIAL) are handled, so excluded here"
+	"PCRE2 error texts; no-match and partial results are handled separately."
 
 	errorCodeTable := Dictionary newFrom: {
-			                  (-67 -> 'INTERNAL ERROR: invalid substring offset').
-			                  (-66 -> 'PCRE2_MATCH_INVALID_UTF is not supported for DFA matching').
-			                  (-65 -> 'internal error - duplicate substitution match').
-			                  (-64 -> 'invalid syntax').
-			                  (-63 -> 'heap limit exceeded').
-			                  (-62 -> 'bad serialized data').
-			                  (-61 -> 'too many replacements (more than INT_MAX)').
-			                  (-60 -> 'match with end before start or start moved backwards is not supported').
-			                  (-59 -> 'bad substitution in replacement string').
-			                  (-58 -> 'expected closing curly bracket in replacement string').
-			                  (-57 -> 'bad escape sequence in replacement string').
-			                  (-56 -> 'offset limit set without PCRE2_USE_OFFSET_LIMIT').
-			                  (-55 -> 'requested value is not set').
-			                  (-54 -> 'requested value is not available').
-			                  (-53 -> 'matching depth limit exceeded').
-			                  (-52 -> 'nested recursion at the same subject position').
-			                  (-51 -> 'NULL argument passed with non-zero length').
-			                  (-50 -> 'non-unique substring name').
-			                  (-49 -> 'unknown substring').
-			                  (-48 -> 'no more memory').
-			                  (-47 -> 'match limit exceeded').
-			                  (-46 -> 'JIT stack limit reached').
-			                  (-45 -> 'bad JIT option').
-			                  (-44 -> 'internal error - pattern overwritten?').
-			                  (-43 -> 'workspace size exceeded in DFA matching').
-			                  (-42 -> 'pattern contains an item that is not supported for DFA matching').
-			                  (-41 -> 'function is not supported for DFA matching').
-			                  (-40 -> 'backreference condition or recursion test is not supported for DFA matching').
-			                  (-39 -> 'too much recursion for DFA matching').
-			                  (-38 -> 'invalid data in workspace for DFA restart').
-			                  (-37 -> 'callout error code').
-			                  (-36 -> 'bad offset into UTF string').
-			                  (-35 -> 'invalid replacement string').
-			                  (-34 -> 'bad option value').
-			                  (-33 -> 'bad offset value').
-			                  (-32 -> 'pattern compiled in wrong mode: 8/16/32-bit error').
-			                  (-31 -> 'magic number missing').
-			                  (-30 -> 'patterns do not all use the same character tables').
-			                  (-29 -> 'bad data value').
-			                  (-28 -> 'UTF-32 error: code points greater than 0x10ffff are not defined').
-			                  (-27 -> 'UTF-32 error: code points 0xd800-0xdfff are not defined').
-			                  (-26 -> 'UTF-16 error: isolated low surrogate').
-			                  (-25 -> 'UTF-16 error: invalid low surrogate').
-			                  (-24 -> 'UTF-16 error: missing low surrogate at end').
-			                  (-23 -> 'UTF-8 error: illegal byte (0xfe or 0xff)').
-			                  (-22 -> 'UTF-8 error: isolated byte with 0x80 bit set').
-			                  (-21 -> 'UTF-8 error: overlong 6-byte sequence').
-			                  (-20 -> 'UTF-8 error: overlong 5-byte sequence').
-			                  (-19 -> 'UTF-8 error: overlong 4-byte sequence').
-			                  (-18 -> 'UTF-8 error: overlong 3-byte sequence').
-			                  (-17 -> 'UTF-8 error: overlong 2-byte sequence').
-			                  (-16 -> 'UTF-8 error: code points 0xd800-0xdfff are not defined').
-			                  (-15 -> 'UTF-8 error: code points greater than 0x10ffff are not defined').
-			                  (-14 -> 'UTF-8 error: 6-byte character is not allowed (RFC 3629)').
-			                  (-13 -> 'UTF-8 error: 5-byte character is not allowed (RFC 3629)').
-			                  (-12 -> 'UTF-8 error: byte 6 top bits not 0x80').
-			                  (-11 -> 'UTF-8 error: byte 5 top bits not 0x80').
-			                  (-10 -> 'UTF-8 error: byte 4 top bits not 0x80').
-			                  (-9 -> 'UTF-8 error: byte 3 top bits not 0x80').
-			                  (-8 -> 'UTF-8 error: byte 2 top bits not 0x80').
-			                  (-7 -> 'UTF-8 error: 5 bytes missing at end').
-			                  (-6 -> 'UTF-8 error: 4 bytes missing at end').
-			                  (-5 -> 'UTF-8 error: 3 bytes missing at end').
-			                  (-4 -> 'UTF-8 error: 2 bytes missing at end').
-			                  (-3 -> 'UTF-8 error: 1 byte missing at end').
-			                  "compile errors"
 			                  (100 -> 'no error').
 			                  (101 -> '\ at end of pattern').
 			                  (102 -> '\c at end of pattern').
@@ -839,8 +816,8 @@ PCRE2 class >> initialize [
 			                  (125 -> 'length of lookbehind assertion is not limited').
 			                  (126 -> 'a relative value of zero is not allowed').
 			                  (127 -> 'conditional subpattern contains more than two branches').
-			                  (128 -> 'assertion expected after (?( or (?(?C)').
-			                  (129 -> 'digit expected after (?+ or (?-').
+			                  (128 -> 'atomic assertion expected after (?( or (?(?C)').
+			                  (129 -> 'digit expected after (?+').
 			                  (130 -> 'unknown POSIX class name').
 			                  (131 -> 'internal error in pcre2_study(): should not occur').
 			                  (132 -> 'this version of PCRE2 does not have Unicode support').
@@ -889,7 +866,7 @@ PCRE2 class >> initialize [
 			                  (175 -> 'using UCP is disabled by the application').
 			                  (176 -> 'name is too long in (*MARK), (*PRUNE), (*SKIP), or (*THEN)').
 			                  (177 -> 'character code point value in \u.... sequence is too large').
-			                  (178 -> 'digits missing in \x{} or \o{} or \N{U+}').
+			                  (178 -> 'digits missing after \x or in \x{} or \o{} or \N{U+}').
 			                  (179 -> 'syntax error or number too big in (?(VERSION condition').
 			                  (180 -> 'internal error: unknown opcode in auto_possessify()').
 			                  (181 -> 'missing terminating delimiter for callout with string argument').
@@ -909,10 +886,105 @@ PCRE2 class >> initialize [
 			                  (195 -> '(*alpha_assertion) not recognized').
 			                  (196 -> 'script runs require Unicode support, which this version of PCRE2 does not have').
 			                  (197 -> 'too many capturing groups (maximum 65535)').
-			                  (198 -> 'atomic assertion expected after (?( or (?(?C)').
+			                  (198 -> 'octal digit missing after \0 (PCRE2_EXTRA_NO_BS0 is set)').
 			                  (199 -> '\K is not allowed in lookarounds (but see PCRE2_EXTRA_ALLOW_LOOKAROUND_BSK)').
 			                  (200 -> 'branch too long in variable-length lookbehind assertion').
-			                  (201 -> 'compiled pattern would be longer than the limit set by the application') }
+			                  (201 -> 'compiled pattern would be longer than the limit set by the application').
+			                  (202 -> 'octal value given by \ddd is greater than \377 (forbidden by PCRE2_EXTRA_PYTHON_OCTAL)').
+			                  (203 -> 'using callouts is disabled by the application').
+			                  (204 -> 'PCRE2_EXTRA_TURKISH_CASING require Unicode (UTF or UCP) mode').
+			                  (205 -> 'PCRE2_EXTRA_TURKISH_CASING requires UTF in 8-bit mode').
+			                  (206 -> 'PCRE2_EXTRA_TURKISH_CASING and PCRE2_EXTRA_CASELESS_RESTRICT are not compatible').
+			                  (207 -> 'extended character class nesting is too deep').
+			                  (208 -> 'invalid operator in extended character class').
+			                  (209 -> 'unexpected operator in extended character class (no preceding operand)').
+			                  (210 -> 'expected operand after operator in extended character class').
+			                  (211 -> 'square brackets needed to clarify operator precedence in extended character class').
+			                  (212
+			                   ->
+			                   'missing terminating ] for extended character class (note ''['' must be escaped under PCRE2_ALT_EXTENDED_CLASS)').
+			                  (213 -> 'unexpected expression in extended character class (no preceding operator)').
+			                  (214 -> 'empty expression in extended character class').
+			                  (215 -> 'terminating ] with no following closing parenthesis in (?[...]').
+			                  (216 -> 'unexpected character in (?[...]) extended character class').
+			                  (217 -> 'expected capture group number or name').
+			                  (218 -> 'missing opening parenthesis').
+			                  (219 -> 'syntax error in subpattern number (missing terminator?)').
+			                  (220 -> 'erroroffset passed as NULL').
+			                  (-3 -> 'UTF-8 error: 1 byte missing at end').
+			                  (-4 -> 'UTF-8 error: 2 bytes missing at end').
+			                  (-5 -> 'UTF-8 error: 3 bytes missing at end').
+			                  (-6 -> 'UTF-8 error: 4 bytes missing at end').
+			                  (-7 -> 'UTF-8 error: 5 bytes missing at end').
+			                  (-8 -> 'UTF-8 error: byte 2 top bits not 0x80').
+			                  (-9 -> 'UTF-8 error: byte 3 top bits not 0x80').
+			                  (-10 -> 'UTF-8 error: byte 4 top bits not 0x80').
+			                  (-11 -> 'UTF-8 error: byte 5 top bits not 0x80').
+			                  (-12 -> 'UTF-8 error: byte 6 top bits not 0x80').
+			                  (-13 -> 'UTF-8 error: 5-byte character is not allowed (RFC 3629)').
+			                  (-14 -> 'UTF-8 error: 6-byte character is not allowed (RFC 3629)').
+			                  (-15 -> 'UTF-8 error: code points greater than 0x10ffff are not defined').
+			                  (-16 -> 'UTF-8 error: code points 0xd800-0xdfff are not defined').
+			                  (-17 -> 'UTF-8 error: overlong 2-byte sequence').
+			                  (-18 -> 'UTF-8 error: overlong 3-byte sequence').
+			                  (-19 -> 'UTF-8 error: overlong 4-byte sequence').
+			                  (-20 -> 'UTF-8 error: overlong 5-byte sequence').
+			                  (-21 -> 'UTF-8 error: overlong 6-byte sequence').
+			                  (-22 -> 'UTF-8 error: isolated byte with 0x80 bit set').
+			                  (-23 -> 'UTF-8 error: illegal byte (0xfe or 0xff)').
+			                  (-24 -> 'UTF-16 error: missing low surrogate at end').
+			                  (-25 -> 'UTF-16 error: invalid low surrogate').
+			                  (-26 -> 'UTF-16 error: isolated low surrogate').
+			                  (-27 -> 'UTF-32 error: code points 0xd800-0xdfff are not defined').
+			                  (-28 -> 'UTF-32 error: code points greater than 0x10ffff are not defined').
+			                  (-29 -> 'bad data value').
+			                  (-30 -> 'patterns do not all use the same character tables').
+			                  (-31 -> 'magic number missing').
+			                  (-32 -> 'pattern compiled in wrong mode: 8/16/32-bit error').
+			                  (-33 -> 'bad offset value').
+			                  (-34 -> 'bad option value').
+			                  (-35 -> 'invalid replacement string').
+			                  (-36 -> 'bad offset into UTF string').
+			                  (-37 -> 'callout error code').
+			                  (-38 -> 'invalid data in workspace for DFA restart').
+			                  (-39 -> 'too much recursion for DFA matching').
+			                  (-40 -> 'backreference condition or recursion test is not supported for DFA matching').
+			                  (-41 -> 'function is not supported for DFA matching').
+			                  (-42 -> 'pattern contains an item that is not supported for DFA matching').
+			                  (-43 -> 'workspace size exceeded in DFA matching').
+			                  (-44 -> 'internal error - pattern overwritten?').
+			                  (-45 -> 'bad JIT option').
+			                  (-46 -> 'JIT stack limit reached').
+			                  (-47 -> 'match limit exceeded').
+			                  (-48 -> 'no more memory').
+			                  (-49 -> 'unknown substring').
+			                  (-50 -> 'non-unique substring name').
+			                  (-51 -> 'NULL argument passed with non-zero length').
+			                  (-52 -> 'nested recursion at the same subject position').
+			                  (-53 -> 'matching depth limit exceeded').
+			                  (-54 -> 'requested value is not available').
+			                  (-55 -> 'requested value is not set').
+			                  (-56 -> 'offset limit set without PCRE2_USE_OFFSET_LIMIT').
+			                  (-57 -> 'bad escape sequence in replacement string').
+			                  (-58 -> 'expected closing curly bracket in replacement string').
+			                  (-59 -> 'bad substitution in replacement string').
+			                  (-60 -> 'match with end before start or start moved backwards is not supported').
+			                  (-61 -> 'too many replacements (more than INT_MAX)').
+			                  (-62 -> 'bad serialized data').
+			                  (-63 -> 'heap limit exceeded').
+			                  (-64 -> 'invalid syntax').
+			                  (-65 -> 'internal error: duplicate substitution match').
+			                  (-66 -> 'PCRE2_MATCH_INVALID_UTF is not supported for DFA matching').
+			                  (-67 -> 'internal error: invalid substring offset').
+			                  (-68 -> 'feature is not supported by the JIT compiler').
+			                  (-69 -> 'error performing replacement case transformation').
+			                  (-70 -> 'replacement too large (longer than PCRE2_SIZE)').
+			                  (-71 -> 'substitute pattern differs from prior match call').
+			                  (-72 -> 'substitute subject differs from prior match call').
+			                  (-73 -> 'substitute start offset differs from prior match call').
+			                  (-74 -> 'substitute options differ from prior match call').
+			                  (-75 -> 'disallowed use of \K in lookaround').
+			                  (-76 -> 'replacement $'' or $_ not supported with partial match') }
 ]
 
 { #category : 'options' }
@@ -967,13 +1039,8 @@ PCRE2 class >> matchUnsetBackref [
 
 { #category : 'constants' }
 PCRE2 class >> maximumSizeT [
-	"The value corresponds to the C code: `~(size_t)0`, which represents the largest fixed-size integer."
 
-	| wordSize |
-	wordSize := ExternalAddress wordSize.
-	wordSize == 8 ifTrue: [ ^ 16rFFFFFFFFFFFFFFFF ].
-	wordSize == 4 ifTrue: [ ^ 16rFFFFFFFF ].
-	^ (1 bitShift: wordSize * 8) - 1
+	^ (1 bitShift: Smalltalk wordSize * 8) - 1
 ]
 
 { #category : 'options' }

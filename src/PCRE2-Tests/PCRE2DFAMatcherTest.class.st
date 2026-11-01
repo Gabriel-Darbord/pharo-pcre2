@@ -3,7 +3,7 @@ Tests for PCRE2's DFA matching mode, which can return several same-start alterna
 "
 Class {
 	#name : 'PCRE2DFAMatcherTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

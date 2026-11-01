@@ -1,0 +1,17 @@
+SmalltalkCISpec {
+  #loading : [
+    SCIMetacelloLoadSpec {
+      #baseline : 'PCRE2',
+      #directory : 'src',
+      #load : [ 'FFI', 'FFITests' ],
+      #platforms : [ #pharo ]
+    }
+  ],
+  #testing : {
+    #packages : [ 'PCRE2-Tests' ],
+    #coverage : {
+      #packages : [ 'PCRE2', 'PCRE2-FFIBackend' ],
+      #format : #lcov
+    }
+  }
+}

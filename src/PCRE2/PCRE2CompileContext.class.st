@@ -1,22 +1,9 @@
 "
-Abstract superclass for PCRE2 compile contexts.
-
-Concrete subclasses bind PCRE2's width-specific native setters and lifetime functions: PCRE2UTF8CompileContext, PCRE2UTF16CompileContext, and PCRE2UTF32CompileContext. This class keeps the shared Pharo-side state and user-facing accessors for newline handling, \R semantics, pattern-size limits, variable-lookbehind limits, locale character tables, extra compile options, and compiler optimization directives.
+Public compile-context facade. Options, newline conventions, limits, and implementation-specific facilities are delegated to the selected backend. Obtain a context from a compiler so its backend and code-unit width agree.
 "
 Class {
 	#name : 'PCRE2CompileContext',
-	#superclass : 'PCRE2Object',
-	#instVars : [
-		'bsr',
-		'options',
-		'newline',
-		'maxPatternLength',
-		'maxPatternCompiledLength',
-		'maxVarLookbehind',
-		'parensNestLimit',
-		'optimizationDirectives',
-		'characterTables'
-	],
+	#superclass : 'PCRE2Context',
 	#category : 'PCRE2',
 	#package : 'PCRE2'
 }
@@ -30,99 +17,87 @@ PCRE2CompileContext class >> isAbstract [
 { #category : 'accessing' }
 PCRE2CompileContext >> addOptions: anInteger [
 
-	^ self options: (self options bitOr: anInteger)
+	^ backend addOptions: anInteger
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> bsr [
 
-	^ bsr
+	^ backend bsr
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> bsr: anInteger [
-	"Set what \R matches. Prefer `useBSRAnyCRLF` and `useBSRUnicode` for named values."
 
-	self checkSettingResult: (self setBSR: anInteger).
-	bsr := anInteger
+	backend bsr: anInteger
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> characterTables [
-	"Low-character tables used by this compile context, or nil when PCRE2 uses its built-in tables."
 
-	^ characterTables
+	^ backend characterTables
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> characterTables: aPCRE2CharacterTables [
-	"Use low-character tables for subsequent compilations through this context. Keep the tables alive while compiled patterns may reference them."
 
-	aPCRE2CharacterTables ifNotNil: [
-			aPCRE2CharacterTables isNull ifTrue: [ PCRE2Error signal: 'Character tables must hold a native table pointer' ].
-			aPCRE2CharacterTables ffiLibraryName == self ffiLibraryName ifFalse: [
-				PCRE2Error signal: 'Character tables must come from the same PCRE2 library width as the compile context' ] ].
-	self checkSettingResult: (self setCharacterTables: aPCRE2CharacterTables).
-	characterTables := aPCRE2CharacterTables
+	backend characterTables: aPCRE2CharacterTables
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> checkSettingResult: resultCode [
-	"PCRE2 context setters answer zero or a negative error code. Keep native validation centralized so accessors can stay small."
 
-	resultCode < 0 ifTrue: [ self errorCode: resultCode ].
-	^ resultCode
+	^ backend checkSettingResult: resultCode
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> clearCharacterTables [
-	"Return this context to PCRE2's built-in low-character tables."
 
-	^ self characterTables: nil
-]
-
-{ #category : 'private' }
-PCRE2CompileContext >> compilerClass [
-
-	self subclassResponsibility
+	^ backend clearCharacterTables
 ]
 
 { #category : 'accessing' }
+PCRE2CompileContext >> compilerClass [
+
+	^ backend compilerClass
+]
+
+{ #category : 'configuration' }
 PCRE2CompileContext >> disableAutoPossessification [
 	"Disable PCRE2's auto-possessification optimization."
 
 	^ self optimize: PCRE2 optimizeAutoPossessOff
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> disableDotstarAnchoring [
 	"Disable PCRE2's implicit dot-star anchoring optimization."
 
 	^ self optimize: PCRE2 optimizeDotstarAnchorOff
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> disableStartOptimization [
 	"Disable PCRE2's start-of-match optimizations."
 
 	^ self optimize: PCRE2 optimizeStartOff
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> enableAutoPossessification [
 	"Enable PCRE2's auto-possessification optimization."
 
 	^ self optimize: PCRE2 optimizeAutoPossess
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> enableDotstarAnchoring [
 	"Enable PCRE2's implicit dot-star anchoring optimization."
 
 	^ self optimize: PCRE2 optimizeDotstarAnchor
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> enableStartOptimization [
 	"Enable PCRE2's start-of-match optimizations."
 
@@ -131,218 +106,164 @@ PCRE2CompileContext >> enableStartOptimization [
 
 { #category : 'accessing' }
 PCRE2CompileContext >> maxPatternCompiledLength [
-	"Maximum compiled pattern size in bytes, or nil when PCRE2 uses its default."
 
-	^ maxPatternCompiledLength
+	^ backend maxPatternCompiledLength
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> maxPatternCompiledLength: anInteger [
-	"Set the maximum compiled pattern size in bytes accepted by pcre2_compile()."
 
-	self
-		requireSupportedFeature: 'Maximum compiled pattern length'
-		since: '10.44'
-		when: self ffiLibraryName supportsMaxPatternCompiledLength.
-	self checkSettingResult: (self setMaxPatternCompiledLength: anInteger).
-	maxPatternCompiledLength := anInteger
+	backend maxPatternCompiledLength: anInteger
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> maxPatternLength [
-	"Maximum pattern length in code units, or nil when PCRE2 uses its default."
 
-	^ maxPatternLength
+	^ backend maxPatternLength
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> maxPatternLength: anInteger [
-	"Set the maximum pattern length in code units accepted by pcre2_compile()."
 
-	self checkSettingResult: (self setMaxPatternLength: anInteger).
-	maxPatternLength := anInteger
+	backend maxPatternLength: anInteger
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> maxVarLookbehind [
-	"Maximum length for bounded variable-length lookbehind, or nil when PCRE2 uses its default."
 
-	^ maxVarLookbehind
+	^ backend maxVarLookbehind
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> maxVarLookbehind: anInteger [
-	"Set the maximum length for bounded variable-length lookbehind assertions."
 
-	self requireSupportedFeature: 'Variable lookbehind limit' since: '10.43' when: self ffiLibraryName supportsMaxVarLookbehind.
-	self checkSettingResult: (self setMaxVarLookbehind: anInteger).
-	maxVarLookbehind := anInteger
+	backend maxVarLookbehind: anInteger
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> newline [
-	"Configured newline convention, or nil when PCRE2 uses the library default."
 
-	^ newline
+	^ backend newline
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> newline: anInteger [
-	"Set which character sequence PCRE2 recognizes as a newline for compiled patterns."
 
-	self checkSettingResult: (self setNewline: anInteger).
-	newline := anInteger
+	backend newline: anInteger
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> optimizationDirectives [
-	"Optimization directives applied to this context in order."
 
-	^ optimizationDirectives ifNil: [ #(  ) ]
+	^ backend optimizationDirectives
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> optimize: directive [
-	"Apply one PCRE2 optimization directive. Directives are cumulative; later directives may override earlier ones."
 
-	self requireSupportedFeature: 'Optimization directives' since: '10.45' when: self ffiLibraryName supportsOptimizationDirectives.
-	self checkSettingResult: (self setOptimize: directive).
-	optimizationDirectives := self optimizationDirectives copyWith: directive
+	backend optimize: directive
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> options [
-	"Extra compile option bits set through this context."
 
-	^ options ifNil: [ 0 ]
+	^ backend options
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> options: anInteger [
-	"Set PCRE2 extra compile options. See PCRE2 class-side methods beginning with 'extra' for known values."
 
-	self checkSettingResult: (self setOptions: anInteger).
-	options := anInteger
+	backend options: anInteger
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> parensNestLimit [
-	"Maximum parenthesis nesting depth, or nil when PCRE2 uses its default."
 
-	^ parensNestLimit
+	^ backend parensNestLimit
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> parensNestLimit: anInteger [
-	"Set the maximum parenthesis nesting depth accepted by pcre2_compile()."
 
-	self checkSettingResult: (self setParensNestLimit: anInteger).
-	parensNestLimit := anInteger
+	backend parensNestLimit: anInteger
 ]
 
-{ #category : 'copying' }
-PCRE2CompileContext >> postCopy [
-
-	handle := self privateCopy.
-	handle isNull ifTrue: [ PCRE2Error signal: 'Failed to obtain memory to copy compile context' ].
-	optimizationDirectives ifNotNil: [ optimizationDirectives := optimizationDirectives copy ].
-	self autoRelease
-]
-
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> privateCopy [
 
-	self subclassResponsibility
+	^ backend privateCopy
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> removeOptions: anInteger [
 
-	^ self options: (self options bitAnd: anInteger bitInvert)
+	^ backend removeOptions: anInteger
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> requireSupportedFeature: featureName since: versionString when: aBoolean [
-	"Fail before calling an FFI entry point that may not exist in older PCRE2 10.x runtimes."
 
-	aBoolean ifTrue: [ ^ self ].
-	PCRE2Error signal: featureName , ' requires PCRE2 ' , versionString , ' or newer; loaded ' , self ffiLibraryName versionString
+	^ backend requireSupportedFeature: featureName since: versionString when: aBoolean
 ]
 
-{ #category : 'persistence' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> restoreAfterStartup [
-	"Recreate my native compile context and reapply remembered compile settings."
 
-	| directives |
-	self setHandle: self compilerClass new createCompileContext.
-	self isNull ifTrue: [ PCRE2Error signal: 'Failed to restore compile context' ].
-	bsr ifNotNil: [ self bsr: bsr ].
-	options ifNotNil: [ self options: options ].
-	newline ifNotNil: [ self newline: newline ].
-	maxPatternLength ifNotNil: [ self maxPatternLength: maxPatternLength ].
-	maxPatternCompiledLength ifNotNil: [ self maxPatternCompiledLength: maxPatternCompiledLength ].
-	maxVarLookbehind ifNotNil: [ self maxVarLookbehind: maxVarLookbehind ].
-	parensNestLimit ifNotNil: [ self parensNestLimit: parensNestLimit ].
-	characterTables ifNotNil: [
-			characterTables isNull ifTrue: [ characterTables restoreAfterStartup ].
-			self characterTables: characterTables ].
-	directives := optimizationDirectives.
-	optimizationDirectives := nil.
-	directives ifNotNil: [ directives do: [ :directive | self optimize: directive ] ]
+	backend restoreAfterStartup
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> setBSR: value [
 
-	self subclassResponsibility
+	^ backend setBSR: value
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> setCharacterTables: characterTablesOrNil [
 
-	self subclassResponsibility
+	^ backend setCharacterTables: characterTablesOrNil
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> setMaxPatternCompiledLength: value [
 
-	self subclassResponsibility
+	^ backend setMaxPatternCompiledLength: value
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> setMaxPatternLength: value [
 
-	self subclassResponsibility
+	^ backend setMaxPatternLength: value
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> setMaxVarLookbehind: value [
 
-	self subclassResponsibility
+	^ backend setMaxVarLookbehind: value
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> setNewline: value [
 
-	self subclassResponsibility
+	^ backend setNewline: value
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> setOptimize: directive [
 
-	self subclassResponsibility
+	^ backend setOptimize: directive
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> setOptions: value [
 
-	self subclassResponsibility
+	^ backend setOptions: value
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2CompileContext >> setParensNestLimit: value [
 
-	self subclassResponsibility
+	^ backend setParensNestLimit: value
 ]
 
 { #category : 'accessing' }
@@ -361,12 +282,11 @@ PCRE2CompileContext >> useBSRUnicode [
 
 { #category : 'accessing' }
 PCRE2CompileContext >> useCharacterTablesFromCurrentLocale [
-	"Build low-character tables from the current process locale and install them on this context."
 
-	^ self characterTables: self ffiLibraryName newCharacterTables
+	^ backend useCharacterTablesFromCurrentLocale
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> useFullOptimization [
 	"Enable all optional compiler optimizations."
 
@@ -415,7 +335,7 @@ PCRE2CompileContext >> useNewlineNul [
 	^ self newline: PCRE2 newlineNul
 ]
 
-{ #category : 'accessing' }
+{ #category : 'configuration' }
 PCRE2CompileContext >> useNoOptimization [
 	"Disable all optional compiler optimizations."
 

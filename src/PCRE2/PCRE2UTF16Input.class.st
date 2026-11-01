@@ -82,10 +82,9 @@ PCRE2UTF16Input class >> fromString: aString [
 	copy := aString copy.
 	codeUnitCount := 0.
 	1 to: copy size do: [ :index |
-			(copy at: index) asInteger <= 16rFFFF
-				ifTrue: [ codeUnitCount := codeUnitCount + 1 ]
-				ifFalse: [ codeUnitCount := codeUnitCount + 2 ] ].
-
+			codeUnitCount := codeUnitCount + ((copy at: index) asInteger <= 16rFFFF
+				                  ifTrue: [ 1 ]
+				                  ifFalse: [ 2 ]) ].
 	bytes := ByteArray new: codeUnitCount * 2.
 	offsets := Array new: copy size + 1.
 	codeUnitOffset := 0.

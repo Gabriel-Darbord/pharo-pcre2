@@ -42,21 +42,19 @@ PCRE2CompileError >> pattern [
 
 { #category : 'signalling' }
 PCRE2CompileError >> signal: anErrorMessage in: input at: codeUnitOffset [
-	"Insert '(*ERROR)' into the decoded pattern at the character position corresponding to PCRE2's reported code-unit offset."
 
-	| characterOffset head tail |
+	| head tail |
 	errorMessage := anErrorMessage.
 	offset := codeUnitOffset.
-	pattern := input size = 0
-		           ifTrue: [ '' ]
-		           ifFalse: [ input readFrom: 1 to: input size ].
-	characterOffset := input characterCountUpToCodeUnitOffset: codeUnitOffset.
-	head := characterOffset = 0
-		        ifTrue: [ '' ]
-		        ifFalse: [ pattern copyFrom: 1 to: characterOffset ].
-	tail := characterOffset >= pattern size
-		        ifTrue: [ '' ]
-		        ifFalse: [ pattern copyFrom: characterOffset + 1 to: pattern size ].
-	self messageText: errorMessage , ': ' , head , '(*ERROR)' , tail.
+	pattern := input displayFrom: 1 to: input size.
+	head := input displayFrom: 1 to: (codeUnitOffset min: input size).
+	tail := input displayFrom: codeUnitOffset + 1 to: input size.
+	self messageText: (String streamContents: [ :stream |
+				 stream
+					 nextPutAll: errorMessage;
+					 nextPutAll: ': ';
+					 nextPutAll: head;
+					 nextPutAll: '(*ERROR)';
+					 nextPutAll: tail ]).
 	self signal
 ]

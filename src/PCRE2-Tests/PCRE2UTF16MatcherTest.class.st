@@ -3,7 +3,7 @@ Tests the PCRE2 16-bit code-unit compiler and matcher integration.
 "
 Class {
 	#name : 'PCRE2UTF16MatcherTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

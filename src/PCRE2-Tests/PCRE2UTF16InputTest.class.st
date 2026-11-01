@@ -3,7 +3,7 @@ Tests reusable UTF-16 input preparation and code-unit-to-character offset transl
 "
 Class {
 	#name : 'PCRE2UTF16InputTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

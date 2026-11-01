@@ -5,7 +5,7 @@ The suite covers serialization, deserialization fallback, recompilation fallback
 "
 Class {
 	#name : 'PCRE2SessionManagerTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }
@@ -96,6 +96,51 @@ PCRE2SessionManagerTest >> testShutDownWithSerialization [
 	self assert: manager serializedMatchers notEmpty.
 	self assert: manager serializedSignature equals: PCRE2MockSessionManager serializationSignature.
 	self deny: regex isNull
+]
+
+{ #category : 'tests' }
+PCRE2SessionManagerTest >> testSnapshotCachesStandaloneResultMetadata [
+
+	| manager matcher match |
+	PCRE2MockSessionManager useSerialization: true.
+	manager := PCRE2MockSessionManager new.
+	matcher := '(?<word>\w+)' asPerlCompatibleRegex.
+	match := matcher findMatch: 'hello'.
+	manager prepareForSnapshot.
+	match backend finalize.
+	self assert: match isPersistent.
+	self assert: (match groupNamed: 'word') equals: 'hello'.
+	self assert: match startIndex equals: 1.
+	self assert: match matchDataSize > 0.
+	self assert: match mark isNil
+]
+
+{ #category : 'tests' }
+PCRE2SessionManagerTest >> testSnapshotPreparationKeepsMatchDataReusable [
+
+	| manager matcher input match |
+	PCRE2MockSessionManager useSerialization: false.
+	manager := PCRE2MockSessionManager new.
+	matcher := 'a+' asPerlCompatibleRegex.
+	input := 'aaa' asPCRE2UTF8Input.
+	match := matcher newMatchData.
+	matcher
+		matchBytes: input bytes
+		from: 1
+		to: input size
+		into: match.
+	match input: input.
+	manager prepareForSnapshot.
+	self deny: match isNull.
+	self deny: match isPersistent.
+	self assert: match readMatch equals: 'aaa'.
+	self
+		assert: (matcher
+				 matchBytes: #[ 97 ]
+				 from: 1
+				 to: 1
+				 into: match)
+		equals: 1
 ]
 
 { #category : 'tests' }
