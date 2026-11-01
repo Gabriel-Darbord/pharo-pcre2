@@ -1,6 +1,6 @@
 # API Overview
 
-Both implementations use the same public objects. Select a backend with `PCRE2Compiler new backend: PCRE2CompilerFFIBackend` or `PCRE2CompilerPharoBackend` before compiling. The Pharo implementation is experimental; see [backend capabilities and loading groups](Backends.md) for its current limits. The advanced C facilities below require the FFI backend unless explicitly supported by another implementation.
+Both implementations answer the same public objects, so everything below works whichever one is loaded. A plain install runs on the Pharo backend; `PCRE2Compiler new backend: PCRE2CompilerFFIBackend` picks the C library instead. Where the two differ, [Backends.md](Backends.md) is the reference: it lists what the Pharo backend does not do and which facilities below are FFI-only.
 
 ## Creating Matchers
 

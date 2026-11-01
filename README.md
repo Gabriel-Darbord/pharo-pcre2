@@ -25,7 +25,7 @@ Two interchangeable backends sit behind the same API. The default one executes e
 
 - [Getting Started](docs/GettingStarted.md) — installing it and using it
 - [API](docs/API.md) — the whole surface, Rx compatibility included
-- [Backends](docs/Backends.md) — choosing one, and what the Pharo one does not do yet
+- [Backends](docs/Backends.md) — choosing one, and where the two differ
 - [Lifecycle](docs/Lifecycle.md) — native resources, serialization and image restarts
 
 For the regular expression syntax itself, see the [official PCRE2 documentation](https://www.pcre.org/current/doc/html/index.html).
