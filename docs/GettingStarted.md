@@ -14,7 +14,7 @@ That loads the `default` group: the shared API and the Pharo backend, which runs
 | group | loads |
 | --- | --- |
 | `default` | `PCRE2` and `PCRE2-PharoBackend` |
-| `Core` | `PCRE2` alone |
+| `Core` | `PCRE2` alone, which has no engine and cannot compile a pattern |
 | `Pharo` | the Pharo backend |
 | `FFI` | the FFI backend |
 | `Backends` | both backends |

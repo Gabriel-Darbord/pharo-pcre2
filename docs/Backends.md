@@ -8,7 +8,7 @@ Both implementation packages depend on the shared `PCRE2` package. The shared pa
 
 | Baseline group | Contents |
 | --- | --- |
-| `Core` | Shared API and backend contracts |
+| `Core` | Shared API and backend contracts, with neither implementation |
 | `FFI` | Shared API and `PCRE2-FFIBackend` |
 | `Pharo` | Shared API and `PCRE2-PharoBackend` |
 | `Backends` | Both implementations |
