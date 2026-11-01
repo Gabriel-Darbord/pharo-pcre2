@@ -5,7 +5,7 @@ The suite covers matching, enumeration, copying, substitution, prepared UTF-8 in
 "
 Class {
 	#name : 'PCRE2MatcherTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

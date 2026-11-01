@@ -3,7 +3,7 @@ Covers PCRE2's native pattern conversion helpers for glob and POSIX patterns.
 "
 Class {
 	#name : 'PCRE2PatternConversionTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

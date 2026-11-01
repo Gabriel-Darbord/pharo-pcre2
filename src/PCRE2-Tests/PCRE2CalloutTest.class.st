@@ -5,7 +5,7 @@ Passive enumeration tests inspect compiled patterns without installing match cal
 "
 Class {
 	#name : 'PCRE2CalloutTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

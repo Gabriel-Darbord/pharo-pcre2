@@ -3,7 +3,7 @@ Tests PCRE2 matching through the 32-bit code-unit API.
 "
 Class {
 	#name : 'PCRE2UTF32MatcherTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

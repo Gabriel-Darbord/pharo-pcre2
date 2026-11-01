@@ -5,7 +5,7 @@ The suite covers successful compilation, compile errors, and UTF-8 error reporti
 "
 Class {
 	#name : 'PCRE2CompilerTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

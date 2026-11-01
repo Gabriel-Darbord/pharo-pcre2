@@ -3,17 +3,10 @@ Tests for explicit PCRE2 JIT stack ownership and match-context assignment.
 "
 Class {
 	#name : 'PCRE2JITStackTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }
-
-{ #category : 'running' }
-PCRE2JITStackTest >> runCase [
-	"JIT stacks are an FFI facility, so run every case on that backend whatever the image default is."
-
-	^ PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [ super runCase ]
-]
 
 { #category : 'private' }
 PCRE2JITStackTest >> skipIfJITUnsupported [

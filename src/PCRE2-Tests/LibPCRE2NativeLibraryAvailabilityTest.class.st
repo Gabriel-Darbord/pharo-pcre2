@@ -3,7 +3,7 @@ Tests native PCRE2 library discovery without requiring the library to be install
 "
 Class {
 	#name : 'LibPCRE2NativeLibraryAvailabilityTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

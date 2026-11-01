@@ -203,6 +203,13 @@ PCRE2CodeUnitWidthTest >> regexFor: aString [
 	^ self compiler compile: aString
 ]
 
+{ #category : 'running' }
+PCRE2CodeUnitWidthTest >> runCase [
+	"Run on the FFI backend whatever the image default is, as PCRE2FFITestCase does for the rest of this package. This class cannot inherit that, because it is parametrized."
+
+	^ PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [ super runCase ]
+]
+
 { #category : 'private' }
 PCRE2CodeUnitWidthTest >> skipIfUnsupported [
 

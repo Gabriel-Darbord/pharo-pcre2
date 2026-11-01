@@ -5,7 +5,7 @@ The suite covers offset access, persistent match data, remembered subjects, and 
 "
 Class {
 	#name : 'PCRE2MatchTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }
@@ -43,29 +43,28 @@ PCRE2MatchTest >> testDuplicateNamedGroups [
 PCRE2MatchTest >> testFreeingAnExternalObjectLeavesItNull [
 	"isNull is the question every guard asks before touching an external object, and the shutdown sweep is one of those guards. A handle that still carries the address of freed memory makes the question answer wrongly, so free nulls it. Freeing twice then does nothing, rather than handing the library a pointer it has already taken back."
 
-	PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [
-			| matcher match context |
-			matcher := 'a(*MARK:HELLO)b' asPerlCompatibleRegex.
-			match := matcher findMatch: 'ab'.
-			context := matcher context.
+	| matcher match context |
+	matcher := 'a(*MARK:HELLO)b' asPerlCompatibleRegex.
+	match := matcher findMatch: 'ab'.
+	context := matcher context.
 
-			self deny: matcher backend isNull.
-			self deny: match backend isNull.
-			self deny: context backend isNull.
+	self deny: matcher backend isNull.
+	self deny: match backend isNull.
+	self deny: context backend isNull.
 
-			matcher free.
-			match free.
-			context free.
+	matcher free.
+	match free.
+	context free.
 
-			self assert: matcher backend isNull.
-			self assert: match backend isNull.
-			self assert: context backend isNull.
+	self assert: matcher backend isNull.
+	self assert: match backend isNull.
+	self assert: context backend isNull.
 
-			matcher free.
-			match free.
-			context free.
+	matcher free.
+	match free.
+	context free.
 
-			self assert: matcher backend isNull ]
+	self assert: matcher backend isNull
 ]
 
 { #category : 'tests' }
@@ -104,21 +103,20 @@ PCRE2MatchTest >> testMarkOutlivesTheCompiledPatternItPointedInto [
 
 	It is a statement of the contract, not a detector of the defect it came from. Reading a freed block answers whatever now occupies it, which on a good day is still the old name, so this passed about as often as it failed before the mark was captured early. testMatchTakesItsMarkWhileTheAttemptIsBeingRecorded is what fails if the capture goes away."
 
-	PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [
-			| match regex recycled |
-			regex := 'a(*MARK:HELLO)b' asPerlCompatibleRegex.
-			match := regex findMatch: 'ab'.
-			regex free.
+	| match regex recycled |
+	regex := 'a(*MARK:HELLO)b' asPerlCompatibleRegex.
+	match := regex findMatch: 'ab'.
+	regex free.
 
-			recycled := (1 to: 400) collect: [ :index |
-					            (String streamContents: [ :out |
-							             out
-								             nextPutAll: 'x(*MARK:ZZZZZZZZZZZZZZZZ';
-								             print: index;
-								             nextPutAll: ')y[a-z]+\d{2,4}(foo|bar|baz)' ]) asPerlCompatibleRegex ].
+	recycled := (1 to: 400) collect: [ :index |
+			            (String streamContents: [ :out |
+					             out
+						             nextPutAll: 'x(*MARK:ZZZZZZZZZZZZZZZZ';
+						             print: index;
+						             nextPutAll: ')y[a-z]+\d{2,4}(foo|bar|baz)' ]) asPerlCompatibleRegex ].
 
-			self assert: match mark equals: 'HELLO'.
-			self assert: recycled size equals: 400 ]
+	self assert: match mark equals: 'HELLO'.
+	self assert: recycled size equals: 400
 ]
 
 { #category : 'tests' }
@@ -147,21 +145,18 @@ PCRE2MatchTest >> testMatchDataDiagnosticsSurvivePersistence [
 
 { #category : 'tests' }
 PCRE2MatchTest >> testMatchTakesItsMarkWhileTheAttemptIsBeingRecorded [
-	"pcre2_get_mark answers a pointer into the compiled pattern, not into the match data, so the name has to be read while that pattern is alive. Reading the slot rather than sending #mark is the point of the test: the name must already be there before anyone asks for it.
+	"pcre2_get_mark answers a pointer into the compiled pattern, not into the match data, so the name has to be read while that pattern is alive. Reading the slot rather than sending #mark is the point of the test: the name must already be there before anyone asks for it."
 
-	The backend is pinned because this is about the C one. A plain install compiles with the Pharo engine, which keeps the name in an instance variable and has nothing to dangle."
+	| match regex |
+	regex := 'a(*MARK:HELLO)b' asPerlCompatibleRegex.
+	match := regex findMatch: 'ab'.
+	self assert: (match instVarNamed: 'mark') equals: 'HELLO'.
 
-	PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [
-			| match regex |
-			regex := 'a(*MARK:HELLO)b' asPerlCompatibleRegex.
-			match := regex findMatch: 'ab'.
-			self assert: (match instVarNamed: 'mark') equals: 'HELLO'.
-
-			"An attempt that ends on no mark has to record that too, or a later read would go back to the pointer to find out."
-			regex := 'ab' asPerlCompatibleRegex.
-			match := regex findMatch: 'ab'.
-			self assert: (match instVarNamed: 'mark') equals: ''.
-			self assert: match mark equals: nil ]
+	"An attempt that ends on no mark has to record that too, or a later read would go back to the pointer to find out."
+	regex := 'ab' asPerlCompatibleRegex.
+	match := regex findMatch: 'ab'.
+	self assert: (match instVarNamed: 'mark') equals: ''.
+	self assert: match mark equals: nil
 ]
 
 { #category : 'tests' }
@@ -234,9 +229,7 @@ PCRE2MatchTest >> testOnlyTheAttemptItselfAsksTheLibraryForAMark [
 		            thenCollect: [ :method | method selector ]) asSet.
 	self assertCollection: senders hasSameElements: #( #captureMark ).
 
-	PCRE2Compiler
-		withDefaultBackend: PCRE2CompilerFFIBackend
-		do: [ self assert: 'a(*MARK:HELLO)b' asPerlCompatibleRegex newMatchData mark equals: nil ]
+	self assert: 'a(*MARK:HELLO)b' asPerlCompatibleRegex newMatchData mark equals: nil
 ]
 
 { #category : 'tests' }

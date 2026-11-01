@@ -3,7 +3,7 @@ Tests UTF-32 prepared inputs used by PCRE2's 32-bit code-unit API.
 "
 Class {
 	#name : 'PCRE2UTF32InputTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

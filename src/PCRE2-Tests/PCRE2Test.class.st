@@ -5,7 +5,7 @@ The suite protects the option tables used to explain and validate compile, match
 "
 Class {
 	#name : 'PCRE2Test',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

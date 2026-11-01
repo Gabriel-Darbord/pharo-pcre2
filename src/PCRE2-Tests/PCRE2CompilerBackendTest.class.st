@@ -5,7 +5,7 @@ Which backend an image picks when several are loaded belongs in PCRE2BackendInte
 "
 Class {
 	#name : 'PCRE2CompilerBackendTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

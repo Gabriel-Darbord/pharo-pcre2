@@ -5,17 +5,10 @@ These checks verify that the loaded library exposes the expected runtime configu
 "
 Class {
 	#name : 'LibPCRE2Test',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }
-
-{ #category : 'running' }
-LibPCRE2Test >> runCase [
-	"This class tests the native library binding, so run every case on the FFI backend whatever the image default is."
-
-	^ PCRE2Compiler withDefaultBackend: PCRE2CompilerFFIBackend do: [ super runCase ]
-]
 
 { #category : 'tests' }
 LibPCRE2Test >> testConfig [

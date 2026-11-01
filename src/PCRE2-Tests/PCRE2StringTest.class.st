@@ -5,7 +5,7 @@ These methods mirror the shape of Pharo's Regex-Core `String` messages while spe
 "
 Class {
 	#name : 'PCRE2StringTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

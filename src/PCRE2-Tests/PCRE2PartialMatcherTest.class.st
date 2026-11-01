@@ -5,7 +5,7 @@ Partial matching is PCRE2-specific: soft mode prefers a complete match when one 
 "
 Class {
 	#name : 'PCRE2PartialMatcherTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

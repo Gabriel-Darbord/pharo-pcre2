@@ -5,7 +5,7 @@ The suite covers ASCII direct storage, non-ASCII encoding, WideString encoding, 
 "
 Class {
 	#name : 'PCRE2UTF8InputTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }

@@ -3,7 +3,7 @@ I cover expressive PCRE2 pattern features that are useful examples but are not s
 "
 Class {
 	#name : 'PCRE2AwesomePatternsTest',
-	#superclass : 'TestCase',
+	#superclass : 'PCRE2FFITestCase',
 	#category : 'PCRE2-Tests',
 	#package : 'PCRE2-Tests'
 }
