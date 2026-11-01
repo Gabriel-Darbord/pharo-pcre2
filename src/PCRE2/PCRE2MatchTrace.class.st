@@ -73,6 +73,13 @@ PCRE2MatchTrace >> captureRangesAtEvent: aPCRE2CalloutEvent [
 ]
 
 { #category : 'accessing' }
+PCRE2MatchTrace >> eventCount [
+	"Answer how many callout events this trace holds."
+
+	^ events size
+]
+
+{ #category : 'accessing' }
 PCRE2MatchTrace >> events [
 
 	^ events

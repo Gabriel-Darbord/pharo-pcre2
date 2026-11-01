@@ -22,7 +22,7 @@ jobs:
       - uses: hpi-swa/setup-smalltalkCI@v1
         with:
           smalltalk-image: ${{ matrix.smalltalk }}
-      - name: Load and test the default group, with no PCRE2 installed
+      - name: Load and test the Pharo backend and the tools, with no PCRE2 installed
         run: smalltalkci -s ${{ matrix.smalltalk }}
         shell: bash
         timeout-minutes: 15
@@ -35,6 +35,25 @@ jobs:
           format: lcov
           flag-name: Pharo64-14
           fail-on-error: false
+
+  ffi-only:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        smalltalk: [ Pharo64-12, Pharo64-13, Pharo64-14, Pharo64-15 ]
+    name: ${{ matrix.smalltalk }} FFI only
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install PCRE2
+        run: sudo apt-get update && sudo apt-get install -y libpcre2-dev
+      - uses: hpi-swa/setup-smalltalkCI@v1
+        with:
+          smalltalk-image: ${{ matrix.smalltalk }}
+      - name: Load and test the FFI backend without the Pharo one
+        run: smalltalkci -s ${{ matrix.smalltalk }} .smalltalk-ffi.ston
+        shell: bash
+        timeout-minutes: 15
 
   with-c-library:
     runs-on: ubuntu-latest
@@ -50,7 +69,7 @@ jobs:
       - uses: hpi-swa/setup-smalltalkCI@v1
         with:
           smalltalk-image: ${{ matrix.smalltalk }}
-      - name: Load and test both backends
+      - name: Load and test every group, both backends and the tools
         run: smalltalkci -s ${{ matrix.smalltalk }} .smalltalk-lib.ston
         shell: bash
         timeout-minutes: 15

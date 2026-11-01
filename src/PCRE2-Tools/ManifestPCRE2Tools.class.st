@@ -1,3 +1,6 @@
+"
+I hold the package-level lint configuration for PCRE2-Tools, so the debugger and trace tools are checked under the same rules as the rest of the project.
+"
 Class {
 	#name : 'ManifestPCRE2Tools',
 	#superclass : 'PackageManifest',

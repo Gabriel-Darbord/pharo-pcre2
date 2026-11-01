@@ -1,7 +1,9 @@
 "
 Runs PCRE2 matches under debugger control.
 
-I compile a temporary automatic-callout matcher with the configured compiler and record PCRE2CalloutEvent snapshots into a PCRE2TraceRecorder. I never suspend inside the native callback: callbacks append the event and immediately return either success or PCRE2_ERROR_CALLOUT. This keeps ThreadedFFI callback unwinding simple and avoids leaving PCRE2 parked inside Pharo UI control flow.
+I compile a temporary automatic-callout matcher with the configured compiler and record PCRE2CalloutEvent snapshots into a PCRE2TraceRecorder. Either backend can drive me: I only ever touch the public matcher, context and match objects, so the same stepping works on the Pharo engine and on the C library.
+
+I never suspend inside the callout block. It appends the event and returns either success or PCRE2_ERROR_CALLOUT at once. The Pharo backend would tolerate more, but the FFI one calls back through ThreadedFFI, where suspending would leave the C library parked inside Pharo UI control flow, so both take the same path.
 
 Step mode records a deterministic prefix by rerunning the match and stopping after the requested callout count. Continue mode runs the same instrumented matcher to completion. Clients can register completion callbacks with whenCompletedDo: to refresh after a continued run finishes.
 "
@@ -53,10 +55,10 @@ PCRE2LiveDebugRun class >> pattern: patternString subject: subjectString compile
 PCRE2LiveDebugRun >> abort [
 
 	abortRequested := true.
-	self hasActiveProcess ifFalse: [
-			(runState = #paused or: [ runState = #idle ]) ifTrue: [
-					recorder ifNotNil: [ recorder abortWithResultCode: PCRE2 errorCallout ].
-					self runState: #aborted ] ]
+	self hasActiveProcess ifTrue: [ ^ self ].
+	(#( paused idle ) includes: runState) ifFalse: [ ^ self ].
+	recorder ifNotNil: [ recorder abortWithResultCode: PCRE2 errorCallout ].
+	self runState: #aborted
 ]
 
 { #category : 'accessing' }
@@ -88,7 +90,7 @@ PCRE2LiveDebugRun >> handleCalloutEvent: aPCRE2CalloutEvent [
 	abortRequested ifTrue: [ ^ PCRE2 errorCallout ].
 	recorder appendEvent: aPCRE2CalloutEvent.
 	stateSemaphore signal.
-	(controlMode = #step and: [ recorder events size >= targetEventCount ]) ifTrue: [ ^ PCRE2 errorCallout ].
+	(controlMode = #step and: [ recorder eventCount >= targetEventCount ]) ifTrue: [ ^ PCRE2 errorCallout ].
 	^ 0
 ]
 
@@ -185,7 +187,8 @@ PCRE2LiveDebugRun >> notifyCompletionCallbacks [
 	callbacks do: [ :callback |
 			[ callback cull: self ]
 				on: Error
-				do: [ :error | "Completion callbacks are observers; they must not change the recorded run result." ] ]
+				do: [ :error | "Completion callbacks are observers. One of them failing must not change the recorded run result, nor stop the others from being told."
+					error return: nil ] ]
 ]
 
 { #category : 'accessing' }
@@ -203,9 +206,9 @@ PCRE2LiveDebugRun >> pattern: aString [
 { #category : 'actions' }
 PCRE2LiveDebugRun >> pause [
 
-	self hasActiveProcess ifTrue: [
-			controlMode := #step.
-			targetEventCount := recorder events size + 1 max: 1 ]
+	self hasActiveProcess ifFalse: [ ^ self ].
+	controlMode := #step.
+	targetEventCount := recorder eventCount + 1 max: 1
 ]
 
 { #category : 'preparing' }
@@ -239,12 +242,12 @@ PCRE2LiveDebugRun >> rawMatchInto: matchData [
 PCRE2LiveDebugRun >> recordRawResult: resultCode in: matchData [
 
 	matchData resultCode: resultCode.
-	resultCode > 0 ifTrue: [
-			matchData count: resultCode.
-			^ self ].
-	resultCode = PCRE2 errorPartial
-		ifTrue: [ matchData count: 1 ]
-		ifFalse: [ matchData count: 0 ]
+	matchData count: (resultCode > 0
+			 ifTrue: [ resultCode ]
+			 ifFalse: [
+					 resultCode = PCRE2 errorPartial
+						 ifTrue: [ 1 ]
+						 ifFalse: [ 0 ] ])
 ]
 
 { #category : 'accessing' }
@@ -330,7 +333,7 @@ PCRE2LiveDebugRun >> step [
 	self prepare.
 	self hasActiveProcess ifTrue: [ ^ self ].
 	controlMode := #step.
-	targetEventCount := recorder events size + 1 max: 1.
+	targetEventCount := recorder eventCount + 1 max: 1.
 	^ self start
 ]
 

@@ -3,14 +3,14 @@ SmalltalkCISpec {
     SCIMetacelloLoadSpec {
       #baseline : 'PCRE2',
       #directory : 'src',
-      #load : [ 'PharoTests' ],
+      #load : [ 'PharoTests', 'ToolsTests' ],
       #platforms : [ #pharo ]
     }
   ],
   #testing : {
-    #packages : [ 'PCRE2-PharoBackend-Tests' ],
+    #packages : [ 'PCRE2-PharoBackend-Tests', 'PCRE2-Tools-Tests' ],
     #coverage : {
-      #packages : [ 'PCRE2', 'PCRE2-PharoBackend' ],
+      #packages : [ 'PCRE2', 'PCRE2-PharoBackend', 'PCRE2-Tools' ],
       #format : #lcov
     }
   }

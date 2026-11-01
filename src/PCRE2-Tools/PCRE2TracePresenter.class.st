@@ -270,7 +270,7 @@ PCRE2TracePresenter >> flushProgressRun: pendingSteps into: rows [
 	pendingSteps ifEmpty: [ ^ self ].
 	pendingSteps size >= self minimumProgressRunSizeForGrouping
 		ifTrue: [ rows add: (PCRE2TraceStepRow steps: pendingSteps) ]
-		ifFalse: [ pendingSteps do: [ :step | rows add: (PCRE2TraceStepRow steps: { step }) ] ].
+		ifFalse: [ rows addAll: (pendingSteps collect: [ :step | PCRE2TraceStepRow steps: { step } ]) ].
 	pendingSteps removeAll
 ]
 
@@ -390,14 +390,15 @@ PCRE2TracePresenter >> minimumProgressRunSizeForGrouping [
 
 { #category : 'display' }
 PCRE2TracePresenter >> oneLineSourceFor: sourceObject [
+	"Answer the source on a single line, so a line terminator inside a pattern cannot break a table row."
 
 	| source |
 	source := sourceObject ifNil: [ '' ] ifNotNil: [ sourceObject asString ].
 	^ String streamContents: [ :stream |
 			  source do: [ :character |
-					  (character = Character cr or: [ character = Character lf ])
-						  ifTrue: [ stream nextPut: Character space ]
-						  ifFalse: [ stream nextPut: character ] ] ]
+					  stream nextPut: ((character = Character cr or: [ character = Character lf ])
+							   ifTrue: [ Character space ]
+							   ifFalse: [ character ]) ] ]
 ]
 
 { #category : 'layout' }
@@ -513,7 +514,7 @@ PCRE2TracePresenter >> selectedStep: aTraceStepOrNil [
 	self updateSelectedStep
 ]
 
-{ #category : 'initialization' }
+{ #category : 'accessing - model' }
 PCRE2TracePresenter >> setModelBeforeInitialization: aPCRE2MatchTrace [
 
 	trace := aPCRE2MatchTrace
@@ -747,7 +748,7 @@ PCRE2TracePresenter >> traceTimelineHelpString [
 	^ 'Callout events in execution order. Automatic rows may group repeated progress events.'
 ]
 
-{ #category : 'updating' }
+{ #category : 'initialization' }
 PCRE2TracePresenter >> updatePresenter [
 
 	| matchingStep previousStep rows |

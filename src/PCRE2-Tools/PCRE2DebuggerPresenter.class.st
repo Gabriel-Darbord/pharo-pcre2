@@ -333,7 +333,7 @@ PCRE2DebuggerPresenter >> session [
 	^ session
 ]
 
-{ #category : 'initialization' }
+{ #category : 'accessing - model' }
 PCRE2DebuggerPresenter >> setModelBeforeInitialization: aPCRE2DebugSession [
 
 	session := aPCRE2DebugSession
@@ -378,7 +378,7 @@ PCRE2DebuggerPresenter >> tracePresenter [
 	^ tracePresenter
 ]
 
-{ #category : 'updating' }
+{ #category : 'initialization' }
 PCRE2DebuggerPresenter >> updatePresenter [
 
 	self refreshFromSession
