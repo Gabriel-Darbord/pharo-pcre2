@@ -9,8 +9,31 @@ on:
   pull_request:
     branches: [ main ]
 
+# A change that touches no code still runs every job, and every job still reports.
+# Pharo64-12, Pharo64-13 and Pharo64-14 are required checks on main: a job that does
+# not run reports nothing, the check stays "expected", and the pull request can never
+# be merged. So the jobs are kept and the work inside them is what gets skipped --
+# the image download and the test run, which is all the time there is to save.
+
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            code:
+              - 'src/**'
+              - 'scripts/**'
+              - '.smalltalk*.ston'
+              - '.github/workflows/**'
+
   default:
+    needs: changes
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -20,14 +43,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: hpi-swa/setup-smalltalkCI@v1
+        if: ${{ needs.changes.outputs.code == 'true' }}
         with:
           smalltalk-image: ${{ matrix.smalltalk }}
       - name: Load and test the Pharo backend and the tools, with no PCRE2 installed
+        if: ${{ needs.changes.outputs.code == 'true' }}
         run: smalltalkci -s ${{ matrix.smalltalk }}
         shell: bash
         timeout-minutes: 15
       - name: Coveralls
-        if: ${{ success() && matrix.smalltalk == 'Pharo64-14' }}
+        if: ${{ success() && needs.changes.outputs.code == 'true' && matrix.smalltalk == 'Pharo64-14' }}
         uses: coverallsapp/github-action@v2
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -37,6 +62,7 @@ jobs:
           fail-on-error: false
 
   ffi-only:
+    needs: changes
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -46,16 +72,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install PCRE2
+        if: ${{ needs.changes.outputs.code == 'true' }}
         run: sudo apt-get update && sudo apt-get install -y libpcre2-dev
       - uses: hpi-swa/setup-smalltalkCI@v1
+        if: ${{ needs.changes.outputs.code == 'true' }}
         with:
           smalltalk-image: ${{ matrix.smalltalk }}
       - name: Load and test the FFI backend without the Pharo one
+        if: ${{ needs.changes.outputs.code == 'true' }}
         run: smalltalkci -s ${{ matrix.smalltalk }} .smalltalk-ffi.ston
         shell: bash
         timeout-minutes: 15
 
   with-c-library:
+    needs: changes
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -65,11 +95,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Install PCRE2
+        if: ${{ needs.changes.outputs.code == 'true' }}
         run: sudo apt-get update && sudo apt-get install -y libpcre2-dev
       - uses: hpi-swa/setup-smalltalkCI@v1
+        if: ${{ needs.changes.outputs.code == 'true' }}
         with:
           smalltalk-image: ${{ matrix.smalltalk }}
       - name: Load and test every group, both backends and the tools
+        if: ${{ needs.changes.outputs.code == 'true' }}
         run: smalltalkci -s ${{ matrix.smalltalk }} .smalltalk-lib.ston
         shell: bash
         timeout-minutes: 15
