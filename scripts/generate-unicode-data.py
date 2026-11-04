@@ -1,10 +1,18 @@
 """Generate Unicode data, not Pharo source, from a pinned PCRE2 checkout.
 
-Writes the data as JSON, and as the packed form PCRE2UnicodeData carries: the
-sections below as LEB128 varints, gzipped, then base64. Install that string in
-PCRE2UnicodeData class>>encoded using Pharo MCP; PCRE2UnicodeData class>>decode:
-reads the same section order. No C code or test fixtures are embedded. Range
-lists contain inclusive, sorted pairs.
+Writes the data as JSON, and as the two packed forms the Pharo backend carries:
+the sections below as LEB128 varints, gzipped, then base64. Install each string
+using Pharo MCP:
+
+- the properties Pharo has no table for (scripts, script extensions, bidi
+  classes, binary properties, grapheme breaks and the script run masks) in
+  PCRE2UnicodeProperties class>>encoded;
+- the general categories, case folds and decimal digits that Pharo 15 and later
+  read from their own Unicode class in PCRE2PackedUnicodeTables class>>encoded.
+
+The decode: method of each class reads its sections in the order they are
+written here. No C code or test fixtures are embedded. Range lists contain
+inclusive, sorted pairs.
 """
 import argparse
 import base64
@@ -14,10 +22,6 @@ import json
 import re
 import subprocess
 from pathlib import Path
-
-SECTIONS = ('version', 'propertyNames', 'properties', 'aliases',
-            'allowedProperties', 'folds', 'equivalents', 'scriptMasks',
-            'digitSets')
 
 
 def varint(value, out):
@@ -47,42 +51,62 @@ def range_section(flat, out):
         previous = end
 
 
-def pack(data):
+def code_table(table, out):
+    """Codes in ascending order as gaps, each followed by its value."""
+    varint(len(table), out)
+    previous = 0
+    for code in sorted(table):
+        varint(code - previous, out)
+        varint(table[code], out)
+        previous = code
+
+
+def triple_section(triples, out):
+    """(first, last, value) runs as the gap since the last end, the length and the value."""
+    varint(len(triples), out)
+    previous = 0
+    for first, last, value in triples:
+        varint(first - previous, out)
+        varint(last - first, out)
+        varint(value, out)
+        previous = last
+
+
+def encode(out):
+    return base64.b64encode(gzip.compress(bytes(out), 9)).decode('ascii')
+
+
+def pack_properties(data):
     out = bytearray()
     text_section([data['version']], out)
-    names = sorted(data['properties'])
+    names = sorted(name for name in data['properties'] if not name.startswith('gc:'))
     text_section(names, out)
     for name in names:
         range_section(data['properties'][name], out)
-    text_section(['%s=%s' % pair for pair in sorted(data['aliases'].items())], out)
+    text_section(['%s=%s' % pair for pair in sorted(data['aliases'].items())
+                  if not pair[0].startswith('gc:')], out)
     text_section(sorted(data['allowedProperties']), out)
-    for name in ('folds', 'digitSets'):
-        table = data[name]
-        varint(len(table), out)
-        previous = 0
-        for code in sorted(table, key=int):
-            varint(int(code) - previous, out)
-            # A digit set is stored as the digit value, which is never above 9.
-            varint(table[code] if name == 'folds' else int(code) - table[code], out)
-            previous = int(code)
-    equivalents = data['equivalents']
-    varint(len(equivalents), out)
-    previous = 0
-    for code in sorted(equivalents, key=int):
-        varint(int(code) - previous, out)
-        varint(len(equivalents[code]), out)
-        for each in equivalents[code]:
-            varint(each, out)
-        previous = int(code)
     masks = data['scriptMasks']
-    varint(len(masks) // 3, out)
-    previous = 0
-    for index in range(0, len(masks), 3):
-        varint(masks[index] - previous, out)
-        varint(masks[index + 1] - masks[index], out)
-        varint(masks[index + 2], out)
-        previous = masks[index + 1]
-    return base64.b64encode(gzip.compress(bytes(out), 9)).decode('ascii')
+    triple_section(list(zip(masks[::3], masks[1::3], masks[2::3])), out)
+    return encode(out)
+
+
+def pack_tables(data):
+    out = bytearray()
+    text_section([data['version']], out)
+    categories = sorted(name[3:] for name in data['properties']
+                        if name.startswith('gc:') and len(name) == 5
+                        and name not in ('gc:lc', 'gc:cn'))
+    text_section(categories, out)
+    runs = []
+    for index, category in enumerate(categories):
+        ranges = data['properties']['gc:' + category]
+        runs.extend((first, last, index) for first, last in zip(ranges[::2], ranges[1::2]))
+    triple_section(sorted(runs), out)
+    code_table({int(code): folded for code, folded in data['folds'].items()}, out)
+    # A digit is stored as its value, which is never above 9.
+    code_table({int(code): int(code) - zero for code, zero in data['digitSets'].items()}, out)
+    return encode(out)
 
 
 def normalized(name):
@@ -257,10 +281,14 @@ if __name__ == '__main__':
     parser.add_argument('--pcre2', type=Path, required=True)
     parser.add_argument('--revision', default='pcre2-10.49')
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--packed', type=Path,
-                        help='where to write the base64 string for PCRE2UnicodeData')
+    parser.add_argument('--packed-properties', type=Path,
+                        help='where to write the base64 string for PCRE2UnicodeProperties')
+    parser.add_argument('--packed-tables', type=Path,
+                        help='where to write the base64 string for PCRE2PackedUnicodeTables')
     args = parser.parse_args()
     data = generate(args.pcre2, args.revision)
     args.output.write_text(json.dumps(data, separators=(',', ':'), sort_keys=True))
-    if args.packed:
-        args.packed.write_text(pack(data))
+    if args.packed_properties:
+        args.packed_properties.write_text(pack_properties(data))
+    if args.packed_tables:
+        args.packed_tables.write_text(pack_tables(data))

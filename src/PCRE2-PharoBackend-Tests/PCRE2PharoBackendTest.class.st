@@ -1021,21 +1021,37 @@ PCRE2PharoBackendTest >> testOpenCaptureBackreferenceUsesPreviousIteration [
 ]
 
 { #category : 'tests' }
-PCRE2PharoBackendTest >> testPackedUnicodeDataDecodesEverySection [
+PCRE2PharoBackendTest >> testPackedUnicodePropertiesDecodeEverySection [
 	"Guards the packed literal against a change to the generator or the reader that quietly shifts a section."
 
 	| data |
-	data := PCRE2UnicodeData data.
-	self assert: PCRE2UnicodeData version equals: '17.0.0'.
-	self assert: (data at: 'properties') size equals: 489.
-	self assert: ((PCRE2UnicodeData rangesFor: 'gc:lu') first: 4) equals: #( 65 90 192 214 ).
-	self assert: (PCRE2UnicodeData rangesFor: 'gc:nosuchcategory') isNil.
+	data := PCRE2UnicodeProperties data.
+	self assert: PCRE2UnicodeProperties version equals: '17.0.0'.
+	self assert: (data at: 'properties') size equals: 451.
+	self assert: ((PCRE2UnicodeProperties rangesFor: 'sc:grek') first: 4) equals: #( 880 883 885 887 ).
+	self assert: (PCRE2UnicodeProperties rangesFor: 'gc:lu') isNil.
 	self assert: ((data at: 'aliases') at: 'bc:arabicletter') equals: 'al'.
 	self assert: ((data at: 'allowedProperties') at: 'adlam').
-	self assert: (PCRE2UnicodeData fold: $K asInteger) equals: 107.
-	self assert: (PCRE2UnicodeData equivalents: $K asInteger) equals: #( 75 107 8490 ).
-	self assert: ((data at: 'digitSets') at: '118001') equals: 118000.
 	self assert: (data at: 'scriptMasks') size equals: 5646
+]
+
+{ #category : 'tests' }
+PCRE2PharoBackendTest >> testPackedUnicodeTablesDecodeEverySection [
+	"Guards the packed literal against a change to the generator or the reader that quietly shifts a section."
+
+	| tables |
+	tables := self class environment
+		          at: #PCRE2PackedUnicodeTables
+		          ifAbsent: [ ^ self skip: 'PCRE2-UnicodeCompat is loaded on Pharo 14 and older' ].
+	self assert: tables version equals: '17.0.0'.
+	self assert: (tables data at: 'categories') size equals: 29.
+	self assert: (tables data at: 'categoryRuns') size equals: 3409 * 3.
+	self assert: (tables generalCategoryOf: 16r20001) equals: #lo.
+	self assert: (tables generalCategoryOf: 16rD7A4) equals: #cn.
+	self assert: (tables fold: $K asInteger) equals: 107.
+	self assert: (tables equivalents: $K asInteger) equals: #( 75 107 8490 ).
+	self assert: (tables decimalValueOf: 118001) equals: 1.
+	self assert: (tables decimalValueOf: $A asInteger) isNil
 ]
 
 { #category : 'tests' }
@@ -1147,9 +1163,22 @@ PCRE2PharoBackendTest >> testPharoMatchersDoNotEnterFFIRestoration [
 ]
 
 { #category : 'tests' }
+PCRE2PharoBackendTest >> testPharoUnicodeTablesReadTheImageTables [
+
+	self assert: (PCRE2PharoUnicodeTables generalCategoryOf: $A asInteger) equals: #lu.
+	self assert: (PCRE2PharoUnicodeTables generalCategoryOf: $_ asInteger) equals: #pc.
+	self assert: (PCRE2PharoUnicodeTables generalCategoryOf: 16r10FFFF) equals: #cn.
+	self assert: (PCRE2PharoUnicodeTables fold: 16r212A) equals: 107.
+	self assert: (PCRE2PharoUnicodeTables equivalents: $K asInteger) equals: #( 75 107 8490 ).
+	self assert: (PCRE2PharoUnicodeTables equivalents: $1 asInteger) equals: #( 49 ).
+	self assert: (PCRE2PharoUnicodeTables decimalValueOf: 16r0663) equals: 3.
+	self assert: (PCRE2PharoUnicodeTables decimalValueOf: $A asInteger) isNil
+]
+
+{ #category : 'tests' }
 PCRE2PharoBackendTest >> testPinnedUnicodePropertiesAndCaseFolding [
 
-	self assert: PCRE2UnicodeData version equals: '17.0.0'.
+	self assert: PCRE2UnicodeProperties version equals: '17.0.0'.
 	self assert: ((self compile: '\p{sc=Greek}+') find: 'aαβ') equals: 'αβ'.
 	self assert: ((self compile: '\p{Lu}') search: 'A').
 	self assert: ((self compile: '\p{Emoji}') search: '😀').

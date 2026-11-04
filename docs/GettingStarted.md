@@ -13,9 +13,11 @@ That loads the `default` group: the shared API and the Pharo backend, which runs
 
 | group | loads |
 | --- | --- |
-| `default` | `PCRE2` and `PCRE2-PharoBackend` |
+| `default` | `PCRE2`, `PCRE2-PharoBackend` and `PCRE2-UnicodeProperties` |
 | `Core` | `PCRE2` alone, which has no engine and cannot compile a pattern |
-| `Pharo` | the Pharo backend |
+| `Pharo` | the Pharo backend with every Unicode property PCRE2 knows |
+| `PharoMinimal` | the Pharo backend alone, on Pharo's own Unicode tables |
+| `UnicodeProperties` | scripts, bidi classes, binary properties, `\X` and script runs |
 | `FFI` | the FFI backend |
 | `Backends` | both backends |
 | `Tools` | the trace and debugger tools |

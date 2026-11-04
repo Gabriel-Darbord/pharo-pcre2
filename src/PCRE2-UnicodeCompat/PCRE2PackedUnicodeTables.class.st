@@ -1,0 +1,96 @@
+"
+The general categories, simple case folding and decimal digits of Unicode 17.0.0, for images whose own `Unicode` class carries them at Unicode 9.0: Pharo 14 and older. Pharo 15 carries them at Unicode 18.0, and `PCRE2PharoUnicodeTables` reads them there.
+
+Loading this package registers me with `PCRE2UnicodeData` in place of the image's tables. I answer the same protocol as `PCRE2PharoUnicodeTables`.
+
+`data` holds the category of every assigned code as runs of first code, last code and category, the case folding as a table from code to code, and the value of every decimal digit. The codes that fold alike are worked out from the folding on first use.
+"
+Class {
+	#name : 'PCRE2PackedUnicodeTables',
+	#superclass : 'PCRE2PackedUnicodeData',
+	#classInstVars : [
+		'equivalents'
+	],
+	#category : 'PCRE2-UnicodeCompat',
+	#package : 'PCRE2-UnicodeCompat'
+}
+
+{ #category : 'accessing' }
+PCRE2PackedUnicodeTables class >> decimalValueOf: code [
+	"Answer the value of code as a decimal digit, or nil when it is none."
+
+	^ (self data at: 'digits') at: code ifAbsent: [ nil ]
+]
+
+{ #category : 'decoding' }
+PCRE2PackedUnicodeTables class >> decode: bytes [
+
+	| stream sections |
+	stream := ReadStream on: bytes.
+	sections := Dictionary new.
+	sections at: 'version' put: (self readTextFrom: stream) first.
+	sections at: 'categories' put: ((self readTextFrom: stream) collect: [ :each | each asSymbol ]).
+	sections at: 'categoryRuns' put: (self readTriplesFrom: stream).
+	sections at: 'folds' put: (self readCodeTableFrom: stream).
+	sections at: 'digits' put: (self readCodeTableFrom: stream).
+	^ sections
+]
+
+{ #category : 'generated data' }
+PCRE2PackedUnicodeTables class >> encoded [
+	"The packed sections, gzipped, in base64."
+
+	^ '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'
+]
+
+{ #category : 'accessing' }
+PCRE2PackedUnicodeTables class >> equivalents: code [
+	"Answer the codes that fold as code does, in ascending order."
+
+	equivalents ifNil: [ equivalents := PCRE2UnicodeData equivalentsUnder: (self data at: 'folds') ].
+	^ equivalents at: code ifAbsent: [ { code } ]
+]
+
+{ #category : 'accessing' }
+PCRE2PackedUnicodeTables class >> fold: code [
+
+	^ (self data at: 'folds') at: code ifAbsent: [ code ]
+]
+
+{ #category : 'accessing' }
+PCRE2PackedUnicodeTables class >> generalCategoryOf: code [
+	"Answer the short name of the general category of code, such as #lu."
+
+	| runs low high middle |
+	runs := self data at: 'categoryRuns'.
+	low := 1.
+	high := runs size // 3.
+	[ low <= high ] whileTrue: [
+			middle := low + high // 2.
+			code < (runs at: middle * 3 - 2)
+				ifTrue: [ high := middle - 1 ]
+				ifFalse: [
+						code > (runs at: middle * 3 - 1)
+							ifTrue: [ low := middle + 1 ]
+							ifFalse: [ ^ (self data at: 'categories') at: (runs at: middle * 3) + 1 ] ] ].
+	^ #cn
+]
+
+{ #category : 'class initialization' }
+PCRE2PackedUnicodeTables class >> initialize [
+
+	PCRE2UnicodeData tables: self
+]
+
+{ #category : 'class initialization' }
+PCRE2PackedUnicodeTables class >> reset [
+
+	super reset.
+	equivalents := nil
+]
+
+{ #category : 'class initialization' }
+PCRE2PackedUnicodeTables class >> unload [
+
+	PCRE2UnicodeData tables: nil
+]
