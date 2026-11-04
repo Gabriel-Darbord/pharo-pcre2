@@ -1,13 +1,5 @@
 "
-Models one debugger session for a pattern and subject.
-
-Users normally open it through the String convenience method:
-
-    'pattern' openPerlCompatibleRegexDebuggerOn: 'subject'.
-
-The session stores editable pattern and subject strings, trace results, current step selection, live-run state, and the compiler that fixes which backend and which code-unit width the run uses. Trace-all mode records a completed PCRE2MatchTrace. Step-live mode delegates execution to PCRE2LiveDebugRun, which records callout events without suspending inside the callout block.
-
-Everything here goes through the public PCRE2 protocol, so a session debugs a pattern the same way whichever backend compiled it.
+Models one debugger session on a pattern and a subject, usually opened by `'pattern' openPerlCompatibleRegexDebuggerOn: 'subject'`. It holds the inputs, the trace, the selected step, the live run, and the compiler that fixes the backend and the code-unit width. Trace-all mode records a whole `PCRE2MatchTrace`; step-live mode runs a `PCRE2LiveDebugRun`.
 "
 Class {
 	#name : 'PCRE2DebugSession',
@@ -65,7 +57,7 @@ PCRE2DebugSession >> compiler [
 
 { #category : 'accessing' }
 PCRE2DebugSession >> compiler: aPCRE2CompilerOrClass [
-	"Set the compiler used for trace-all and live debugger runs. Changing it invalidates the current trace."
+	"Changing the compiler drops the current trace."
 
 	| newCompiler |
 	newCompiler := aPCRE2CompilerOrClass isBehavior
@@ -232,7 +224,7 @@ PCRE2DebugSession >> pattern: aString [
 
 { #category : 'accessing' }
 PCRE2DebugSession >> pattern: patternString subject: subjectString maximumSteps: stepLimit [
-	"Update debugger inputs. A changed pattern or subject invalidates an in-progress live run."
+	"A changed pattern or subject stops the live run and drops the trace."
 
 	| newPattern newSubject |
 	newPattern := patternString ifNil: [ '' ] ifNotNil: [ patternString asString ].
@@ -310,7 +302,7 @@ PCRE2DebugSession >> refreshLiveTrace [
 
 { #category : 'tracing' }
 PCRE2DebugSession >> runTrace [
-	"Compile the current pattern and run an explicit instrumented trace. Normal matcher usage is not affected."
+	"Compile the pattern and trace a match of the subject."
 
 	self stopLiveRun.
 	executionMode := #traceAll.
@@ -392,7 +384,7 @@ PCRE2DebugSession >> statusString [
 
 { #category : 'stepping' }
 PCRE2DebugSession >> stepCount [
-	"Answer how many steps are shown. Steps are built on demand, so count the recorded events rather than building them to ask their size."
+	"Count the recorded events, since steps are only built on demand."
 
 	trace ifNil: [ ^ 0 ].
 	^ maximumSteps min: trace eventCount
@@ -435,7 +427,7 @@ PCRE2DebugSession >> steps [
 
 { #category : 'private' }
 PCRE2DebugSession >> stopLiveRun [
-	"Stop a live run before replacing it. The existing trace recorder is intentionally left alone until the caller installs new state."
+	"The trace recorder is left for the caller to replace."
 
 	liveRun ifNil: [ ^ self ].
 	liveRun isFinished ifFalse: [

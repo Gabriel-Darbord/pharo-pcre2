@@ -2,7 +2,6 @@ Extension { #name : 'PCRE2SubstitutionCaseCalloutEvent' }
 
 { #category : '*PCRE2-FFIBackend' }
 PCRE2SubstitutionCaseCalloutEvent class >> bytesForString: aString codeUnitWidth: codeUnitWidth [
-	"Encode aString for the active PCRE2 code-unit width."
 
 	codeUnitWidth = 8 ifTrue: [ ^ (PCRE2UTF8Input fromString: aString) bytes asByteArray ].
 	codeUnitWidth = 16 ifTrue: [ ^ (PCRE2UTF16Input fromString: aString) bytes ].
@@ -12,7 +11,7 @@ PCRE2SubstitutionCaseCalloutEvent class >> bytesForString: aString codeUnitWidth
 
 { #category : '*PCRE2-FFIBackend' }
 PCRE2SubstitutionCaseCalloutEvent class >> copyBytes: bytes to: outputPointer [
-	"Copy bytes into PCRE2's output buffer. The caller has already checked capacity."
+	"The caller has already checked the capacity."
 
 	(outputPointer isNil or: [ outputPointer isNull ]) ifTrue: [ ^ self ].
 	1 to: bytes size do: [ :index | outputPointer uint8AtOffset: index - 1 put: (bytes at: index) ]

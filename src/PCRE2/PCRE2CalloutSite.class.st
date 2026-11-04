@@ -1,9 +1,5 @@
 "
-I represent a callout site discovered in a compiled PCRE2 pattern.
-
-PCRE2 can enumerate callout points without running a match. That is useful for tools such as regex explainers/debuggers because it reveals where numbered, string, or automatic callouts appear in the compiled pattern while leaving normal matching behavior untouched.
-
-My offsets are raw PCRE2 pattern code-unit offsets for the matcher width used to compile the pattern. `matchesEvent:` links me back to a runtime `PCRE2CalloutEvent` when a trace wants static pattern metadata for an event.
+I am a callout site of a compiled PCRE2 pattern, found without running a match, for tools such as regex debuggers. My offsets are raw PCRE2 pattern code-unit offsets. `matchesEvent:` links me to a runtime `PCRE2CalloutEvent`.
 "
 Class {
 	#name : 'PCRE2CalloutSite',
@@ -75,7 +71,7 @@ PCRE2CalloutSite >> number: calloutNumber position: offset nextLength: nextLengt
 
 { #category : 'accessing' }
 PCRE2CalloutSite >> patternPosition [
-	"Answer the pattern position for this static callout site as a zero-based PCRE2 code-unit offset."
+	"Answer the pattern position as a zero-based PCRE2 code-unit offset."
 
 	^ patternPosition
 ]

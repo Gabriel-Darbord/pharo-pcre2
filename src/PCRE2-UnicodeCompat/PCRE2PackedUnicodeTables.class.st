@@ -1,9 +1,7 @@
 "
-The general categories, simple case folding and decimal digits of Unicode 17.0.0, for images whose own `Unicode` class carries them at Unicode 9.0: Pharo 14 and older. Pharo 15 carries them at Unicode 18.0, and `PCRE2PharoUnicodeTables` reads them there.
+The general categories, simple case folding and decimal digits of Unicode 17.0.0, for images whose `Unicode` class carries them at 9.0: Pharo 14 and older. Loading this package registers me with `PCRE2UnicodeData` in place of the image's tables; I answer the protocol of `PCRE2PharoUnicodeTables`.
 
-Loading this package registers me with `PCRE2UnicodeData` in place of the image's tables. I answer the same protocol as `PCRE2PharoUnicodeTables`.
-
-`data` holds the category of every assigned code as runs of first code, last code and category, the case folding as a table from code to code, and the value of every decimal digit. The codes that fold alike are worked out from the folding on first use.
+`data` holds the categories as runs of first code, last code and category, the case folding as a table from code to code, and the value of every decimal digit.
 "
 Class {
 	#name : 'PCRE2PackedUnicodeTables',
@@ -48,7 +46,7 @@ PCRE2PackedUnicodeTables class >> equivalents: code [
 	"Answer the codes that fold as code does, in ascending order."
 
 	equivalents ifNil: [ equivalents := PCRE2UnicodeData equivalentsUnder: (self data at: 'folds') ].
-	^ equivalents at: code ifAbsent: [ { code } ]
+	^ PCRE2UnicodeData equivalentsOf: code in: equivalents
 ]
 
 { #category : 'accessing' }

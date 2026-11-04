@@ -15,7 +15,7 @@ Class {
 
 { #category : 'generating' }
 PCRE2BackreferenceNode >> byteReference [
-	"The group number this compares against, or nil when a written matcher cannot decide the reference. One by name is resolved from which of several groups of that name took part, a caseless one needs the case folding the engine has, and an unset group matching nothing is a second way of matching this does not write."
+	"The group number this compares against, or nil when a written matcher cannot decide it: a reference by name, a caseless one, or one under match-unset-backreference."
 
 	^ (reference isInteger and: [ (options bitAnd: PCRE2 caseless | PCRE2 matchUnsetBackref) = 0 ]) ifTrue: [ reference ]
 ]
@@ -105,27 +105,8 @@ PCRE2BackreferenceNode >> reference: aReference [
 	reference := aReference
 ]
 
-{ #category : 'matching' }
-PCRE2BackreferenceNode >> sameText: first as: second [
-
-	^ (options bitAnd: PCRE2 caseless) = 0
-		  ifTrue: [ first = second ]
-		  ifFalse: [
-				  first size = second size and: [
-						  (1 to: first size) allSatisfy: [ :index |
-								  PCRE2UnicodeData
-									  same: (first at: index)
-									  as: (second at: index)
-									  unicode: (options bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0
-									  extraOptions: (extraOptions ifNil: [ 0 ]) ] ] ]
-]
-
 { #category : 'generating' }
-PCRE2BackreferenceNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+PCRE2BackreferenceNode >> writeInto: aGenerator at: position then: aBlock [
 
-	^ aGenerator
-		  writeBackreference: self byteReference
-		  at: position
-		  indent: level
-		  then: aBlock
+	^ aGenerator writeBackreference: self byteReference at: position then: aBlock
 ]

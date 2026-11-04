@@ -1,5 +1,5 @@
 "
-Owns a C match-context handle for a public PCRE2MatchContext. Limits are written through to the library, while the JIT stack and the callout blocks are also held in the image because the library only keeps pointers to them. Width-specific subclasses contain the UFFI entry points.
+Owns a C match-context handle for a public PCRE2MatchContext. Each setting is written through to the library and kept in the image, to be reapplied to a copy or after startup; the JIT stack and the callbacks must be kept anyway, since the library only holds pointers to them. Width-specific subclasses contain the UFFI entry points.
 "
 Class {
 	#name : 'PCRE2MatchContextFFIBackend',
@@ -29,7 +29,7 @@ PCRE2MatchContextFFIBackend class >> isAbstract [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> calloutBlock: aBlock [
-	"Install a runtime callout. aBlock receives a PCRE2CalloutEvent and may answer an integer PCRE2 return code; non-integer answers continue matching."
+	"aBlock receives a PCRE2CalloutEvent; an integer answer is the callout's return code, anything else continues matching."
 
 	| callback rc |
 	callback := self
@@ -48,7 +48,6 @@ PCRE2MatchContextFFIBackend >> calloutBlock: aBlock [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> clearCallout [
-	"Remove the runtime callout from this match context."
 
 	| rc |
 	rc := self unsetCalloutCallback.
@@ -59,7 +58,6 @@ PCRE2MatchContextFFIBackend >> clearCallout [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> clearJITStack [
-	"Remove the explicit JIT stack assignment so PCRE2 uses its default stack."
 
 	self unsetJITStack.
 	jitStack := nil
@@ -67,7 +65,6 @@ PCRE2MatchContextFFIBackend >> clearJITStack [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> clearSubstituteCallout [
-	"Remove the runtime substitution callout from this match context."
 
 	| rc |
 	rc := self unsetSubstituteCalloutCallback.
@@ -78,7 +75,6 @@ PCRE2MatchContextFFIBackend >> clearSubstituteCallout [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> clearSubstituteCaseCallout [
-	"Remove the runtime substitution case callout from this match context."
 
 	| rc |
 	rc := self unsetSubstituteCaseCalloutCallback.
@@ -89,7 +85,6 @@ PCRE2MatchContextFFIBackend >> clearSubstituteCaseCallout [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> codeUnitWidth [
-	"Answer the PCRE2 code-unit width used to decode callback payloads."
 
 	self subclassResponsibility
 ]
@@ -102,7 +97,6 @@ PCRE2MatchContextFFIBackend >> depthLimit [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> depthLimit: anInteger [
-	"Set the backtracking depth limit"
 
 	self setDepthLimit: (depthLimit := anInteger)
 ]
@@ -115,7 +109,7 @@ PCRE2MatchContextFFIBackend >> heapLimit [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> heapLimit: anInteger [
-	"Set the heap memory limit"
+	"anInteger is in kibibytes."
 
 	self setHeapLimit: (heapLimit := anInteger)
 ]
@@ -129,7 +123,7 @@ PCRE2MatchContextFFIBackend >> jitStack [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> jitStack: aJITStack [
-	"Assign an explicit JIT stack to this match context. Use nil or clearJITStack to return to PCRE2's default stack. The same non-nil stack must not be used by concurrent or nested matches."
+	"nil returns to PCRE2's default stack. A stack must not serve concurrent or nested matches."
 
 	aJITStack ifNil: [ ^ self clearJITStack ].
 	aJITStack codeUnitWidth = self codeUnitWidth ifFalse: [
@@ -146,7 +140,6 @@ PCRE2MatchContextFFIBackend >> matchLimit [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> matchLimit: anInteger [
-	"Set the backtracking match limit"
 
 	self setMatchLimit: (matchLimit := anInteger)
 ]
@@ -159,7 +152,7 @@ PCRE2MatchContextFFIBackend >> offsetLimit [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> offsetLimit: anInteger [
-	"Set PCRE2's subject offset limit as a zero-based code-unit offset."
+	"anInteger is a zero-based code-unit offset."
 
 	self setOffsetLimit: (offsetLimit := anInteger)
 ]
@@ -183,7 +176,7 @@ PCRE2MatchContextFFIBackend >> privateCopy [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> restoreAfterStartup [
-	"Recreate my native match context and reapply remembered limits, JIT stack, and callbacks. Callback blocks are preserved as Pharo objects; their captured objects must also survive startup correctly."
+	"Recreate my native match context and reapply my settings. The callout blocks are kept as they are, so what they capture must also be valid after startup."
 
 	self setHandle: self ffiLibraryName uniqueInstance createMatchContext.
 	self isNull ifTrue: [ PCRE2Error signal: 'Failed to restore match context' ].
@@ -249,7 +242,7 @@ PCRE2MatchContextFFIBackend >> setSubstituteCaseCalloutCallback: callback [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> substituteCalloutBlock: aBlock [
-	"Install a runtime substitution callout. aBlock receives a PCRE2SubstitutionCalloutEvent and may answer a PCRE2 substitution-callout return code; non-integer answers accept the replacement."
+	"aBlock receives a PCRE2SubstitutionCalloutEvent; an integer answer is the callout's return code, anything else accepts the replacement."
 
 	| callback rc |
 	self ffiLibraryName supportsSubstitutionCallouts ifFalse: [
@@ -271,7 +264,7 @@ PCRE2MatchContextFFIBackend >> substituteCalloutBlock: aBlock [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> substituteCaseCalloutBlock: aBlock [
-	"Install a runtime substitution case callout. aBlock receives a PCRE2SubstitutionCaseCalloutEvent and should answer transformed text. Answer nil to make PCRE2 fail with a replace-case error; non-string answers use PCRE2's requested default transform in Pharo."
+	"aBlock receives a PCRE2SubstitutionCaseCalloutEvent and answers the transformed text. nil makes the substitution fail; any other non-string answer applies the requested case transform."
 
 	| callback rc |
 	self ffiLibraryName supportsSubstitutionCaseCallouts ifFalse: [
@@ -295,7 +288,7 @@ PCRE2MatchContextFFIBackend >> substituteCaseCalloutBlock: aBlock [
 
 { #category : 'private - FFI' }
 PCRE2MatchContextFFIBackend >> substituteCaseCalloutResultFor: event output: outputPointer block: aBlock [
-	"Run the user block and copy its encoded answer into PCRE2's output buffer when it fits."
+	"Copy the encoded answer into the output only when it fits, and answer its length in code units either way."
 
 	| answer bytes codeUnitCount text |
 	answer := aBlock value: event.

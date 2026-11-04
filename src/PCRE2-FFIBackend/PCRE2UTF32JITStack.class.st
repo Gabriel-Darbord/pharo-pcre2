@@ -1,7 +1,5 @@
 "
-JIT stack wrapper for PCRE2's 32-bit code-unit API.
-
-Instances are explicit advanced resources. Assign one to a PCRE2UTF32MatchContext when a JIT-compiled pattern needs more runtime stack than PCRE2's default.
+JIT stack of the 32-bit PCRE2 library, for a PCRE2UTF32MatchContext.
 "
 Class {
 	#name : 'PCRE2UTF32JITStack',
@@ -18,7 +16,7 @@ PCRE2UTF32JITStack class >> freeUnusedMemory [
 
 { #category : 'external resource management' }
 PCRE2UTF32JITStack >> basicFree [
-	"Free this libpcre2-32 JIT stack. The caller must ensure no active or future match context still points to it."
+	"No match context may still point to this stack."
 
 	self ffiCall: #(void pcre2_jit_stack_free_32(self))
 ]
@@ -31,7 +29,6 @@ PCRE2UTF32JITStack >> codeUnitWidth [
 
 { #category : 'private' }
 PCRE2UTF32JITStack >> createWithStartSize: anInitialSize maxSize: aMaximumSize [
-	"Create a JIT stack for libpcre2-32."
 
 	self ffiCall: #(void *pcre2_jit_stack_create_32(size_t anInitialSize, size_t aMaximumSize, nil))
 ]

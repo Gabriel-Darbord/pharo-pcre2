@@ -1,7 +1,5 @@
 "
-One character position, accepted by a predicate. A node that stands for a single literal also keeps that character, which the start optimizations and auto-possessification read.
-
-A character class keeps a table of the codes under 256 it accepts as well, because it is asked once for every character of the subject and almost every character lands there. The table is built by asking the predicate itself, so the two cannot disagree.
+One character position, accepted by a predicate. A single literal also keeps its character for the start optimizations and auto-possessification; a class keeps a table of the codes under 256 it accepts, since it is asked once for every character of the subject.
 "
 Class {
 	#name : 'PCRE2CharacterNode',
@@ -17,7 +15,7 @@ Class {
 
 { #category : 'optimization' }
 PCRE2CharacterNode class >> tableFor: aPredicate [
-	"Which codes under 256 the predicate accepts, worked out once. It is built by asking the predicate itself, so the table and the predicate cannot disagree."
+	"The codes under 256 the predicate accepts, built by asking the predicate so the two cannot disagree."
 
 	| table |
 	table := ByteArray new: 256.
@@ -27,7 +25,7 @@ PCRE2CharacterNode class >> tableFor: aPredicate [
 
 { #category : 'matching' }
 PCRE2CharacterNode >> acceptsCode: code [
-	"Whether this item matches the character with this code. A class answers from its table for the codes that fit in one byte, which is where almost every character of a subject lands. The table holds small integers, so the answer asks for the same object rather than for an equal one, which is a test and not a message send."
+	"Whether this item matches the character with this code. The table holds small integers, so == is a test rather than a message send."
 
 	(table isNil or: [ code > 255 ]) ifTrue: [ ^ predicate value: (PCRE2CodeUnit fromInteger: code) ].
 	^ (table at: code + 1) == 1
@@ -35,7 +33,7 @@ PCRE2CharacterNode >> acceptsCode: code [
 
 { #category : 'generating' }
 PCRE2CharacterNode >> asciiTable [
-	"A class that was tabulated at compile time answers its own table; a single literal is asked for one now, which costs 256 tests once for a pattern that is written."
+	"A class answers the table it was compiled with; a single literal builds one here."
 
 	^ table ifNil: [ self class tableFor: predicate ]
 ]
@@ -151,14 +149,14 @@ PCRE2CharacterNode >> startPredicate [
 
 { #category : 'accessing' }
 PCRE2CharacterNode >> table [
-	"The codes under 256 this item accepts, or nil when it has none because it is a single literal."
+	"The codes under 256 this item accepts, or nil for a single literal."
 
 	^ table
 ]
 
 { #category : 'optimization' }
 PCRE2CharacterNode >> tabulate [
-	"Work out once which codes under 256 this item accepts, so that matching reads a byte instead of running the predicate. The predicate itself is wrapped around the table, so every other reader of it gains too. Worth it for a class, not for a single literal, where a comparison is cheaper than a table."
+	"Tabulate the codes under 256 this item accepts and wrap the predicate around the table, so every reader of it gains. Only worth it for a class: a single literal compares faster."
 
 	| tested |
 	tested := predicate.

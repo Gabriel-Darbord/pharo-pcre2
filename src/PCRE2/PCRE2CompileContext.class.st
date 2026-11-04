@@ -64,42 +64,36 @@ PCRE2CompileContext >> compilerClass [
 
 { #category : 'configuration' }
 PCRE2CompileContext >> disableAutoPossessification [
-	"Disable PCRE2's auto-possessification optimization."
 
 	^ self optimize: PCRE2 optimizeAutoPossessOff
 ]
 
 { #category : 'configuration' }
 PCRE2CompileContext >> disableDotstarAnchoring [
-	"Disable PCRE2's implicit dot-star anchoring optimization."
 
 	^ self optimize: PCRE2 optimizeDotstarAnchorOff
 ]
 
 { #category : 'configuration' }
 PCRE2CompileContext >> disableStartOptimization [
-	"Disable PCRE2's start-of-match optimizations."
 
 	^ self optimize: PCRE2 optimizeStartOff
 ]
 
 { #category : 'configuration' }
 PCRE2CompileContext >> enableAutoPossessification [
-	"Enable PCRE2's auto-possessification optimization."
 
 	^ self optimize: PCRE2 optimizeAutoPossess
 ]
 
 { #category : 'configuration' }
 PCRE2CompileContext >> enableDotstarAnchoring [
-	"Enable PCRE2's implicit dot-star anchoring optimization."
 
 	^ self optimize: PCRE2 optimizeDotstarAnchor
 ]
 
 { #category : 'configuration' }
 PCRE2CompileContext >> enableStartOptimization [
-	"Enable PCRE2's start-of-match optimizations."
 
 	^ self optimize: PCRE2 optimizeStart
 ]
@@ -288,7 +282,6 @@ PCRE2CompileContext >> useCharacterTablesFromCurrentLocale [
 
 { #category : 'configuration' }
 PCRE2CompileContext >> useFullOptimization [
-	"Enable all optional compiler optimizations."
 
 	^ self optimize: PCRE2 optimizationFull
 ]
@@ -309,35 +302,30 @@ PCRE2CompileContext >> useNewlineAnyCRLF [
 
 { #category : 'accessing' }
 PCRE2CompileContext >> useNewlineCR [
-	"Use carriage return as the newline sequence."
 
 	^ self newline: PCRE2 newlineCR
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> useNewlineCRLF [
-	"Use CRLF as the newline sequence."
 
 	^ self newline: PCRE2 newlineCRLF
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> useNewlineLF [
-	"Use line feed as the newline sequence."
 
 	^ self newline: PCRE2 newlineLF
 ]
 
 { #category : 'accessing' }
 PCRE2CompileContext >> useNewlineNul [
-	"Use NUL as the newline sequence."
 
 	^ self newline: PCRE2 newlineNul
 ]
 
 { #category : 'configuration' }
 PCRE2CompileContext >> useNoOptimization [
-	"Disable all optional compiler optimizations."
 
 	^ self optimize: PCRE2 optimizationNone
 ]

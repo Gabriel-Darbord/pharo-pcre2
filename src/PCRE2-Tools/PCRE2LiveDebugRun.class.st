@@ -1,11 +1,7 @@
 "
-Runs PCRE2 matches under debugger control.
+Runs a match under debugger control: a temporary automatic-callout matcher from the configured compiler records its callout events into a `PCRE2TraceRecorder`. Only the public matcher, context and match protocol is used, so either backend can drive it.
 
-I compile a temporary automatic-callout matcher with the configured compiler and record PCRE2CalloutEvent snapshots into a PCRE2TraceRecorder. Either backend can drive me: I only ever touch the public matcher, context and match objects, so the same stepping works on the Pharo engine and on the C library.
-
-I never suspend inside the callout block. It appends the event and returns either success or PCRE2_ERROR_CALLOUT at once. The Pharo backend would tolerate more, but the FFI one calls back through ThreadedFFI, where suspending would leave the C library parked inside Pharo UI control flow, so both take the same path.
-
-Step mode records a deterministic prefix by rerunning the match and stopping after the requested callout count. Continue mode runs the same instrumented matcher to completion. Clients can register completion callbacks with whenCompletedDo: to refresh after a continued run finishes.
+The callout block never suspends; it records the event and answers at once, because on the FFI backend suspending would leave the C library parked inside a ThreadedFFI callback. Step mode reruns the match and stops after the requested number of callouts; continue mode runs it to the end, and whenCompletedDo: registers what to do then.
 "
 Class {
 	#name : 'PCRE2LiveDebugRun',
@@ -187,8 +183,7 @@ PCRE2LiveDebugRun >> notifyCompletionCallbacks [
 	callbacks do: [ :callback |
 			[ callback cull: self ]
 				on: Error
-				do: [ :error | "Completion callbacks are observers. One of them failing must not change the recorded run result, nor stop the others from being told."
-					error return: nil ] ]
+				do: [ :error | "A failing observer must neither change the run result nor stop the others from being told." error return: nil ] ]
 ]
 
 { #category : 'accessing' }
@@ -222,7 +217,7 @@ PCRE2LiveDebugRun >> prepare [
 
 { #category : 'running' }
 PCRE2LiveDebugRun >> rawMatchInto: matchData [
-	"Run the native match directly so debugger-stop callout return codes remain observable instead of being raised as normal matcher errors."
+	"Match through the backend directly, so the stop code of a callout is answered rather than raised as a matcher error."
 
 	| rc |
 	matcher validateUsableMatchData: matchData.
@@ -258,7 +253,6 @@ PCRE2LiveDebugRun >> recorder [
 
 { #category : 'private' }
 PCRE2LiveDebugRun >> resetRecorder [
-	"Start a fresh deterministic trace prefix for this run."
 
 	recorder := PCRE2TraceRecorder
 		            pattern: pattern
@@ -375,7 +369,7 @@ PCRE2LiveDebugRun >> waitUntil: conditionBlock timeoutMilliseconds: timeoutMilli
 
 { #category : 'callbacks' }
 PCRE2LiveDebugRun >> whenCompletedDo: aBlock [
-	"Evaluate aBlock with me when this run reaches a terminal state. If I am already finished, evaluate it immediately."
+	"Evaluate aBlock with me when the run ends, or at once if it has."
 
 	| shouldRunNow |
 	callbackMutex critical: [

@@ -1,9 +1,5 @@
 "
-Abstract superclass for PCRE2 low-character table wrappers.
-
-PCRE2 builds these tables from the process locale with pcre2_maketables(). A compile context can use them to define locale-sensitive behavior for character codes below 256, such as \w, \d, POSIX classes, and caseless matching. Keep the wrapper alive for as long as any compiled pattern may still reference its native table pointer.
-
-Before image shutdown, prepareForShutdown snapshots the native table bytes. On restoreAfterStartup, the wrapper rebuilds native memory from that snapshot so behavior does not depend on the locale of the restarted process.
+Abstract superclass of the low-character tables that PCRE2 builds from the process locale. A compile context uses them for character codes below 256: \w, \d, POSIX classes and caseless matching. Keep them alive while a compiled pattern may reference them; they are saved with the image as bytes, so a restarted image does not depend on its locale.
 "
 Class {
 	#name : 'PCRE2CharacterTables',
@@ -40,14 +36,12 @@ PCRE2CharacterTables >> basicFree [
 
 { #category : 'documentation' }
 PCRE2CharacterTables >> codeUnitWidth [
-	"Answer the PCRE2 library width that allocated these tables."
 
 	^ self ffiLibraryName codeUnitWidth
 ]
 
 { #category : 'private' }
 PCRE2CharacterTables >> copyBytesFromNativeTable [
-	"Answer a Pharo copy of the native low-character tables."
 
 	| bytes |
 	self isNull ifTrue: [ PCRE2Error signal: 'Cannot copy bytes from null character tables' ].
@@ -58,7 +52,7 @@ PCRE2CharacterTables >> copyBytesFromNativeTable [
 
 { #category : 'private' }
 PCRE2CharacterTables >> copyPersistedBytesToNativeMemory [
-	"Answer native memory containing the persisted low-character table bytes. The caller owns the returned memory."
+	"The caller owns the answered memory."
 
 	| pointer |
 	self validatePersistedBytes.
@@ -98,7 +92,6 @@ PCRE2CharacterTables >> restoreAfterStartup [
 
 { #category : 'private' }
 PCRE2CharacterTables >> validatePersistedBytes [
-	"Ensure the snapshot has the exact size PCRE2 expects for low-character tables."
 
 	persistedBytes size = self class tableByteSize ifFalse: [
 		PCRE2Error signal: 'Persisted character tables have an invalid byte size' ]

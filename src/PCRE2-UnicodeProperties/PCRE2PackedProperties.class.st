@@ -1,7 +1,5 @@
 "
-The Unicode property ranges of PCRE2UnicodeProperties, kept packed until a pattern asks for one.
-
-A pattern names a handful of properties, while the pinned catalog holds 451 of them, so unpacking all of them would put about half a megabyte of arrays in the image for nothing. I keep the packed bytes and the offset of each property in them, and decode a property the first time it is read.
+The property ranges of PCRE2UnicodeProperties, kept packed and decoded one property at a time on first read. A pattern names a handful of the 451 properties, and unpacking them all would take about half a megabyte.
 "
 Class {
 	#name : 'PCRE2PackedProperties',

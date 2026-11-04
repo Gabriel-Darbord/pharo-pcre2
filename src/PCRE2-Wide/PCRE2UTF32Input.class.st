@@ -1,9 +1,5 @@
 "
-Represents UTF-32 code-unit input for PCRE2-32.
-
-Instances can be created from a Pharo string or from already-encoded bytes. String-backed inputs keep the original string for fast result reading. Byte-backed inputs keep native-endian UTF-32 storage for FFI calls and decode only the requested slices.
-
-For PCRE2-32 in UTF mode, each code unit is one Unicode code point. That matches Pharo character indexing for normal strings, so code-unit offsets can be translated to character positions with simple arithmetic.
+Prepared UTF-32 input for PCRE2-32, where each code unit is one code point and one character, so offsets translate by arithmetic. A string-backed input keeps the string; a byte-backed one keeps native-endian bytes and decodes only the slices asked for.
 "
 Class {
 	#name : 'PCRE2UTF32Input',
@@ -25,21 +21,19 @@ PCRE2UTF32Input class >> bytes: bytesObject string: aString [
 
 { #category : 'instance creation' }
 PCRE2UTF32Input class >> fromBigEndianBytes: aByteCollection [
-	"Answer input from UTF-32 big-endian bytes, normalizing to native endianness when needed."
 
 	^ self fromNativeEndianBytes: (PCRE2WideInputBytes normalizeBigEndianBytes: aByteCollection width: 4)
 ]
 
 { #category : 'instance creation' }
 PCRE2UTF32Input class >> fromBytes: aByteCollection [
-	"Answer input from native-endian UTF-32 bytes."
 
 	^ self fromNativeEndianBytes: aByteCollection
 ]
 
 { #category : 'instance creation' }
 PCRE2UTF32Input class >> fromBytesDetectingBOM: aByteCollection [
-	"Answer input from UTF-32 bytes, using and stripping a byte-order mark when present. Bytes without a BOM are treated as native-endian."
+	"Without a byte-order mark, the bytes are taken as native-endian."
 
 	(PCRE2WideInputBytes hasBigEndianBOM: aByteCollection width: 4) ifTrue: [
 		^ self fromBigEndianBytes: (PCRE2WideInputBytes bytesAfterBOM: aByteCollection byteCount: 4) ].
@@ -50,7 +44,6 @@ PCRE2UTF32Input class >> fromBytesDetectingBOM: aByteCollection [
 
 { #category : 'instance creation' }
 PCRE2UTF32Input class >> fromBytesWithBOM: aByteCollection [
-	"Answer input from UTF-32 bytes that must start with a byte-order mark. The BOM is stripped before matching."
 
 	((PCRE2WideInputBytes hasBigEndianBOM: aByteCollection width: 4) or: [
 		 PCRE2WideInputBytes hasLittleEndianBOM: aByteCollection width: 4 ]) ifFalse: [
@@ -60,14 +53,12 @@ PCRE2UTF32Input class >> fromBytesWithBOM: aByteCollection [
 
 { #category : 'instance creation' }
 PCRE2UTF32Input class >> fromLittleEndianBytes: aByteCollection [
-	"Answer input from UTF-32 little-endian bytes, normalizing to native endianness when needed."
 
 	^ self fromNativeEndianBytes: (PCRE2WideInputBytes normalizeLittleEndianBytes: aByteCollection width: 4)
 ]
 
 { #category : 'instance creation' }
 PCRE2UTF32Input class >> fromNativeEndianBytes: aByteCollection [
-	"Answer input from native-endian UTF-32 bytes. The byte size must be a multiple of four."
 
 	PCRE2WideInputBytes
 		validateByteSize: aByteCollection
@@ -89,7 +80,6 @@ PCRE2UTF32Input class >> fromString: aString [
 
 { #category : 'converting' }
 PCRE2UTF32Input >> asPCRE2UTF32Input [
-	"Answer myself so matcher APIs can accept either Strings or prepared UTF-32 inputs."
 
 	^ self
 ]
@@ -103,28 +93,26 @@ PCRE2UTF32Input >> bytes: bytesObject string: aString [
 
 { #category : 'decoding' }
 PCRE2UTF32Input >> characterCountUpToCodeUnitOffset: codeUnitOffset [
-	"For PCRE2-32 in UTF mode, each 32-bit code unit is one Unicode code point and one Pharo character."
+	"Each code unit is one character."
 
 	^ codeUnitOffset
 ]
 
 { #category : 'decoding' }
 PCRE2UTF32Input >> characterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitOffset: knownCodeUnitOffset characterCount: knownCharacterCount [
-	"For PCRE2-32 in UTF mode, each code unit is one Unicode code point and one Pharo character, so the known prefix is unnecessary."
+	"Each code unit is one character, so the known prefix is not needed."
 
 	^ codeUnitOffset
 ]
 
 { #category : 'decoding' }
 PCRE2UTF32Input >> characterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset [
-	"Translate PCRE2's zero-based UTF-32 code-unit offsets to a 1-based Pharo character range."
 
 	^ zeroBasedStartOffset + 1 to: exclusiveEndOffset
 ]
 
 { #category : 'decoding' }
 PCRE2UTF32Input >> decodeBytes: aByteCollection [
-	"Decode a native-endian UTF-32 byte collection."
 
 	^ self decodeBytes: aByteCollection from: 1 to: aByteCollection size
 ]
@@ -139,7 +127,6 @@ PCRE2UTF32Input >> decodeBytes: aByteCollection from: byteStart to: byteEnd [
 
 { #category : 'decoding' }
 PCRE2UTF32Input >> nextFromStream: aStream [
-	"Answer the next character from a stream over my UTF-32 byte storage."
 
 	| codeUnit |
 	codeUnit := ByteArray new: 4.
@@ -149,7 +136,6 @@ PCRE2UTF32Input >> nextFromStream: aStream [
 
 { #category : 'matching' }
 PCRE2UTF32Input >> nextMatchStartOffsetAfter: zeroBasedOffset [
-	"Answer the next zero-based PCRE2-32 code-unit offset after one Pharo character, or one past the end."
 
 	zeroBasedOffset >= self size ifTrue: [ ^ self size + 1 ].
 	^ zeroBasedOffset + 1

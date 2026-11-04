@@ -1,9 +1,5 @@
 "
-Restores compiled PCRE2 matchers after an image restart.
-
-The default strategy serializes matchers at shutdown and deserializes them at startup when the native library signature still matches. The cache is grouped by PCRE2 code-unit width because the 8-bit, 16-bit, and 32-bit libraries deserialize their own compiled patterns.
-
-If the serialized cache is stale or unavailable, the manager falls back to recompiling from the saved pattern and options. This keeps external PCRE2 handles out of normal matcher state while preserving portability across PCRE2 versions and platforms.
+Restores the PCRE2 external objects after an image restart. Compiled patterns are serialized at shutdown, by code-unit width, and deserialized at startup when the library still matches; otherwise they are recompiled from their pattern and options. Other wrappers rebuild their handle from the state they keep.
 "
 Class {
 	#name : 'PCRE2SessionManager',
@@ -47,7 +43,6 @@ PCRE2SessionManager class >> initialize [
 
 { #category : 'persistence' }
 PCRE2SessionManager class >> serializationLibraryForCodeUnitWidth: codeUnitWidth [
-	"Answer the PCRE2 FFI library class for a serialized matcher width."
 
 	codeUnitWidth = 8 ifTrue: [ ^ LibPCRE2UTF8 ].
 	codeUnitWidth = 16 ifTrue: [ ^ LibPCRE2UTF16 ].
@@ -87,20 +82,18 @@ PCRE2SessionManager class >> shutDown: quitting [
 
 { #category : 'system startup' }
 PCRE2SessionManager class >> startUp: resuming [
-	"Restore all compiled patterns using the serialized data from the previous session"
 
 	resuming ifFalse: [
 			instance := nil.
 			^ self ].
 	enabled ifFalse: [ ^ self ].
 
-	"Failsafe to disable restoration if it crashes the image (open an issue if this happens!)"
+	"Failsafe in case restoration crashes the image"
 	(OSEnvironment current includesKey: 'PHARO_PCRE2_NOSTARTUP') ifTrue: [ ^ self ].
 
-	"The instance has a list of all patterns to restore"
 	instance ifNotNil: [
 			instance startUp.
-			instance := nil "release unique reference to free memory" ]
+			instance := nil ]
 ]
 
 { #category : 'configuration' }
@@ -134,7 +127,6 @@ PCRE2SessionManager >> canDeserializeSerializedMatchers [
 
 { #category : 'enumerating' }
 PCRE2SessionManager >> findMatchersToRestore [
-	"Register all loaded matchers by code-unit width and prepare them before shutdown serialization."
 
 	matchersToRestore := Dictionary new.
 	{
@@ -148,7 +140,6 @@ PCRE2SessionManager >> findMatchersToRestore [
 
 { #category : 'enumerating' }
 PCRE2SessionManager >> findObjectsToRestore [
-	"Register live external wrappers that can rebuild their native handles after image startup."
 
 	objectsToRestore := OrderedCollection new.
 	self restorableObjectClasses do: [ :objectClass |
@@ -158,14 +149,13 @@ PCRE2SessionManager >> findObjectsToRestore [
 
 { #category : 'testing' }
 PCRE2SessionManager >> hasMatchersToRestore [
-	"Answer whether at least one matcher must be restored at startup."
 
 	^ matchersToRestore isEmptyOrNil not
 ]
 
 { #category : 'persistence' }
 PCRE2SessionManager >> matcherGroupsDo: aBlock [
-	"Evaluate aBlock with each non-empty code-unit width and matcher collection."
+	"aBlock takes a code-unit width and its matchers."
 
 	matchersToRestore ifNotNil: [ matchersToRestore keysAndValuesDo: aBlock ]
 ]
@@ -181,7 +171,7 @@ PCRE2SessionManager >> prepareForSnapshot [
 
 { #category : 'enumerating' }
 PCRE2SessionManager >> prepareMatchesForShutdown [
-	"Make live match data independent from native match-data handles before shutdown. Matches are Pharo-side snapshots after prepareForShutdown and need no startup restore work."
+	"Copy each live match into the image, so it needs no native handle after startup."
 
 	{
 		PCRE2UTF8Match.
@@ -206,14 +196,12 @@ PCRE2SessionManager >> prepareMatchesForSnapshot [
 
 { #category : 'persistence' }
 PCRE2SessionManager >> recompileMatchers [
-	"Portable restore path: rebuild compiled patterns from their Smalltalk-side source of truth."
 
 	self matcherGroupsDo: [ :width :matchers | matchers do: [ :matcher | matcher recompile ] ]
 ]
 
 { #category : 'enumerating' }
 PCRE2SessionManager >> restorableObjectClasses [
-	"Answer concrete PCRE2Object classes whose native handles can be rebuilt from Pharo-side state."
 
 	^ {
 		  PCRE2UTF8CharacterTables.
@@ -235,14 +223,13 @@ PCRE2SessionManager >> restorableObjectClasses [
 
 { #category : 'persistence' }
 PCRE2SessionManager >> restoreObjects [
-	"Rebuild native handles for non-matcher PCRE2Object wrappers captured during shutdown."
 
 	objectsToRestore ifNotNil: [ objectsToRestore do: [ :object | object restoreAfterStartup ] ]
 ]
 
 { #category : 'persistence' }
 PCRE2SessionManager >> restoreSerializedMatchers [
-	"Try to restore serialized bytecode caches. Answer true on success, false when startup should recompile instead."
+	"Answer false when the matchers must be recompiled instead."
 
 	self canDeserializeSerializedMatchers ifFalse: [ ^ false ].
 	[
@@ -257,7 +244,6 @@ PCRE2SessionManager >> restoreSerializedMatchers [
 
 { #category : 'persistence' }
 PCRE2SessionManager >> serializeMatchersByCodeUnitWidth [
-	"Answer a dictionary of code-unit width to serialized compiled-pattern bytes."
 
 	| serialized |
 	serialized := Dictionary new.
@@ -289,7 +275,6 @@ PCRE2SessionManager >> shutDown [
 
 { #category : 'system startup' }
 PCRE2SessionManager >> startUp [
-	"Restore native object wrappers, then restore patterns by trying the serialized bytecode cache first and recompiling when the cache is missing, stale, or rejected by PCRE2."
 
 	self restoreObjects.
 	self hasMatchersToRestore ifFalse: [ ^ self ].

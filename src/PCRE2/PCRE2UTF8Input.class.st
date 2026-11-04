@@ -1,9 +1,5 @@
 "
-Represents UTF-8 code-unit input for PCRE2-8.
-
-Instances can be created from a Pharo string, an already prepared PCRE2UTF8Input, or already-encoded UTF-8 bytes. ASCII ByteStrings are already valid UTF-8, so they can be kept as encoded storage without a decoder. Non-ASCII strings are encoded through Zinc and keep the decoder needed to translate PCRE2-8 code-unit offsets back to Pharo character ranges. Byte-backed inputs always keep a decoder because raw ByteArrays decode to text rather than returning byte storage.
-
-For PCRE2-8, each code unit is one byte of UTF-8 storage. A Pharo character may therefore occupy one or more PCRE2 code units. Matcher and compiler APIs accept this object directly when a caller wants to reuse prepared pattern or subject bytes across repeated calls.
+UTF-8 code-unit input for PCRE2-8, from a Pharo string, a prepared input, or encoded bytes. ASCII ByteStrings are kept as they are, with no decoder; other strings and byte-backed inputs keep the decoder that translates code-unit offsets back to character ranges. Matchers and compilers accept me directly to reuse prepared input across calls.
 "
 Class {
 	#name : 'PCRE2UTF8Input',
@@ -32,7 +28,7 @@ PCRE2UTF8Input class >> canUseDirectly: aString [
 
 { #category : 'instance creation' }
 PCRE2UTF8Input class >> fromBytes: aByteCollection [
-	"Answer input from already-encoded UTF-8 bytes. The byte collection is copied so callers can safely reuse or mutate their original storage."
+	"Answer input from encoded UTF-8 bytes, copied so that callers can reuse their storage."
 
 	^ self bytes: aByteCollection copy decoder: ZnUTF8Encoder default
 ]
@@ -62,7 +58,6 @@ PCRE2UTF8Input >> bytes: bytesObject decoder: aDecoder [
 
 { #category : 'decoding' }
 PCRE2UTF8Input >> characterCountUpToCodeUnitOffset: codeUnitOffset [
-	"For PCRE2-8, each code unit is one byte of UTF-8 storage. Count encoded characters before that code-unit position."
 
 	^ self characterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitOffset: 0 characterCount: 0
 ]

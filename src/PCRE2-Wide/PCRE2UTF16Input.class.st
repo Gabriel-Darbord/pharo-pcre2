@@ -1,9 +1,5 @@
 "
-Represents UTF-16 code-unit input for PCRE2-16.
-
-Instances can be created from a Pharo string or from already-encoded bytes. String-backed inputs keep the original string and a character-to-code-unit offset map for fast result reading. Byte-backed inputs keep native-endian UTF-16 storage for FFI calls and decode only the requested slices or character ranges.
-
-For PCRE2-16, offsets count UTF-16 code units. Supplementary Unicode characters therefore occupy two PCRE2 code units even though they are one Pharo Character.
+Prepared UTF-16 input for PCRE2-16, whose offsets count 16-bit code units, so a supplementary character takes two. A string-backed input keeps the string and the code-unit offset of each character; a byte-backed one keeps native-endian bytes and decodes only the slices asked for.
 "
 Class {
 	#name : 'PCRE2UTF16Input',
@@ -26,21 +22,19 @@ PCRE2UTF16Input class >> bytes: bytesObject string: aString codeUnitStartOffsets
 
 { #category : 'instance creation' }
 PCRE2UTF16Input class >> fromBigEndianBytes: aByteCollection [
-	"Answer input from UTF-16 big-endian bytes, normalizing to native endianness when needed."
 
 	^ self fromNativeEndianBytes: (PCRE2WideInputBytes normalizeBigEndianBytes: aByteCollection width: 2)
 ]
 
 { #category : 'instance creation' }
 PCRE2UTF16Input class >> fromBytes: aByteCollection [
-	"Answer input from native-endian UTF-16 bytes."
 
 	^ self fromNativeEndianBytes: aByteCollection
 ]
 
 { #category : 'instance creation' }
 PCRE2UTF16Input class >> fromBytesDetectingBOM: aByteCollection [
-	"Answer input from UTF-16 bytes, using and stripping a byte-order mark when present. Bytes without a BOM are treated as native-endian."
+	"Without a byte-order mark, the bytes are taken as native-endian."
 
 	(PCRE2WideInputBytes hasBigEndianBOM: aByteCollection width: 2) ifTrue: [
 		^ self fromBigEndianBytes: (PCRE2WideInputBytes bytesAfterBOM: aByteCollection byteCount: 2) ].
@@ -51,7 +45,6 @@ PCRE2UTF16Input class >> fromBytesDetectingBOM: aByteCollection [
 
 { #category : 'instance creation' }
 PCRE2UTF16Input class >> fromBytesWithBOM: aByteCollection [
-	"Answer input from UTF-16 bytes that must start with a byte-order mark. The BOM is stripped before matching."
 
 	((PCRE2WideInputBytes hasBigEndianBOM: aByteCollection width: 2) or: [
 		 PCRE2WideInputBytes hasLittleEndianBOM: aByteCollection width: 2 ]) ifFalse: [
@@ -61,14 +54,12 @@ PCRE2UTF16Input class >> fromBytesWithBOM: aByteCollection [
 
 { #category : 'instance creation' }
 PCRE2UTF16Input class >> fromLittleEndianBytes: aByteCollection [
-	"Answer input from UTF-16 little-endian bytes, normalizing to native endianness when needed."
 
 	^ self fromNativeEndianBytes: (PCRE2WideInputBytes normalizeLittleEndianBytes: aByteCollection width: 2)
 ]
 
 { #category : 'instance creation' }
 PCRE2UTF16Input class >> fromNativeEndianBytes: aByteCollection [
-	"Answer input from native-endian UTF-16 bytes. The byte size must be a multiple of two."
 
 	PCRE2WideInputBytes validateByteSize: aByteCollection multipleOf: 2 message: 'UTF-16 input bytes must have an even byte size'.
 	^ self bytes: aByteCollection copy string: nil codeUnitStartOffsets: nil
@@ -111,7 +102,6 @@ PCRE2UTF16Input class >> fromString: aString [
 
 { #category : 'converting' }
 PCRE2UTF16Input >> asPCRE2UTF16Input [
-	"Answer myself so matcher APIs can accept either Strings or prepared UTF-16 inputs."
 
 	^ self
 ]
@@ -126,14 +116,14 @@ PCRE2UTF16Input >> bytes: bytesObject string: aString codeUnitStartOffsets: offs
 
 { #category : 'decoding' }
 PCRE2UTF16Input >> characterCountUpToCodeUnitOffset: codeUnitOffset [
-	"For PCRE2-16, code-unit offsets count UTF-16 units; surrogate pairs are two code units but one Pharo character."
+	"A surrogate pair is two code units but one character."
 
 	^ self characterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitOffset: 0 characterCount: 0
 ]
 
 { #category : 'decoding' }
 PCRE2UTF16Input >> characterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitOffset: knownCodeUnitOffset characterCount: knownCharacterCount [
-	"Continue counting UTF-16 characters from a known code-unit offset. String-backed inputs use the offset map; byte-backed inputs fall back to scanning from the beginning."
+	"Continue from a known offset and its character count. A byte-backed input has no offset map and scans from the start."
 
 	codeUnitOffset <= 0 ifTrue: [ ^ 0 ].
 	codeUnitOffset = knownCodeUnitOffset ifTrue: [ ^ knownCharacterCount ].
@@ -158,7 +148,6 @@ PCRE2UTF16Input >> codePointFromHighSurrogate: highSurrogate lowSurrogate: lowSu
 
 { #category : 'decoding' }
 PCRE2UTF16Input >> decodeBytes: aByteCollection [
-	"Decode a native-endian UTF-16 byte collection."
 
 	^ self decodeBytes: aByteCollection from: 1 to: aByteCollection size
 ]
@@ -214,7 +203,6 @@ PCRE2UTF16Input >> mappedCharacterCountUpToCodeUnitOffset: codeUnitOffset [
 
 { #category : 'decoding' }
 PCRE2UTF16Input >> mappedCharacterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitOffset: knownCodeUnitOffset characterCount: knownCharacterCount [
-	"Use the string-backed offset map to continue from a known character count instead of scanning code units."
 
 	| count |
 	codeUnitOffset <= 0 ifTrue: [ ^ 0 ].
@@ -227,7 +215,6 @@ PCRE2UTF16Input >> mappedCharacterCountUpToCodeUnitOffset: codeUnitOffset fromCo
 
 { #category : 'decoding' }
 PCRE2UTF16Input >> nextFromStream: aStream [
-	"Answer the next character from a stream over my UTF-16 byte storage."
 
 	| first firstBytes |
 	firstBytes := ByteArray new: 2.
@@ -239,7 +226,7 @@ PCRE2UTF16Input >> nextFromStream: aStream [
 
 { #category : 'matching' }
 PCRE2UTF16Input >> nextMatchStartOffsetAfter: zeroBasedOffset [
-	"Answer the next zero-based PCRE2-16 code-unit offset after one Pharo character, or one past the end."
+	"Answer the zero-based code-unit offset of the next character, or size + 1 at the end."
 
 	| first nextOffset |
 	zeroBasedOffset >= self size ifTrue: [ ^ self size + 1 ].

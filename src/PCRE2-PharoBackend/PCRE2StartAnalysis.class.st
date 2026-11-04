@@ -1,9 +1,5 @@
 "
-What the two structural start optimizations need to know about where in the pattern they are looking.
-
-PCRE2 anchors a pattern every branch of which starts at a fixed position, and only ever tries one at a line start when every branch starts with ^ or with a dot star. A leading dot star only counts outside atomic groups and assertions, in a group nothing refers back to, and in a pattern free of (*PRUNE) and (*SKIP), because each of those lets a later attempt find something the first one would not.
-
-Walking into a group answers a new analysis rather than changing this one, so a branch that fails the test leaves nothing behind for the next.
+What the two structural start optimizations need to know about where in the pattern they are looking. A leading dot star only counts outside atomic groups and assertions, in a group nothing refers back to, and in a pattern free of (*PRUNE) and (*SKIP), since each lets a later attempt find what the first would not. Walking into a group answers a new analysis, so a branch that fails leaves nothing behind for the next.
 "
 Class {
 	#name : 'PCRE2StartAnalysis',
@@ -37,7 +33,7 @@ PCRE2StartAnalysis class >> bitFor: index [
 
 { #category : 'accessing' }
 PCRE2StartAnalysis >> allowsLeadingDotStar [
-	"Whether a dot star at the start of this branch still says where a match can begin. Everything that could make a later attempt behave differently from the first one rules it out."
+	"Whether a dot star at the start of this branch still says where a match can begin."
 
 	^ dotStarAnchor and: [
 		  (enclosingGroups bitAnd: backreferences) = 0 and: [ atomicDepth = 0 and: [ pruneOrSkip not and: [ inAssertion not ] ] ] ]
@@ -86,7 +82,6 @@ PCRE2StartAnalysis >> withinAtomicGroup [
 
 { #category : 'accessing' }
 PCRE2StartAnalysis >> withinGroup: index [
-	"PCRE2 maps the first 31 groups to a bit each and lumps every later one into the same bit, which this follows so that the two backends anchor the same patterns."
 
 	^ self copy enclosingGroups: (enclosingGroups bitOr: (self class bitFor: index))
 ]

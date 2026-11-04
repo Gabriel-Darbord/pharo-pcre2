@@ -25,12 +25,6 @@ PCRE2LookaheadNode >> atomic: boolean [
 	atomic := boolean
 ]
 
-{ #category : 'testing' }
-PCRE2LookaheadNode >> canBeCondition [
-
-	^ atomic ~= false
-]
-
 { #category : 'accessing' }
 PCRE2LookaheadNode >> child [
 
@@ -126,11 +120,7 @@ PCRE2LookaheadNode >> startPredicate [
 ]
 
 { #category : 'generating' }
-PCRE2LookaheadNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+PCRE2LookaheadNode >> writeInto: aGenerator at: position then: aBlock [
 
-	^ aGenerator
-		  writeLookahead: self
-		  at: position
-		  indent: level
-		  then: aBlock
+	^ aGenerator writeLookahead: self at: position then: aBlock
 ]

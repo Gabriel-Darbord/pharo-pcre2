@@ -62,7 +62,6 @@ PCRE2CalloutEvent class >> offsetsFrom: anExternalAddress count: count [
 
 { #category : '*PCRE2-FFIBackend' }
 PCRE2CalloutEvent class >> sizeTFrom: anExternalAddress atOffset: structOffsetInBytes [
-	"Read a PCRE2_SIZE field from a native callout struct. The ExternalAddress offset is measured in bytes."
 
 	^ PCRE2CalloutSite sizeTFrom: anExternalAddress atOffset: structOffsetInBytes
 ]

@@ -1,5 +1,5 @@
 "
-Zero-width assertion decided by a predicate on the engine and the state, such as \b, \B, \A, \z, \Z, \G and \K. The kind names which one it is, and multiline says whether it was compiled to see line ends, which the start optimizations ask about as well as matching.
+Zero-width assertion such as \b, \B, \A, \z, \Z, \G or \K, decided by a predicate on the engine and the state. Its kind names which one it is; multiline says whether it was compiled to see line ends.
 "
 Class {
 	#name : 'PCRE2AssertionNode',
@@ -13,13 +13,6 @@ Class {
 	#category : 'PCRE2-PharoBackend',
 	#package : 'PCRE2-PharoBackend'
 }
-
-{ #category : 'accessing' }
-PCRE2AssertionNode >> byteTest [
-	"How a written matcher can decide this assertion by reading bytes, or nil when it cannot. Chosen when the pattern is parsed, where the options that change what the assertion means are known."
-
-	^ byteTest
-]
 
 { #category : 'accessing' }
 PCRE2AssertionNode >> byteTest: anArray [
@@ -84,18 +77,14 @@ PCRE2AssertionNode >> predicate: aBlock [
 
 { #category : 'optimization' }
 PCRE2AssertionNode >> startPredicate [
-	"What this assertion contributes to the characters a match may start with. It consumes nothing, so it contributes none and the scan looks past it. PCRE2 gives up on every other kind instead, and a pattern whose starting characters are unknown is attempted at every position, so following that choice is what keeps the two backends attempting the same positions."
+	"\b, \B and ^ outside multiline mode contribute no character, so the scan looks past them. Every other kind answers nil, giving up as PCRE2 does, so both backends attempt the same positions."
 
 	(#( wordBoundary notWordBoundary ) includes: kind) ifTrue: [ ^ [ :character | false ] ].
 	^ (kind = #beginLine and: [ multiline not ]) ifTrue: [ [ :character | false ] ]
 ]
 
 { #category : 'generating' }
-PCRE2AssertionNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+PCRE2AssertionNode >> writeInto: aGenerator at: position then: aBlock [
 
-	^ aGenerator
-		  writeAssertion: byteTest
-		  at: position
-		  indent: level
-		  then: aBlock
+	^ aGenerator writeAssertion: byteTest at: position then: aBlock
 ]

@@ -1,9 +1,5 @@
 "
-I present a PCRE2MatchTrace.
-
-I am designed as a reusable subpresenter: inspector extensions can embed me for an existing trace, and the standalone debugger can reuse me as its trace pane. I show a readable timeline of trace rows, highlighted pattern and subject text for the selected step, focused source-context excerpts, capture ranges, and raw event details.
-
-The trace model remains unchanged. I may group long automatic progress runs into PCRE2TraceStepRow objects so the table is easier to scan while still keeping every original PCRE2TraceStep available for navigation and details.
+I present a `PCRE2MatchTrace`: a timeline of its steps, the pattern and subject highlighted at the selected step, the captures and the raw event. Inspector extensions embed me, and the debugger uses me as its trace pane. I group long runs of automatic progress steps into `PCRE2TraceStepRow`s, while every step stays reachable.
 "
 Class {
 	#name : 'PCRE2TracePresenter',
@@ -114,7 +110,7 @@ PCRE2TracePresenter >> contextExcerptFor: sourceString from: startIndex to: stop
 
 { #category : 'layout' }
 PCRE2TracePresenter >> defaultLayout [
-	"Two rows of two columns, and the columns line up between them. A child given a fixed size on one axis is laid out at its natural size on the other, so a fixed height inside one column makes that column demand its natural width and pushes the split off the one above: the two context panes carry the same fixed height as each other and stay aligned, while Event details carries none, because Captures opposite it carries none either."
+	"Two rows of two columns that line up. A child with a fixed size on one axis takes its natural size on the other, which pushes its column off the split above, so the two context panes share one fixed height while Event details and Captures carry none."
 
 	| bottomPane detailsPane patternPane sourcePane subjectPane |
 	patternPane := SpBoxLayout newTopToBottom
@@ -254,7 +250,7 @@ PCRE2TracePresenter >> detailsTextForStep: aTraceStep [
 
 { #category : 'updating' }
 PCRE2TracePresenter >> display: aTextOrString inTextPresenter: aTextPresenter [
-	"Show this text in the presenter. From one step to the next the traced pattern and subject keep the same characters and change only their highlighting, and a text widget handed a text equal to the one it holds redraws nothing, so clearing it first is what makes the new highlighting appear. Call this from the UI process, where no redraw can land on the empty text in between."
+	"Clear the presenter first when the text is equal to the one it holds: a text widget does not redraw an equal text, and the highlighting would not change. Call this from the UI process, so that no redraw lands on the empty text."
 
 	aTextPresenter text asString = aTextOrString asString ifTrue: [ aTextPresenter text: '' ].
 	aTextPresenter text: aTextOrString
@@ -348,7 +344,7 @@ PCRE2TracePresenter >> initializeStepsTable [
 				 width: 75;
 				 beNotExpandable;
 				 yourself);
-		"The pattern snippet is the longest and the most variable of the five, so it takes whatever width the others leave, and widening the pane widens it. A width here would pin it instead, and with every column pinned the table keeps its own width whatever the pane does, which cuts the last column off."
+		"The pattern column takes the width the others leave. With every column given a width, the table ignores the width of the pane and cuts off its last column."
 		addColumn: ((SpStringTableColumn title: 'Pattern' evaluated: [ :row | self patternLabelForRow: row ])
 				 beExpandable;
 				 yourself);

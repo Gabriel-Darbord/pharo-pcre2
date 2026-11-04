@@ -1,7 +1,5 @@
 "
-Engine for pcre2_dfa_match. It advances every alternative together instead of backtracking, so a node runs once per set of states rather than once per path, and it answers all the matches at a start position, shortest or longest first.
-
-It inherits the node execution and the choice stack of its superclass and replaces only the search, `allMatchesFrom:`. Nested assertions still run through the inherited backtracking loop, as PCRE2 does. It also keeps the continuations a restarted match resumes from, which is what makes a match over several subject chunks possible.
+Engine for pcre2_dfa_match. It advances every alternative together instead of backtracking, and answers all the matches at a start position, shortest or longest first. It replaces only the search of its superclass, `allMatchesFrom:`; nested assertions still run through the inherited backtracking loop, as in PCRE2. It keeps the continuations a restarted match resumes from, so a match can span several subject chunks.
 "
 Class {
 	#name : 'PCRE2DFAMatchEngine',

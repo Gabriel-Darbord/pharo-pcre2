@@ -1,9 +1,5 @@
 "
-I am a snapshot of a PCRE2 substitution case callout.
-
-PCRE2 creates me while processing replacement case escapes such as \U, \L, \u, and \l in pcre2_substitute(). I expose the text PCRE2 wants to case-transform, the requested case operation, and the output capacity supplied by PCRE2.
-
-User blocks should answer the transformed string. The match context callback handles encoding the answer back to the active PCRE2 code-unit width and copying it into PCRE2's output buffer when it fits.
+I am a snapshot of a substitution case callout, made for each case escape (\U, \L, \u, \l) of a replacement: the text to transform, the operation, and the output capacity. The block answers the transformed string; the match context encodes it to the code-unit width and copies it to the output when it fits.
 "
 Class {
 	#name : 'PCRE2SubstitutionCaseCalloutEvent',
@@ -21,7 +17,6 @@ Class {
 
 { #category : 'accessing' }
 PCRE2SubstitutionCaseCalloutEvent >> caseName [
-	"Answer a readable name for the requested case transformation."
 
 	self isLowercase ifTrue: [ ^ #lowercase ].
 	self isUppercase ifTrue: [ ^ #uppercase ].
@@ -31,14 +26,12 @@ PCRE2SubstitutionCaseCalloutEvent >> caseName [
 
 { #category : 'accessing' }
 PCRE2SubstitutionCaseCalloutEvent >> caseType [
-	"Answer PCRE2's raw substitute-case request constant."
 
 	^ caseType
 ]
 
 { #category : 'accessing' }
 PCRE2SubstitutionCaseCalloutEvent >> codeUnitWidth [
-	"Answer the active PCRE2 code-unit width: 8, 16, or 32."
 
 	^ codeUnitWidth
 ]
@@ -62,7 +55,6 @@ PCRE2SubstitutionCaseCalloutEvent >> inputLength [
 
 { #category : 'accessing' }
 PCRE2SubstitutionCaseCalloutEvent >> inputText [
-	"Answer the text PCRE2 is asking the callback to case-transform."
 
 	^ inputText
 ]
@@ -116,7 +108,6 @@ PCRE2SubstitutionCaseCalloutEvent >> printOn: aStream [
 
 { #category : 'private' }
 PCRE2SubstitutionCaseCalloutEvent >> titleFirst: aString [
-	"Titlecase the first character and lowercase the rest, matching PCRE2's title-first request shape."
 
 	aString isEmpty ifTrue: [ ^ aString copy ].
 	^ aString first asUppercase asString , aString allButFirst asLowercase

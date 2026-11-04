@@ -14,7 +14,7 @@ Class {
 
 { #category : 'matching' }
 PCRE2DotNode >> acceptsAt: offset in: subject [
-	"Whether the dot matches here. Only the newline convention can refuse, and it is read from the subject rather than from the character."
+	"Only the newline convention can refuse, and it reads the subject rather than the character."
 
 	dotAll ifTrue: [ ^ true ].
 	^ ((convention lengthAt: offset + 1 in: subject) > 0 or: [
@@ -35,7 +35,7 @@ PCRE2DotNode >> acceptsEveryCharacterButLineEnds [
 
 { #category : 'generating' }
 PCRE2DotNode >> asciiTable [
-	"The dot accepts every byte but the line terminators of its convention, which a table can say as long as the convention decides from one character."
+	"Every byte but the line terminators of the convention, or nil when the convention reads more than one character to decide."
 
 	| table excluded |
 	table := ByteArray new: 256 withAll: 1.

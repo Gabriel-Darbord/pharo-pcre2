@@ -1,7 +1,5 @@
 "
-Metacello baseline for the PCRE2 binding.
-
-It loads the core PCRE2 package and its tests so the binding can be installed or validated as one project.
+Metacello baseline of the PCRE2 binding: its packages, the groups that load each backend and feature, and their tests.
 "
 Class {
 	#name : 'BaselineOfPCRE2',
@@ -61,8 +59,7 @@ BaselineOfPCRE2 >> baseline: spec [
 			spec group: 'All' with: #( 'Backends' 'Tools' 'Tests' ) ].
 	spec
 		for: #( #'pharo12.x' #'pharo13.x' #'pharo14.x' )
-		do: [ "These images carry Unicode 9.0 tables, so the Pharo backend brings its own general categories, case folding and digits.
-			They are packed the way the properties are, and read with the same decoder."
+		do: [ "These images carry Unicode 9.0 tables, so the Pharo backend brings its own general categories, case folding and digits."
 				spec package: 'PCRE2-UnicodeCompat' with: [ spec requires: #( 'PCRE2-UnicodeProperties' ) ].
 				spec package: 'PCRE2-PharoBackend' with: [ spec includes: #( 'PCRE2-UnicodeCompat' ) ] ]
 ]

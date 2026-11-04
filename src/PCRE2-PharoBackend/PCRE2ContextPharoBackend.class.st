@@ -1,5 +1,5 @@
 "
-Compile- and match-context implementation for the Pharo backend. It keeps the newline convention, BSR mode, limits, options, optimization directives and callout blocks as ordinary image state, so it owns no external handle and has nothing to free or to restore when a session resumes.
+Compile- and match-context implementation for the Pharo backend. Its settings are ordinary image state, so it has no external handle to free or to restore when a session resumes.
 "
 Class {
 	#name : 'PCRE2ContextPharoBackend',
@@ -333,7 +333,7 @@ PCRE2ContextPharoBackend >> prepareForShutdown [
 
 { #category : 'copying' }
 PCRE2ContextPharoBackend >> privateCopy [
-	"The Pharo backend holds its settings in the image, so a copy of the backend is the whole private copy."
+	"The settings are image state, so a plain copy is a private one."
 
 	^ self copy
 ]

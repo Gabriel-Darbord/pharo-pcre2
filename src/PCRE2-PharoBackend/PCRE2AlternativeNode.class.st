@@ -126,11 +126,7 @@ PCRE2AlternativeNode >> startPredicate [
 ]
 
 { #category : 'generating' }
-PCRE2AlternativeNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+PCRE2AlternativeNode >> writeInto: aGenerator at: position then: aBlock [
 
-	^ aGenerator
-		  writeAlternation: children
-		  at: position
-		  indent: level
-		  then: aBlock
+	^ aGenerator writeAlternation: children at: position then: aBlock
 ]

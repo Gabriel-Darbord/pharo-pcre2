@@ -76,7 +76,7 @@ PCRE2PatternParser >> alternation [
 
 { #category : 'parsing - optimization' }
 PCRE2PatternParser >> analyseStartOf: tree [
-	"PCRE2's two structural start optimizations, decided once the whole tree stands. A pattern every branch of which starts at a fixed place is anchored, whatever else is turned off; one every branch of which starts at a line start is only ever tried there, which is of no use to a pattern that is anchored already or that has a first character to look for."
+	"PCRE2's two structural start optimizations, decided once the whole tree stands. A pattern whose every branch starts at a fixed place is anchored even under noStartOptimize; one whose every branch starts a line is tried only at line starts, unless it has a first character to look for."
 
 	| analysis |
 	startLine := false.
@@ -109,7 +109,7 @@ PCRE2PatternParser >> asciiInlineOption [
 
 { #category : 'parsing' }
 PCRE2PatternParser >> assertion: kind [
-	"The node for one zero-width position assertion. Its predicate is chosen here, once, so matching never asks again which kind it is."
+	"Its predicate is chosen here, once, so matching never asks which kind it is."
 
 	(#( wordBoundary notWordBoundary ) includes: kind) ifTrue: [ requiresPreviousCharacter := true ].
 	^ PCRE2AssertionNode new
@@ -237,7 +237,7 @@ PCRE2PatternParser >> bsrMode [
 
 { #category : 'parsing' }
 PCRE2PatternParser >> byteConditionFor: callouts constant: constantFalse numbered: aNumber version: aVersion [
-	"What a written matcher can ask of a conditional's condition, or nil when it cannot ask it. A condition already settled while the pattern was read leaves one branch, and a group number is one offset to look at; a recursion, a name shared by several groups, and a lookaround condition are all answered from how the match is going."
+	"What a written matcher can ask of a conditional's condition: a condition settled while reading, or a group number to test. Nil for a recursion, a name shared by several groups or a lookaround."
 
 	callouts ifNotEmpty: [ ^ nil ].
 	constantFalse ifTrue: [ ^ #( #never ) ].
@@ -250,7 +250,7 @@ PCRE2PatternParser >> byteConditionFor: callouts constant: constantFalse numbere
 
 { #category : 'parsing' }
 PCRE2PatternParser >> byteTestFor: kind [
-	"How a written matcher can decide this assertion by reading bytes, or nil when it cannot. The options that change what an assertion means are read here, where they are known, rather than carried into the generator."
+	"How a written matcher can decide this assertion by reading bytes, or nil. The options that change its meaning are read here rather than carried into the generator."
 
 	| terminator multiline |
 	kind = #beginSubject ifTrue: [ ^ #( #atStart ) ].
@@ -429,7 +429,7 @@ PCRE2PatternParser >> classIntersection [
 
 { #category : 'parsing - classes' }
 PCRE2PatternParser >> classNodeFor: aPredicate [
-	"A node for a character class. It carries a table of the codes under 256 it accepts, since a class is asked once for every character of a subject."
+	"A class carries a table of the codes under 256 it accepts, since it is asked once for every character of a subject."
 
 	| node |
 	node := PCRE2CharacterNode new predicate: aPredicate.
@@ -971,12 +971,6 @@ PCRE2PatternParser >> groups [
 	^ groups
 ]
 
-{ #category : 'accessing' }
-PCRE2PatternParser >> groups: aDictionary [
-
-	groups := aDictionary
-]
-
 { #category : 'validation' }
 PCRE2PatternParser >> hasBackreferenceIn: node [
 
@@ -1313,12 +1307,6 @@ PCRE2PatternParser >> names [
 ]
 
 { #category : 'accessing' }
-PCRE2PatternParser >> names: aDictionary [
-
-	names := aDictionary
-]
-
-{ #category : 'accessing' }
 PCRE2PatternParser >> nestLimit: anInteger [
 
 	nestLimit := anInteger
@@ -1363,33 +1351,9 @@ PCRE2PatternParser >> next [
 	^ character
 ]
 
-{ #category : 'parsing - groups' }
-PCRE2PatternParser >> normalizedReference: text [
-
-	| trimmed number index |
-	trimmed := text trimBoth.
-	trimmed isEmpty ifTrue: [ self syntaxError: 'empty reference' ].
-	((trimmed first isDigit or: [ trimmed first = $- or: [ trimmed first = $+ ] ]) and: [
-		 trimmed allSatisfy: [ :character | character isDigit or: [ character = $- or: [ character = $+ ] ] ] ]) ifFalse: [ ^ trimmed ].
-	number := [ trimmed asInteger ]
-		          on: Error
-		          do: [ :error | self syntaxError: 'invalid subpattern reference' ].
-	trimmed first = $- ifTrue: [
-			(number = 0 or: [ captureCount + number + 1 <= 0 ]) ifTrue: [
-					index := (position > 1 and: [ (pattern at: position - 1) = $) ])
-						         ifTrue: [ position - 1 ]
-						         ifFalse: [ position ].
-					self syntaxErrorCode: 115 atCodeUnit: (self codeUnitOffsetAt: index) ].
-			^ captureCount + number + 1 ].
-	trimmed first = $+ ifTrue: [
-			number = 0 ifTrue: [ self syntaxError: 'invalid relative subpattern number' ].
-			^ captureCount + number ].
-	^ number
-]
-
 { #category : 'parsing - optimization' }
 PCRE2PatternParser >> noteBackreference: reference [
-	"Record what a backreference points at. PCRE2 refuses to read a leading dot star as saying where a match begins when it sits in a group something refers back to, because the group can then be asked to have matched something else."
+	"Record what a backreference points at: PCRE2 does not read a leading dot star inside a referenced group as saying where a match begins."
 
 	backreferences add: reference.
 	^ reference
@@ -1397,7 +1361,7 @@ PCRE2PatternParser >> noteBackreference: reference [
 
 { #category : 'parsing - optimization' }
 PCRE2PatternParser >> noteVerb: kind [
-	"Record a verb that breaks the leading dot star optimization. PCRE2 gives it up for the whole pattern as soon as (*PRUNE) or (*SKIP) appears anywhere in it."
+	"PCRE2 gives up the leading dot star optimization for the whole pattern once (*PRUNE) or (*SKIP) appears anywhere in it."
 
 	(kind = #prune or: [ kind = #skip ]) ifTrue: [ hadPruneOrSkip := true ].
 	^ kind
@@ -1581,7 +1545,7 @@ PCRE2PatternParser >> parseCharacterClass [
 			self skipClassIgnored ].
 	self expect: $] errorCode: 106.
 	tests := predicates asArray.
-	"Both sides below are booleans, so identity settles the negation without a comparison send on a path walked for every character."
+	"Both sides below are booleans, so identity settles the negation without a send."
 	^ self classNodeFor: [ :candidate | (tests anySatisfy: [ :test | test value: candidate ]) ~~ negative ]
 ]
 
@@ -2511,34 +2475,6 @@ PCRE2PatternParser >> utsSegmentAllowingClosingLiteral: allowClosing [
 ]
 
 { #category : 'validation' }
-PCRE2PatternParser >> validateCaptureName: name [
-
-	| unicode first start valid |
-	start := position - name size - 1.
-	name isEmpty ifTrue: [ self syntaxErrorCode: 162 atCodeUnit: (self codeUnitOffsetAt: start) ].
-	unicode := (options bitAnd: PCRE2 utf) ~= 0.
-	first := name first.
-	(first = $_ or: [
-			 unicode
-				 ifTrue: [ PCRE2UnicodeData category: #l includes: first asInteger ]
-				 ifFalse: [ (first between: $A and: $Z) or: [ first between: $a and: $z ] ] ]) ifFalse: [
-			self
-				syntaxErrorCode: ((first between: $0 and: $9)
-						 ifTrue: [ 144 ]
-						 ifFalse: [ 162 ])
-				atCodeUnit: (self codeUnitOffsetAt: start) ].
-	name withIndexDo: [ :character :index |
-			valid := character = $_ or: [
-					         unicode
-						         ifTrue: [
-							         (PCRE2UnicodeData category: #l includes: character asInteger) or: [
-								         PCRE2UnicodeData category: #nd includes: character asInteger ] ]
-						         ifFalse: [ character asInteger < 128 and: [ character isAlphaNumeric ] ] ].
-			valid ifFalse: [ self syntaxErrorCode: 142 atCodeUnit: (self codeUnitOffsetAt: start + index - 1) ] ].
-	(self codeUnitCountOf: name) > 128 ifTrue: [ self syntaxErrorCode: 148 ]
-]
-
-{ #category : 'validation' }
 PCRE2PatternParser >> validateLookaroundResetsIn: node active: enclosing [
 
 	| active |
@@ -2619,33 +2555,6 @@ PCRE2PatternParser >> versionCondition [
 	result := ge
 		          ifTrue: [ current first > major or: [ current first = major and: [ current second >= minor ] ] ]
 		          ifFalse: [ current = requested ].
-	^ result
-]
-
-{ #category : 'parsing - groups' }
-PCRE2PatternParser >> versionCondition: text [
-
-	| comparison parts requested current result |
-	comparison := (text beginsWith: 'VERSION>=')
-		              ifTrue: [ #greaterOrEqual ]
-		              ifFalse: [ #equal ].
-	parts := (text allButFirst: (comparison = #equal
-			           ifTrue: [ 8 ]
-			           ifFalse: [ 9 ])) findTokens: '.'.
-	(parts isEmpty or: [
-			 parts size > 2 or: [
-				 parts anySatisfy: [ :part | part isEmpty or: [ (part allSatisfy: [ :digit | digit between: $0 and: $9 ]) not ] ] ] ])
-		ifTrue: [ self syntaxError: 'invalid version condition' ].
-	requested := {
-		             parts first asInteger.
-		             (parts size = 1
-			              ifTrue: [ 0 ]
-			              ifFalse: [ parts second asInteger ]) }.
-	current := PCRE2CompilerPharoBackend compatibleVersion.
-	result := comparison = #equal
-		          ifTrue: [ current = requested ]
-		          ifFalse: [
-		          current first > requested first or: [ current first = requested first and: [ current second >= requested second ] ] ].
 	^ result
 ]
 

@@ -1,15 +1,5 @@
 "
-Abstract superclass of all PCRE2 external object wrappers.
-Wrappers automatically free the memory of their external object on finalization.
-
-Making a `copy` will correctly allocate a new external object.
-
-Using `shallowCopy` directly makes the copy use the same external object.
-Similarly, a `clone` will share its reference with the original.
-When either the original or a copy is finalized, the shared object is freed from memory, leaving the remaining objects in an incorrect state.
-The image can even crash due to a segmentation fault.
-For example, this happens with a `PCRE2Matcher` that has a freed external object.
-If the pattern is JIT-compiled *and* the JIT fast path is enabled, it will crash when trying to match.
+Abstract superclass of the wrappers of PCRE2 external objects, which free their object on finalization. `copy` allocates a new external object, but `shallowCopy` and `clone` share it: once either side is finalized, the other holds freed memory, and using it can crash the VM, for example when matching with a JIT-compiled `PCRE2Matcher`.
 "
 Class {
 	#name : 'PCRE2Object',
@@ -53,7 +43,7 @@ PCRE2Object >> backend [
 
 { #category : 'external resource management' }
 PCRE2Object >> basicFree [
-	"Hand this object's memory back to the library. Called by free, which has already checked the handle and nulls it afterwards."
+	"Called only by free, which checks the handle first and nulls it afterwards."
 
 	self subclassResponsibility
 ]
@@ -91,11 +81,8 @@ PCRE2Object >> finalize [
 
 { #category : 'external resource management' }
 PCRE2Object >> free [
-	"Free the external object and leave the handle null.
-
-	Nulling is the point. isNull is what every guard in the library asks before it touches an external object, and a handle that still carries the address of freed memory makes that question answer wrongly: the guard waves the object through and the read goes to memory the allocator has taken back. Freeing twice is also a crash, and the null is what makes the second free a no-op.
-
-	basicFree is the call to the library. Subclasses implement that, not this."
+	"Free the external object and null the handle. Every guard asks isNull, so a handle left on freed memory would let reads through, and a second free would crash.
+	Subclasses implement basicFree, not this."
 
 	self isNull ifTrue: [ ^ self ].
 	self basicFree.
@@ -104,7 +91,7 @@ PCRE2Object >> free [
 
 { #category : 'initialization' }
 PCRE2Object >> initialize [
-	"Do nothing (prevent initialize to set the handle)"
+	"Do not create a handle: instances get theirs from fromHandle:."
 ]
 
 { #category : 'private - FFI' }
@@ -119,7 +106,7 @@ PCRE2Object >> newCallbackWithSignature: signature block: aBlock [
 
 { #category : 'persistence' }
 PCRE2Object >> prepareForShutdown [
-	"Prepare this wrapper to survive image save/load. Subclasses with native-derived Pharo-side state should materialize it before session shutdown."
+	"Subclasses copy into the image any state that only the native object holds."
 
 	^ self
 ]
@@ -132,7 +119,6 @@ PCRE2Object >> requiresSessionRestore [
 
 { #category : 'persistence' }
 PCRE2Object >> restoreAfterStartup [
-	"Restore the native handle after image startup."
 
 	self subclassResponsibility
 ]

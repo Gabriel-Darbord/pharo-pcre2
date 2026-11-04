@@ -1,9 +1,5 @@
 "
-I am the abstract superclass for the native PCRE2 library bindings.
-
-LibPCRE2UTF8 binds libpcre2-8, LibPCRE2UTF16 binds libpcre2-16, and LibPCRE2UTF32 binds libpcre2-32. This class keeps shared library discovery, version/configuration queries, serialization flow, error handling, and capability checks.
-
-Runtime calls are made through LibPCRE2UTF8, LibPCRE2UTF16, or LibPCRE2UTF32.
+Abstract superclass of the bindings to the PCRE2 C library: LibPCRE2UTF8, LibPCRE2UTF16 and LibPCRE2UTF32 bind libpcre2-8, -16 and -32. It holds library discovery, version and configuration queries, serialization, pattern conversion and capability checks.
 "
 Class {
 	#name : 'LibPCRE2',
@@ -41,70 +37,60 @@ LibPCRE2 class >> config: option [
 
 { #category : 'converting' }
 LibPCRE2 class >> convertGlob: globPattern [
-	"Convert a glob pattern into a PCRE2 pattern string for the receiver's code-unit width."
 
 	^ self convertGlob: globPattern options: PCRE2 convertGlob
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertGlob: globPattern context: convertContext [
-	"Convert a glob pattern into a PCRE2 pattern string with the supplied convert context."
 
 	^ self convertGlob: globPattern options: PCRE2 convertGlob context: convertContext
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertGlob: globPattern options: convertOptions [
-	"Convert a glob pattern into a PCRE2 pattern string with explicit glob conversion options."
 
 	^ self convertGlob: globPattern options: convertOptions context: nil
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertGlob: globPattern options: convertOptions context: convertContext [
-	"Convert a glob pattern into a PCRE2 pattern string for the receiver's code-unit width."
 
 	^ self convertPattern: globPattern options: (convertOptions bitOr: PCRE2 convertUTF) context: convertContext
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPOSIXBasic: posixPattern [
-	"Convert a POSIX basic regular expression into a PCRE2 pattern string for the receiver's code-unit width."
 
 	^ self convertPattern: posixPattern options: PCRE2 convertPOSIXBasic | PCRE2 convertUTF
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPOSIXBasic: posixPattern context: convertContext [
-	"Convert a POSIX basic regular expression into a PCRE2 pattern string with the supplied convert context."
 
 	^ self convertPattern: posixPattern options: PCRE2 convertPOSIXBasic | PCRE2 convertUTF context: convertContext
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPOSIXExtended: posixPattern [
-	"Convert a POSIX extended regular expression into a PCRE2 pattern string for the receiver's code-unit width."
 
 	^ self convertPattern: posixPattern options: PCRE2 convertPOSIXExtended | PCRE2 convertUTF
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPOSIXExtended: posixPattern context: convertContext [
-	"Convert a POSIX extended regular expression into a PCRE2 pattern string with the supplied convert context."
 
 	^ self convertPattern: posixPattern options: PCRE2 convertPOSIXExtended | PCRE2 convertUTF context: convertContext
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPattern: pattern options: convertOptions [
-	"Convert a foreign pattern into a PCRE2 pattern string with explicit PCRE2_CONVERT_* option bits."
 
 	^ self uniqueInstance convertPattern: pattern options: convertOptions context: nil
 ]
 
 { #category : 'converting' }
 LibPCRE2 class >> convertPattern: pattern options: convertOptions context: convertContext [
-	"Convert a foreign pattern into a PCRE2 pattern string with an optional convert context."
 
 	^ self uniqueInstance convertPattern: pattern options: convertOptions context: convertContext
 ]
@@ -141,7 +127,7 @@ LibPCRE2 class >> libraryBasename [
 
 { #category : 'instance creation' }
 LibPCRE2 class >> newCharacterTables [
-	"Build low-character tables from the current process locale for this code-unit width."
+	"Build low-character tables from the current process locale."
 
 	^ self uniqueInstance newCharacterTables
 ]
@@ -160,7 +146,7 @@ LibPCRE2 class >> newMatchContext [
 
 { #category : 'version management' }
 LibPCRE2 class >> requiredMajorVersion [
-	"This binding targets PCRE2 10.x. Minor releases may change diagnostics or reported sizes, but a different major version should be reviewed before use."
+	"This binding targets PCRE2 10.x; another major version needs review before use."
 
 	^ 10
 ]
@@ -173,7 +159,7 @@ LibPCRE2 class >> restore: matchers from: bytes [
 
 { #category : 'private' }
 LibPCRE2 class >> runtimeConfigurationLibrary [
-	"Use the required 8-bit binding for library-wide PCRE2_CONFIG and version queries. These answers describe the loaded PCRE2 runtime, not one concrete code-unit API."
+	"Library-wide configuration and version queries go through the 8-bit library, which is always required."
 
 	^ LibPCRE2UTF8
 ]
@@ -271,7 +257,6 @@ LibPCRE2 class >> supportsUnicode [
 
 { #category : 'instance creation' }
 LibPCRE2 class >> uniqueInstance [
-	"LibPCRE2 is abstract. Use LibPCRE2UTF8, LibPCRE2UTF16, or LibPCRE2UTF32 for runtime calls."
 
 	self isAbstract ifTrue: [ PCRE2Error signal: 'LibPCRE2 is abstract; use a concrete PCRE2 library binding' ].
 	^ super uniqueInstance
@@ -309,15 +294,14 @@ LibPCRE2 class >> versionString [
 
 { #category : 'documentation' }
 LibPCRE2 >> allConfigs [
-	"All configuration information about the PCRE2 library.
-	Includes the obsolete PCRE2_CONFIG_STACKRECURSE at index 9 which is always 0."
+	"The obsolete PCRE2_CONFIG_STACKRECURSE, at index 9, is always 0."
 
 	^ (0 to: 15) collect: [ :option | self config: option ]
 ]
 
 { #category : 'version management' }
 LibPCRE2 >> assertCompatibleLibrary [
-	"Fail early when the loaded native library does not match the assumptions of this binding."
+	"Fail unless the loaded library is PCRE2 10.x, with Unicode support and this code-unit width."
 
 	self versionMajor = self class requiredMajorVersion ifFalse: [
 			PCRE2Error signal: (String streamContents: [ :stream |
@@ -348,7 +332,6 @@ LibPCRE2 >> characterTablesClass [
 
 { #category : 'private' }
 LibPCRE2 >> codeUnitByteSize [
-	"Answer the native byte size of one PCRE2 code unit for this library binding."
 
 	^ self class codeUnitWidth // 8
 ]
@@ -367,8 +350,7 @@ LibPCRE2 >> codeUnitWidthMask [
 
 { #category : 'documentation' }
 LibPCRE2 >> config: option [
-	"Answer configuration information about the PCRE2 library.
-	See class-side methods of PCRE2 starting with 'config' to find valid arguments."
+	"Valid options are the class-side PCRE2 constants starting with 'config'."
 
 	| buffer rc |
 	(option = PCRE2 configJITTarget or: [ option = PCRE2 configUnicodeVersion or: [ option = PCRE2 configVersion ] ]) ifFalse: [ "requesting a number"
@@ -378,7 +360,7 @@ LibPCRE2 >> config: option [
 			^ buffer value ].
 
 	"requesting a string"
-	buffer := ByteArray new: 64 * self codeUnitByteSize. "PCRE2 currently reports short configuration strings; 64 code units leaves room for the terminating zero."
+	buffer := ByteArray new: 64 * self codeUnitByteSize. "PCRE2 configuration strings are short; 64 code units leave room for the terminating zero."
 	rc := self config: option output: buffer. "if success, rc is the number of code units used, including the terminating zero"
 	rc < 0 ifTrue: [ self errorCode: rc ].
 	^ self stringFromConfigBytes: buffer codeUnits: rc - 1
@@ -386,14 +368,13 @@ LibPCRE2 >> config: option [
 
 { #category : 'private' }
 LibPCRE2 >> config: what output: where [
-	"Width-specific primitive for pcre2_config_*()."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> conversionErrorCode: errorCode in: input at: codeUnitOffset [
-	"Signal a conversion error reported for prepared PCRE2 input at a zero-based code-unit offset."
+	"codeUnitOffset is zero-based."
 
 	PCRE2CompileError signal: (PCRE2 translateErrorCode: errorCode) in: input at: codeUnitOffset
 ]
@@ -406,14 +387,13 @@ LibPCRE2 >> convertContextClass [
 
 { #category : 'converting' }
 LibPCRE2 >> convertPattern: pattern options: convertOptions [
-	"Convert a foreign pattern into a PCRE2 pattern string using explicit PCRE2_CONVERT_* option bits."
 
 	^ self convertPattern: pattern options: convertOptions context: nil
 ]
 
 { #category : 'converting' }
 LibPCRE2 >> convertPattern: pattern options: convertOptions context: convertContext [
-	"Convert a foreign pattern string into a PCRE2 pattern string and free the PCRE2-owned output buffer."
+	"Answer pattern converted to PCRE2 syntax. convertOptions are PCRE2_CONVERT_* bits and convertContext may be nil."
 
 	| buffer convertedBytes input outputAddress outputLength rc |
 	self requirePatternConversionSupport.
@@ -439,14 +419,12 @@ LibPCRE2 >> convertPattern: pattern options: convertOptions context: convertCont
 
 { #category : 'private' }
 LibPCRE2 >> convertedPatternFree: convertedPattern [
-	"Width-specific primitive for pcre2_converted_pattern_free_*()."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> copyExternalBytes: externalBytes size: byteSize [
-	"Copy byteSize bytes from a native PCRE2 buffer into a Pharo ByteArray."
 
 	| bytes |
 	bytes := ByteArray new: byteSize.
@@ -456,29 +434,25 @@ LibPCRE2 >> copyExternalBytes: externalBytes size: byteSize [
 
 { #category : 'private' }
 LibPCRE2 >> createConvertContext [
-	"Width-specific primitive for pcre2_convert_context_create_*()."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> createMatchContext [
-	"Width-specific primitive for pcre2_match_context_create_*()."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> decodeConvertedPatternBytes: convertedBytes codeUnitCount: codeUnitCount [
-	"Decode bytes returned by pcre2_pattern_convert_*() for this binding's code-unit width."
 
 	self subclassResponsibility
 ]
 
 { #category : 'serializing' }
 LibPCRE2 >> deserialize: bytes [
-	"Returns the array of handles for the compiled patterns deserialized from the bytes.
-	Only useful if you know what to do with external addresses."
+	"Answer a ByteArray holding a native pointer to each deserialized compiled pattern. The caller owns the patterns."
 
 	| count pointers |
 	count := self serializedNumberOfCodes: bytes.
@@ -491,7 +465,6 @@ LibPCRE2 >> deserialize: bytes [
 
 { #category : 'private' }
 LibPCRE2 >> deserialize: bytes count: count output: buffer [
-	"Width-specific primitive for pcre2_serialize_decode_*()."
 
 	self subclassResponsibility
 ]
@@ -505,14 +478,12 @@ LibPCRE2 >> errorCode: errorCode [
 
 { #category : 'private' }
 LibPCRE2 >> freeCharacterTables: characterTables [
-	"Width-specific primitive for pcre2_maketables_free_*()."
 
 	self subclassResponsibility
 ]
 
 { #category : 'JIT' }
 LibPCRE2 >> jitFreeUnusedMemory [
-	"Width-specific primitive for pcre2_jit_free_unused_memory_*()."
 
 	self subclassResponsibility
 ]
@@ -526,7 +497,6 @@ LibPCRE2 >> macLibraryName [
 
 { #category : 'private' }
 LibPCRE2 >> makeCharacterTables [
-	"Width-specific primitive for pcre2_maketables_*()."
 
 	self subclassResponsibility
 ]
@@ -581,7 +551,6 @@ LibPCRE2 >> newCharacterTables [
 
 { #category : 'instance creation' }
 LibPCRE2 >> newConvertContext [
-	"Create a width-specific convert context for pattern conversion."
 
 	| pointer |
 	self requirePatternConversionSupport.
@@ -601,21 +570,18 @@ LibPCRE2 >> newMatchContext [
 
 { #category : 'private' }
 LibPCRE2 >> patternConvert: pattern upTo: length options: convertOptions output: outputBuffer size: outputLength context: convertContext [
-	"Width-specific primitive for pcre2_pattern_convert_*()."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> preparedConversionInputFor: pattern [
-	"Prepare a String or width-specific input object for pcre2_pattern_convert_*()."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> requirePatternConversionSupport [
-	"Fail before calling pattern-conversion entry points that do not exist in older runtimes."
 
 	self supportsPatternConversion ifTrue: [ ^ self ].
 	PCRE2Error signal: 'Pattern conversion requires PCRE2 10.30 or newer; loaded ' , self versionString
@@ -623,7 +589,7 @@ LibPCRE2 >> requirePatternConversionSupport [
 
 { #category : 'serializing' }
 LibPCRE2 >> restore: matchers from: bytes [
-	"Restore a list of compiled patterns from their serialized form. JIT data is not serialized, so matchers rebuild it best-effort afterwards."
+	"Give each matcher, in order, its compiled pattern from bytes. JIT code is not serialized, so each matcher rebuilds it if needed."
 
 	| count wordSize pointers rc |
 	count := matchers size.
@@ -656,7 +622,6 @@ LibPCRE2 >> serialize: matchers [
 	1 to: matchers size do: [ :index | pointers pointerAtOffset: wordSize * (index - 1) put: (matchers at: index) getHandle ].
 	buffer := ByteArray new: wordSize.
 
-	"bufferSize is updated with the size of the allocated memory."
 	rc := self
 		      serialize: pointers
 		      count: matchers size
@@ -667,34 +632,29 @@ LibPCRE2 >> serialize: matchers [
 			externBytes isNull ifFalse: [ self serializeFree: externBytes ].
 			self errorCode: rc ].
 
-	"Copy the encoded bytes into the image and free the memory allocated by PCRE2."
 	^ [ self copyExternalBytes: externBytes size: bufferSize value ] ensure: [ self serializeFree: externBytes ]
 ]
 
 { #category : 'private' }
 LibPCRE2 >> serialize: matchers count: count output: bytes size: bufferSize [
-	"Width-specific primitive for pcre2_serialize_encode_*()."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> serializeFree: bytes [
-	"Width-specific primitive for pcre2_serialize_free_*()."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> serializedNumberOfCodes: bytes [
-	"Width-specific primitive for pcre2_serialize_get_number_of_codes_*()."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private' }
 LibPCRE2 >> stringFromConfigBytes: buffer codeUnits: codeUnitCount [
-	"Decode a native PCRE2 configuration string for this library width."
 
 	| bytes |
 	codeUnitCount = 0 ifTrue: [ ^ String new ].
@@ -728,7 +688,6 @@ LibPCRE2 >> supports8BitCodeUnitWidth [
 
 { #category : 'version management' }
 LibPCRE2 >> supportsCodeUnitWidth [
-	"Answer whether the loaded PCRE2 runtime reports support for this binding's code-unit width."
 
 	^ ((self config: PCRE2 configCompiledWidths) bitAnd: self codeUnitWidthMask) = self codeUnitWidthMask
 ]
@@ -820,7 +779,6 @@ LibPCRE2 >> version [
 
 { #category : 'version management' }
 LibPCRE2 >> versionAtLeastMajor: major minor: minor [
-	"Answer whether the loaded runtime is at least the given PCRE2 version."
 
 	self versionMajor > major ifTrue: [ ^ true ].
 	self versionMajor = major ifFalse: [ ^ false ].

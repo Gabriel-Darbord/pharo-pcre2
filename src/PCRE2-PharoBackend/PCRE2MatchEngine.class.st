@@ -1,18 +1,5 @@
 "
-The engine that runs a compiled pattern over a subject for the Pharo backend.
-
-It drives the standard PCRE2 algorithm: `run:` takes states off the choice stack, pops one task from each and lets the node execute itself, so a node never recurses into the engine. `PCRE2DFAMatchEngine` reuses all of this and replaces only the search around it, which is why it is a subclass rather than a sibling: it still runs nested assertions through `run:`.
-
-My state is the registers of that loop, in groups:
-
-- the match: subject, originalSubject, root, groups, names, matchOptions, initialPosition
-- the search: choices, outerStates, steps
-- control verbs: committed, failureControl, skipPosition, lastMark, callBase
-- partial matching: partialState, hardPartialFound, candidateStart, earliestConsulted, lastInspected, allowEmptyPartial
-- callouts: calloutBlock, codeUnitMapping, calloutFlags, abortedCode
-- limits: limit, depthLimit, heapLimit, queuedStorage
-
-`subject` follows the state being run, since a scan-substring assertion narrows it; `originalSubject` is what the match was started on.
+The engine that runs a compiled pattern over a subject for the Pharo backend. `run:` takes states off the choice stack and executes their tasks one node at a time, so a node never recurses into the engine; `PCRE2DFAMatchEngine` replaces only the search around it. `subject` follows the state being run, which a scan-substring assertion narrows, and `originalSubject` is the subject the match started on.
 "
 Class {
 	#name : 'PCRE2MatchEngine',
@@ -115,12 +102,6 @@ PCRE2MatchEngine >> backtrack: kind boundary: frame state: state [
 	self trimChoicesTo: 0.
 	kind = #commit ifTrue: [ committed := true ].
 	kind = #skip ifTrue: [ skipPosition := frame first ]
-]
-
-{ #category : 'callouts' }
-PCRE2MatchEngine >> beginMatch [
-
-	calloutFlags := PCRE2 calloutStartMatch
 ]
 
 { #category : 'callouts' }
@@ -404,7 +385,7 @@ PCRE2MatchEngine >> nextChoice [
 
 { #category : 'matching' }
 PCRE2MatchEngine >> noteEndOfSubject: state [
-	"An assertion answered what it did only because the subject ends where it does. PCRE2 counts that however little the attempt has consumed."
+	"An assertion's answer depended on where the subject ends, which PCRE2 counts however little the attempt has consumed."
 
 	| candidate |
 	state subjectText ifNotNil: [ ^ self ].
@@ -482,7 +463,7 @@ PCRE2MatchEngine >> run: aState [
 
 { #category : 'optimization' }
 PCRE2MatchEngine >> scanRepeat: node state: aState [
-	"Count off a repetition of single characters in one step, then keep the shorter runs as one choice. A run only moves forward, so of everything the engine records about what was read, only the first and the last position matter. Counting the run costs no steps, as in PCRE2, where the match limit counts backtracks rather than characters."
+	"Count off a repetition of single characters in one step, keeping the shorter runs as one choice. A run only moves forward, so only its first and last positions read are recorded, and it costs no steps, as in PCRE2."
 
 	| scan count read next |
 	scan := node child countIn: self from: aState position limit: node maximum.
@@ -511,7 +492,7 @@ PCRE2MatchEngine >> scanSubjectTo: end [
 
 { #category : 'optimization' }
 PCRE2MatchEngine >> scansRepeats [
-	"Whether a repetition of single characters may be counted off in one step. The DFA matcher answers no: it follows every alternative at once and needs each turn of a repetition as a state of its own."
+	"Whether a repetition of single characters may be counted off in one step. The DFA matcher needs every turn as a state of its own."
 
 	^ true
 ]

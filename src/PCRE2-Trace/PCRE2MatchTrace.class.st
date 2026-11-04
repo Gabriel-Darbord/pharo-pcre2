@@ -1,11 +1,5 @@
 "
-I describe one instrumented PCRE2 match attempt.
-
-A trace is produced by compiling a temporary debug matcher with automatic callouts, running a non-JIT match, and collecting runtime PCRE2CalloutEvent snapshots. The original matcher is not mutated.
-
-I keep the data used by UI and debugger tools: static callout sites, runtime events, match result, code-unit-to-character helpers, and event-to-site correlation methods.
-
-My steps API builds PCRE2TraceStep objects that pretranslate pattern and subject positions, capture ranges, and marks for a debugger or trace viewer.
+I describe one instrumented match attempt: the static callout sites, the runtime callout events, the match result, and the translation of code-unit offsets to character positions. The trace comes from a temporary matcher compiled with automatic callouts and run without JIT, so the traced matcher is left unchanged. `steps` turns the events into `PCRE2TraceStep`s for a debugger or trace viewer.
 "
 Class {
 	#name : 'PCRE2MatchTrace',
@@ -40,14 +34,12 @@ PCRE2MatchTrace class >> pattern: patternString patternInput: patternInputObject
 
 { #category : 'accessing' }
 PCRE2MatchTrace >> calloutSiteForEvent: aPCRE2CalloutEvent [
-	"Answer the static callout site corresponding to a runtime event, or nil if none is known."
 
 	^ self calloutSiteForEvent: aPCRE2CalloutEvent ifAbsent: [ nil ]
 ]
 
 { #category : 'accessing' }
 PCRE2MatchTrace >> calloutSiteForEvent: aPCRE2CalloutEvent ifAbsent: absentBlock [
-	"Answer the static callout site corresponding to a runtime event."
 
 	^ calloutSites detect: [ :site | site matchesEvent: aPCRE2CalloutEvent ] ifNone: absentBlock
 ]
@@ -74,7 +66,6 @@ PCRE2MatchTrace >> captureRangesAtEvent: aPCRE2CalloutEvent [
 
 { #category : 'accessing' }
 PCRE2MatchTrace >> eventCount [
-	"Answer how many callout events this trace holds."
 
 	^ events size
 ]
@@ -87,7 +78,6 @@ PCRE2MatchTrace >> events [
 
 { #category : 'enumerating' }
 PCRE2MatchTrace >> eventsDo: aBlock [
-	"Evaluate aBlock with each runtime callout event in match order."
 
 	events do: aBlock
 ]
@@ -120,7 +110,7 @@ PCRE2MatchTrace >> input [
 
 { #category : 'testing' }
 PCRE2MatchTrace >> isFinished [
-	"A recorded trace is whole by the time anyone can ask. A live run answers this for real."
+	"A recorded trace is complete; a live run can answer false."
 
 	^ true
 ]
@@ -136,14 +126,12 @@ PCRE2MatchTrace >> isFullMatch [
 
 { #category : 'testing' }
 PCRE2MatchTrace >> isMatch [
-	"Answer whether the traced attempt produced a complete match."
 
 	^ match isNotNil and: [ match isComplete ]
 ]
 
 { #category : 'testing' }
 PCRE2MatchTrace >> isPartial [
-	"Answer whether the traced attempt produced a partial match."
 
 	^ match isNotNil and: [ match isPartial ]
 ]
@@ -156,14 +144,12 @@ PCRE2MatchTrace >> match [
 
 { #category : 'accessing' }
 PCRE2MatchTrace >> matchedString [
-	"Answer the complete matched substring, or nil when the trace did not match."
 
 	^ match ifNotNil: [ match readMatch ]
 ]
 
 { #category : 'private' }
 PCRE2MatchTrace >> offsetPairIsUnset: offsetPair [
-	"Answer whether a PCRE2 ovector pair contains PCRE2_UNSET."
 
 	^ offsetPair first = PCRE2 unsetOffset or: [ offsetPair second = PCRE2 unsetOffset ]
 ]
@@ -176,7 +162,7 @@ PCRE2MatchTrace >> pattern [
 
 { #category : 'decoding' }
 PCRE2MatchTrace >> patternCharacterRangeForEvent: aPCRE2CalloutEvent [
-	"Answer the Pharo character range for the pattern item associated with this event."
+	"Answer the character range of the next pattern item at this event."
 
 	^ self
 		  patternCharacterRangeFromStartOffset: aPCRE2CalloutEvent patternPosition
@@ -192,7 +178,6 @@ PCRE2MatchTrace >> patternCharacterRangeFromStartOffset: zeroBasedStartOffset en
 
 { #category : 'accessing' }
 PCRE2MatchTrace >> patternInput [
-	"Answer the prepared pattern input whose code-unit offsets match the traced matcher width."
 
 	^ patternInput
 ]
@@ -205,7 +190,6 @@ PCRE2MatchTrace >> resultCode [
 
 { #category : 'debugging' }
 PCRE2MatchTrace >> stepForEvent: aPCRE2CalloutEvent index: stepIndex [
-	"Answer a debugger-ready step for one runtime callout event."
 
 	| site |
 	site := self calloutSiteForEvent: aPCRE2CalloutEvent.
@@ -223,7 +207,7 @@ PCRE2MatchTrace >> stepForEvent: aPCRE2CalloutEvent index: stepIndex [
 
 { #category : 'debugging' }
 PCRE2MatchTrace >> steps [
-	"Answer debugger-ready steps derived from the runtime callout events."
+	"Answer one PCRE2TraceStep per callout event, in match order."
 
 	| steps |
 	steps := Array new: events size.
@@ -233,7 +217,6 @@ PCRE2MatchTrace >> steps [
 
 { #category : 'debugging' }
 PCRE2MatchTrace >> stepsDo: aBlock [
-	"Evaluate aBlock with each debugger-ready step in match order."
 
 	1 to: events size do: [ :stepIndex | aBlock value: (self stepForEvent: (events at: stepIndex) index: stepIndex) ]
 ]
@@ -246,7 +229,6 @@ PCRE2MatchTrace >> subject [
 
 { #category : 'decoding' }
 PCRE2MatchTrace >> subjectCharacterPositionAtEvent: aPCRE2CalloutEvent [
-	"Answer the 1-based Pharo character position for the event's current subject code-unit offset."
 
 	^ self subjectCharacterPositionForCodeUnitOffset: aPCRE2CalloutEvent currentPosition
 ]

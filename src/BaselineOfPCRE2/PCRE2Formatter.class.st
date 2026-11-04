@@ -22,7 +22,6 @@ PCRE2Formatter >> formatFFICall: aMessageNode [
 	index := self formatPointerAt: 2 inContents: contents.
 	codeStream nextPutAll: (contents at: index) value.
 
-	"Format parameters"
 	codeStream nextPut: $(.
 	self formatFFIParameters: (contents at: index + 1) contents.
 	codeStream nextPutAll: '))'
@@ -92,7 +91,7 @@ PCRE2Formatter >> formatSelectorAndArguments: aMessageNode [
 
 { #category : 'testing' }
 PCRE2Formatter >> isFFICallbackCreation: aMessageNode [
-	"Answer whether aMessageNode creates a callback from a signature and a block: FFICallback class>>signature:block:, or PCRE2Object>>newCallbackWithSignature:block: that binds it to its library."
+	"Answer whether aMessageNode creates a callback from a signature and a block: FFICallback class>>signature:block:, or PCRE2Object>>newCallbackWithSignature:block:, which binds it to its library."
 
 	aMessageNode selector == #newCallbackWithSignature:block: ifTrue: [ ^ true ].
 	^ aMessageNode selector == #signature:block: and: [

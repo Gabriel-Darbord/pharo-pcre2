@@ -1,5 +1,5 @@
 "
-Pharo implementation of PCRE2 compilation. Parses patterns into executable Pharo nodes, with no C library calls. An option bit PCRE2 does not define signals PCRE2UnsupportedFeature, and so does a facility that only the C binding can provide, such as JIT or a C handle.
+Pharo implementation of PCRE2 compilation, parsing patterns into executable nodes with no C library calls. An option bit PCRE2 does not define, or a facility only the C binding provides such as JIT or a C handle, signals PCRE2UnsupportedFeature.
 "
 Class {
 	#name : 'PCRE2CompilerPharoBackend',

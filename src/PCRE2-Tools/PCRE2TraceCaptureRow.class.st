@@ -1,7 +1,5 @@
 "
-I am a small display row for one capture range in a PCRE2 trace step.
-
-The trace model keeps native and translated ranges; presenters use me to show capture number, translated Pharo character range, and the corresponding subject text without putting table-specific formatting into PCRE2TraceStep.
+I am a display row for one capture of a trace step: its number, character range and subject text.
 "
 Class {
 	#name : 'PCRE2TraceCaptureRow',

@@ -1,7 +1,5 @@
 "
-Shared UFFI type aliases used by the PCRE2 binding.
-
-The holder classes model pointer-out parameters used by PCRE2, such as `int *`, `uint32_t *`, and `PCRE2_SIZE *`, without making those helper names global application classes.
+Holders for the output parameters of PCRE2 functions (`int *`, `uint32_t *`, `PCRE2_SIZE *`), shared with the binding without becoming global classes.
 "
 Class {
 	#name : 'PCRE2Types',

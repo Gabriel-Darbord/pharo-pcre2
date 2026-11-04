@@ -1,5 +1,5 @@
 "
-Public PCRE2 Match using 32-bit code units. The selected backend supplies the implementation; input and offset conventions are shared across backends.
+`PCRE2Match` for 32-bit code units; the backend supplies the implementation.
 "
 Class {
 	#name : 'PCRE2UTF32Match',

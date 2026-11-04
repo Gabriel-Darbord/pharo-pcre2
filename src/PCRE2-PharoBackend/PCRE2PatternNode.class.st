@@ -1,9 +1,5 @@
 "
-Abstract executable node of a pattern compiled by the Pharo backend.
-
-Running a node means sending executeIn:state:, which pushes whatever still has to run onto the task list of the state and answers the state to continue with, or nil when the node fails. Matching is therefore an explicit loop over tasks rather than Pharo recursion, and a node that has something to restore afterwards pushes a continuation node of its own.
-
-Nodes also answer the static facts the rest of the backend needs: length bounds for lookbehind, first-literal and start predicates for the start optimizations, whether the DFA matcher can run them, and how much runtime storage they take.
+Abstract executable node of a pattern compiled by the Pharo backend. executeIn:state: pushes what still has to run onto the task list of the state and answers the state to continue with, or nil when the node fails, so matching is a loop over tasks rather than recursion. Nodes also answer the static facts the backend needs: lookbehind length bounds, start optimizations, DFA support and runtime storage.
 "
 Class {
 	#name : 'PCRE2PatternNode',
@@ -40,7 +36,7 @@ PCRE2PatternNode >> acceptsEveryCharacterButLineEnds [
 
 { #category : 'generating' }
 PCRE2PatternNode >> asciiTable [
-	"The lookup table the written matcher reads to decide whether this item accepts a byte, or nil for an item that is not one character, or one a table cannot describe. Only the entries under 128 are ever read: a written matcher hands the match back to the engine as soon as it meets a higher byte."
+	"The table a written matcher reads to decide whether this item accepts a byte, or nil when it is not one character or a table cannot describe it. Only entries under 128 are read."
 
 	^ nil
 ]
@@ -53,12 +49,6 @@ PCRE2PatternNode >> canAccept [
 
 { #category : 'optimization' }
 PCRE2PatternNode >> canAutoPossess [
-
-	^ false
-]
-
-{ #category : 'testing' }
-PCRE2PatternNode >> canBeCondition [
 
 	^ false
 ]
@@ -198,20 +188,15 @@ PCRE2PatternNode >> terminatesWithAccept [
 ]
 
 { #category : 'generating' }
-PCRE2PatternNode >> writeInto: aGenerator at: position indent: level then: aBlock [
-	"Write this item into a generated matcher, with the block writing everything that follows it. A node a table describes is one character and is written as one test; the rest of the tree answers for itself, and what nothing answers for is left to the engine."
+PCRE2PatternNode >> writeInto: aGenerator at: position then: aBlock [
+	"Write this item into a generated matcher, the block writing what follows it. A node with a table is one character; what no subclass answers for is left to the engine."
 
-	^ self asciiTable ifNil: [ aGenerator refuse ] ifNotNil: [ :table |
-			  aGenerator
-				  writeSingle: table
-				  at: position
-				  indent: level
-				  then: aBlock ]
+	^ self asciiTable ifNil: [ aGenerator refuse ] ifNotNil: [ :table | aGenerator writeSingle: table at: position then: aBlock ]
 ]
 
 { #category : 'generating' }
-PCRE2PatternNode >> writePossessivelyInto: aGenerator at: position indent: level then: aBlock [
-	"Only a repetition can be made possessive, so anything else under a possessive quantifier is a shape this does not know."
+PCRE2PatternNode >> writePossessivelyInto: aGenerator at: position then: aBlock [
+	"Only a repetition can be possessive."
 
 	^ aGenerator refuse
 ]

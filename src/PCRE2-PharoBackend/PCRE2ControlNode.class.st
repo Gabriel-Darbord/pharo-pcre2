@@ -72,7 +72,7 @@ PCRE2ControlNode >> executeIn: engine state: state [
 
 { #category : 'optimization' }
 PCRE2ControlNode >> isSignificantForStart [
-	"PCRE2 looks past a verb that does no more than leave a name behind, and stops at every other one. (*ACCEPT:NAME) leaves a name and then accepts, so the scan stops there."
+	"PCRE2 looks past a verb that only leaves a name behind, and stops at every other one, (*ACCEPT:NAME) included."
 
 	^ name isNil or: [ (#( mark commit prune skip then ) includes: kind) not ]
 ]

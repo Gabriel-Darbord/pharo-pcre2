@@ -8,6 +8,10 @@
 - **Scripts, script extensions, bidi classes, binary properties, grapheme breaks and script runs moved to `PCRE2-UnicodeProperties`.** The `Pharo` and `default` groups load it, so they install what they did. `PCRE2UnicodeData` keeps the questions the backend asks and no longer carries the packed data: `PCRE2UnicodeProperties` and `PCRE2PackedUnicodeTables` do, and `data`, `rangesFor:`, `matches:code:` and `version` went with it.
 - **Substitution, DFA matching, UTF-16 and UTF-32, and tracing moved out of `PCRE2` and `PCRE2-PharoBackend`**, each to a package of its own: `PCRE2-Substitution`, `PCRE2-DFA`, `PCRE2-Wide` and `PCRE2-Trace` hold the shared API, and `PCRE2-PharoBackend-Substitution` and `PCRE2-PharoBackend-DFA` the Pharo implementation of the first two. The `Pharo`, `default` and `FFI` groups load them, so they install what they did; `Core` is `PCRE2` alone and lost the API of all four. `PCRE2-Tools` now requires `PCRE2-Trace`.
 - **The compile and match context classes of a code-unit width come from its compiler and matcher.** `PCRE2Compiler>>compileContextClass` is answered by `PCRE2UTF8Compiler` and its wide counterparts instead of being asked of the backend, and `PCRE2Matcher>>matchContextClass` is new.
+- **A written matcher keeps neither its source nor its argument names**, and its source is written with no layout. Over the patterns of PCRE2's own test inputs, the method a pattern is matched with takes 410 bytes on average, against 1,550.
+- **The case-folding equivalences take a fifth of the memory**: the Pharo backend builds them the first time a pattern matches caselessly, as two word arrays of about 20 kB where it built a 129 kB dictionary. Caseless matching runs as fast as before.
+- **PCRE2's error messages are one string**, read when an error is reported, rather than a dictionary built when the package loads. `PCRE2 class>>translateErrorCode:` answers what it did for every code.
+- **The option constants of `PCRE2` no longer carry a `<pcre2Option:>` pragma.** `PCRE2 class>>optionSelectors` lists them by PCRE2 function, and `allOptions` and `optionsFor:` answer what they did.
 
 ### Added
 

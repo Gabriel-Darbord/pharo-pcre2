@@ -1,7 +1,5 @@
 "
-A read-only encoded subject view. Positions and size count PCRE2 code units. Unicode reads advance over a complete code point, while raw unit reads also permit positions reached through backslash C.
-
-A view shows a window of its storage: `limit` is where the subject ends for matching and `floor` is the earliest offset a lookbehind may reach. The whole subject is the default window. PCRE2_MATCH_INVALID_UTF narrows it to one fragment of valid UTF at a time, so that an invalid sequence is a barrier no match can cross.
+A read-only encoded subject view whose positions and size count PCRE2 code units; Unicode reads advance over a whole code point, raw unit reads also allow positions reached through \C. It shows a window of its storage: `limit` ends the subject for matching and `floor` is the earliest offset a lookbehind may reach, which PCRE2_MATCH_INVALID_UTF narrows to one fragment of valid UTF at a time.
 "
 Class {
 	#name : 'PCRE2SubjectText',
@@ -19,7 +17,7 @@ Class {
 
 { #category : 'enumerating' }
 PCRE2SubjectText >> anyCodeSatisfy: aBlock [
-	"Whether any character in this window satisfies the block, which is handed the character's code rather than the character. Characters are read whole and from the floor up, so a window inside a subject that is not valid UTF is never read past its edges."
+	"Whether the code of any character in this window satisfies the block. Characters are read whole from the floor up, so a subject that is not valid UTF is never read past the window's edges."
 
 	| offset |
 	offset := floor.
@@ -121,7 +119,6 @@ PCRE2SubjectText >> codeUnitCount [
 
 { #category : 'accessing' }
 PCRE2SubjectText >> floor [
-	"The earliest offset a lookbehind may reach."
 
 	^ floor
 ]
