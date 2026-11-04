@@ -971,12 +971,6 @@ PCRE2PatternParser >> groups [
 	^ groups
 ]
 
-{ #category : 'accessing' }
-PCRE2PatternParser >> groups: aDictionary [
-
-	groups := aDictionary
-]
-
 { #category : 'validation' }
 PCRE2PatternParser >> hasBackreferenceIn: node [
 
@@ -1313,12 +1307,6 @@ PCRE2PatternParser >> names [
 ]
 
 { #category : 'accessing' }
-PCRE2PatternParser >> names: aDictionary [
-
-	names := aDictionary
-]
-
-{ #category : 'accessing' }
 PCRE2PatternParser >> nestLimit: anInteger [
 
 	nestLimit := anInteger
@@ -1361,30 +1349,6 @@ PCRE2PatternParser >> next [
 	character := pattern at: position.
 	position := position + 1.
 	^ character
-]
-
-{ #category : 'parsing - groups' }
-PCRE2PatternParser >> normalizedReference: text [
-
-	| trimmed number index |
-	trimmed := text trimBoth.
-	trimmed isEmpty ifTrue: [ self syntaxError: 'empty reference' ].
-	((trimmed first isDigit or: [ trimmed first = $- or: [ trimmed first = $+ ] ]) and: [
-		 trimmed allSatisfy: [ :character | character isDigit or: [ character = $- or: [ character = $+ ] ] ] ]) ifFalse: [ ^ trimmed ].
-	number := [ trimmed asInteger ]
-		          on: Error
-		          do: [ :error | self syntaxError: 'invalid subpattern reference' ].
-	trimmed first = $- ifTrue: [
-			(number = 0 or: [ captureCount + number + 1 <= 0 ]) ifTrue: [
-					index := (position > 1 and: [ (pattern at: position - 1) = $) ])
-						         ifTrue: [ position - 1 ]
-						         ifFalse: [ position ].
-					self syntaxErrorCode: 115 atCodeUnit: (self codeUnitOffsetAt: index) ].
-			^ captureCount + number + 1 ].
-	trimmed first = $+ ifTrue: [
-			number = 0 ifTrue: [ self syntaxError: 'invalid relative subpattern number' ].
-			^ captureCount + number ].
-	^ number
 ]
 
 { #category : 'parsing - optimization' }
@@ -2511,34 +2475,6 @@ PCRE2PatternParser >> utsSegmentAllowingClosingLiteral: allowClosing [
 ]
 
 { #category : 'validation' }
-PCRE2PatternParser >> validateCaptureName: name [
-
-	| unicode first start valid |
-	start := position - name size - 1.
-	name isEmpty ifTrue: [ self syntaxErrorCode: 162 atCodeUnit: (self codeUnitOffsetAt: start) ].
-	unicode := (options bitAnd: PCRE2 utf) ~= 0.
-	first := name first.
-	(first = $_ or: [
-			 unicode
-				 ifTrue: [ PCRE2UnicodeData category: #l includes: first asInteger ]
-				 ifFalse: [ (first between: $A and: $Z) or: [ first between: $a and: $z ] ] ]) ifFalse: [
-			self
-				syntaxErrorCode: ((first between: $0 and: $9)
-						 ifTrue: [ 144 ]
-						 ifFalse: [ 162 ])
-				atCodeUnit: (self codeUnitOffsetAt: start) ].
-	name withIndexDo: [ :character :index |
-			valid := character = $_ or: [
-					         unicode
-						         ifTrue: [
-							         (PCRE2UnicodeData category: #l includes: character asInteger) or: [
-								         PCRE2UnicodeData category: #nd includes: character asInteger ] ]
-						         ifFalse: [ character asInteger < 128 and: [ character isAlphaNumeric ] ] ].
-			valid ifFalse: [ self syntaxErrorCode: 142 atCodeUnit: (self codeUnitOffsetAt: start + index - 1) ] ].
-	(self codeUnitCountOf: name) > 128 ifTrue: [ self syntaxErrorCode: 148 ]
-]
-
-{ #category : 'validation' }
 PCRE2PatternParser >> validateLookaroundResetsIn: node active: enclosing [
 
 	| active |
@@ -2619,33 +2555,6 @@ PCRE2PatternParser >> versionCondition [
 	result := ge
 		          ifTrue: [ current first > major or: [ current first = major and: [ current second >= minor ] ] ]
 		          ifFalse: [ current = requested ].
-	^ result
-]
-
-{ #category : 'parsing - groups' }
-PCRE2PatternParser >> versionCondition: text [
-
-	| comparison parts requested current result |
-	comparison := (text beginsWith: 'VERSION>=')
-		              ifTrue: [ #greaterOrEqual ]
-		              ifFalse: [ #equal ].
-	parts := (text allButFirst: (comparison = #equal
-			           ifTrue: [ 8 ]
-			           ifFalse: [ 9 ])) findTokens: '.'.
-	(parts isEmpty or: [
-			 parts size > 2 or: [
-				 parts anySatisfy: [ :part | part isEmpty or: [ (part allSatisfy: [ :digit | digit between: $0 and: $9 ]) not ] ] ] ])
-		ifTrue: [ self syntaxError: 'invalid version condition' ].
-	requested := {
-		             parts first asInteger.
-		             (parts size = 1
-			              ifTrue: [ 0 ]
-			              ifFalse: [ parts second asInteger ]) }.
-	current := PCRE2CompilerPharoBackend compatibleVersion.
-	result := comparison = #equal
-		          ifTrue: [ current = requested ]
-		          ifFalse: [
-		          current first > requested first or: [ current first = requested first and: [ current second >= requested second ] ] ].
 	^ result
 ]
 

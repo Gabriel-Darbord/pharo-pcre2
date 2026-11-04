@@ -110,11 +110,7 @@ PCRE2CaptureNode >> startPredicate [
 ]
 
 { #category : 'generating' }
-PCRE2CaptureNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+PCRE2CaptureNode >> writeInto: aGenerator at: position then: aBlock [
 
-	^ aGenerator
-		  writeCapture: self
-		  at: position
-		  indent: level
-		  then: aBlock
+	^ aGenerator writeCapture: self at: position then: aBlock
 ]

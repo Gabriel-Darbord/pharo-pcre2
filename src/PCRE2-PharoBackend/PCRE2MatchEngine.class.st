@@ -118,12 +118,6 @@ PCRE2MatchEngine >> backtrack: kind boundary: frame state: state [
 ]
 
 { #category : 'callouts' }
-PCRE2MatchEngine >> beginMatch [
-
-	calloutFlags := PCRE2 calloutStartMatch
-]
-
-{ #category : 'callouts' }
 PCRE2MatchEngine >> beginMatchAt: position [
 
 	calloutFlags := PCRE2 calloutStartMatch.

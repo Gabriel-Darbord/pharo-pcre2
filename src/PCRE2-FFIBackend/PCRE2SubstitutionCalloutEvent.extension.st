@@ -71,16 +71,6 @@ PCRE2SubstitutionCalloutEvent class >> sizeTFrom: anExternalAddress atOffset: st
 ]
 
 { #category : '*PCRE2-FFIBackend' }
-PCRE2SubstitutionCalloutEvent class >> stringFrom: anExternalAddress startOffset: startOffset endOffset: endOffset [
-
-	^ self
-		  stringFrom: anExternalAddress
-		  startOffset: startOffset
-		  endOffset: endOffset
-		  codeUnitWidth: 8
-]
-
-{ #category : '*PCRE2-FFIBackend' }
 PCRE2SubstitutionCalloutEvent class >> stringFrom: anExternalAddress startOffset: startOffset endOffset: endOffset codeUnitWidth: codeUnitWidth [
 	"Decode a substring addressed by PCRE2_SIZE code-unit offsets."
 

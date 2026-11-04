@@ -171,21 +171,13 @@ PCRE2RepeatNode >> startPredicate [
 ]
 
 { #category : 'generating' }
-PCRE2RepeatNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+PCRE2RepeatNode >> writeInto: aGenerator at: position then: aBlock [
 
-	^ aGenerator
-		  writeRepeat: self
-		  at: position
-		  indent: level
-		  then: aBlock
+	^ aGenerator writeRepeat: self at: position then: aBlock
 ]
 
 { #category : 'generating' }
-PCRE2RepeatNode >> writePossessivelyInto: aGenerator at: position indent: level then: aBlock [
+PCRE2RepeatNode >> writePossessivelyInto: aGenerator at: position then: aBlock [
 
-	^ aGenerator
-		  writePossessiveRepeat: self
-		  at: position
-		  indent: level
-		  then: aBlock
+	^ aGenerator writePossessiveRepeat: self at: position then: aBlock
 ]

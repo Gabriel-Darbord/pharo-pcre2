@@ -49,7 +49,7 @@ PCRE2PharoUnicodeTables class >> equivalents: code [
 	"Answer the codes that fold as code does, in ascending order."
 
 	equivalents ifNil: [ equivalents := PCRE2UnicodeData equivalentsUnder: self caseFolding ].
-	^ equivalents at: code ifAbsent: [ { code } ]
+	^ PCRE2UnicodeData equivalentsOf: code in: equivalents
 ]
 
 { #category : 'accessing' }

@@ -48,7 +48,7 @@ PCRE2PackedUnicodeTables class >> equivalents: code [
 	"Answer the codes that fold as code does, in ascending order."
 
 	equivalents ifNil: [ equivalents := PCRE2UnicodeData equivalentsUnder: (self data at: 'folds') ].
-	^ equivalents at: code ifAbsent: [ { code } ]
+	^ PCRE2UnicodeData equivalentsOf: code in: equivalents
 ]
 
 { #category : 'accessing' }

@@ -105,27 +105,8 @@ PCRE2BackreferenceNode >> reference: aReference [
 	reference := aReference
 ]
 
-{ #category : 'matching' }
-PCRE2BackreferenceNode >> sameText: first as: second [
-
-	^ (options bitAnd: PCRE2 caseless) = 0
-		  ifTrue: [ first = second ]
-		  ifFalse: [
-				  first size = second size and: [
-						  (1 to: first size) allSatisfy: [ :index |
-								  PCRE2UnicodeData
-									  same: (first at: index)
-									  as: (second at: index)
-									  unicode: (options bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0
-									  extraOptions: (extraOptions ifNil: [ 0 ]) ] ] ]
-]
-
 { #category : 'generating' }
-PCRE2BackreferenceNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+PCRE2BackreferenceNode >> writeInto: aGenerator at: position then: aBlock [
 
-	^ aGenerator
-		  writeBackreference: self byteReference
-		  at: position
-		  indent: level
-		  then: aBlock
+	^ aGenerator writeBackreference: self byteReference at: position then: aBlock
 ]

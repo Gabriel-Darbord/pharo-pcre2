@@ -26,12 +26,12 @@ Class {
 
 { #category : 'generating' }
 PCRE2MatchGenerator class >> sourceFor: aNode captures: anInteger lineStart: aCode [
-	"The source of a method matching this pattern over raw bytes, or nil when the pattern is not a shape this can write. A code says the pattern can only match at the start of a line, and which byte ends one."
+	"The source of a method matching this pattern over bytes, or nil for a shape this cannot write. A code is the byte ending a line, for a pattern that can only match at the start of one."
 
-	^ (self new
-		   captureCount: anInteger;
-		   lineStart: aCode;
-		   yourself) sourceFor: aNode
+	^ self new
+		  captureCount: anInteger;
+		  lineStart: aCode;
+		  sourceFor: aNode
 ]
 
 { #category : 'generating' }
@@ -43,26 +43,18 @@ PCRE2MatchGenerator >> captureCount: anInteger [
 { #category : 'generating' }
 PCRE2MatchGenerator >> captureEnd: index [
 
-	^ String streamContents: [ :out |
-			  out
-				  nextPut: $c;
-				  print: index;
-				  nextPut: $b ]
+	^ 'c' , index printString , 'b'
 ]
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> captureStart: index [
 
-	^ String streamContents: [ :out |
-			  out
-				  nextPut: $c;
-				  print: index;
-				  nextPut: $a ]
+	^ 'c' , index printString , 'a'
 ]
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> conditionFor: aTest at: position [
-	"The expression one position assertion comes down to over bytes. Each of them either refuses a byte of 128 or over or can only hold where a character begins, so none of them lets a written matcher attempt a start position inside a character."
+	"One position assertion as an expression over bytes. Each refuses a byte over 127 or holds only where a character begins, so none lets a match start inside a character."
 
 	| kind code |
 	kind := aTest first.
@@ -86,53 +78,26 @@ PCRE2MatchGenerator >> conditionFor: aTest at: position [
 						  nextPutAll: code.
 					  aTest third ifFalse: [ out nextPutAll: ' ]' ].
 					  out nextPutAll: ' ])' ] ].
-	kind = #beforeTerminator ifTrue: [
-			^ String streamContents: [ :out |
-					  out
-						  nextPut: $(;
-						  nextPutAll: position;
-						  nextPutAll: ' == size or: [ (bytes byteAt: ';
-						  nextPutAll: position;
-						  nextPutAll: ' + 1) == ';
-						  nextPutAll: code;
-						  nextPutAll: ' ])' ] ].
+	kind = #beforeTerminator ifTrue: [ ^ '(' , position , ' == size or: [ (bytes byteAt: ' , position , ' + 1) == ' , code , ' ])' ].
 	kind = #beforeFinalTerminator ifTrue: [
-			^ String streamContents: [ :out |
-					  out
-						  nextPut: $(;
-						  nextPutAll: position;
-						  nextPutAll: ' == size or: [ ';
-						  nextPutAll: position;
-						  nextPutAll: ' + 1 == size and: [ (bytes byteAt: size) == ';
-						  nextPutAll: code;
-						  nextPutAll: ' ] ])' ] ].
+		^ '(' , position , ' == size or: [ ' , position , ' + 1 == size and: [ (bytes byteAt: size) == ' , code , ' ] ])' ].
 	^ nil
 ]
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> exhausted [
-	"Whether nothing more should be written: either a shape was refused, or the method has grown past what is worth compiling."
+	"Whether to write no more: a shape was refused, or the method is too big to be worth compiling."
 
 	^ failed or: [ stream position > self sizeLimit or: [ locals size + tables size > self localLimit ] ]
 ]
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> fallbackConditionWithMaximum: maximum counter: count position: run [
-	"Whether the run stopped at a byte this cannot judge, which sends the whole match back to the engine."
+	"Whether the run stopped at a byte over 127, which hands the match back to the engine."
 
-	^ String streamContents: [ :out |
-			  maximum ifNotNil: [
-					  out
-						  nextPutAll: count;
-						  nextPutAll: ' < ';
-						  print: maximum;
-						  nextPutAll: ' and: [ ' ].
-			  out
-				  nextPutAll: run;
-				  nextPutAll: ' < size and: [ (bytes byteAt: ';
-				  nextPutAll: run;
-				  nextPutAll: ' + 1) > 127 ]'.
-			  maximum ifNotNil: [ out nextPutAll: ' ]' ] ]
+	| test |
+	test := run , ' < size and: [ (bytes byteAt: ' , run , ' + 1) > 127 ]'.
+	^ maximum ifNil: [ test ] ifNotNil: [ count , ' < ' , maximum printString , ' and: [ ' , test , ' ]' ]
 ]
 
 { #category : 'generating' }
@@ -143,20 +108,19 @@ PCRE2MatchGenerator >> lineStart: aCode [
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> localLimit [
-	"How many locals a written method may keep the match in. A method has room for sixty-four of them, arguments included, so a pattern wanting more than this is one the engine should have."
+	"A method has room for 64 locals, arguments included."
 
 	^ 50
 ]
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> lookupFor: ranges [
-	"The name of a local holding the lookup table for an item that accepts too many runs of codes to compare one by one. Every item in the method that accepts the same codes shares one table, and the entry before the first stands for a position with no character on that side, which a word boundary reads."
+	"The local holding a lookup table for these ranges, shared by every item accepting the same codes. Its first entry stands for no character, which a word boundary reads."
 
-	| key found name |
+	| key name |
 	key := ByteArray new: 129.
 	ranges do: [ :range | range first to: range second do: [ :code | key at: code + 2 put: 1 ] ].
-	found := tables detect: [ :each | each value = key ] ifNone: [ nil ].
-	found ifNotNil: [ ^ found key ].
+	tables do: [ :each | each value = key ifTrue: [ ^ each key ] ].
 	name := self nextLabel: 't'.
 	tables add: name -> key.
 	^ name
@@ -164,7 +128,7 @@ PCRE2MatchGenerator >> lookupFor: ranges [
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> nextLabel: aPrefix [
-	"A name of its own for one place in the written method, which the caller says where to declare."
+	"A fresh name, declared where the caller says."
 
 	counter := counter + 1.
 	^ aPrefix , counter printString
@@ -172,7 +136,7 @@ PCRE2MatchGenerator >> nextLabel: aPrefix [
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> nextName: aPrefix [
-	"A local of its own for one place in the written method."
+	"A fresh local of the method."
 
 	| name |
 	name := self nextLabel: aPrefix.
@@ -182,7 +146,7 @@ PCRE2MatchGenerator >> nextName: aPrefix [
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> offsetAfter: position [
-	"The position one character further on, written as one addition to the same local rather than as a local of its own. A method has room for few locals, and a run of single characters would want one each."
+	"The position one character on, as one addition to the same local: a run of single characters would otherwise want a local each."
 
 	| index tail |
 	index := position indexOfSubCollection: ' + '.
@@ -190,21 +154,17 @@ PCRE2MatchGenerator >> offsetAfter: position [
 		        ifTrue: [ '' ]
 		        ifFalse: [ position allButFirst: index + 2 ].
 	(tail isNotEmpty and: [ tail allSatisfy: [ :each | each isDigit ] ]) ifFalse: [ ^ position , ' + 1' ].
-	^ String streamContents: [ :out |
-			  out
-				  nextPutAll: (position first: index + 2);
-				  print: tail asInteger + 1 ]
+	^ (position first: index + 2) , (tail asInteger + 1) printString
 ]
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> rangesOf: table [
-	"The codes under 128 the table accepts, as ranges. Codes of 128 and over are left out on purpose: a written matcher hands the match back to the engine as soon as it reads a byte that high, so it never has to judge one."
+	"The codes under 128 the table accepts, as ranges. A written matcher never judges a higher byte: it hands the match back to the engine."
 
 	| ranges low |
 	ranges := OrderedCollection new.
-	low := nil.
-	0 to: 127 do: [ :code |
-			(table at: code + 1) == 1
+	0 to: 128 do: [ :code |
+			(code < 128 and: [ (table at: code + 1) == 1 ])
 				ifTrue: [ low ifNil: [ low := code ] ]
 				ifFalse: [
 						low ifNotNil: [
@@ -212,16 +172,12 @@ PCRE2MatchGenerator >> rangesOf: table [
 										low.
 										(code - 1) }.
 								low := nil ] ] ].
-	low ifNotNil: [
-			ranges add: {
-					low.
-					127 } ].
 	^ ranges asArray
 ]
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> refuse [
-	"The shape is one this cannot write. Everything written so far is thrown away, so there is nothing to undo."
+	"The shape is one this cannot write; what was written is thrown away."
 
 	failed := true.
 	^ false
@@ -229,147 +185,84 @@ PCRE2MatchGenerator >> refuse [
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> scanConditionOf: ranges maximum: maximum counter: count position: run [
-	"The condition of the loop that counts off one item's characters."
+	"The condition of the loop counting off one item's characters."
 
-	^ String streamContents: [ :out |
-			  maximum ifNotNil: [
-					  out
-						  nextPutAll: count;
-						  nextPutAll: ' < ';
-						  print: maximum;
-						  nextPutAll: ' and: [ ' ].
-			  out
-				  nextPutAll: run;
-				  nextPutAll: ' < size and: [ (byte := bytes byteAt: ';
-				  nextPutAll: run;
-				  nextPutAll: ' + 1) < 128 and: [ ';
-				  nextPutAll: (self testFor: ranges on: 'byte');
-				  nextPutAll: ' ] ]'.
-			  maximum ifNotNil: [ out nextPutAll: ' ]' ] ]
+	| test |
+	test := run , ' < size and: [ (byte := bytes byteAt: ' , run , ' + 1) < 128 and: [ ' , (self testFor: ranges on: 'byte') , ' ] ]'.
+	^ maximum ifNil: [ test ] ifNotNil: [ count , ' < ' , maximum printString , ' and: [ ' , test , ' ]' ]
 ]
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> sizeLimit [
-	"How much source one pattern may be written as. What follows an alternation is written into every branch of it, so a pattern with several can grow out of all proportion to its own length; past this it is left to the engine."
+	"How much source a pattern may be written as. What follows an alternation is written into each branch, so a few can grow a pattern far past its own length."
 
 	^ 24000
 ]
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> sourceAround: aString stops: stops [
-	"The method around the written body: the search over start positions, the tables the items read, and the locals the body keeps the match in. A pattern that can only begin a line passes over the positions inside one, as the engine does, except for the position the caller asked to match from, which is always tried as it stands. A body that always answers needs no next start position, and writing one after it would be writing a statement no path reaches."
+	"The method around the body: the search over start positions, the tables and the locals. A pattern that can only begin a line skips the positions inside one, except the one asked for. A body that always answers needs no next start."
 
 	^ String streamContents: [ :out |
-			  out
-				  nextPutAll: 'matchFrom: begin to: last in: bytes into: offsets';
-				  cr;
-				  cr;
-				  tab;
-				  nextPutAll: '| size start byte'.
+			  out nextPutAll: 'matchFrom: begin to: last in: bytes into: offsets | size start byte'.
 			  tables do: [ :each |
 					  out
-						  nextPut: Character space;
+						  space;
 						  nextPutAll: each key ].
 			  locals do: [ :name |
 					  out
-						  nextPut: Character space;
+						  space;
 						  nextPutAll: name ].
-			  out
-				  nextPutAll: ' |';
-				  cr;
-				  tab;
-				  nextPutAll: 'size := bytes size.';
-				  cr;
-				  tab;
-				  nextPutAll: 'start := begin.';
-				  cr.
+			  out nextPutAll: ' | size := bytes size. start := begin. '.
 			  tables do: [ :each |
 					  out
-						  tab;
 						  nextPutAll: each key;
 						  nextPutAll: ' := ';
 						  print: each value;
-						  nextPut: $.;
-						  cr ].
+						  nextPutAll: '. ' ].
 			  1 to: captures do: [ :index |
 					  out
-						  tab;
 						  nextPutAll: (self captureStart: index);
 						  nextPutAll: ' := -1. ';
 						  nextPutAll: (self captureEnd: index);
-						  nextPutAll: ' := -1.';
-						  cr ].
+						  nextPutAll: ' := -1. ' ].
 			  out
-				  tab;
 				  nextPutAll: '[ start <= last ] whileTrue: [';
-				  cr;
 				  nextPutAll: aString.
 			  stops ifFalse: [
-					  out
-						  nextPut: $.;
-						  cr;
-						  tab;
-						  tab;
-						  nextPutAll: 'start := start + 1'.
+					  out nextPutAll: '. start := start + 1'.
 					  lineStart ifNotNil: [
 							  out
-								  nextPut: $.;
-								  cr;
-								  tab;
-								  tab;
-								  nextPutAll: '[ start < size and: [ (bytes byteAt: start) ~~ ';
+								  nextPutAll: '. [ start < size and: [ (bytes byteAt: start) ~~ ';
 								  print: lineStart;
 								  nextPutAll: ' ] ] whileTrue: [ start := start + 1 ]' ] ].
-			  out
-				  nextPutAll: ' ].';
-				  cr;
-				  tab;
-				  nextPutAll: '^ false' ]
+			  out nextPutAll: ' ]. ^ false' ]
 ]
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> sourceFor: aNode [
-	"Write the whole method, or answer nil when anything in the pattern is a shape this does not know."
+	"The whole method, or nil for a shape this cannot write. The source is compiled and dropped, so it is written with no layout."
 
 	| body stops |
 	failed := false.
 	counter := 0.
-	guard := nil.
 	locals := OrderedCollection new.
 	tables := OrderedCollection new.
 	1 to: captures do: [ :index |
 			locals
 				add: (self captureStart: index);
 				add: (self captureEnd: index) ].
-	body := (String new: 1024) writeStream.
-	stream := body.
-	stops := aNode
-		         writeInto: self
-		         at: 'start'
-		         indent: 2
-		         then: [ :position :level | self writeSuccessAt: position indent: level ].
+	stream := body := (String new: 1024) writeStream.
+	stops := aNode writeInto: self at: 'start' then: [ :position | self writeSuccessAt: position ].
 	failed ifTrue: [ ^ nil ].
 	^ self sourceAround: body contents stops: stops
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> tabs: level [
-
-	^ String new: level withAll: Character tab
-]
-
-{ #category : 'generating' }
 PCRE2MatchGenerator >> testFor: ranges on: variable [
-	"An expression deciding whether the byte held in the variable is one this item accepts. One or two runs of codes are compared one by one, and anything else is looked up in a table, which is one read rather than a chain of them. Everything it compares is a small integer, so it asks for the same object rather than for an equal one, which is a test and not a message send. It is parenthesised as a whole: what it is written into always sends it another keyword message."
+	"Whether the byte in the variable is accepted: one or two ranges are compared, more are looked up in a table. It compares small integers with ==, and is parenthesised, since it always receives another keyword message."
 
-	(ranges isEmpty or: [ ranges size > 2 ]) ifTrue: [
-			^ String streamContents: [ :out |
-					  out
-						  nextPutAll: '((';
-						  nextPutAll: (self lookupFor: ranges);
-						  nextPutAll: ' at: ';
-						  nextPutAll: variable;
-						  nextPutAll: ' + 2) == 1)' ] ].
+	(ranges isEmpty or: [ ranges size > 2 ]) ifTrue: [ ^ '((' , (self lookupFor: ranges) , ' at: ' , variable , ' + 2) == 1)' ].
 	^ String streamContents: [ :out |
 			  out nextPut: $(.
 			  ranges doWithIndex: [ :range :index |
@@ -397,7 +290,7 @@ PCRE2MatchGenerator >> testFor: ranges on: variable [
 
 { #category : 'generating' }
 PCRE2MatchGenerator >> turnLimit [
-	"How many turns of a repetition a written method will take before handing the match back to the engine. Each turn is a call that has not answered yet, and the engine keeps its own turns on the heap where there is more room for them."
+	"How many turns of a repetition, each a pending call, before handing the match back to the engine, which keeps its turns on the heap."
 
 	^ 100000
 ]
@@ -410,173 +303,111 @@ PCRE2MatchGenerator >> unrollLimit [
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeAlternation: children at: position indent: level then: aBlock [
-	"Branches written one after another, each with everything that follows the alternation written inside it. A branch that fails falls through to the next, which is what trying them in turn amounts to here. A branch that always answers leaves the ones after it unreachable, so writing stops there."
+PCRE2MatchGenerator >> writeAlternation: children at: position then: aBlock [
+	"Each branch has what follows written inside it, and falls through to the next when it fails. A branch that always answers makes the rest unreachable."
 
 	| stops |
 	self exhausted ifTrue: [ ^ self refuse ].
 	stops := false.
 	children doWithIndex: [ :branch :index |
 			(stops or: [ failed ]) ifFalse: [
-					index > 1 ifTrue: [
-							stream
-								nextPut: $.;
-								cr ].
+					index > 1 ifTrue: [ stream nextPutAll: '. ' ].
 					stops := index = 1
-						         ifTrue: [
-								         branch
-									         writeInto: self
-									         at: position
-									         indent: level
-									         then: aBlock ]
-						         ifFalse: [
-								         self
-									         writeGuarded: [ :where :deeper |
-											         branch
-												         writeInto: self
-												         at: where
-												         indent: deeper
-												         then: aBlock ]
-									         at: position
-									         indent: level ] ] ].
+						         ifTrue: [ branch writeInto: self at: position then: aBlock ]
+						         ifFalse: [ self writeGuarded: [ :where | branch writeInto: self at: where then: aBlock ] at: position ] ] ].
 	^ stops
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeAssertion: aTest at: position indent: level then: aBlock [
-	"A position assertion reads nothing, so what follows it is written inside its test and goes on from the same place."
+PCRE2MatchGenerator >> writeAssertion: aTest at: position then: aBlock [
+	"A position assertion reads nothing: what follows is written inside its test."
 
 	| condition |
 	self exhausted ifTrue: [ ^ self refuse ].
 	aTest ifNil: [ ^ self refuse ].
-	aTest first = #wordBoundary ifTrue: [
-			^ self
-				  writeWordBoundary: aTest
-				  at: position
-				  indent: level
-				  then: aBlock ].
-	condition := self conditionFor: aTest at: position.
-	condition ifNil: [ ^ self refuse ].
+	aTest first = #wordBoundary ifTrue: [ ^ self writeWordBoundary: aTest at: position then: aBlock ].
+	condition := (self conditionFor: aTest at: position) ifNil: [ ^ self refuse ].
 	stream
-		nextPutAll: (self tabs: level);
 		nextPutAll: condition;
-		nextPutAll: ' ifTrue: [';
-		cr.
-	aBlock value: position value: level + 1.
+		nextPutAll: ' ifTrue: ['.
+	aBlock value: position.
 	stream nextPutAll: ' ]'.
 	^ false
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeAtomic: aNode at: position indent: level then: aBlock [
-	"An atomic group keeps the first way it found of matching and never looks for another, which a flag says and the body reads."
+PCRE2MatchGenerator >> writeAtomic: aNode at: position then: aBlock [
+	"An atomic group keeps the first way it found of matching: a flag says it found one, and the body reads it."
 
-	| flag held tabs outer stops |
+	| flag held outer stops |
 	self exhausted ifTrue: [ ^ self refuse ].
 	flag := self nextName: 'f'.
 	held := self nextName: 'h'.
-	tabs := self tabs: level.
 	stream
-		nextPutAll: tabs;
 		nextPutAll: flag;
 		nextPutAll: ' := false. ';
 		nextPutAll: held;
-		nextPutAll: ' := 0.';
-		cr.
+		nextPutAll: ' := 0. '.
 	outer := guard.
 	guard := flag.
-	stops := aNode
-		         writeInto: self
-		         at: position
-		         indent: level
-		         then: [ :next :deeper |
-				         stream
-					         nextPutAll: (self tabs: deeper);
-					         nextPutAll: flag;
-					         nextPutAll: ' := true. ';
-					         nextPutAll: held;
-					         nextPutAll: ' := ';
-					         nextPutAll: next.
-				         false ].
+	stops := aNode writeInto: self at: position then: [ :next |
+			         stream
+				         nextPutAll: flag;
+				         nextPutAll: ' := true. ';
+				         nextPutAll: held;
+				         nextPutAll: ' := ';
+				         nextPutAll: next.
+			         false ].
 	guard := outer.
 	stops ifTrue: [ ^ self refuse ].
 	stream
-		nextPut: $.;
-		cr;
-		nextPutAll: tabs;
+		nextPutAll: '. ';
 		nextPutAll: flag;
-		nextPutAll: ' ifTrue: [';
-		cr.
-	aBlock value: held value: level + 1.
+		nextPutAll: ' ifTrue: ['.
+	aBlock value: held.
 	stream nextPutAll: ' ]'.
 	^ false
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeBackreference: index at: position indent: level then: aBlock [
-	"A backreference reads the subject twice, where the group caught it and again here. Both are read as bytes, so either of them being 128 or over hands the whole match back to the engine."
+PCRE2MatchGenerator >> writeBackreference: index at: position then: aBlock [
+	"It reads the subject where the group caught it and here, as bytes: a byte over 127 on either side hands the match back to the engine."
 
-	| tabs span same step hold start |
+	| span same step hold start |
 	self exhausted ifTrue: [ ^ self refuse ].
 	(index isNil or: [ index > captures ]) ifTrue: [ ^ self refuse ].
-	tabs := self tabs: level.
 	start := self captureStart: index.
 	span := self nextName: 'l'.
 	same := self nextName: 'k'.
 	step := self nextName: 'i'.
 	hold := self nextName: 'p'.
 	stream
-		nextPutAll: tabs;
 		nextPutAll: span;
 		nextPutAll: ' := ';
 		nextPutAll: (self captureEnd: index);
 		nextPutAll: ' - ';
 		nextPutAll: start;
-		nextPut: $.;
-		cr;
-		nextPutAll: tabs;
-		nextPut: $(;
+		nextPutAll: '. (';
 		nextPutAll: start;
 		nextPutAll: ' >= 0 and: [ ';
 		nextPutAll: position;
 		nextPutAll: ' + ';
 		nextPutAll: span;
 		nextPutAll: ' <= size ]) ifTrue: [';
-		cr;
-		nextPutAll: tabs;
-		tab;
 		nextPutAll: same;
 		nextPutAll: ' := true. ';
 		nextPutAll: step;
-		nextPutAll: ' := 0.';
-		cr;
-		nextPutAll: tabs;
-		tab;
-		nextPutAll: '[ ';
+		nextPutAll: ' := 0. [ ';
 		nextPutAll: same;
 		nextPutAll: ' and: [ ';
 		nextPutAll: step;
 		nextPutAll: ' < ';
 		nextPutAll: span;
-		nextPutAll: ' ] ] whileTrue: [';
-		cr;
-		nextPutAll: tabs;
-		tab;
-		tab;
-		nextPutAll: 'byte := bytes byteAt: ';
+		nextPutAll: ' ] ] whileTrue: [byte := bytes byteAt: ';
 		nextPutAll: start;
 		nextPutAll: ' + ';
 		nextPutAll: step;
-		nextPutAll: ' + 1.';
-		cr;
-		nextPutAll: tabs;
-		tab;
-		tab;
-		nextPutAll: 'byte > 127 ifTrue: [ ^ nil ].';
-		cr;
-		nextPutAll: tabs;
-		tab;
-		tab;
+		nextPutAll: ' + 1. byte > 127 ifTrue: [ ^ nil ]. ';
 		nextPutAll: same;
 		nextPutAll: ' := byte == (bytes byteAt: ';
 		nextPutAll: position;
@@ -586,209 +417,120 @@ PCRE2MatchGenerator >> writeBackreference: index at: position indent: level then
 		nextPutAll: step;
 		nextPutAll: ' := ';
 		nextPutAll: step;
-		nextPutAll: ' + 1 ].';
-		cr;
-		nextPutAll: tabs;
-		tab;
+		nextPutAll: ' + 1 ]. ';
 		nextPutAll: same;
 		nextPutAll: ' ifTrue: [';
-		cr;
-		nextPutAll: tabs;
-		tab;
-		tab;
 		nextPutAll: hold;
 		nextPutAll: ' := ';
 		nextPutAll: position;
 		nextPutAll: ' + ';
 		nextPutAll: span;
-		nextPut: $.;
-		cr.
-	aBlock value: hold value: level + 3.
+		nextPutAll: '. '.
+	aBlock value: hold.
 	stream nextPutAll: ' ] ]'.
 	^ false
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeCapture: aNode at: position indent: level then: aBlock [
-	"A group remembers where it ran, and puts back what it caught the moment what follows it is done with. Putting it back around what follows, rather than around the group, is what keeps a branch of the group that did not survive from leaving its capture to the branch after it. A group inside a lookaround or an atomic group is left to the engine: what such a group catches depends on which attempt was kept, and neither of them keeps one here."
+PCRE2MatchGenerator >> writeCapture: aNode at: position then: aBlock [
+	"A group sets its offsets before what follows and puts the previous ones back after, so a branch that did not survive leaves nothing caught. Inside a lookaround or an atomic group, which keep no attempt here, it is left to the engine."
 
-	| start finish index held |
+	| start finish index heldStart heldEnd |
 	self exhausted ifTrue: [ ^ self refuse ].
 	index := aNode index.
 	(index > captures or: [ guard isNotNil ]) ifTrue: [ ^ self refuse ].
 	start := self captureStart: index.
 	finish := self captureEnd: index.
-	held := Array with: (self nextName: 'r') with: (self nextName: 's').
-	^ aNode child
-		  writeInto: self
-		  at: position
-		  indent: level
-		  then: [ :next :deeper |
-				  | tabs |
-				  tabs := self tabs: deeper.
-				  stream
-					  nextPutAll: tabs;
-					  nextPutAll: held first;
-					  nextPutAll: ' := ';
-					  nextPutAll: start;
-					  nextPutAll: '. ';
-					  nextPutAll: held second;
-					  nextPutAll: ' := ';
-					  nextPutAll: finish;
-					  nextPut: $.;
-					  cr;
-					  nextPutAll: tabs;
-					  nextPutAll: start;
-					  nextPutAll: ' := ';
-					  nextPutAll: position;
-					  nextPutAll: '. ';
-					  nextPutAll: finish;
-					  nextPutAll: ' := ';
-					  nextPutAll: next;
-					  nextPut: $.;
-					  cr.
-				  (aBlock value: next value: deeper)
-					  ifTrue: [ true ]
-					  ifFalse: [
-							  stream
-								  nextPut: $.;
-								  cr;
-								  nextPutAll: tabs;
-								  nextPutAll: start;
-								  nextPutAll: ' := ';
-								  nextPutAll: held first;
-								  nextPutAll: '. ';
-								  nextPutAll: finish;
-								  nextPutAll: ' := ';
-								  nextPutAll: held second.
-							  false ] ]
+	heldStart := self nextName: 'r'.
+	heldEnd := self nextName: 's'.
+	^ aNode child writeInto: self at: position then: [ :next |
+			  stream
+				  nextPutAll: heldStart;
+				  nextPutAll: ' := ';
+				  nextPutAll: start;
+				  nextPutAll: '. ';
+				  nextPutAll: heldEnd;
+				  nextPutAll: ' := ';
+				  nextPutAll: finish;
+				  nextPutAll: '. ';
+				  nextPutAll: start;
+				  nextPutAll: ' := ';
+				  nextPutAll: position;
+				  nextPutAll: '. ';
+				  nextPutAll: finish;
+				  nextPutAll: ' := ';
+				  nextPutAll: next;
+				  nextPutAll: '. '.
+			  (aBlock value: next) or: [
+					  stream
+						  nextPutAll: '. ';
+						  nextPutAll: start;
+						  nextPutAll: ' := ';
+						  nextPutAll: heldStart;
+						  nextPutAll: '. ';
+						  nextPutAll: finish;
+						  nextPutAll: ' := ';
+						  nextPutAll: heldEnd.
+					  false ] ]
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeConditional: aNode at: position indent: level then: aBlock [
-	"A conditional runs one branch or the other. A condition already settled when the pattern was read leaves only the branch it chose; one asking whether a group took part is one offset to test, and what follows the conditional is written into both branches."
+PCRE2MatchGenerator >> writeConditional: aNode at: position then: aBlock [
+	"A condition settled when the pattern was read leaves one branch; one asking whether a group took part tests its offset, with what follows written into both branches."
 
-	| test tabs taken missed |
+	| test taken missed |
 	self exhausted ifTrue: [ ^ self refuse ].
 	test := aNode byteCondition ifNil: [ ^ self refuse ].
-	test first = #never ifTrue: [
-			^ aNode elseBranch
-				  writeInto: self
-				  at: position
-				  indent: level
-				  then: aBlock ].
-	test first = #always ifTrue: [
-			^ aNode thenBranch
-				  writeInto: self
-				  at: position
-				  indent: level
-				  then: aBlock ].
+	test first = #never ifTrue: [ ^ aNode elseBranch writeInto: self at: position then: aBlock ].
+	test first = #always ifTrue: [ ^ aNode thenBranch writeInto: self at: position then: aBlock ].
 	test second > captures ifTrue: [ ^ self refuse ].
-	tabs := self tabs: level.
 	stream
-		nextPutAll: tabs;
 		nextPutAll: (self captureEnd: test second);
-		nextPutAll: ' >= 0 ifTrue: [';
-		cr.
-	taken := aNode thenBranch
-		         writeInto: self
-		         at: position
-		         indent: level + 1
-		         then: aBlock.
-	stream
-		nextPutAll: ' ] ifFalse: [';
-		cr.
-	missed := aNode elseBranch
-		          writeInto: self
-		          at: position
-		          indent: level + 1
-		          then: aBlock.
+		nextPutAll: ' >= 0 ifTrue: ['.
+	taken := aNode thenBranch writeInto: self at: position then: aBlock.
+	stream nextPutAll: ' ] ifFalse: ['.
+	missed := aNode elseBranch writeInto: self at: position then: aBlock.
 	stream nextPutAll: ' ]'.
 	^ taken and: [ missed ]
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeCopy: ordinal of: aNode at: position indent: level then: aBlock [
-	"One more turn of a repetition written out in full: read the item again, and where enough turns have been taken, go on without it. A greedy repetition tries the longer way first, a lazy one the shorter."
+PCRE2MatchGenerator >> writeCopy: ordinal of: aNode at: position then: aBlock [
+	"One turn of a repetition written out: the item again and, once enough turns are taken, what follows without it. Greedy tries the longer way first, lazy the shorter."
 
-	| taken more enough stops |
+	| enough next |
 	self exhausted ifTrue: [ ^ self refuse ].
-	taken := ordinal - 1.
-	more := ordinal <= aNode maximum.
-	enough := taken >= aNode minimum.
-	more ifFalse: [
+	enough := ordinal > aNode minimum.
+	ordinal > aNode maximum ifTrue: [
 			^ enough
-				  ifTrue: [ aBlock value: position value: level ]
+				  ifTrue: [ aBlock value: position ]
 				  ifFalse: [ self refuse ] ].
-	enough ifFalse: [
-			^ aNode child
-				  writeInto: self
-				  at: position
-				  indent: level
-				  then: [ :next :deeper |
-						  self
-							  writeCopy: ordinal + 1
-							  of: aNode
-							  at: next
-							  indent: deeper
-							  then: aBlock ] ].
+	next := [ :where |
+		        self
+			        writeCopy: ordinal + 1
+			        of: aNode
+			        at: where
+			        then: aBlock ].
+	enough ifFalse: [ ^ aNode child writeInto: self at: position then: next ].
 	aNode greedy ifFalse: [
-			(aBlock value: position value: level) ifTrue: [ ^ true ].
-			stream
-				nextPut: $.;
-				cr.
-			^ self
-				  writeGuarded: [ :where :deeper |
-						  aNode child
-							  writeInto: self
-							  at: where
-							  indent: deeper
-							  then: [ :next :inner |
-									  self
-										  writeCopy: ordinal + 1
-										  of: aNode
-										  at: next
-										  indent: inner
-										  then: aBlock ] ]
-				  at: position
-				  indent: level ].
-	stops := aNode child
-		         writeInto: self
-		         at: position
-		         indent: level
-		         then: [ :next :deeper |
-				         self
-					         writeCopy: ordinal + 1
-					         of: aNode
-					         at: next
-					         indent: deeper
-					         then: aBlock ].
-	stops ifTrue: [ ^ true ].
-	stream
-		nextPut: $.;
-		cr.
-	^ self writeGuarded: aBlock at: position indent: level
+			(aBlock value: position) ifTrue: [ ^ true ].
+			stream nextPutAll: '. '.
+			^ self writeGuarded: [ :where | aNode child writeInto: self at: where then: next ] at: position ].
+	(aNode child writeInto: self at: position then: next) ifTrue: [ ^ true ].
+	stream nextPutAll: '. '.
+	^ self writeGuarded: aBlock at: position
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeGreedyRun: aNode at: position indent: level then: aBlock [
-	"A greedy run of one character: counted off, handed over at its longest, then given one character back on each turn of a second loop. The count comes down before what follows is written, so that what follows is the last thing the turn does and may answer from the method."
+PCRE2MatchGenerator >> writeGreedyRun: aNode at: position then: aBlock [
+	"A greedy run of one character: counted off at its longest, then given back one character a turn. The count comes down before what follows, the last thing the turn does."
 
-	| ranges names run count hold tabs |
-	ranges := self rangesOf: aNode child asciiTable.
-	ranges ifNil: [ ^ self refuse ].
-	names := self
-		         writeRunUpTo: aNode maximum
-		         ranges: ranges
-		         from: position
-		         indent: level.
+	| names run count hold |
+	names := self writeRunUpTo: aNode maximum ranges: (self rangesOf: aNode child asciiTable) from: position.
 	run := names first.
 	count := names second.
 	hold := self nextName: 'p'.
-	tabs := self tabs: level.
-	stream
-		nextPutAll: tabs;
-		nextPutAll: '[ '.
+	stream nextPutAll: '[ '.
 	guard ifNotNil: [
 			stream
 				nextPutAll: guard;
@@ -800,9 +542,6 @@ PCRE2MatchGenerator >> writeGreedyRun: aNode at: position indent: level then: aB
 	guard ifNotNil: [ stream nextPutAll: ' ]' ].
 	stream
 		nextPutAll: ' ] whileTrue: [';
-		cr;
-		nextPutAll: tabs;
-		tab;
 		nextPutAll: hold;
 		nextPutAll: ' := ';
 		nextPutAll: run;
@@ -814,60 +553,43 @@ PCRE2MatchGenerator >> writeGreedyRun: aNode at: position indent: level then: aB
 		nextPutAll: count;
 		nextPutAll: ' := ';
 		nextPutAll: count;
-		nextPutAll: ' - 1.';
-		cr.
-	aBlock value: hold value: level + 2.
+		nextPutAll: ' - 1. '.
+	aBlock value: hold.
 	stream nextPutAll: ' ]'.
 	^ false
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeGuarded: aBlock at: position indent: level [
-	"A second way of matching, which an assertion or an atomic group that has already found what it wanted does not need to try."
+PCRE2MatchGenerator >> writeGuarded: aBlock at: position [
+	"A second way of matching, which an assertion or atomic group that found what it wanted does not try."
 
-	guard ifNil: [ ^ aBlock value: position value: level ].
+	guard ifNil: [ ^ aBlock value: position ].
 	stream
-		nextPutAll: (self tabs: level);
 		nextPutAll: guard;
-		nextPutAll: ' ifFalse: [';
-		cr.
-	aBlock value: position value: level + 1.
+		nextPutAll: ' ifFalse: ['.
+	aBlock value: position.
 	stream nextPutAll: ' ]'.
 	^ false
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeLazyRun: aNode at: position indent: level then: aBlock [
-	"A lazy run of one character: counted off to its minimum, handed over there, and lengthened by one character on each turn of a second loop."
+PCRE2MatchGenerator >> writeLazyRun: aNode at: position then: aBlock [
+	"A lazy run of one character: counted off to its minimum, then lengthened by one character a turn."
 
-	| ranges names run count hold more tabs |
+	| ranges names run count hold more |
 	ranges := self rangesOf: aNode child asciiTable.
-	ranges ifNil: [ ^ self refuse ].
-	names := self
-		         writeRunUpTo: aNode minimum
-		         ranges: ranges
-		         from: position
-		         indent: level.
+	names := self writeRunUpTo: aNode minimum ranges: ranges from: position.
 	run := names first.
 	count := names second.
 	hold := self nextName: 'p'.
 	more := self nextName: 'm'.
-	tabs := self tabs: level.
 	stream
-		nextPutAll: tabs;
 		nextPutAll: count;
 		nextPutAll: ' >= ';
 		print: aNode minimum;
 		nextPutAll: ' ifTrue: [';
-		cr;
-		nextPutAll: tabs;
-		tab;
 		nextPutAll: more;
-		nextPutAll: ' := true.';
-		cr;
-		nextPutAll: tabs;
-		tab;
-		nextPutAll: '[ ';
+		nextPutAll: ' := true. [ ';
 		nextPutAll: more.
 	guard ifNotNil: [
 			stream
@@ -876,18 +598,10 @@ PCRE2MatchGenerator >> writeLazyRun: aNode at: position indent: level then: aBlo
 				nextPutAll: ' not ]' ].
 	stream
 		nextPutAll: ' ] whileTrue: [';
-		cr;
-		nextPutAll: tabs;
-		tab;
-		tab;
 		nextPutAll: hold;
 		nextPutAll: ' := ';
 		nextPutAll: run;
-		nextPut: $.;
-		cr;
-		nextPutAll: tabs;
-		tab;
-		tab;
+		nextPutAll: '. ';
 		nextPutAll: more;
 		nextPutAll: ' := ';
 		nextPutAll: (self
@@ -895,11 +609,7 @@ PCRE2MatchGenerator >> writeLazyRun: aNode at: position indent: level then: aBlo
 				 maximum: aNode maximum
 				 counter: count
 				 position: run);
-		nextPut: $.;
-		cr;
-		nextPutAll: tabs;
-		tab;
-		tab;
+		nextPutAll: '. ';
 		nextPutAll: more;
 		nextPutAll: ' ifTrue: [ ';
 		nextPutAll: run;
@@ -909,297 +619,206 @@ PCRE2MatchGenerator >> writeLazyRun: aNode at: position indent: level then: aBlo
 		nextPutAll: count;
 		nextPutAll: ' := ';
 		nextPutAll: count;
-		nextPutAll: ' + 1 ].';
-		cr.
-	aBlock value: hold value: level + 3.
+		nextPutAll: ' + 1 ]. '.
+	aBlock value: hold.
 	stream
-		nextPutAll: ' ].';
-		cr;
-		nextPutAll: tabs;
-		tab;
-		nextPut: $(;
+		nextPutAll: ' ]. (';
 		nextPutAll: (self fallbackConditionWithMaximum: aNode maximum counter: count position: run);
 		nextPutAll: ') ifTrue: [ ^ nil ] ]'.
 	^ false
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeLookahead: aNode at: position indent: level then: aBlock [
-	"A lookahead reads ahead without keeping what it read. Its body is written with a flag that says it has found what it wanted, which also stops the body looking any further."
+PCRE2MatchGenerator >> writeLookahead: aNode at: position then: aBlock [
+	"A lookahead reads ahead without keeping what it read. A flag says its body found what it wanted, which also stops the body."
 
-	| flag tabs outer stops |
+	| flag outer stops |
 	self exhausted ifTrue: [ ^ self refuse ].
 	aNode atomic = false ifTrue: [ ^ self refuse ].
 	flag := self nextName: 'f'.
-	tabs := self tabs: level.
 	stream
-		nextPutAll: tabs;
 		nextPutAll: flag;
-		nextPutAll: ' := false.';
-		cr.
+		nextPutAll: ' := false. '.
 	outer := guard.
 	guard := flag.
-	stops := aNode child
-		         writeInto: self
-		         at: position
-		         indent: level
-		         then: [ :next :deeper |
-				         stream
-					         nextPutAll: (self tabs: deeper);
-					         nextPutAll: flag;
-					         nextPutAll: ' := true'.
-				         false ].
+	stops := aNode child writeInto: self at: position then: [ :next |
+			         stream
+				         nextPutAll: flag;
+				         nextPutAll: ' := true'.
+			         false ].
 	guard := outer.
 	stops ifTrue: [ ^ self refuse ].
 	stream
-		nextPut: $.;
-		cr;
-		nextPutAll: tabs;
+		nextPutAll: '. ';
 		nextPutAll: flag;
 		nextPutAll: (aNode positive
 				 ifTrue: [ ' ifTrue: [' ]
-				 ifFalse: [ ' ifFalse: [' ]);
-		cr.
-	aBlock value: position value: level + 1.
+				 ifFalse: [ ' ifFalse: [' ]).
+	aBlock value: position.
 	stream nextPutAll: ' ]'.
 	^ false
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeLookbehind: aNode at: position indent: level then: aBlock [
-	"A lookbehind reads the characters before the position. Only a branch that reads a fixed number of them is written: where such a branch begins is known without searching for it, and a branch that began inside a character would read a byte of 128 or over and hand the match back to the engine."
+PCRE2MatchGenerator >> writeLookbehind: aNode at: position then: aBlock [
+	"A lookbehind reads the characters before the position. Only branches of a fixed length are written: where they begin is then known, and one beginning inside a character reads a byte over 127 and hands the match back."
 
-	| flag base tabs outer refused |
+	| flag base outer |
 	self exhausted ifTrue: [ ^ self refuse ].
 	aNode atomic = false ifTrue: [ ^ self refuse ].
-	refused := aNode branches anySatisfy: [ :branch |
-			           | span |
-			           span := aNode maximumLengthFor: branch.
-			           span isNil or: [ span ~= (aNode minimumLengthFor: branch) ] ].
-	refused ifTrue: [ ^ self refuse ].
+	(aNode branches anySatisfy: [ :branch |
+			 | span |
+			 span := aNode maximumLengthFor: branch.
+			 span isNil or: [ span ~= (aNode minimumLengthFor: branch) ] ]) ifTrue: [ ^ self refuse ].
 	flag := self nextName: 'f'.
 	base := self nextName: 'b'.
-	tabs := self tabs: level.
 	stream
-		nextPutAll: tabs;
 		nextPutAll: flag;
-		nextPutAll: ' := false.';
-		cr.
+		nextPutAll: ' := false. '.
 	outer := guard.
 	guard := flag.
 	aNode branches do: [ :branch |
 			stream
-				nextPutAll: tabs;
 				nextPutAll: flag;
 				nextPutAll: ' ifFalse: [';
-				cr;
-				nextPutAll: tabs;
-				tab;
 				nextPutAll: base;
 				nextPutAll: ' := ';
 				nextPutAll: position;
 				nextPutAll: ' - ';
 				print: (aNode minimumLengthFor: branch);
-				nextPut: $.;
-				cr;
-				nextPutAll: tabs;
-				tab;
+				nextPutAll: '. ';
 				nextPutAll: base;
-				nextPutAll: ' >= 0 ifTrue: [';
-				cr.
-			branch
-				writeInto: self
-				at: base
-				indent: level + 2
-				then: [ :next :deeper |
-						stream
-							nextPutAll: (self tabs: deeper);
-							nextPutAll: flag;
-							nextPutAll: ' := true'.
-						false ].
-			stream
-				nextPutAll: ' ] ].';
-				cr ].
+				nextPutAll: ' >= 0 ifTrue: ['.
+			branch writeInto: self at: base then: [ :next |
+					stream
+						nextPutAll: flag;
+						nextPutAll: ' := true'.
+					false ].
+			stream nextPutAll: ' ] ]. ' ].
 	guard := outer.
 	failed ifTrue: [ ^ false ].
 	stream
-		nextPutAll: tabs;
 		nextPutAll: flag;
 		nextPutAll: (aNode positive
 				 ifTrue: [ ' ifTrue: [' ]
-				 ifFalse: [ ' ifFalse: [' ]);
-		cr.
-	aBlock value: position value: level + 1.
+				 ifFalse: [ ' ifFalse: [' ]).
+	aBlock value: position.
 	stream nextPutAll: ' ]'.
 	^ false
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writePossessiveRepeat: aNode at: position indent: level then: aBlock [
-	"A possessive repetition keeps everything it read. One character repeated keeps it by having no second loop to give any back; anything else is a repetition inside an atomic group, which is what a possessive quantifier on a group means."
+PCRE2MatchGenerator >> writePossessiveRepeat: aNode at: position then: aBlock [
+	"One character repeated keeps its run by having no loop to give any back; anything else is a repetition inside an atomic group."
 
 	self exhausted ifTrue: [ ^ self refuse ].
-	aNode maximum = 0 ifTrue: [ ^ aBlock value: position value: level ].
-	aNode child asciiTable ifNil: [
-			^ self
-				  writeAtomic: aNode
-				  at: position
-				  indent: level
-				  then: aBlock ].
-	^ self
-		  writePossessiveRun: aNode
-		  at: position
-		  indent: level
-		  then: aBlock
+	aNode maximum = 0 ifTrue: [ ^ aBlock value: position ].
+	^ aNode child asciiTable
+		  ifNil: [ self writeAtomic: aNode at: position then: aBlock ]
+		  ifNotNil: [ self writePossessiveRun: aNode at: position then: aBlock ]
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writePossessiveRun: aNode at: position indent: level then: aBlock [
-	"A possessive run of one character: counted off and handed over at its longest, with nothing kept to give back."
+PCRE2MatchGenerator >> writePossessiveRun: aNode at: position then: aBlock [
+	"A possessive run of one character: counted off at its longest, with nothing to give back."
 
-	| ranges names run count hold tabs |
-	ranges := self rangesOf: aNode child asciiTable.
-	ranges ifNil: [ ^ self refuse ].
-	names := self
-		         writeRunUpTo: aNode maximum
-		         ranges: ranges
-		         from: position
-		         indent: level.
-	run := names first.
-	count := names second.
+	| names hold |
+	names := self writeRunUpTo: aNode maximum ranges: (self rangesOf: aNode child asciiTable) from: position.
 	hold := self nextName: 'p'.
-	tabs := self tabs: level.
 	stream
-		nextPutAll: tabs;
-		nextPutAll: count;
+		nextPutAll: names second;
 		nextPutAll: ' >= ';
 		print: aNode minimum;
 		nextPutAll: ' ifTrue: [';
-		cr;
-		nextPutAll: tabs;
-		tab;
 		nextPutAll: hold;
 		nextPutAll: ' := ';
-		nextPutAll: run;
-		nextPut: $.;
-		cr.
-	aBlock value: hold value: level + 2.
+		nextPutAll: names first;
+		nextPutAll: '. '.
+	aBlock value: hold.
 	stream nextPutAll: ' ]'.
 	^ false
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeRecursiveRepeat: aNode at: position indent: level then: aBlock [
-	"A repetition with no bound, or with more turns than are worth writing out, becomes a block that calls itself: the Smalltalk stack carries one turn per call, which is what lets a turn be given back without the body being written twice. Every local the body wants is declared in the block, so each turn has its own and a group inside the body keeps what the turn before it caught. A turn that reads nothing would never end, and what PCRE2 does with one is not what stopping there would do, so only a body that always reads a character is written this way."
+PCRE2MatchGenerator >> writeRecursiveRepeat: aNode at: position then: aBlock [
+	"A repetition with no bound, or too many turns to write out, is a block calling itself, one turn a call, so that a turn can be given back. It declares the locals of the body, so each turn has its own. Only a body that always reads a character is written: a turn reading nothing would never end."
 
-	| tabs name count param mark held body inner turn rest |
+	| name count param mark held body inner turn rest |
 	self exhausted ifTrue: [ ^ self refuse ].
 	aNode child minimumLength < 1 ifTrue: [ ^ self refuse ].
-	tabs := self tabs: level.
 	name := self nextName: 'g'.
 	count := self nextName: 'n'.
 	param := self nextLabel: 'p'.
-	turn := [ :where :deeper |
-		        | inside maximum |
-		        inside := self tabs: deeper.
-		        maximum := aNode maximum.
-		        maximum ifNotNil: [
+	turn := [ :where |
+		        aNode maximum ifNotNil: [ :maximum |
 				        stream
-					        nextPutAll: inside;
 					        nextPutAll: count;
 					        nextPutAll: ' < ';
 					        print: maximum;
-					        nextPutAll: ' ifTrue: [';
-					        cr ].
-		        aNode child
-			        writeInto: self
-			        at: where
-			        indent: (maximum ifNil: [ deeper ] ifNotNil: [ deeper + 1 ])
-			        then: [ :next :within |
-					        stream
-						        nextPutAll: (self tabs: within);
-						        nextPutAll: count;
-						        nextPutAll: ' := ';
-						        nextPutAll: count;
-						        nextPutAll: ' + 1. ';
-						        nextPutAll: name;
-						        nextPutAll: ' value: ';
-						        nextPutAll: next;
-						        nextPutAll: '. ';
-						        nextPutAll: count;
-						        nextPutAll: ' := ';
-						        nextPutAll: count;
-						        nextPutAll: ' - 1'.
-					        false ].
-		        maximum ifNotNil: [ stream nextPutAll: ' ]' ].
+					        nextPutAll: ' ifTrue: [' ].
+		        aNode child writeInto: self at: where then: [ :next |
+				        stream
+					        nextPutAll: count;
+					        nextPutAll: ' := ';
+					        nextPutAll: count;
+					        nextPutAll: ' + 1. ';
+					        nextPutAll: name;
+					        nextPutAll: ' value: ';
+					        nextPutAll: next;
+					        nextPutAll: '. ';
+					        nextPutAll: count;
+					        nextPutAll: ' := ';
+					        nextPutAll: count;
+					        nextPutAll: ' - 1'.
+				        false ].
+		        aNode maximum ifNotNil: [ stream nextPutAll: ' ]' ].
 		        false ].
-	rest := [ :where :deeper |
+	rest := [ :where |
 		        stream
-			        nextPutAll: (self tabs: deeper);
 			        nextPutAll: count;
 			        nextPutAll: ' >= ';
 			        print: aNode minimum;
-			        nextPutAll: ' ifTrue: [';
-			        cr.
-		        aBlock value: where value: deeper + 1.
+			        nextPutAll: ' ifTrue: ['.
+		        aBlock value: where.
 		        stream nextPutAll: ' ]'.
 		        false ].
 	mark := locals size.
 	held := stream.
-	body := (String new: 256) writeStream.
-	stream := body.
-	aNode greedy
-		ifTrue: [
-				self writeGuarded: turn at: param indent: level + 1.
-				stream
-					nextPut: $.;
-					cr.
-				self writeGuarded: rest at: param indent: level + 1 ]
-		ifFalse: [
-				self writeGuarded: rest at: param indent: level + 1.
-				stream
-					nextPut: $.;
-					cr.
-				self writeGuarded: turn at: param indent: level + 1 ].
+	stream := body := (String new: 256) writeStream.
+	(aNode greedy
+		 ifTrue: [
+				 {
+					 turn.
+					 rest } ]
+		 ifFalse: [
+				 {
+					 rest.
+					 turn } ]) do: [ :each | self writeGuarded: each at: param ] separatedBy: [ stream nextPutAll: '. ' ].
 	stream := held.
 	inner := locals allButFirst: mark.
 	locals := locals first: mark.
 	failed ifTrue: [ ^ false ].
 	stream
-		nextPutAll: tabs;
 		nextPutAll: count;
-		nextPutAll: ' := 0.';
-		cr;
-		nextPutAll: tabs;
+		nextPutAll: ' := 0. ';
 		nextPutAll: name;
 		nextPutAll: ' := [ :';
 		nextPutAll: param;
-		nextPutAll: ' |';
-		cr.
+		nextPutAll: ' | '.
 	inner ifNotEmpty: [
-			stream
-				nextPutAll: tabs;
-				tab;
-				nextPut: $|.
+			stream nextPut: $|.
 			inner do: [ :each |
 					stream
-						nextPut: Character space;
+						space;
 						nextPutAll: each ].
-			stream
-				nextPutAll: ' |';
-				cr ].
+			stream nextPutAll: ' | ' ].
 	stream
-		nextPutAll: tabs;
-		tab;
 		nextPutAll: count;
 		nextPutAll: ' > ';
 		print: self turnLimit;
-		nextPutAll: ' ifTrue: [ ^ nil ].';
-		cr;
+		nextPutAll: ' ifTrue: [ ^ nil ]. ';
 		nextPutAll: body contents;
-		nextPutAll: ' ].';
-		cr;
-		nextPutAll: tabs;
+		nextPutAll: ' ]. ';
 		nextPutAll: name;
 		nextPutAll: ' value: ';
 		nextPutAll: position.
@@ -1207,60 +826,37 @@ PCRE2MatchGenerator >> writeRecursiveRepeat: aNode at: position indent: level th
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeRepeat: aNode at: position indent: level then: aBlock [
-	"A repetition. One character repeated is counted off in a loop; anything else is written out once for every turn it may take."
+PCRE2MatchGenerator >> writeRepeat: aNode at: position then: aBlock [
+	"One character repeated is counted off in a loop; anything else is written out turn by turn."
 
 	self exhausted ifTrue: [ ^ self refuse ].
-	aNode maximum = 0 ifTrue: [ ^ aBlock value: position value: level ].
-	aNode child asciiTable ifNil: [
-			^ self
-				  writeUnrolledRepeat: aNode
-				  at: position
-				  indent: level
-				  then: aBlock ].
+	aNode maximum = 0 ifTrue: [ ^ aBlock value: position ].
+	aNode child asciiTable ifNil: [ ^ self writeUnrolledRepeat: aNode at: position then: aBlock ].
 	^ aNode greedy
-		  ifTrue: [
-				  self
-					  writeGreedyRun: aNode
-					  at: position
-					  indent: level
-					  then: aBlock ]
-		  ifFalse: [
-				  self
-					  writeLazyRun: aNode
-					  at: position
-					  indent: level
-					  then: aBlock ]
+		  ifTrue: [ self writeGreedyRun: aNode at: position then: aBlock ]
+		  ifFalse: [ self writeLazyRun: aNode at: position then: aBlock ]
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeRunUpTo: maximum ranges: ranges from: position indent: level [
-	"Count off a run of one character, at most maximum of them, and answer the names holding where the run ended and how long it is. A run that stopped at a byte this cannot judge sends the whole match back to the engine."
+PCRE2MatchGenerator >> writeRunUpTo: maximum ranges: ranges from: position [
+	"Count off a run of one character, at most maximum, and answer the names of where it ended and of its length. A run stopped by a byte over 127 hands the match back to the engine."
 
-	| run count tabs |
+	| run count |
 	run := self nextName: 'q'.
 	count := self nextName: 'n'.
-	tabs := self tabs: level.
 	stream
-		nextPutAll: tabs;
 		nextPutAll: run;
 		nextPutAll: ' := ';
 		nextPutAll: position;
 		nextPutAll: '. ';
 		nextPutAll: count;
-		nextPutAll: ' := 0.';
-		cr;
-		nextPutAll: tabs;
-		nextPutAll: '[ ';
+		nextPutAll: ' := 0. [ ';
 		nextPutAll: (self
 				 scanConditionOf: ranges
 				 maximum: maximum
 				 counter: count
 				 position: run);
 		nextPutAll: ' ] whileTrue: [';
-		cr;
-		nextPutAll: tabs;
-		tab;
 		nextPutAll: run;
 		nextPutAll: ' := ';
 		nextPutAll: run;
@@ -1268,86 +864,52 @@ PCRE2MatchGenerator >> writeRunUpTo: maximum ranges: ranges from: position inden
 		nextPutAll: count;
 		nextPutAll: ' := ';
 		nextPutAll: count;
-		nextPutAll: ' + 1 ].';
-		cr;
-		nextPutAll: tabs;
-		nextPut: $(;
+		nextPutAll: ' + 1 ]. (';
 		nextPutAll: (self fallbackConditionWithMaximum: maximum counter: count position: run);
-		nextPutAll: ') ifTrue: [ ^ nil ].';
-		cr.
+		nextPutAll: ') ifTrue: [ ^ nil ]. '.
 	^ Array with: run with: count
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeSequence: children at: position indent: level then: aBlock [
-	"A sequence, with every item written inside the one before it, so that the Smalltalk stack carries the backtracking. The items are folded from the last to the first, which is the order in which each one learns what follows it."
+PCRE2MatchGenerator >> writeSequence: children at: position then: aBlock [
+	"Each item is written inside the one before it, so the Smalltalk stack carries the backtracking."
 
 	| continuation |
 	continuation := aBlock.
 	children reverseDo: [ :child |
 			| rest |
 			rest := continuation.
-			continuation := [ :where :deeper |
-				                child
-					                writeInto: self
-					                at: where
-					                indent: deeper
-					                then: rest ] ].
-	^ continuation value: position value: level
+			continuation := [ :where | child writeInto: self at: where then: rest ] ].
+	^ continuation value: position
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeSingle: table at: position indent: level then: aBlock [
+PCRE2MatchGenerator >> writeSingle: table at: position then: aBlock [
 	"One character that is not repeated: a test, with the rest written inside it."
 
-	| ranges tabs |
 	self exhausted ifTrue: [ ^ self refuse ].
-	ranges := self rangesOf: table.
-	ranges ifNil: [ ^ self refuse ].
-	tabs := self tabs: level.
 	stream
-		nextPutAll: tabs;
 		nextPutAll: position;
-		nextPutAll: ' < size ifTrue: [';
-		cr;
-		nextPutAll: tabs;
-		tab;
-		nextPutAll: 'byte := bytes byteAt: ';
+		nextPutAll: ' < size ifTrue: [byte := bytes byteAt: ';
 		nextPutAll: position;
-		nextPutAll: ' + 1.';
-		cr;
-		nextPutAll: tabs;
-		tab;
-		nextPutAll: 'byte > 127 ifTrue: [ ^ nil ].';
-		cr;
-		nextPutAll: tabs;
-		tab;
-		nextPutAll: (self testFor: ranges on: 'byte');
-		nextPutAll: ' ifTrue: [';
-		cr.
-	aBlock value: (self offsetAfter: position) value: level + 2.
+		nextPutAll: ' + 1. byte > 127 ifTrue: [ ^ nil ]. ';
+		nextPutAll: (self testFor: (self rangesOf: table) on: 'byte');
+		nextPutAll: ' ifTrue: ['.
+	aBlock value: (self offsetAfter: position).
 	stream nextPutAll: ' ] ]'.
 	^ false
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeSuccessAt: position indent: level [
-	"The match is found: say where it runs and what every group caught, and answer from the method."
+PCRE2MatchGenerator >> writeSuccessAt: position [
+	"The match is found: record where it runs and what each group caught, and answer."
 
-	| tabs |
-	tabs := self tabs: level.
 	stream
-		nextPutAll: tabs;
-		nextPutAll: 'offsets at: 1 put: start.';
-		cr;
-		nextPutAll: tabs;
-		nextPutAll: 'offsets at: 2 put: ';
+		nextPutAll: 'offsets at: 1 put: start. offsets at: 2 put: ';
 		nextPutAll: position;
-		nextPut: $.;
-		cr.
+		nextPutAll: '. '.
 	1 to: captures do: [ :index |
 			stream
-				nextPutAll: tabs;
 				nextPutAll: 'offsets at: ';
 				print: index * 2 + 1;
 				nextPutAll: ' put: ';
@@ -1356,79 +918,59 @@ PCRE2MatchGenerator >> writeSuccessAt: position indent: level [
 				print: index * 2 + 2;
 				nextPutAll: ' put: ';
 				nextPutAll: (self captureEnd: index);
-				nextPut: $.;
-				cr ].
-	stream
-		nextPutAll: tabs;
-		nextPutAll: '^ true'.
+				nextPutAll: '. ' ].
+	stream nextPutAll: '^ true'.
 	^ true
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeUnrolledRepeat: aNode at: position indent: level then: aBlock [
-	"A repetition of more than one character is written out once for every turn it may take, which is worth doing while the turns are few and what follows is not copied into many of them. More turns than that are written as a block that calls itself."
+PCRE2MatchGenerator >> writeUnrolledRepeat: aNode at: position then: aBlock [
+	"A repetition of more than one character is written out once a turn while the turns are few, and as a block calling itself beyond that."
 
 	| maximum |
 	maximum := aNode maximum.
 	(maximum isNil or: [ maximum > self unrollLimit or: [ maximum - aNode minimum > 2 ] ]) ifTrue: [
-			^ self
-				  writeRecursiveRepeat: aNode
-				  at: position
-				  indent: level
-				  then: aBlock ].
+		^ self writeRecursiveRepeat: aNode at: position then: aBlock ].
 	aNode child minimumLength < 1 ifTrue: [ ^ self refuse ].
 	^ self
 		  writeCopy: 1
 		  of: aNode
 		  at: position
-		  indent: level
 		  then: aBlock
 ]
 
 { #category : 'generating' }
-PCRE2MatchGenerator >> writeWordBoundary: aTest at: position indent: level then: aBlock [
-	"A word boundary reads the characters on both sides of the position, so the match is handed back to the engine when either of them is a byte this cannot judge. A position with no character on one side reads as a code no item accepts."
+PCRE2MatchGenerator >> writeWordBoundary: aTest at: position then: aBlock [
+	"It reads the characters on both sides, handing the match back when either is a byte over 127. No character reads as -1, which the first table entry stands for."
 
-	| ranges tabs before after |
+	| ranges before after |
 	ranges := self rangesOf: aTest third.
-	ranges ifNil: [ ^ self refuse ].
-	tabs := self tabs: level.
 	before := self nextName: 'w'.
 	after := self nextName: 'x'.
 	stream
-		nextPutAll: tabs;
 		nextPutAll: before;
 		nextPutAll: ' := ';
 		nextPutAll: position;
 		nextPutAll: ' > 0 ifTrue: [ bytes byteAt: ';
 		nextPutAll: position;
-		nextPutAll: ' ] ifFalse: [ -1 ].';
-		cr;
-		nextPutAll: tabs;
+		nextPutAll: ' ] ifFalse: [ -1 ]. ';
 		nextPutAll: after;
 		nextPutAll: ' := ';
 		nextPutAll: position;
 		nextPutAll: ' < size ifTrue: [ bytes byteAt: ';
 		nextPutAll: position;
-		nextPutAll: ' + 1 ] ifFalse: [ -1 ].';
-		cr;
-		nextPutAll: tabs;
-		nextPut: $(;
+		nextPutAll: ' + 1 ] ifFalse: [ -1 ]. (';
 		nextPutAll: before;
 		nextPutAll: ' > 127 or: [ ';
 		nextPutAll: after;
-		nextPutAll: ' > 127 ]) ifTrue: [ ^ nil ].';
-		cr;
-		nextPutAll: tabs;
-		nextPut: $(;
+		nextPutAll: ' > 127 ]) ifTrue: [ ^ nil ]. (';
 		nextPutAll: (self testFor: ranges on: before);
 		nextPutAll: ' ~~ ';
 		nextPutAll: (self testFor: ranges on: after);
 		nextPutAll: ') == ';
-		nextPutAll: aTest second printString;
-		nextPutAll: ' ifTrue: [';
-		cr.
-	aBlock value: position value: level + 1.
+		print: aTest second;
+		nextPutAll: ' ifTrue: ['.
+	aBlock value: position.
 	stream nextPutAll: ' ]'.
 	^ false
 ]

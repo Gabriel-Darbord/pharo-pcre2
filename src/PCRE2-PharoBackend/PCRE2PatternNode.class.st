@@ -58,12 +58,6 @@ PCRE2PatternNode >> canAutoPossess [
 ]
 
 { #category : 'testing' }
-PCRE2PatternNode >> canBeCondition [
-
-	^ false
-]
-
-{ #category : 'testing' }
 PCRE2PatternNode >> canBeRepeated [
 
 	^ true
@@ -198,20 +192,15 @@ PCRE2PatternNode >> terminatesWithAccept [
 ]
 
 { #category : 'generating' }
-PCRE2PatternNode >> writeInto: aGenerator at: position indent: level then: aBlock [
-	"Write this item into a generated matcher, with the block writing everything that follows it. A node a table describes is one character and is written as one test; the rest of the tree answers for itself, and what nothing answers for is left to the engine."
+PCRE2PatternNode >> writeInto: aGenerator at: position then: aBlock [
+	"Write this item into a generated matcher, the block writing what follows it. A node with a table is one character; what no subclass answers for is left to the engine."
 
-	^ self asciiTable ifNil: [ aGenerator refuse ] ifNotNil: [ :table |
-			  aGenerator
-				  writeSingle: table
-				  at: position
-				  indent: level
-				  then: aBlock ]
+	^ self asciiTable ifNil: [ aGenerator refuse ] ifNotNil: [ :table | aGenerator writeSingle: table at: position then: aBlock ]
 ]
 
 { #category : 'generating' }
-PCRE2PatternNode >> writePossessivelyInto: aGenerator at: position indent: level then: aBlock [
-	"Only a repetition can be made possessive, so anything else under a possessive quantifier is a shape this does not know."
+PCRE2PatternNode >> writePossessivelyInto: aGenerator at: position then: aBlock [
+	"Only a repetition can be possessive."
 
 	^ aGenerator refuse
 ]

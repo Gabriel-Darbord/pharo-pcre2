@@ -158,11 +158,7 @@ PCRE2ConditionalNode >> thenBranch [
 ]
 
 { #category : 'generating' }
-PCRE2ConditionalNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+PCRE2ConditionalNode >> writeInto: aGenerator at: position then: aBlock [
 
-	^ aGenerator
-		  writeConditional: self
-		  at: position
-		  indent: level
-		  then: aBlock
+	^ aGenerator writeConditional: self at: position then: aBlock
 ]

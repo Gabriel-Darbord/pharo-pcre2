@@ -15,13 +15,6 @@ Class {
 }
 
 { #category : 'accessing' }
-PCRE2AssertionNode >> byteTest [
-	"How a written matcher can decide this assertion by reading bytes, or nil when it cannot. Chosen when the pattern is parsed, where the options that change what the assertion means are known."
-
-	^ byteTest
-]
-
-{ #category : 'accessing' }
 PCRE2AssertionNode >> byteTest: anArray [
 
 	byteTest := anArray
@@ -91,11 +84,7 @@ PCRE2AssertionNode >> startPredicate [
 ]
 
 { #category : 'generating' }
-PCRE2AssertionNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+PCRE2AssertionNode >> writeInto: aGenerator at: position then: aBlock [
 
-	^ aGenerator
-		  writeAssertion: byteTest
-		  at: position
-		  indent: level
-		  then: aBlock
+	^ aGenerator writeAssertion: byteTest at: position then: aBlock
 ]

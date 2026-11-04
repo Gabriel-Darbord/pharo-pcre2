@@ -80,23 +80,6 @@ PCRE2MatcherPharoBackend >> codeUnitWidth [
 	^ matcher codeUnitWidth
 ]
 
-{ #category : 'matching' }
-PCRE2MatcherPharoBackend >> codeUnitsFor: character [
-
-	| code |
-	code := character asInteger.
-	self codeUnitWidth = 32 ifTrue: [ ^ 1 ].
-	self codeUnitWidth = 16 ifTrue: [
-			^ code > 65535
-				  ifTrue: [ 2 ]
-				  ifFalse: [ 1 ] ].
-	code < 128 ifTrue: [ ^ 1 ].
-	code < 2048 ifTrue: [ ^ 2 ].
-	^ code < 65536
-		  ifTrue: [ 3 ]
-		  ifFalse: [ 4 ]
-]
-
 { #category : 'accessing' }
 PCRE2MatcherPharoBackend >> compileOptions: anInteger [
 
@@ -160,18 +143,6 @@ PCRE2MatcherPharoBackend >> firstFragmentIn: text from: start [
 		  floor.
 		  begin.
 		  (end ifNil: [ total ]) }
-]
-
-{ #category : 'matching' }
-PCRE2MatcherPharoBackend >> firstLineEndIn: text [
-
-	| convention offset |
-	convention := PCRE2NewlineConvention new mode: newlineMode.
-	offset := 0.
-	[ offset < text size ] whileTrue: [
-			(convention lengthAt: offset + 1 in: text) > 0 ifTrue: [ ^ offset ].
-			offset := text nextOffsetFrom: offset ].
-	^ text size
 ]
 
 { #category : 'matching' }
@@ -593,17 +564,19 @@ PCRE2MatcherPharoBackend >> textAndOffsetsFor: bytes length: length [
 
 { #category : 'generated matching' }
 PCRE2MatcherPharoBackend >> writtenMethod [
-	"A method matching this pattern alone, or nil when the pattern is a shape the generator does not know. A pattern that can only begin a line needs the byte that ends one, or the written search would try every position where the engine tries a few. A method the compiler will not take, because the pattern nests deeper or wants more locals than a method has room for, is one more size the generator cannot know in advance, so it is offered and the engine keeps the pattern when it is refused."
+	"A method matching this pattern alone, or nil for a shape the generator does not know. A pattern that can only begin a line needs the byte ending one. The compiler may refuse a method too deep or with too many locals, and the engine keeps that pattern. The method keeps neither its source nor its argument names."
 
 	| terminator source |
 	terminator := startLine ifTrue: [ newlineConvention singleTerminator ifNil: [ ^ nil ] ].
-	source := PCRE2MatchGenerator sourceFor: root captures: captureCount lineStart: terminator.
-	source ifNil: [ ^ nil ].
+	source := (PCRE2MatchGenerator sourceFor: root captures: captureCount lineStart: terminator) ifNil: [ ^ nil ].
 	^ [
-		  OpalCompiler new
-			  class: self class;
-			  source: source;
-			  compile ]
+		  (OpalCompiler new
+			   class: self class;
+			   source: source;
+			   compile)
+			  removeProperty: #source;
+			  removeProperty: #argumentNames;
+			  yourself ]
 		  on: Error
 		  do: [ :error | nil ]
 ]

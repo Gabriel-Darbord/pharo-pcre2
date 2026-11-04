@@ -44,12 +44,6 @@ PCRE2LookbehindNode >> branches: anArray [
 	branches := anArray
 ]
 
-{ #category : 'testing' }
-PCRE2LookbehindNode >> canBeCondition [
-
-	^ atomic ~= false
-]
-
 { #category : 'matching' }
 PCRE2LookbehindNode >> conditionalIn: engine state: state [
 
@@ -160,11 +154,7 @@ PCRE2LookbehindNode >> startPredicate [
 ]
 
 { #category : 'generating' }
-PCRE2LookbehindNode >> writeInto: aGenerator at: position indent: level then: aBlock [
+PCRE2LookbehindNode >> writeInto: aGenerator at: position then: aBlock [
 
-	^ aGenerator
-		  writeLookbehind: self
-		  at: position
-		  indent: level
-		  then: aBlock
+	^ aGenerator writeLookbehind: self at: position then: aBlock
 ]

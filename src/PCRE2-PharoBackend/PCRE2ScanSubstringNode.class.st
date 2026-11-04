@@ -11,12 +11,6 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'testing' }
-PCRE2ScanSubstringNode >> canBeCondition [
-
-	^ false
-]
-
 { #category : 'matching' }
 PCRE2ScanSubstringNode >> executeIn: engine state: state [
 
@@ -50,8 +44,8 @@ PCRE2ScanSubstringNode >> references: aCollection [
 ]
 
 { #category : 'generating' }
-PCRE2ScanSubstringNode >> writeInto: aGenerator at: position indent: level then: aBlock [
-	"A scan-substring assertion reads what a group caught rather than the subject at this position, which is not a shape a written matcher knows, whatever a lookahead can be written as."
+PCRE2ScanSubstringNode >> writeInto: aGenerator at: position then: aBlock [
+	"It reads what a group caught, not the subject: left to the engine."
 
 	^ aGenerator refuse
 ]

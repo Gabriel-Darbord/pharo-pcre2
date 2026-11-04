@@ -69,18 +69,54 @@ PCRE2UnicodeData class >> equivalents: code [
 ]
 
 { #category : 'accessing' }
-PCRE2UnicodeData class >> equivalentsUnder: folding [
-	"Answer every code that folding maps, or maps another code to, with all the codes sharing its folding in ascending order."
+PCRE2UnicodeData class >> equivalentsOf: code in: folds [
+	"Answer the codes that fold as code does, in ascending order, from what equivalentsUnder: answered."
 
-	| classes equivalents |
+	| codes next low high middle found index first size result |
+	codes := folds first.
+	next := folds second.
+	low := 1.
+	high := codes size.
+	[ low <= high ] whileTrue: [
+			middle := low + high // 2.
+			found := codes at: middle.
+			found = code ifTrue: [
+					first := index := middle.
+					size := 1.
+					[ (index := next at: index) = middle ] whileFalse: [
+							size := size + 1.
+							first := first min: index ].
+					result := Array new: size.
+					index := first.
+					1 to: size do: [ :each |
+							result at: each put: (codes at: index).
+							index := next at: index ].
+					^ result ].
+			found < code
+				ifTrue: [ low := middle + 1 ]
+				ifFalse: [ high := middle - 1 ] ].
+	^ { code }
+]
+
+{ #category : 'accessing' }
+PCRE2UnicodeData class >> equivalentsUnder: folding [
+	"Answer the codes that folding maps, or maps another code to, as two word arrays: the codes in ascending order and, for each, the index of the next code folding alike, the last wrapping to the first. Read with equivalentsOf:in:."
+
+	| classes codes indexes next |
 	classes := Dictionary new.
 	folding keysAndValuesDo: [ :code :folded | (classes at: folded ifAbsentPut: [ Set with: folded ]) add: code ].
-	equivalents := Dictionary new.
+	codes := (classes inject: OrderedCollection new into: [ :all :each |
+			          all
+				          addAll: each;
+				          yourself ]) asArray sort.
+	indexes := Dictionary new: codes size.
+	codes doWithIndex: [ :code :index | indexes at: code put: index ].
+	next := WordArray new: codes size.
 	classes do: [ :each |
-			| codes |
-			codes := each asArray sort.
-			codes do: [ :code | equivalents at: code put: codes ] ].
-	^ equivalents
+			| sorted |
+			sorted := each asArray sort.
+			sorted doWithIndex: [ :code :index | next at: (indexes at: code) put: (indexes at: (sorted atWrap: index + 1)) ] ].
+	^ Array with: (WordArray withAll: codes) with: next
 ]
 
 { #category : 'accessing' }
