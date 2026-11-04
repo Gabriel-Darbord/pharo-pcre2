@@ -37,7 +37,9 @@ PCRE2CalloutTest >> testCallbacksBelongToTheLibraryThatCallsThem [
 				regex backend.
 				regex context backend } do: [ :owner |
 					| callback |
-					callback := owner newCallbackWithSignature: #( int #( int value ) ) block: [ :value | value ].
+					callback := owner
+						            newCallbackWithSignature: #(int (int value))
+						            block: [ :value | value ].
 					self assert: callback ffiLibraryName identicalTo: owner ffiLibraryName uniqueInstance ] ]
 ]
 
