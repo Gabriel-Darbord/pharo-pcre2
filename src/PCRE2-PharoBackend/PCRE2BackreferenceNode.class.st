@@ -20,12 +20,6 @@ PCRE2BackreferenceNode >> byteReference [
 	^ (reference isInteger and: [ (options bitAnd: PCRE2 caseless | PCRE2 matchUnsetBackref) = 0 ]) ifTrue: [ reference ]
 ]
 
-{ #category : 'DFA matching' }
-PCRE2BackreferenceNode >> dfaError [
-
-	^ -42
-]
-
 { #category : 'matching' }
 PCRE2BackreferenceNode >> executeIn: engine state: state [
 

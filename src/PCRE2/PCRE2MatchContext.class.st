@@ -33,18 +33,6 @@ PCRE2MatchContext >> clearJITStack [
 ]
 
 { #category : 'accessing' }
-PCRE2MatchContext >> clearSubstituteCallout [
-
-	backend clearSubstituteCallout
-]
-
-{ #category : 'accessing' }
-PCRE2MatchContext >> clearSubstituteCaseCallout [
-
-	backend clearSubstituteCaseCallout
-]
-
-{ #category : 'accessing' }
 PCRE2MatchContext >> codeUnitWidth [
 
 	^ backend codeUnitWidth
@@ -159,36 +147,6 @@ PCRE2MatchContext >> setOffsetLimit: value [
 ]
 
 { #category : 'accessing' }
-PCRE2MatchContext >> setSubstituteCalloutCallback: callback [
-
-	^ backend setSubstituteCalloutCallback: callback
-]
-
-{ #category : 'accessing' }
-PCRE2MatchContext >> setSubstituteCaseCalloutCallback: callback [
-
-	^ backend setSubstituteCaseCalloutCallback: callback
-]
-
-{ #category : 'accessing' }
-PCRE2MatchContext >> substituteCalloutBlock: aBlock [
-
-	backend substituteCalloutBlock: aBlock
-]
-
-{ #category : 'accessing' }
-PCRE2MatchContext >> substituteCaseCalloutBlock: aBlock [
-
-	backend substituteCaseCalloutBlock: aBlock
-]
-
-{ #category : 'accessing' }
-PCRE2MatchContext >> substituteCaseCalloutResultFor: event output: outputPointer block: aBlock [
-
-	^ backend substituteCaseCalloutResultFor: event output: outputPointer block: aBlock
-]
-
-{ #category : 'accessing' }
 PCRE2MatchContext >> unsetCalloutCallback [
 
 	^ backend unsetCalloutCallback
@@ -198,16 +156,4 @@ PCRE2MatchContext >> unsetCalloutCallback [
 PCRE2MatchContext >> unsetJITStack [
 
 	^ backend unsetJITStack
-]
-
-{ #category : 'accessing' }
-PCRE2MatchContext >> unsetSubstituteCalloutCallback [
-
-	^ backend unsetSubstituteCalloutCallback
-]
-
-{ #category : 'accessing' }
-PCRE2MatchContext >> unsetSubstituteCaseCalloutCallback [
-
-	^ backend unsetSubstituteCaseCalloutCallback
 ]

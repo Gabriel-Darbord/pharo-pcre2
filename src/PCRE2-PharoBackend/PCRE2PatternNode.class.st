@@ -75,18 +75,6 @@ PCRE2PatternNode >> conditionalIn: engine state: state [
 	^ (self executeIn: engine state: state) isNotNil
 ]
 
-{ #category : 'DFA matching' }
-PCRE2PatternNode >> dfaError [
-
-	^ 0
-]
-
-{ #category : 'DFA matching' }
-PCRE2PatternNode >> dfaKey [
-
-	^ self
-]
-
 { #category : 'matching' }
 PCRE2PatternNode >> executeIn: engine state: state [
 

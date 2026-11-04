@@ -117,18 +117,6 @@ PCRE2ContextPharoBackend >> clearJITStack [
 	^ self
 ]
 
-{ #category : 'callouts' }
-PCRE2ContextPharoBackend >> clearSubstituteCallout [
-
-	substituteCalloutBlock := nil
-]
-
-{ #category : 'callouts' }
-PCRE2ContextPharoBackend >> clearSubstituteCaseCallout [
-
-	substituteCaseCalloutBlock := nil
-]
-
 { #category : 'accessing' }
 PCRE2ContextPharoBackend >> codeUnitWidth [
 
@@ -383,30 +371,6 @@ PCRE2ContextPharoBackend >> startOptimizationEnabled [
 			(directive = PCRE2 optimizationNone or: [ directive = PCRE2 optimizeStartOff ]) ifTrue: [ enabled := false ].
 			(directive = PCRE2 optimizationFull or: [ directive = PCRE2 optimizeStart ]) ifTrue: [ enabled := true ] ].
 	^ enabled
-]
-
-{ #category : 'accessing' }
-PCRE2ContextPharoBackend >> substituteCalloutBlock [
-
-	^ substituteCalloutBlock
-]
-
-{ #category : 'accessing' }
-PCRE2ContextPharoBackend >> substituteCalloutBlock: block [
-
-	substituteCalloutBlock := block
-]
-
-{ #category : 'accessing' }
-PCRE2ContextPharoBackend >> substituteCaseCalloutBlock [
-
-	^ substituteCaseCalloutBlock
-]
-
-{ #category : 'accessing' }
-PCRE2ContextPharoBackend >> substituteCaseCalloutBlock: block [
-
-	substituteCaseCalloutBlock := block
 ]
 
 { #category : 'accessing' }

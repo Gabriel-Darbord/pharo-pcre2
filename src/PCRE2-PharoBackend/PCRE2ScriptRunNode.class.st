@@ -23,12 +23,6 @@ PCRE2ScriptRunNode >> child: node [
 	child := node
 ]
 
-{ #category : 'DFA matching' }
-PCRE2ScriptRunNode >> dfaError [
-
-	^ -42
-]
-
 { #category : 'matching' }
 PCRE2ScriptRunNode >> executeIn: engine state: state [
 

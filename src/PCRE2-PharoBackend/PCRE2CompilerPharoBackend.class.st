@@ -29,10 +29,7 @@ PCRE2CompilerPharoBackend >> compileBasicInput: input [
 { #category : 'accessing' }
 PCRE2CompilerPharoBackend >> compileContextClass [
 
-	compiler codeUnitWidth = 8 ifTrue: [ ^ PCRE2UTF8CompileContext ].
-	^ compiler codeUnitWidth = 16
-		  ifTrue: [ PCRE2UTF16CompileContext ]
-		  ifFalse: [ PCRE2UTF32CompileContext ]
+	^ compiler compileContextClass
 ]
 
 { #category : 'compiling' }

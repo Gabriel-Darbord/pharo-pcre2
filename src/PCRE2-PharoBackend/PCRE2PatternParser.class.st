@@ -296,9 +296,7 @@ PCRE2PatternParser >> calloutSites [
 PCRE2PatternParser >> calloutStringSize: text [
 
 	(options bitAnd: PCRE2 utf) = 0 ifTrue: [ ^ text size ].
-	codeUnitWidth = 8 ifTrue: [ ^ text asPCRE2UTF8Input size ].
-	codeUnitWidth = 16 ifTrue: [ ^ text asPCRE2UTF16Input size ].
-	^ text size
+	^ self codeUnitCountOf: text
 ]
 
 { #category : 'accessing' }
@@ -490,6 +488,19 @@ PCRE2PatternParser >> classUnion [
 			left := self combineClass: left with: right operator: operator.
 			self classExpressionIgnored ].
 	^ left
+]
+
+{ #category : 'scanning' }
+PCRE2PatternParser >> codeUnitCountOf: text [
+	"Answer how many code units text takes at the code-unit width of the pattern."
+
+	codeUnitWidth = 8 ifTrue: [ ^ text asPCRE2UTF8Input size ].
+	codeUnitWidth = 16 ifTrue: [
+			^ text inject: 0 into: [ :count :character |
+					  count + (character asInteger > 16rFFFF
+						   ifTrue: [ 2 ]
+						   ifFalse: [ 1 ]) ] ].
+	^ text size
 ]
 
 { #category : 'scanning' }
@@ -2524,12 +2535,7 @@ PCRE2PatternParser >> validateCaptureName: name [
 								         PCRE2UnicodeData category: #nd includes: character asInteger ] ]
 						         ifFalse: [ character asInteger < 128 and: [ character isAlphaNumeric ] ] ].
 			valid ifFalse: [ self syntaxErrorCode: 142 atCodeUnit: (self codeUnitOffsetAt: start + index - 1) ] ].
-	(codeUnitWidth = 8
-		 ifTrue: [ name asPCRE2UTF8Input size ]
-		 ifFalse: [
-				 codeUnitWidth = 16
-					 ifTrue: [ name asPCRE2UTF16Input size ]
-					 ifFalse: [ name size ] ]) > 128 ifTrue: [ self syntaxErrorCode: 148 ]
+	(self codeUnitCountOf: name) > 128 ifTrue: [ self syntaxErrorCode: 148 ]
 ]
 
 { #category : 'validation' }

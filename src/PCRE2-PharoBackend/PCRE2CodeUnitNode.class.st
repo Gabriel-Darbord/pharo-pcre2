@@ -17,14 +17,6 @@ PCRE2CodeUnitNode >> canAutoPossess [
 	^ true
 ]
 
-{ #category : 'DFA matching' }
-PCRE2CodeUnitNode >> dfaError [
-
-	^ unicodeWideUnit
-		  ifTrue: [ -42 ]
-		  ifFalse: [ 0 ]
-]
-
 { #category : 'matching' }
 PCRE2CodeUnitNode >> executeIn: engine state: state [
 

@@ -9,39 +9,51 @@ Metacello new
   load
 ```
 
-That loads the `default` group: the shared API and the Pharo backend, which runs in the image and needs nothing installed on the host. Everything on this page works with it.
+That loads the `default` group: the shared API and the Pharo backend, which runs in the image and needs nothing installed on the host. Everything on this page works with it, except the debugger, which needs the `Tools` group.
+
+Pass a group to `load:` to install something else, for instance `load: 'FFI'` or `load: #( 'FFI' 'Pharo' )`.
 
 | group | loads |
 | --- | --- |
-| `default` | `PCRE2`, `PCRE2-PharoBackend` and `PCRE2-UnicodeProperties` |
-| `Core` | `PCRE2` alone, which has no engine and cannot compile a pattern |
-| `Pharo` | the Pharo backend with every Unicode property PCRE2 knows |
-| `PharoMinimal` | the Pharo backend alone, on Pharo's own Unicode tables |
-| `UnicodeProperties` | scripts, bidi classes, binary properties, `\X` and script runs |
-| `FFI` | the FFI backend |
-| `Backends` | both backends |
-| `Tools` | the trace and debugger tools |
-| `Tests` | every test package |
-| `All` | both backends, tools and tests |
+| `default` | `Core` and `Pharo` |
+| `Core` | `PCRE2`, the shared API alone, which has no engine and cannot compile a pattern |
+| `PharoMinimal` | the Pharo backend alone, as described below |
+| `Pharo` | `PharoMinimal` and the five groups that follow |
+| `Substitution` | `substitute:with:` and its variants, with PCRE2's replacement syntax |
+| `DFA` | `dfaMatch:` and `dfaMatches:` |
+| `Wide` | UTF-16 and UTF-32 compilers, matchers, contexts and inputs |
+| `Trace` | `traceMatch:` and the trace it answers |
+| `UnicodeProperties` | scripts, script extensions, bidi classes, binary properties, `\X` and script runs |
+| `FFI` | the FFI backend, with the shared API of `Substitution`, `DFA`, `Wide` and `Trace` |
+| `Backends` | `FFI` and `Pharo` |
+| `Tools` | the pattern debugger and its trace tools |
+| `FFITests` | the tests of the shared API, run against the FFI backend |
+| `PharoTests` | the tests of the Pharo backend |
+| `ToolsTests` | the tests of the tools |
+| `BackendTests` | the tests that need both backends |
+| `Tests` | the four test groups |
+| `All` | `Backends`, `Tools` and `Tests` |
 
-Pass a group to `load:`, for instance `load: 'FFI'` or `load: #( 'FFI' 'Pharo' )`.
+### The smallest install
+
+`PharoMinimal` compiles and matches UTF-8 patterns and subjects, with captures, named groups, callouts, partial matching and the Rx-style `String` protocol. Every other feature comes with its group, and the selectors of a feature whose group is not loaded are not understood.
+
+It has no Unicode data of its own either. It reads general categories, case folding and decimal digits from the image, so `\p{L}`, `\w`, `\d`, POSIX classes and caseless matching work, and a pattern that needs the `UnicodeProperties` group fails to compile with `PCRE2UnsupportedFeature`. [Backends.md](Backends.md#unicode-data) says where the data comes from on each Pharo version.
 
 ### The FFI backend
 
-The `FFI` group adds the faster backend, the glob and POSIX pattern conversions, JIT, locale character tables and C serialization. It needs the native PCRE2 8-bit library on the host:
+The `FFI` group adds the faster backend and the facilities only the C library offers. [Backends.md](Backends.md) says which they are and how a backend is chosen. It needs the native PCRE2 8-bit library on the host:
 
 ```sh
 sudo apt install libpcre2-dev   # Linux
 brew install pcre2              # macOS
 ```
 
-Its UTF-16 and UTF-32 APIs also use `libpcre2-16` and `libpcre2-32` when present. Ask the library for its version from Pharo:
+The UTF-16 and UTF-32 libraries are optional; [Lifecycle.md](Lifecycle.md#native-library) says how the backend binds them. Ask the library for its version from Pharo:
 
 ```smalltalk
 LibPCRE2UTF8 config: PCRE2 configVersion
 ```
-
-[Backends.md](Backends.md) explains how a backend is chosen and what the Pharo one does not do yet.
 
 ## Compile a Pattern
 
@@ -69,8 +81,6 @@ match := matcher findMatch: 'size=42'.
 match groupAt: 0.          "size=42"
 match groupAt: 1.          "size"
 match groupNamed: 'value'. "42"
-match matchDataSize.       "match-data bytes the backend holds"
-match heapframesSize.      "heap-frame bytes the match data retains"
 ```
 
 ## Enumerate Matches
@@ -83,7 +93,7 @@ match heapframesSize.      "heap-frame bytes the match data retains"
   do: [ :each | Transcript show: each; cr ].
 ```
 
-For character ranges, use `matchingRangesIn:`. Ranges are translated back from PCRE2 UTF-8 offsets to Pharo character indexes.
+For character ranges, use `matchingRangesIn:`.
 
 ## Split and Substitute
 
@@ -95,11 +105,42 @@ For character ranges, use `matchingRangesIn:`. Ranges are translated back from P
   with: '#'.
 ```
 
-Replacement strings use PCRE2 substitution syntax unless you call one of the `withLiteral:` variants.
+[API.md](API.md#splitting-and-substitution) covers the replacement syntax, literal replacements and substitution callouts.
+
+## Reuse Prepared Input
+
+Strings are prepared as UTF-8 bytes each time they are matched. If you match the same subject repeatedly, prepare it once:
+
+```smalltalk
+input := 'cafe deja' asPCRE2UTF8Input.
+matcher := '\w+' asPerlCompatibleRegex.
+matcher findAll: input.
+matcher matchingRangesIn: input.
+```
+
+ASCII strings can be reused directly as byte storage. Non-ASCII strings are encoded once, and the input keeps what it needs to translate byte offsets back to Pharo character indexes.
+
+## Use UTF-16 or UTF-32 Matching
+
+The `Wide` group adds `PCRE2UTF16Compiler` and `PCRE2UTF32Compiler`, which compile and match at the wider code-unit widths:
+
+```smalltalk
+matcher := PCRE2UTF16Compiler new compile: '\p{L}+'.
+matcher findAll: 'café déjà'.
+```
+
+A subject already stored as UTF-16 or UTF-32 bytes can be prepared directly:
+
+```smalltalk
+input := bytesFromFile asPCRE2UTF16InputDetectingBOM.
+matcher findAll: input.
+```
+
+[API.md](API.md#utf-16-and-utf-32) lists the byte-order variants, prepared patterns, and what the wide matchers support.
 
 ## Debug a Pattern
 
-With the `Tools` group loaded, the debugger records an instrumented match and walks it step by step. It runs on either backend.
+With the `Tools` group loaded, the debugger records an instrumented match and walks it step by step. It records through callouts, so it shows what the backend in use does rather than simulating a matcher of its own, and it runs on either backend.
 
 ```smalltalk
 PCRE2DebuggerPresenter open.                            "nothing in it yet"
@@ -109,57 +150,3 @@ PCRE2DebuggerPresenter open.                            "nothing in it yet"
 ```
 
 Pattern and subject stay editable in the window. *Trace all* records a whole match at once; *Step* and *Continue* run the same instrumented matcher under your control.
-
-## Convert Other Pattern Styles
-
-With the `FFI` group loaded, use PCRE2's conversion helpers when the input pattern is a glob or POSIX regular expression:
-
-```smalltalk
-matcher := (LibPCRE2UTF8 convertGlob: '*.st') asPerlCompatibleRegex.
-matcher matches: 'Package.st'. "true"
-
-(LibPCRE2UTF8 convertPOSIXBasic: 'a\{2\}') asPerlCompatibleRegex.
-(LibPCRE2UTF8 convertPOSIXExtended: 'a(b|c)+') asPerlCompatibleRegex.
-```
-
-## Reuse Prepared Input
-
-The default API matches UTF-8 bytes. If you match the same subject repeatedly, prepare it once:
-
-```smalltalk
-input := 'cafe deja' asPCRE2UTF8Input.
-matcher := '\w+' asPerlCompatibleRegex.
-matcher findAll: input.
-matcher matchingRangesIn: input.
-```
-
-ASCII strings can be reused directly as byte storage. Non-ASCII strings are encoded once and keep the decoder needed for character ranges.
-
-## Use UTF-16 or UTF-32 Matching
-
-The default API uses PCRE2's 8-bit library and prepares strings as UTF-8. If the host PCRE2 build includes wider code-unit support, the UTF-16 and UTF-32 compilers can compile and match through `libpcre2-16` and `libpcre2-32`:
-
-```smalltalk
-matcher := PCRE2UTF16Compiler new compile: '\p{L}+'.
-matcher findAll: 'café déjà'.
-
-matcher := PCRE2UTF32Compiler new compile: '\p{L}+'.
-matcher findAll: 'café déjà'.
-```
-
-If the subject is already stored as UTF-16 or UTF-32 bytes, prepare the bytes directly. Native-endian bytes can use `asPCRE2UTF16Input` or `asPCRE2UTF32Input`; file bytes with known byte order can use the explicit endian variants. If the file starts with a BOM, use the detecting helpers.
-
-```smalltalk
-input := bytesFromFile asPCRE2UTF16InputDetectingBOM.
-matcher := PCRE2UTF16Compiler new compile: '\p{L}+'.
-matcher findAll: input.
-```
-
-The pattern can also come from prepared bytes as long as it uses the same code-unit width as the compiler:
-
-```smalltalk
-pattern := patternBytesFromFile asPCRE2UTF16InputDetectingBOM.
-matcher := PCRE2UTF16Compiler new compile: pattern.
-```
-
-UTF-16 and UTF-32 matching support the same high-level surfaces as the default UTF-8 API, including substitution, DFA matching, runtime callouts, tracing, debugger support, and compile/match contexts. Prepared wide inputs translate native code-unit offsets back to Pharo character ranges.
