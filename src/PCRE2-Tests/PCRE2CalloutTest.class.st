@@ -25,6 +25,25 @@ PCRE2CalloutTest >> testAutomaticCalloutsExposePatternProgressSites [
 ]
 
 { #category : 'tests' }
+PCRE2CalloutTest >> testCallbacksBelongToTheLibraryThatCallsThem [
+	"A callback runs with the runner of its library, which must be the runner of the callouts that trigger it. A callback of no library runs on the same thread, and crashes the VM when the library calls out on a worker."
+
+	{
+		PCRE2Compiler new.
+		PCRE2UTF16Compiler new } do: [ :compiler |
+			| regex |
+			regex := compiler compile: 'a(?C1)'.
+			{
+				regex backend.
+				regex context backend } do: [ :owner |
+					| callback |
+					callback := owner
+						            newCallbackWithSignature: #(int (int value))
+						            block: [ :value | value ].
+					self assert: callback ffiLibraryName identicalTo: owner ffiLibraryName uniqueInstance ] ]
+]
+
+{ #category : 'tests' }
 PCRE2CalloutTest >> testCalloutConvenienceVariantsUseTemporaryCallbacks [
 
 	| bytes events regex |

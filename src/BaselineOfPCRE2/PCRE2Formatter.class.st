@@ -34,7 +34,9 @@ PCRE2Formatter >> formatFFICallback: aMessageNode [
 	self indent: self indentsForKeywords around: [
 			| contents index |
 			self newLine.
-			codeStream nextPutAll: 'signature: #('.
+			codeStream
+				nextPutAll: aMessageNode keywords first;
+				nextPutAll: ' #('.
 			contents := aMessageNode arguments first contents.
 			codeStream nextPutAll: contents first value.
 			index := self formatPointerAt: 2 inContents: contents.
@@ -83,9 +85,16 @@ PCRE2Formatter >> formatSelectorAndArguments: aMessageNode [
 
 	aMessageNode selector == #ffiCall: ifTrue: [ ^ self formatFFICall: aMessageNode ].
 
-	(aMessageNode receiver isVariable and: [
-		 aMessageNode receiver name == #FFICallback and: [ aMessageNode selector == #signature:block: ] ]) ifTrue: [
-		^ self formatFFICallback: aMessageNode ].
+	(self isFFICallbackCreation: aMessageNode) ifTrue: [ ^ self formatFFICallback: aMessageNode ].
 
 	super formatSelectorAndArguments: aMessageNode
+]
+
+{ #category : 'testing' }
+PCRE2Formatter >> isFFICallbackCreation: aMessageNode [
+	"Answer whether aMessageNode creates a callback from a signature and a block: FFICallback class>>signature:block:, or PCRE2Object>>newCallbackWithSignature:block: that binds it to its library."
+
+	aMessageNode selector == #newCallbackWithSignature:block: ifTrue: [ ^ true ].
+	^ aMessageNode selector == #signature:block: and: [
+		  aMessageNode receiver isVariable and: [ aMessageNode receiver name == #FFICallback ] ]
 ]

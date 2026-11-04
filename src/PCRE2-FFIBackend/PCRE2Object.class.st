@@ -107,6 +107,16 @@ PCRE2Object >> initialize [
 	"Do nothing (prevent initialize to set the handle)"
 ]
 
+{ #category : 'private - FFI' }
+PCRE2Object >> newCallbackWithSignature: signature block: aBlock [
+	"Answer a callback owned by the library of the receiver. A callback runs with the runner of its library, which must be the runner of the callout that triggers it: bound to no library, it runs on the same thread while the library calls out on the worker of the process, and the VM crashes."
+
+	^ FFICallback new
+		  ffiLibrary: self ffiLibraryName;
+		  signature: signature block: aBlock;
+		  yourself
+]
+
 { #category : 'persistence' }
 PCRE2Object >> prepareForShutdown [
 	"Prepare this wrapper to survive image save/load. Subclasses with native-derived Pharo-side state should materialize it before session shutdown."

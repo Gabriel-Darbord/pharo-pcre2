@@ -31,7 +31,9 @@ PCRE2MatcherFFIBackend >> calloutSitesDo: aBlock [
 	"Evaluate aBlock with each static callout site in this compiled pattern. This is passive metadata: it does not install a runtime callout or affect matching."
 
 	| callback rc |
-	callback := FFICallback signature: #( int #( void #* calloutBlock #, void #* userData ) ) block: [ :calloutBlock :userData |
+	callback := self
+		            newCallbackWithSignature: #(int (void *calloutBlock, void *userData))
+		            block: [ :calloutBlock :userData |
 			            aBlock value: (self calloutSiteFromEnumerationBlock: calloutBlock).
 			            0 ].
 	rc := self enumerateCalloutsWith: callback.

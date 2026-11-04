@@ -15,8 +15,7 @@ PCRE2MatcherPharoBackend >> dfaMatch: bytes from: start to: length matchData: da
 	allowed := PCRE2 anchored | PCRE2 endAnchored | PCRE2 notBOL | PCRE2 notEOL | PCRE2 notEmpty | PCRE2 notEmptyAtStart
 	           | PCRE2 dfaShortest | PCRE2 dfaRestart | PCRE2 noUTFCheck | PCRE2 partialSoft | PCRE2 partialHard
 	           | PCRE2 copyMatchedSubject.
-	(options bitAnd: allowed bitInvert) ~= 0 ifTrue: [
-		PCRE2UnsupportedFeature signal: 'Unknown DFA match option bits' ].
+	(options bitAnd: allowed bitInvert) ~= 0 ifTrue: [ PCRE2UnsupportedFeature signal: 'Unknown DFA match option bits' ].
 	decoded := self textAndOffsetsFor: bytes length: length.
 	text := decoded first.
 	mapping := decoded second.

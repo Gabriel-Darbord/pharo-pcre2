@@ -1,3 +1,6 @@
+"
+Tests of the shared API and the C binding. Every case runs on the FFI backend, whatever backend the image defaults to.
+"
 Class {
 	#name : 'ManifestPCRE2Tests',
 	#superclass : 'PackageManifest',
