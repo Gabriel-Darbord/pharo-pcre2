@@ -91,7 +91,6 @@ PCRE2SessionManager class >> startUp: resuming [
 	"Failsafe in case restoration crashes the image"
 	(OSEnvironment current includesKey: 'PHARO_PCRE2_NOSTARTUP') ifTrue: [ ^ self ].
 
-
 	instance ifNotNil: [
 			instance startUp.
 			instance := nil ]

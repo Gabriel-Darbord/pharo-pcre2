@@ -22,7 +22,6 @@ PCRE2Formatter >> formatFFICall: aMessageNode [
 	index := self formatPointerAt: 2 inContents: contents.
 	codeStream nextPutAll: (contents at: index) value.
 
-
 	codeStream nextPut: $(.
 	self formatFFIParameters: (contents at: index + 1) contents.
 	codeStream nextPutAll: '))'

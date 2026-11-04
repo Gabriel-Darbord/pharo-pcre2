@@ -622,7 +622,6 @@ LibPCRE2 >> serialize: matchers [
 	1 to: matchers size do: [ :index | pointers pointerAtOffset: wordSize * (index - 1) put: (matchers at: index) getHandle ].
 	buffer := ByteArray new: wordSize.
 
-
 	rc := self
 		      serialize: pointers
 		      count: matchers size
@@ -632,7 +631,6 @@ LibPCRE2 >> serialize: matchers [
 	rc < 0 ifTrue: [
 			externBytes isNull ifFalse: [ self serializeFree: externBytes ].
 			self errorCode: rc ].
-
 
 	^ [ self copyExternalBytes: externBytes size: bufferSize value ] ensure: [ self serializeFree: externBytes ]
 ]
