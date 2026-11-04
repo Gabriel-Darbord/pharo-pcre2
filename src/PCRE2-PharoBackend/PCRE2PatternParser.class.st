@@ -1092,8 +1092,8 @@ PCRE2PatternParser >> isCaptureNameCharacter: character [
 	^ character = $_ or: [
 			  (options bitAnd: PCRE2 utf) ~= 0
 				  ifTrue: [
-					  (PCRE2UnicodeData matches: 'gc:l' code: character asInteger) or: [
-						  PCRE2UnicodeData matches: 'gc:nd' code: character asInteger ] ]
+					  (PCRE2UnicodeData category: #l includes: character asInteger) or: [
+						  PCRE2UnicodeData category: #nd includes: character asInteger ] ]
 				  ifFalse: [ character asInteger < 128 and: [ character isAlphaNumeric ] ] ]
 ]
 
@@ -1194,6 +1194,7 @@ PCRE2PatternParser >> longGroupRestoring: savedOptions [
 				  startingAt: groupStart ].
 	(#( 'sr' 'script_run' 'asr' 'atomic_script_run' ) includes: name) ifTrue: [
 			self expectAlphaAssertionColon.
+			PCRE2UnicodeData requireProperties: 'A script run'.
 			child := self groupBodyRestoring: savedOptions.
 			(#( 'asr' 'atomic_script_run' ) includes: name) ifTrue: [ child := PCRE2AtomicNode new child: child ].
 			^ PCRE2ScriptRunNode new child: child ].
@@ -1652,7 +1653,9 @@ PCRE2PatternParser >> parseEscapeInClass: inClass [
 				            ifFalse: [ self next asString ].
 			predicate := [ PCRE2UnicodeData predicateFor: property caseless: (options bitAnd: PCRE2 caseless) ~= 0 ]
 				             on: PCRE2UnsupportedFeature
-				             do: [ :error | self syntaxErrorCode: 147 ].
+				             do: [ :error |
+						             PCRE2UnicodeData hasProperties ifFalse: [ error pass ].
+						             self syntaxErrorCode: 147 ].
 			character = $P ifTrue: [ ^ self classNodeFor: [ :candidate | (predicate value: candidate) not ] ].
 			^ self classNodeFor: predicate ].
 	(character between: $1 and: $9) ifTrue: [ ^ self numericEscapeInClass: inClass ].
@@ -1664,6 +1667,7 @@ PCRE2PatternParser >> parseEscapeInClass: inClass [
 			^ self referenceEscape: character ].
 	character = $X ifTrue: [
 			inClass ifTrue: [ self syntaxErrorCode: 107 ].
+			PCRE2UnicodeData requireProperties: '\X'.
 			^ PCRE2GraphemeNode new ].
 	character = $E ifTrue: [ ^ PCRE2SequenceNode new children: #(  ) ].
 	character = $Q ifTrue: [
@@ -1796,7 +1800,7 @@ PCRE2PatternParser >> predicateFor: character [
 				 kind = $w and: [ (extraOptions bitAnd: PCRE2 extraAsciiBsw) ~= 0 ] ] ]) ifTrue: [ unicode := false ].
 	kind = $d ifTrue: [
 			predicate := unicode
-				             ifTrue: [ [ :candidate | PCRE2UnicodeData matches: 'gc:nd' code: candidate asInteger ] ]
+				             ifTrue: [ [ :candidate | PCRE2UnicodeData category: #nd includes: candidate asInteger ] ]
 				             ifFalse: [ [ :candidate | candidate between: $0 and: $9 ] ] ].
 	kind = $w ifTrue: [
 			predicate := unicode
@@ -1949,7 +1953,7 @@ PCRE2PatternParser >> readCaptureNameUntil: delimiter [
 	first := self peek.
 	first ifNil: [ self syntaxErrorCode: 162 ].
 	digit := (options bitAnd: PCRE2 utf) ~= 0
-		         ifTrue: [ PCRE2UnicodeData matches: 'gc:nd' code: first asInteger ]
+		         ifTrue: [ PCRE2UnicodeData category: #nd includes: first asInteger ]
 		         ifFalse: [ first between: $0 and: $9 ].
 	digit ifTrue: [
 			self next.
@@ -2505,7 +2509,7 @@ PCRE2PatternParser >> validateCaptureName: name [
 	first := name first.
 	(first = $_ or: [
 			 unicode
-				 ifTrue: [ PCRE2UnicodeData matches: 'gc:l' code: first asInteger ]
+				 ifTrue: [ PCRE2UnicodeData category: #l includes: first asInteger ]
 				 ifFalse: [ (first between: $A and: $Z) or: [ first between: $a and: $z ] ] ]) ifFalse: [
 			self
 				syntaxErrorCode: ((first between: $0 and: $9)
@@ -2516,8 +2520,8 @@ PCRE2PatternParser >> validateCaptureName: name [
 			valid := character = $_ or: [
 					         unicode
 						         ifTrue: [
-							         (PCRE2UnicodeData matches: 'gc:l' code: character asInteger) or: [
-								         PCRE2UnicodeData matches: 'gc:nd' code: character asInteger ] ]
+							         (PCRE2UnicodeData category: #l includes: character asInteger) or: [
+								         PCRE2UnicodeData category: #nd includes: character asInteger ] ]
 						         ifFalse: [ character asInteger < 128 and: [ character isAlphaNumeric ] ] ].
 			valid ifFalse: [ self syntaxErrorCode: 142 atCodeUnit: (self codeUnitOffsetAt: start + index - 1) ] ].
 	(codeUnitWidth = 8

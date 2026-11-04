@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- **The Pharo backend reads general categories, case folding and decimal digits from Pharo's own `Unicode` class.** Pharo 15 carries them at Unicode 18.0, so a character added since Unicode 17.0 now has its category there. Pharo 14 and older carry them at Unicode 9.0, so on those versions the baseline also loads `PCRE2-UnicodeCompat`, which brings them at Unicode 17.0.0 as before.
+- **Scripts, script extensions, bidi classes, binary properties, grapheme breaks and script runs moved to `PCRE2-UnicodeProperties`.** The `Pharo` and `default` groups load it, so they install what they did. `PCRE2UnicodeData` keeps the questions the backend asks and no longer carries the packed data: `PCRE2UnicodeProperties` and `PCRE2PackedUnicodeTables` do, and `data`, `rangesFor:`, `matches:code:` and `version` went with it.
+
+### Added
+
+- **A `PharoMinimal` group**: the shared API and the Pharo backend with no Unicode data of its own. A pattern that needs one of the properties of `PCRE2-UnicodeProperties`, `\X` or a script run fails to compile with `PCRE2UnsupportedFeature`. A `UnicodeProperties` group adds them back.
+- `scripts/generate-unicode-data.py` writes the two literals with `--packed-properties` and `--packed-tables`, in place of `--packed`.
+
 ## 2.0.0 — 2026-11-01
 
 Pharo-pcre2 gains a second implementation: a regular-expression engine written in Pharo. It needs no C library, it is what a plain install now uses, and it sits behind the same public API as the existing binding. The C binding is unchanged in behaviour and is still there for the facilities only it can offer.
