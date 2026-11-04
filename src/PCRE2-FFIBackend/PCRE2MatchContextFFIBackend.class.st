@@ -32,8 +32,7 @@ PCRE2MatchContextFFIBackend >> calloutBlock: aBlock [
 	"Install a runtime callout. aBlock receives a PCRE2CalloutEvent and may answer an integer PCRE2 return code; non-integer answers continue matching."
 
 	| callback rc |
-	callback := FFICallback
-		            signature: #( int #( void #* calloutBlock #, void #* userData ) )
+	callback := self newCallbackWithSignature: #( int #( void #* calloutBlock #, void #* userData ) )
 		            block: [ :calloutBlockAddress :userData |
 				            | answer |
 				            answer := aBlock value:
@@ -255,8 +254,7 @@ PCRE2MatchContextFFIBackend >> substituteCalloutBlock: aBlock [
 	| callback rc |
 	self ffiLibraryName supportsSubstitutionCallouts ifFalse: [
 		PCRE2Error signal: 'Substitution callouts require PCRE2 10.33 or newer; loaded ' , self ffiLibraryName versionString ].
-	callback := FFICallback
-		            signature: #( int #( void #* calloutBlock #, void #* userData ) )
+	callback := self newCallbackWithSignature: #( int #( void #* calloutBlock #, void #* userData ) )
 		            block: [ :calloutBlockAddress :userData |
 				            | answer |
 				            answer := aBlock value:
@@ -277,8 +275,7 @@ PCRE2MatchContextFFIBackend >> substituteCaseCalloutBlock: aBlock [
 	| callback rc |
 	self ffiLibraryName supportsSubstitutionCaseCallouts ifFalse: [
 		PCRE2Error signal: 'Substitution case callouts require PCRE2 10.45 or newer; loaded ' , self ffiLibraryName versionString ].
-	callback := FFICallback
-		            signature:
+	callback := self newCallbackWithSignature:
 		            #( size_t #( void #* input #, size_t inputLength #, void #* output #, size_t outputCapacity #, int caseType #, void
 		                  #* userData ) )
 		            block: [ :input :inputLength :output :outputCapacity :caseType :userData |
