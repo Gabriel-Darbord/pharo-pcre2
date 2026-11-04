@@ -54,8 +54,7 @@ PCRE2MatcherPharoBackend >> substituteBytes: subject replacement: replacement op
 	allowed := matchFlags | PCRE2 substituteGlobal | PCRE2 substituteLiteral | PCRE2 substituteUnsetEmpty
 	           | PCRE2 substituteUnknownUnset | PCRE2 substituteReplacementOnly | PCRE2 substituteOverflowLength
 	           | PCRE2 substituteExtended | PCRE2 substituteMatched.
-	(flags bitAnd: allowed bitInvert) ~= 0 ifTrue: [
-		PCRE2UnsupportedFeature signal: 'Unknown substitution option bits' ].
+	(flags bitAnd: allowed bitInvert) ~= 0 ifTrue: [ PCRE2UnsupportedFeature signal: 'Unknown substitution option bits' ].
 	input := matcher preparedInputFor: subject.
 	text := input readFrom: 1 to: input size.
 	text isString ifFalse: [ text := text asString ].

@@ -294,8 +294,7 @@ PCRE2MatcherPharoBackend >> match: bytes from: start to: length options: matchOp
 	allowed := PCRE2 anchored | PCRE2 endAnchored | PCRE2 notBOL | PCRE2 notEOL | PCRE2 notEmpty | PCRE2 notEmptyAtStart
 	           | PCRE2 noJIT | PCRE2 disableRecurseloopCheck | PCRE2 noUTFCheck | PCRE2 copyMatchedSubject | PCRE2 partialSoft
 	           | PCRE2 partialHard.
-	(matchOptions bitAnd: allowed bitInvert) ~= 0 ifTrue: [
-		PCRE2UnsupportedFeature signal: 'Unknown match option bits' ].
+	(matchOptions bitAnd: allowed bitInvert) ~= 0 ifTrue: [ PCRE2UnsupportedFeature signal: 'Unknown match option bits' ].
 	decoded := self textAndOffsetsFor: bytes length: length.
 	text := decoded first.
 	mapping := decoded second.
