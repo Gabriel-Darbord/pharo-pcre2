@@ -1,5 +1,5 @@
 "
-Public PCRE2 CompileContext using 8-bit code units. The selected backend supplies the implementation; input and offset conventions are shared across backends.
+Public PCRE2 CompileContext using 8-bit code units.
 "
 Class {
 	#name : 'PCRE2UTF8CompileContext',

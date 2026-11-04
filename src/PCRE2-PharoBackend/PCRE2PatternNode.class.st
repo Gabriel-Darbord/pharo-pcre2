@@ -1,9 +1,5 @@
 "
-Abstract executable node of a pattern compiled by the Pharo backend.
-
-Running a node means sending executeIn:state:, which pushes whatever still has to run onto the task list of the state and answers the state to continue with, or nil when the node fails. Matching is therefore an explicit loop over tasks rather than Pharo recursion, and a node that has something to restore afterwards pushes a continuation node of its own.
-
-Nodes also answer the static facts the rest of the backend needs: length bounds for lookbehind, first-literal and start predicates for the start optimizations, whether the DFA matcher can run them, and how much runtime storage they take.
+Abstract executable node of a pattern compiled by the Pharo backend. executeIn:state: pushes what still has to run onto the task list of the state and answers the state to continue with, or nil when the node fails, so matching is a loop over tasks rather than recursion. Nodes also answer the static facts the backend needs: lookbehind length bounds, start optimizations, DFA support and runtime storage.
 "
 Class {
 	#name : 'PCRE2PatternNode',
@@ -40,7 +36,7 @@ PCRE2PatternNode >> acceptsEveryCharacterButLineEnds [
 
 { #category : 'generating' }
 PCRE2PatternNode >> asciiTable [
-	"The lookup table the written matcher reads to decide whether this item accepts a byte, or nil for an item that is not one character, or one a table cannot describe. Only the entries under 128 are ever read: a written matcher hands the match back to the engine as soon as it meets a higher byte."
+	"The table a written matcher reads to decide whether this item accepts a byte, or nil when it is not one character or a table cannot describe it. Only entries under 128 are read."
 
 	^ nil
 ]

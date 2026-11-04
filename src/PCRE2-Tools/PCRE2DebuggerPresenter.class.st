@@ -1,9 +1,5 @@
 "
-I am the standalone PCRE2 pattern debugger window.
-
-I own a PCRE2DebugSession and provide editing controls for the pattern, subject, trace display limit, trace-all execution, and live stepping. Trace-all mode records a complete instrumented match in one operation. Live controls record deterministic callout prefixes or continue the same instrumented matcher to completion, without suspending inside a native callback.
-
-The trace visualization is delegated to PCRE2TracePresenter so the same source, timeline, capture, detail, and trace-status panes can be reused by inspector integrations.
+I am the standalone pattern debugger window. I edit the pattern, the subject and the step limit of a `PCRE2DebugSession`, and run it either as one whole trace or live, step by step, never suspending inside a native callback. The trace is shown by a `PCRE2TracePresenter`, which inspector extensions reuse.
 "
 Class {
 	#name : 'PCRE2DebuggerPresenter',
@@ -40,21 +36,19 @@ PCRE2DebuggerPresenter class >> onPattern: patternString subject: subjectString 
 
 { #category : 'opening' }
 PCRE2DebuggerPresenter class >> open [
-	"Open the debugger with nothing in it. A pattern and a subject can be typed into the window."
 
 	^ self openOnPattern: '' subject: ''
 ]
 
 { #category : 'opening' }
 PCRE2DebuggerPresenter class >> openOnPattern: patternString [
-	"Open the debugger on a pattern, leaving the subject to be typed into the window."
 
 	^ self openOnPattern: patternString subject: ''
 ]
 
 { #category : 'opening' }
 PCRE2DebuggerPresenter class >> openOnPattern: patternString subject: subjectString [
-	"Open the debugger on a pattern and a subject, and answer the debugger itself rather than its window, so the caller can go on driving it."
+	"Answer the debugger rather than its window, so the caller can go on driving it."
 
 	| presenter |
 	presenter := self onPattern: patternString subject: subjectString.
@@ -64,7 +58,6 @@ PCRE2DebuggerPresenter class >> openOnPattern: patternString subject: subjectStr
 
 { #category : 'opening' }
 PCRE2DebuggerPresenter class >> openOnSubject: subjectString [
-	"Open the debugger on a subject, leaving the pattern to be typed into the window."
 
 	^ self openOnPattern: '' subject: subjectString
 ]
@@ -128,9 +121,9 @@ PCRE2DebuggerPresenter >> continueLiveRun [
 
 { #category : 'layout' }
 PCRE2DebuggerPresenter >> defaultLayout [
-	"Every row takes its natural height and every child its share of the width. A child given a width or a height in a box is laid out at its natural size on the other axis too, which is what used to crop the buttons' labels and leave the trace pane short of the window.
+	"Every row takes its natural height and every child its share of the width: a child given a width or a height in a box is laid out at its natural size on the other axis too.
 
-	The three control rows sit in this column directly rather than in a box of their own. Up to Pharo 13 a box layout's natural height leaves out its own spacing, so a nested box added at its natural height is asked for less room than it takes: the rows were given 84 points and used 96, and the twelve points they overran pushed the navigation buttons four points below the bottom of the window. A row's horizontal spacing does not enter its height, so the rows are safe to nest; a column of them is not."
+	The control rows sit in this column directly, because up to Pharo 13 a box layout's natural height leaves out its own spacing, so a nested column is given less room than it takes and pushes the last row out of the window."
 
 	| editorPane liveRow navigationRow optionsRow |
 	optionsRow := SpBoxLayout newLeftToRight
@@ -352,7 +345,6 @@ PCRE2DebuggerPresenter >> refreshFromSession [
 
 { #category : 'updating' }
 PCRE2DebuggerPresenter >> refreshModeControls [
-	"Enable only what can be done right now: starting a run needs no run in flight, pausing needs one, aborting needs one that has not ended, and walking the trace needs a trace to walk."
 
 	| liveRun running hasSteps |
 	liveRun := session liveRun.

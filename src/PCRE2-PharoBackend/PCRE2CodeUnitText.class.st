@@ -104,7 +104,7 @@ PCRE2CodeUnitText class >> utfErrorIn: bytes width: width [
 
 { #category : 'validating' }
 PCRE2CodeUnitText class >> utfErrorIn: bytes width: width from: start [
-	"Answer the PCRE2 error code and the code-unit offset of the first invalid sequence at or after start, or nil. The offset is where that sequence begins, as PCRE2 reports it."
+	"Answer the PCRE2 error code and the code-unit offset where the first invalid sequence at or after start begins, or nil."
 
 	| offset first second size |
 	width = 8 ifTrue: [ ^ self utf8ErrorIn: bytes from: start ].

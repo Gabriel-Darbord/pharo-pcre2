@@ -1,9 +1,7 @@
 "
-I am a snapshot of a PCRE2 substitution callout.
+I am a snapshot of a substitution callout, taken after a replacement is processed and before it is accepted. My offsets and texts are copied during the callback, so I can be kept.
 
-PCRE2 creates me after a replacement has been processed by `pcre2_substitute_*`, before the replacement is finally accepted. I copy the native offsets and the affected input/output text while the callback is running, so clients can safely keep events afterwards.
-
-Offsets are raw PCRE2 code-unit offsets for the matcher width that produced the event. The full-match offsets come from the current match ovector in the original subject. The output offsets identify the processed replacement in the output buffer.
+Offsets are zero-based code units of the matcher width: `offsets` is the ovector of the match in the subject, and `outputOffsets` locates the replacement in the output.
 "
 Class {
 	#name : 'PCRE2SubstitutionCalloutEvent',
@@ -37,14 +35,12 @@ PCRE2SubstitutionCalloutEvent >> match: match replacement: text count: count out
 
 { #category : 'accessing' }
 PCRE2SubstitutionCalloutEvent >> matchedText [
-	"Answer the subject substring matched for this substitution."
 
 	^ matchedText
 ]
 
 { #category : 'accessing' }
 PCRE2SubstitutionCalloutEvent >> offsets [
-	"Answer raw zero-based PCRE2 code-unit ovector offsets for the current match."
 
 	^ offsets
 ]
@@ -62,14 +58,12 @@ PCRE2SubstitutionCalloutEvent >> offsetsAt: pairIndex [
 
 { #category : 'accessing' }
 PCRE2SubstitutionCalloutEvent >> outputOffsets [
-	"Answer raw zero-based PCRE2 code-unit offsets of the processed replacement in the output buffer."
 
 	^ outputOffsets
 ]
 
 { #category : 'accessing' }
 PCRE2SubstitutionCalloutEvent >> ovectorCount [
-	"Answer the number of ovector pairs available in this event."
 
 	^ ovectorCount
 ]
@@ -90,7 +84,6 @@ PCRE2SubstitutionCalloutEvent >> printOn: aStream [
 
 { #category : 'accessing' }
 PCRE2SubstitutionCalloutEvent >> replacementText [
-	"Answer the processed replacement text before the callout accepts or rejects it."
 
 	^ replacementText
 ]

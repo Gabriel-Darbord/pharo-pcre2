@@ -1,7 +1,5 @@
 "
-I am one visible row in the PCRE2 trace presenter.
-
-A row wraps one or more consecutive PCRE2TraceStep objects. Single-step rows keep exact step-by-step navigation, while grouped rows condense long automatic progress runs that would otherwise make the debugger table hard to scan. The raw PCRE2MatchTrace remains unchanged; grouping is only a presentation concern.
+I am one row of the trace presenter: a single step, or a run of consecutive automatic progress steps grouped to keep the table easy to scan. The trace itself is unchanged.
 "
 Class {
 	#name : 'PCRE2TraceStepRow',
@@ -80,7 +78,7 @@ PCRE2TraceStepRow >> size [
 
 { #category : 'accessing' }
 PCRE2TraceStepRow >> stepMatching: aTraceStep ifAbsent: absentBlock [
-	"Answer the row step equivalent to aTraceStep. Step objects may be rebuilt when a live recorder refreshes, so matching by stable index is enough here."
+	"Match by index, since a live recorder rebuilds its step objects."
 
 	^ steps detect: [ :step | step index = aTraceStep index ] ifNone: absentBlock
 ]

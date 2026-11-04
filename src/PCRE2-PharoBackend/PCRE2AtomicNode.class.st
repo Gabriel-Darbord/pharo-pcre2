@@ -1,7 +1,5 @@
 "
-Atomic group. The child matches in a nested run and the choice points it made are dropped once it succeeds, so the enclosing pattern never backtracks into it.
-
-A possessive quantifier compiles to the same thing wrapped around its repetition, and says so, because PCRE2 reads such a quantifier as a quantifier and not as a group it must distrust.
+Atomic group: the child matches in a nested run whose choice points are dropped once it succeeds, so the enclosing pattern never backtracks into it. A possessive quantifier compiles to one too, flagged as possessive because PCRE2 analyses it as a quantifier rather than as a group.
 "
 Class {
 	#name : 'PCRE2AtomicNode',
@@ -16,7 +14,7 @@ Class {
 
 { #category : 'optimization' }
 PCRE2AtomicNode >> analysisWithin: analysis [
-	"A possessive quantifier is a quantifier, so PCRE2 reads what it repeats as it would without it. An atomic group is a group whose length cannot be adjusted afterwards, so nothing leading inside it says where a match can begin."
+	"PCRE2 analyses a possessive quantifier as the plain repetition, but nothing leading inside an atomic group says where a match can begin."
 
 	^ possessive = true
 		  ifTrue: [ analysis ]

@@ -1,7 +1,5 @@
 "
-Conditional group. Runs the then or the else branch according to its condition, which asks the engine whether a group is set, whether a subroutine is recursing, or how a lookaround turned out. A DEFINE group matches nothing and only holds subroutines for other calls.
-
-What the condition asks is a block, so the lookaround a lookaround condition runs is kept beside it: the start optimizations have to look at that rather than at the branch it guards, because it is what runs first.
+Conditional group: runs the then or the else branch according to a condition asking whether a group is set, whether a subroutine is recursing, or how a lookaround turned out. A DEFINE group matches nothing and only holds subroutines. The lookaround a condition runs is kept beside it, because the start optimizations must look at it first.
 "
 Class {
 	#name : 'PCRE2ConditionalNode',
@@ -30,7 +28,7 @@ PCRE2ConditionalNode >> assertion: aNode [
 
 { #category : 'accessing' }
 PCRE2ConditionalNode >> byteCondition [
-	"What a written matcher can ask of this condition, or nil when it cannot ask it: a recursion or a name shared by several groups is answered from how the match is going, and a lookaround condition runs a whole assertion."
+	"What a written matcher can ask of this condition, or nil for a recursion, a name shared by several groups or a lookaround."
 
 	^ byteCondition
 ]
@@ -105,7 +103,7 @@ PCRE2ConditionalNode >> isAnchoredIn: analysis [
 
 { #category : 'optimization' }
 PCRE2ConditionalNode >> isSignificantForStart [
-	"PCRE2 passes over a conditional that cannot run at all on its way to what a match really starts with. A DEFINE group and a failed version test both compile to a single branch guarded by a condition already known to be false."
+	"PCRE2 passes over a conditional that can never run: a DEFINE group or a failed version test, a single branch under a condition known to be false."
 
 	^ neverRuns ~= true
 ]

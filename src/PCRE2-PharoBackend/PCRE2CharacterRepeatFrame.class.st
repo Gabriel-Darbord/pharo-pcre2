@@ -1,5 +1,5 @@
 "
-Runtime continuation for a repetition of single characters that the engine counted off in one step. It carries how many characters are currently held, and running it gives one of them back so the rest of the pattern can try again from there. Built while matching, never by the parser.
+Runtime continuation for a repetition of single characters the engine counted off in one step. It holds the current count, and running it gives one character back. Built while matching, never by the parser.
 "
 Class {
 	#name : 'PCRE2CharacterRepeatFrame',

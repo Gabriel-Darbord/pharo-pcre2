@@ -34,7 +34,6 @@ PCRE2Matcher >> traceMatch: aStringOrInput [
 
 { #category : '*PCRE2-Trace' }
 PCRE2Matcher >> traceMatcher [
-	"Answer a temporary matcher compiled for tracing. The receiver is not mutated."
 
 	^ self temporaryMatcherAddingCompileOptions: (PCRE2 autoCallout bitOr: PCRE2 noStartOptimize) matchOptions: PCRE2 noJIT
 ]

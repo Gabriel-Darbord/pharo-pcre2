@@ -1,9 +1,5 @@
 "
-I record PCRE2 callout events as they arrive.
-
-A completed PCRE2MatchTrace is a fixed description of one instrumented match. I am the mutable counterpart used by live debugging: a callout block appends PCRE2CalloutEvent snapshots to me while the match is still running, and presenters can ask me the same trace-style questions to display the partial execution. Either backend can drive me, since I only ever see the public callout and match objects.
-
-I answer trace-style questions by taking a PCRE2MatchTrace snapshot of what has been recorded so far. The snapshot is kept until a new event changes it, so a presenter asking the same question repeatedly between two events pays for one snapshot rather than one per question. When matching finishes, asTrace is that same snapshot, now final. This keeps the live debugger and the existing trace viewer on the same model vocabulary without making PCRE2MatchTrace itself mutable.
+I record callout events as they arrive: the mutable counterpart of `PCRE2MatchTrace` for live debugging, to which a callout block appends while the match runs. I answer trace questions through a `PCRE2MatchTrace` snapshot of what is recorded so far, rebuilt only after a new event; once the match ends, asTrace is that snapshot, final.
 "
 Class {
 	#name : 'PCRE2TraceRecorder',
@@ -55,7 +51,7 @@ PCRE2TraceRecorder >> appendEvent: aPCRE2CalloutEvent [
 
 { #category : 'converting' }
 PCRE2TraceRecorder >> asTrace [
-	"Answer a PCRE2MatchTrace describing what has been recorded so far. The snapshot is kept until a new event or a terminal result changes it, so asking a live recorder the same question twice costs one rebuild."
+	"Answer a PCRE2MatchTrace of what is recorded so far, kept until a new event or the result changes it."
 
 	^ traceSnapshot ifNil: [
 			  traceSnapshot := PCRE2MatchTrace
@@ -163,7 +159,6 @@ PCRE2TraceRecorder >> input [
 
 { #category : 'private' }
 PCRE2TraceRecorder >> invalidateSnapshot [
-	"Drop the cached trace. The next trace-style question rebuilds it from the events recorded by then."
 
 	traceSnapshot := nil
 ]
@@ -227,7 +222,6 @@ PCRE2TraceRecorder >> patternCharacterRangeForEvent: aPCRE2CalloutEvent [
 
 { #category : 'accessing' }
 PCRE2TraceRecorder >> patternInput [
-	"Answer the prepared pattern input whose code-unit offsets match the traced matcher width."
 
 	^ patternInput
 ]

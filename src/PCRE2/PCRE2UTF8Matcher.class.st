@@ -1,5 +1,5 @@
 "
-Public PCRE2 Matcher using 8-bit code units. The selected backend supplies the implementation; input and offset conventions are shared across backends.
+Public PCRE2 Matcher using 8-bit code units.
 "
 Class {
 	#name : 'PCRE2UTF8Matcher',
@@ -10,7 +10,6 @@ Class {
 
 { #category : 'documentation' }
 PCRE2UTF8Matcher >> codeUnitWidth [
-	"Answer the PCRE2 code-unit width used by this matcher."
 
 	^ 8
 ]

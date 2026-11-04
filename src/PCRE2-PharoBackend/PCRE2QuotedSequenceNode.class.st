@@ -10,7 +10,7 @@ Class {
 
 { #category : 'parsing' }
 PCRE2QuotedSequenceNode >> repeatMinimum: minimum maximum: maximum greedy: greedy [
-	"A quantifier after \Q...\E applies to the last quoted character, so the sequence itself is what the parser keeps."
+	"The quantifier repeats the last quoted character only; the parser keeps the sequence."
 
 	children ifEmpty: [ PCRE2CompileError signal: 'quantifier does not follow a repeatable item' ].
 	children at: children size put: (children last repeatMinimum: minimum maximum: maximum greedy: greedy)

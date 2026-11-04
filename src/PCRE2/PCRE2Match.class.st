@@ -62,7 +62,7 @@ PCRE2Match >> cacheForSnapshot [
 
 { #category : 'private' }
 PCRE2Match >> captureIndexesNamed: groupName [
-	"Answer all capture group numbers associated with groupName. Duplicate names are preserved in capture order."
+	"Answer the capture group numbers named groupName, in capture order."
 
 	| indexes |
 	indexes := OrderedCollection new.
@@ -72,11 +72,7 @@ PCRE2Match >> captureIndexesNamed: groupName [
 
 { #category : 'private' }
 PCRE2Match >> captureMark [
-	"Take the MARK name this attempt ended on, while the pattern that holds it is still there to be read.
-
-	On the C backend the name is not in the match data: pcre2_match stores Fecode + 2, a pointer into the compiled pattern, and pcre2_get_mark hands that pointer back. Nothing here keeps the matcher alive, so once its pattern is freed the pointer dangles, and reading the name off it walks freed memory until it meets a zero. That is a crash when the page has gone and a wrong answer when the block has been reused. So the name is taken once, at the end of the attempt that produced it.
-
-	An attempt that ended on no mark records the empty string rather than nil, so that a later read answers from here instead of going back to the pointer."
+	"Take the MARK name this attempt ended on while its pattern is still alive. On the C backend the name is a pointer into the compiled pattern, which dangles once the pattern is freed, so it is read once, here. No mark is recorded as the empty string, so that later reads never go back to the pointer."
 
 	backend isNull ifTrue: [ ^ mark := '' ].
 	^ mark := self getMark
@@ -238,7 +234,6 @@ PCRE2Match >> input [
 
 { #category : 'accessing' }
 PCRE2Match >> input: aPreparedInput [
-	"Remember the prepared input used for this match so callers can query decoded results later."
 
 	input := aPreparedInput.
 	subject := aPreparedInput bytes.
@@ -247,7 +242,7 @@ PCRE2Match >> input: aPreparedInput [
 
 { #category : 'private' }
 PCRE2Match >> invalidateResult [
-	"Drop what the last attempt produced. The mark is cleared to the empty string rather than to nil, because nil would send the next read back to a pointer that may no longer be good; see captureMark."
+	"Drop what the last attempt produced. The mark is cleared to the empty string, not nil; see captureMark."
 
 	isPersistent := false.
 	startIndex := nil.
@@ -291,9 +286,7 @@ PCRE2Match >> lastMatchIndex [
 
 { #category : 'accessing' }
 PCRE2Match >> mark [
-	"Answer the MARK name this match ended on, or nil when it ended on none.
-
-	This never asks the library. The name is a pointer into the compiled pattern, good only inside the attempt that produced it, so captureMark takes it then and every later read is answered from here. A match that has not completed an attempt has no name to give, and nil is the honest answer: going back to the pointer to find out is exactly what made the shutdown sweep read freed memory."
+	"Answer the MARK name this match ended on, or nil when it ended on none. captureMark takes it during the attempt; it is never read from the library afterwards."
 
 	mark ifNil: [ ^ nil ].
 	^ mark ifEmpty: [ nil ]
@@ -301,32 +294,30 @@ PCRE2Match >> mark [
 
 { #category : 'diagnostics' }
 PCRE2Match >> matchDataSize [
-	"Answer the native memory used by this PCRE2 match-data block, in bytes. The value is cached so persistent matches can still report it after freeing the native handle."
+	"Answer the native memory of this match-data block in bytes, cached so persistent matches can report it after freeing the handle."
 
 	^ matchDataSize ifNil: [ matchDataSize := self getMatchDataSize ]
 ]
 
 { #category : 'accessing' }
 PCRE2Match >> namedGroups [
-	"Answer a sparse Array mapping PCRE2 capture group numbers to their names.
-	Capture group 1 is the first parenthesized group; group 0 is the whole match and is not named."
+	"Answer a sparse Array mapping capture group numbers to their names; group 0, the whole match, is unnamed."
 
 	^ nameTable ifNil: [ #(  ) ]
 ]
 
 { #category : 'private' }
 PCRE2Match >> namedGroups: aNameTable [
-	"Remember the matcher's named-capture table for later group lookup."
 
 	nameTable := aNameTable
 ]
 
 { #category : 'enumerating' }
 PCRE2Match >> offsets [
-	"Return raw PCRE2 code-unit offset pairs for the match and captures; starts are zero-based inclusive entries and ends are zero-based exclusive entries. Do not modify the returned array."
+	"Answer the raw zero-based code-unit offset pairs of the match and captures, ends exclusive. Do not modify the answer."
 
 	| copy pair |
-	"Copy external data locally if needed, preserving PCRE2's zero-based code-unit offset convention."
+	"Copy external data locally if needed."
 	offsets isArray ifTrue: [ ^ offsets ].
 	copy := Array new: 2 * self count.
 	1 to: self count do: [ :pairIndex |
@@ -439,7 +430,7 @@ PCRE2Match >> readSubjectFrom: start to: end [
 
 { #category : 'initialization' }
 PCRE2Match >> reset [
-	"Empty this match so it can be run again. The mark is cleared to the empty string rather than to nil, because nil would send the next read back to a pointer that may no longer be good; see captureMark."
+	"Empty this match so it can be run again. The mark is cleared to the empty string, not nil; see captureMark."
 
 	isPersistent := false.
 	startIndex := nil.
@@ -463,7 +454,7 @@ PCRE2Match >> resultCode [
 
 { #category : 'private' }
 PCRE2Match >> resultCode: anInteger [
-	"Record the raw PCRE2 result code for this match attempt, and take the MARK name with it: every match path ends here, with the matcher still in hand, and captureMark says why that is the only safe moment."
+	"Record the result code of this attempt and take the MARK name with it: every match ends here with the matcher still alive, the only safe moment (see captureMark)."
 
 	resultCode := anInteger.
 	self captureMark
@@ -490,7 +481,6 @@ PCRE2Match >> subject [
 
 { #category : 'accessing' }
 PCRE2Match >> subject: aByteArray decoder: aDecoder [
-	"Remember raw subject storage used for this match so callers can query the result later."
 
 	input := nil.
 	subject := aByteArray.

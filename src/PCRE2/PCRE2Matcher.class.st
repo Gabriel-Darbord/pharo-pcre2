@@ -1,5 +1,5 @@
 "
-A compiled regular expression with a selected implementation backend. Shared methods provide matching, capture queries, enumeration, splitting, and substitution. The backend owns compiled state and any external resources. Backend selection is fixed once compiled.
+A compiled regular expression, with methods for matching, capture queries, enumeration, splitting, and substitution. Its backend, fixed at compilation, owns the compiled state and any external resources.
 "
 Class {
 	#name : 'PCRE2Matcher',
@@ -55,7 +55,7 @@ PCRE2Matcher >> backend: anImplementation [
 
 { #category : 'documentation' }
 PCRE2Matcher >> calloutSites [
-	"Answer the static callout sites compiled into this pattern. This is passive metadata: it does not install a runtime callout or affect matching."
+	"Answer the static callout sites compiled into this pattern, without installing a callout or affecting matching."
 
 	| sites |
 	sites := OrderedCollection new.
@@ -71,7 +71,7 @@ PCRE2Matcher >> calloutSitesDo: aBlock [
 
 { #category : 'private' }
 PCRE2Matcher >> canUseJITForOptions: matchOptions [
-	"Answer whether the compiled pattern has JIT code for the requested matching mode. The direct pcre2_jit_match() fast path does not fall back when a complete/partial mode was not JIT-compiled."
+	"Answer whether the pattern has JIT code for the requested matching mode. The jit_match() fast path does not fall back when that mode was not JIT-compiled."
 
 	isJIT ifFalse: [ ^ false ].
 	(matchOptions bitAnd: PCRE2 noJIT) ~~ 0 ifTrue: [ ^ false ].
@@ -82,7 +82,6 @@ PCRE2Matcher >> canUseJITForOptions: matchOptions [
 
 { #category : 'private' }
 PCRE2Matcher >> codeUnitByteSize [
-	"Answer the number of bytes in one PCRE2 code unit for this matcher."
 
 	^ self codeUnitWidth // 8
 ]
@@ -95,8 +94,7 @@ PCRE2Matcher >> codeUnitWidth [
 
 { #category : 'compiling' }
 PCRE2Matcher >> compileJIT [
-	"Request JIT compilation for this compiled pattern using the compiler options.
-	If supported and unless reconfigured, patterns are JIT-compiled by default."
+	"Request JIT compilation using the compiler options. Patterns are JIT-compiled by default when supported."
 
 	compiler compileJIT: self
 ]
@@ -117,7 +115,6 @@ PCRE2Matcher >> compileJIT: anInteger [
 
 { #category : 'accessing' }
 PCRE2Matcher >> compiler [
-	"The compiler that processed this pattern"
 
 	^ compiler
 ]
@@ -153,8 +150,7 @@ PCRE2Matcher >> context: aMatchContext [
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> copy: subject matchesDo: aBlock [
-	"Copy the subject and execute aBlock for each match.
-	The block receives the output stream, raw subject bytes, and 1-based byte indexes for the matched slice."
+	"Copy the subject, evaluating aBlock for each match with the output stream, the raw subject bytes, and the 1-based byte bounds of the match."
 
 	| bytesPerCodeUnit input lastByteIndex rs ws |
 	input := self preparedInputFor: subject.
@@ -187,14 +183,13 @@ PCRE2Matcher >> copy: subject matchesDo: aBlock [
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> copy: subject replacingMatchesWith: aString [
-	"Copy the subject replacing each match with aString"
 
 	^ self copy: subject matchesDo: [ :ws :utfSubject :start :end | ws nextPutAll: aString ]
 ]
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> copy: subject translatingMatchesUsing: aBlock [
-	"Copy the subject replacing each match by evaluating aBlock with the matched substring. Expect the block to answer a String, and replace the match with the answer."
+	"Copy the subject, replacing each match with aBlock's String answer for the matched substring."
 
 	| input |
 	input := self preparedInputFor: subject.
@@ -206,14 +201,14 @@ PCRE2Matcher >> copy: subject translatingMatchesUsing: aBlock [
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> copyStream: aStream to: aWriteStream replacingMatchesWith: aString [
-	"Equivalent of RxMatcher >> #copyStream:to:replacingMatchesWith:. Copies what is left of the stream onto aWriteStream, writing aString in place of each match."
+	"Equivalent of RxMatcher >> #copyStream:to:replacingMatchesWith:, on what is left of the stream."
 
 	aWriteStream nextPutAll: (self copy: aStream upToEnd replacingMatchesWith: aString)
 ]
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> copyStream: aStream to: aWriteStream translatingMatchesUsing: aBlock [
-	"Equivalent of RxMatcher >> #copyStream:to:translatingMatchesUsing:. Copies what is left of the stream onto aWriteStream, writing aBlock's value for each match in its place."
+	"Equivalent of RxMatcher >> #copyStream:to:translatingMatchesUsing:, on what is left of the stream."
 
 	aWriteStream nextPutAll: (self copy: aStream upToEnd translatingMatchesUsing: aBlock)
 ]
@@ -374,14 +369,14 @@ PCRE2Matcher >> findMatch: subject calloutsDo: calloutBlock [
 
 { #category : 'matching' }
 PCRE2Matcher >> findPartialMatch: subject [
-	"Answer the first complete or soft-partial match in subject, or nil. Soft partial matching prefers a complete match when one exists. Ask the returned PCRE2Match whether it isPartial."
+	"Answer the first complete or soft-partial match in subject, or nil. Soft partial matching prefers a complete match."
 
 	^ self findPartialMatch: subject option: PCRE2 partialSoft
 ]
 
 { #category : 'matching' }
 PCRE2Matcher >> findPartialMatch: subject option: partialOption [
-	"Answer the first complete or partial match using the requested PCRE2 partial option. Ask the returned PCRE2Match whether it isPartial or isComplete."
+	"Answer the first complete or partial match using partialOption, or nil."
 
 	| input match matchOptions rc |
 	matchOptions := self optionsWithPartialOption: partialOption.
@@ -400,7 +395,7 @@ PCRE2Matcher >> findPartialMatch: subject option: partialOption [
 
 { #category : 'matching' }
 PCRE2Matcher >> findSoftPartialMatch: subject [
-	"Answer the first complete or soft-partial match in subject, or nil. Soft partial matching prefers a complete match when one exists. Ask the returned PCRE2Match whether it isPartial."
+	"Answer the first complete or soft-partial match in subject, or nil. Soft partial matching prefers a complete match."
 
 	^ self findPartialMatch: subject option: PCRE2 partialSoft
 ]
@@ -432,7 +427,6 @@ PCRE2Matcher >> info: option [
 
 { #category : 'initialization' }
 PCRE2Matcher >> initialize [
-	"Initialize matcher-local options and lazily-computed metadata. Match data is created per match operation."
 
 	options := 0
 ]
@@ -452,10 +446,7 @@ PCRE2Matcher >> isJIT [
 
 { #category : 'accessing' }
 PCRE2Matcher >> isJIT: aBoolean [
-	"Indicates whether the pattern is JIT-compiled.
-	Can be set to false if using match() over the jit_match() fast path is required for additional validity checks,
-	and if the pattern is JIT-compiled, the fast machine code is still used.
-	Setting to true when the pattern is not really JIT-compiled will cause matches to throw an error."
+	"Set whether the pattern is used as JIT-compiled. False forces match() over the jit_match() fast path, for its validity checks; true for a pattern that is not JIT-compiled makes matches fail."
 
 	isJIT := aBoolean and: [ compiler optionsJIT ~~ 0 ]
 ]
@@ -480,7 +471,7 @@ PCRE2Matcher >> jitMatch: subject from: start to: end options: matchOptions matc
 
 { #category : 'accessing' }
 PCRE2Matcher >> lastChar [
-	"Equivalent of RxMatcher >> #lastChar. Answers the character before the position of the stream the last stream match read, or nil when no stream has been matched."
+	"Equivalent of RxMatcher >> #lastChar: the character before the position of the last matched stream, or nil."
 
 	^ lastStream ifNotNil: [ :aStream |
 			  aStream position > 0 ifTrue: [
@@ -518,7 +509,7 @@ PCRE2Matcher >> match: subject from: start to: end options: matchOptions matchDa
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> matchAll: input from: start to: end do: aBlock [
-	"Iteratively match over a prepared input and execute aBlock with each standalone match. Empty-match fallback advances by the input's character boundary protocol."
+	"Match repeatedly over prepared input, evaluating aBlock with each match. An empty match advances by one character of the input."
 
 	self
 		matchAllBytes: input bytes
@@ -568,7 +559,7 @@ PCRE2Matcher >> matchAllBytes: subject from: start to: end advancingEmptyMatches
 
 { #category : 'prepared matching' }
 PCRE2Matcher >> matchAllBytes: subject from: start to: end do: aBlock [
-	"Iteratively match over raw code-unit storage and execute aBlock with each standalone match. Empty matches retry with PCRE2_NOTEMPTY_ATSTART before advancing by one code unit."
+	"Match repeatedly over raw code-unit storage, evaluating aBlock with each match. Empty matches retry with PCRE2_NOTEMPTY_ATSTART before advancing by one code unit."
 
 	self
 		matchAllBytes: subject
@@ -582,7 +573,7 @@ PCRE2Matcher >> matchAllBytes: subject from: start to: end do: aBlock [
 
 { #category : 'prepared matching' }
 PCRE2Matcher >> matchAllBytes: subject from: start to: end offsetsDo: aBlock [
-	"Iteratively match over an inclusive 1-based PCRE2 code-unit range of prepared subject storage and evaluate aBlock with each match's raw code-unit offsets."
+	"Match repeatedly over an inclusive 1-based code-unit range, evaluating aBlock with the raw offsets of each match."
 
 	self
 		matchAllBytes: subject
@@ -593,7 +584,7 @@ PCRE2Matcher >> matchAllBytes: subject from: start to: end offsetsDo: aBlock [
 
 { #category : 'prepared matching' }
 PCRE2Matcher >> matchBytes: subject from: start to: end [
-	"Run a match over prepared subject byte storage using an inclusive 1-based PCRE2 code-unit range; answer standalone match data, or nil."
+	"Match over an inclusive 1-based code-unit range of prepared storage; answer the match, or nil."
 
 	| match rc |
 	match := self newMatchData.
@@ -616,7 +607,7 @@ PCRE2Matcher >> matchBytes: subject from: start to: end calloutsDo: calloutBlock
 
 { #category : 'prepared matching' }
 PCRE2Matcher >> matchBytes: subject from: start to: end into: aPCRE2Match [
-	"Run a match over prepared subject byte storage using an inclusive 1-based PCRE2 code-unit range, and populate caller-provided match data."
+	"Match over an inclusive 1-based code-unit range of prepared storage, into the given match data."
 
 	^ self
 		  matchBytes: subject
@@ -628,7 +619,7 @@ PCRE2Matcher >> matchBytes: subject from: start to: end into: aPCRE2Match [
 
 { #category : 'prepared matching' }
 PCRE2Matcher >> matchBytes: subject from: start to: end options: matchOptions into: aPCRE2Match [
-	"Run a match over prepared subject byte storage using an inclusive 1-based PCRE2 code-unit range, explicit match options, and caller-provided match data."
+	"Match over an inclusive 1-based code-unit range of prepared storage with matchOptions, into the given match data."
 
 	| rc |
 	self validateUsableMatchData: aPCRE2Match.
@@ -726,7 +717,7 @@ PCRE2Matcher >> matchesIn: subject do: aBlock [
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> matchesOnStream: aStream [
-	"Equivalent of RxMatcher >> #matchesOnStream:. Answers every matching substring left in the stream."
+	"Equivalent of RxMatcher >> #matchesOnStream:."
 
 	| result |
 	result := OrderedCollection new.
@@ -736,7 +727,7 @@ PCRE2Matcher >> matchesOnStream: aStream [
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> matchesOnStream: aStream collect: aBlock [
-	"Equivalent of RxMatcher >> #matchesOnStream:collect:. Answers aBlock's value for every matching substring left in the stream."
+	"Equivalent of RxMatcher >> #matchesOnStream:collect:."
 
 	| result |
 	result := OrderedCollection new.
@@ -746,7 +737,7 @@ PCRE2Matcher >> matchesOnStream: aStream collect: aBlock [
 
 { #category : 'match enumeration' }
 PCRE2Matcher >> matchesOnStream: aStream do: aBlock [
-	"Equivalent of RxMatcher >> #matchesOnStream:do:. Reads what is left of the stream and evaluates aBlock with each matching substring, leaving the stream at its end. The subexpression accessors report on each match in turn while aBlock runs."
+	"Equivalent of RxMatcher >> #matchesOnStream:do:. Leaves the stream at its end; the subexpression accessors report on each match while aBlock runs."
 
 	lastStream := aStream.
 	self findAllMatches: aStream upToEnd do: [ :match |
@@ -776,14 +767,14 @@ PCRE2Matcher >> matchesPrefix: subject calloutsDo: calloutBlock [
 
 { #category : 'matching' }
 PCRE2Matcher >> matchesStream: aStream [
-	"Equivalent of RxMatcher >> #matchesStream:. Answers whether the regex matches everything left in the stream."
+	"Equivalent of RxMatcher >> #matchesStream:."
 
 	^ (self matchesStreamPrefix: aStream) and: [ aStream atEnd ]
 ]
 
 { #category : 'matching' }
 PCRE2Matcher >> matchesStreamPrefix: aStream [
-	"Equivalent of RxMatcher >> #matchesStreamPrefix:. Reads what is left of the stream and matches the regex against its start, leaving the stream just after the match, or where it was when there is none. The stream must be positionable."
+	"Equivalent of RxMatcher >> #matchesStreamPrefix:. Leaves a positionable stream just after the match, or where it was when there is none."
 
 	| start |
 	lastStream := aStream.
@@ -815,8 +806,7 @@ PCRE2Matcher >> matchingRangesIn: subject [
 
 { #category : 'documentation' }
 PCRE2Matcher >> namedGroups [
-	"Answer a sparse Array mapping PCRE2 capture group numbers to their names.
-	Capture group 1 is the first parenthesized group; group 0 is the whole match and is not named. Duplicate names can appear at multiple indexes when the pattern was compiled with PCRE2 dupNames."
+	"Answer a sparse Array mapping capture group numbers to their names; group 0, the whole match, is unnamed. With dupNames, a name can appear at several indexes."
 
 	^ nameTable ifNil: [ nameTable := self readNamedGroups ]
 ]
@@ -843,7 +833,6 @@ PCRE2Matcher >> optionsWithPartialOption: partialOption [
 
 { #category : 'accessing' }
 PCRE2Matcher >> pattern [
-	"The original string of this compiled pattern"
 
 	^ pattern
 ]
@@ -878,7 +867,7 @@ PCRE2Matcher >> postCopy [
 
 { #category : 'persistence' }
 PCRE2Matcher >> prepareForShutdown [
-	"PCRE2SessionManager restores the native compiled-pattern handle. Matcher Smalltalk state already survives image save/load, and native-derived metadata such as namedGroups can be recomputed from the restored pattern when needed."
+	"PCRE2SessionManager restores the native handle. The rest survives the image save, and native-derived metadata such as namedGroups is recomputed when needed."
 
 	^ self
 ]
@@ -951,7 +940,7 @@ PCRE2Matcher >> restoreFrom: bytes [
 
 { #category : 'persistence' }
 PCRE2Matcher >> restoreJITIfNeeded [
-	"Serialized and copied PCRE2 code does not include JIT data. Rebuild it when requested, but keep the pattern usable without JIT if the platform cannot provide it now."
+	"Serialized and copied PCRE2 code has no JIT data. Rebuild it, keeping the pattern usable without JIT if that fails."
 
 	self isJIT ifFalse: [ ^ self ].
 	compiler compileJIT: self onError: [ :rc | self isJIT: false ]
@@ -973,7 +962,7 @@ PCRE2Matcher >> search: subject calloutsDo: calloutBlock [
 
 { #category : 'matching' }
 PCRE2Matcher >> searchStream: aStream [
-	"Equivalent of RxMatcher >> #searchStream:. Reads what is left of the stream and searches it, leaving the stream just after the match, or at the end when there is none. The stream must be positionable."
+	"Equivalent of RxMatcher >> #searchStream:. Leaves a positionable stream just after the match, or at its end when there is none."
 
 	| start |
 	lastStream := aStream.
@@ -1046,21 +1035,21 @@ PCRE2Matcher >> stringOfSubexpression: subIndex [
 
 { #category : 'accessing' }
 PCRE2Matcher >> subBeginning: subIndex [
-	"Equivalent of RxMatcher >> #subBeginning:. Answers an array holding the 0-based character position where the subexpression last started, empty when it did not take part. PCRE2 keeps only the last match of a subexpression, so the answer never holds more than one position."
+	"Equivalent of RxMatcher >> #subBeginning:. The array holds at most one 0-based character position, since PCRE2 keeps only the last match of a subexpression."
 
 	^ (self rangeOfSubexpression: subIndex) ifNil: [ #(  ) ] ifNotNil: [ :range | Array with: range first - 1 ]
 ]
 
 { #category : 'accessing' }
 PCRE2Matcher >> subEnd: subIndex [
-	"Equivalent of RxMatcher >> #subEnd:. Answers an array holding the 0-based character position just after the subexpression's last match, empty when it did not take part."
+	"Equivalent of RxMatcher >> #subEnd:. The array holds the 0-based character position after the last match of the subexpression, or is empty when it did not take part."
 
 	^ (self rangeOfSubexpression: subIndex) ifNil: [ #(  ) ] ifNotNil: [ :range | Array with: range last ]
 ]
 
 { #category : 'accessing' }
 PCRE2Matcher >> subexpression: subIndex [
-	"Equivalent of RxMatcher >> #subexpression:. Answers what the subexpression matched in the last match attempt, or nil when it did not take part. Index 1 is the whole match."
+	"Equivalent of RxMatcher >> #subexpression:."
 
 	^ self stringOfSubexpression: subIndex
 ]
@@ -1074,7 +1063,7 @@ PCRE2Matcher >> subexpressionCount [
 
 { #category : 'accessing' }
 PCRE2Matcher >> subexpressions: subIndex [
-	"Equivalent of RxMatcher >> #subexpressions:. PCRE2 keeps only the last match of a subexpression, so the answer never holds more than one string where Rx can answer one per repetition."
+	"Equivalent of RxMatcher >> #subexpressions:. PCRE2 keeps only the last match of a subexpression, so the answer holds at most one string."
 
 	^ (self stringOfSubexpression: subIndex) ifNil: [ #(  ) ] ifNotNil: [ :string | Array with: string ]
 ]
@@ -1088,7 +1077,7 @@ PCRE2Matcher >> supportsSubexpressions [
 
 { #category : 'private' }
 PCRE2Matcher >> temporaryMatcherAddingCompileOptions: compileOptions matchOptions: matchOptions [
-	"Answer a temporary matcher compiled from the receiver's source with additional options. The receiver is left unchanged."
+	"Answer a matcher compiled from my source with additional options, leaving me unchanged."
 
 	| sourceCompiler temporaryCompiler temporaryMatcher |
 	sourceCompiler := compiler ifNil: [ self compilerClass new ].
@@ -1132,7 +1121,7 @@ PCRE2Matcher >> validateUsableMatchData: matchData [
 
 { #category : 'callouts' }
 PCRE2Matcher >> withAutomaticCallouts: calloutBlock do: aBlock [
-	"Evaluate aBlock with a temporary matcher compiled with automatic callouts. This is intended for tools and diagnostics: it does not mutate the receiver, and it disables start optimization on the temporary matcher so generated callouts expose matching progress."
+	"Evaluate aBlock with a temporary matcher compiled with automatic callouts, for tools and diagnostics. Start optimization is disabled on it so that callouts expose matching progress."
 
 	| callbackMatcher |
 	callbackMatcher := self temporaryMatcherAddingCompileOptions: (PCRE2 autoCallout bitOr: PCRE2 noStartOptimize) matchOptions: 0.
@@ -1142,7 +1131,7 @@ PCRE2Matcher >> withAutomaticCallouts: calloutBlock do: aBlock [
 
 { #category : 'callouts' }
 PCRE2Matcher >> withCallout: calloutBlock do: aBlock [
-	"Evaluate aBlock with a temporary matcher whose match context invokes calloutBlock for runtime PCRE2 callouts. The callout block receives a PCRE2CalloutEvent and may answer an integer PCRE2 return code to control matching, or any non-integer value to continue."
+	"Evaluate aBlock with a temporary matcher that invokes calloutBlock for runtime callouts. calloutBlock receives a PCRE2CalloutEvent and may answer an integer return code to control matching; any other answer continues."
 
 	| callbackMatcher |
 	callbackMatcher := self temporaryMatcherForCallout.

@@ -10,7 +10,7 @@ Class {
 
 { #category : 'private' }
 PCRE2CompilerUTF32FFIBackend >> compile: pattern upTo: length errorCode: errorCode errorOffset: errorOffset [
-	"Compile a native-endian UTF-32 pattern buffer; length and errorOffset are PCRE2-32 code-unit counts/offsets, not byte counts."
+	"length and errorOffset count code units, not bytes."
 
 	self ffiCall: #(void *pcre2_compile_32(void *pattern, size_t length, uint32 options, IntHolder errorCode, SizeTHolder errorOffset, void *context))
 ]
@@ -23,9 +23,7 @@ PCRE2CompilerUTF32FFIBackend >> compileContextClass [
 
 { #category : 'private' }
 PCRE2CompilerUTF32FFIBackend >> createCompileContext [
-	"Create and initialize a new UTF-32 compile context.
-	The result is NULL if memory could not be obtained.
-	pcre2_compile_context_32 *pcre2_compile_context_create_32(pcre2_general_context *gcontext)"
+	"Answer NULL when memory cannot be obtained."
 
 	self ffiCall: #(void *pcre2_compile_context_create_32(nil))
 ]
@@ -50,7 +48,6 @@ PCRE2CompilerUTF32FFIBackend >> matcherBackendClass [
 
 { #category : 'private' }
 PCRE2CompilerUTF32FFIBackend >> privateJITCompile: matcher [
-	"int pcre2_jit_compile_32(pcre2_code_32 *code, uint32_t options)"
 
 	self ffiCall: #(int pcre2_jit_compile_32(PCRE2MatcherUTF32FFIBackend *matcher, uint32 optionsJIT))
 ]

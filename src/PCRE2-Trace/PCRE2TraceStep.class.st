@@ -1,9 +1,7 @@
 "
-I describe one debugger-ready step produced from a PCRE2 match trace.
+I describe one step of a match trace: a runtime callout event, its static callout site when known, and the pattern and subject character ranges, translated in advance.
 
-A step combines a runtime callout event with its static callout site when available, plus pretranslated pattern and subject character ranges. I keep the raw event available for native PCRE2 details, but expose stable Smalltalk-level fields that a headless debugger model or UI can consume directly.
-
-Capture ranges preserve PCRE2 ovector order: array index 1 is the whole-match range, array index 2 is capture group 1, and so on. Unset captures are represented by nil.
+Capture ranges follow ovector order: index 1 is the whole match, index 2 is group 1, and so on. An unset capture is nil.
 "
 Class {
 	#name : 'PCRE2TraceStep',
@@ -50,14 +48,12 @@ PCRE2TraceStep >> captureRangeAt: captureIndex [
 
 { #category : 'accessing' }
 PCRE2TraceStep >> captureRanges [
-	"Answer ovector capture ranges in PCRE2 order. Index 1 is the whole match; index 2 is capture group 1."
 
 	^ captureRanges
 ]
 
 { #category : 'accessing' }
 PCRE2TraceStep >> event [
-	"Answer the raw runtime PCRE2 callout event behind this step."
 
 	^ event
 ]
@@ -128,7 +124,7 @@ PCRE2TraceStep >> mark [
 
 { #category : 'accessing' }
 PCRE2TraceStep >> patternRange [
-	"Answer the 1-based Pharo character range for the next pattern item reported by PCRE2 at this step."
+	"Answer the character range of the next pattern item at this step."
 
 	^ patternRange
 ]
@@ -155,7 +151,6 @@ PCRE2TraceStep >> printOn: aStream [
 
 { #category : 'accessing' }
 PCRE2TraceStep >> site [
-	"Answer the static callout site matched to the event, or nil if none was found."
 
 	^ site
 ]

@@ -1,7 +1,5 @@
 "
-Abstract superclass for PCRE2 convert contexts.
-
-Concrete subclasses bind PCRE2's width-specific native setters and lifetime functions: PCRE2UTF8ConvertContext, PCRE2UTF16ConvertContext, and PCRE2UTF32ConvertContext. This class keeps the shared Pharo-side state and user-facing accessors for glob escape and separator settings.
+Abstract superclass of the contexts that set the glob escape and separator for pattern conversion. The settings are kept in the image, to be reapplied after startup; subclasses bind the functions of each code-unit width.
 "
 Class {
 	#name : 'PCRE2ConvertContext',
@@ -30,7 +28,6 @@ PCRE2ConvertContext >> checkSettingResult: resultCode [
 
 { #category : 'private' }
 PCRE2ConvertContext >> codePointFor: aCharacterOrCodePoint [
-	"Answer a uint32 code point accepted by PCRE2 setters."
 
 	aCharacterOrCodePoint isCharacter ifTrue: [ ^ aCharacterOrCodePoint asInteger ].
 	^ aCharacterOrCodePoint
@@ -45,7 +42,7 @@ PCRE2ConvertContext >> globEscape [
 
 { #category : 'accessing' }
 PCRE2ConvertContext >> globEscape: aCharacterOrCodePoint [
-	"Set the escape character used by glob conversion. Use 0 to disable escaping."
+	"Use 0 to disable escaping."
 
 	| codePoint |
 	codePoint := self codePointFor: aCharacterOrCodePoint.
@@ -62,7 +59,7 @@ PCRE2ConvertContext >> globSeparator [
 
 { #category : 'accessing' }
 PCRE2ConvertContext >> globSeparator: aCharacterOrCodePoint [
-	"Set the path separator used by glob conversion. PCRE2 accepts slash, backslash, or dot."
+	"PCRE2 accepts slash, backslash, or dot."
 
 	| codePoint |
 	codePoint := self codePointFor: aCharacterOrCodePoint.

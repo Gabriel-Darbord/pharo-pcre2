@@ -40,7 +40,7 @@ PCRE2CalloutSite >> initializeFromEnumerationBlock: anExternalAddress codeUnitWi
 
 { #category : '*PCRE2-FFIBackend' }
 PCRE2CalloutSite class >> sizeTFrom: anExternalAddress atOffset: structOffsetInBytes [
-	"Read a PCRE2_SIZE field from a native PCRE2 struct. This ExternalAddress offset is measured in bytes, not in subject or pattern code units."
+	"Read a PCRE2_SIZE field from a native PCRE2 struct."
 
 	| wordSize |
 	wordSize := ExternalAddress wordSize.
@@ -57,7 +57,7 @@ PCRE2CalloutSite class >> stringFrom: anExternalAddress length: length [
 
 { #category : '*PCRE2-FFIBackend' }
 PCRE2CalloutSite class >> stringFrom: anExternalAddress length: length codeUnitWidth: codeUnitWidth [
-	"Decode a string callout payload for the given PCRE2 code-unit width."
+	"length is in code units. Answer nil for a null address."
 
 	| bytes byteSize |
 	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [ ^ nil ].
@@ -69,7 +69,6 @@ PCRE2CalloutSite class >> stringFrom: anExternalAddress length: length codeUnitW
 
 { #category : '*PCRE2-FFIBackend' }
 PCRE2CalloutSite class >> stringFromBytes: bytes codeUnitWidth: codeUnitWidth [
-	"Decode native PCRE2 string bytes for the given code-unit width."
 
 	codeUnitWidth = 8 ifTrue: [ ^ (PCRE2UTF8Input fromBytes: bytes) readFrom: 1 to: bytes size ].
 	codeUnitWidth = 16 ifTrue: [ ^ (PCRE2UTF16Input fromNativeEndianBytes: bytes) decodeBytes: bytes ].
@@ -79,7 +78,7 @@ PCRE2CalloutSite class >> stringFromBytes: bytes codeUnitWidth: codeUnitWidth [
 
 { #category : '*PCRE2-FFIBackend' }
 PCRE2CalloutSite class >> zeroTerminatedStringFrom: anExternalAddress codeUnitWidth: codeUnitWidth [
-	"Decode a zero-terminated native PCRE2 string for the given code-unit width."
+	"Answer nil for a null address."
 
 	| bytes offset width |
 	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [ ^ nil ].

@@ -1,7 +1,7 @@
 "
-Unicode data carried as one base64 literal, as `scripts/generate-unicode-data.py` writes it from a pinned PCRE2 checkout: sections packed as LEB128 varints, where every table of code points is stored as gaps rather than absolute values, then gzipped. Delta varints give the compressor far less to chew on than decimal digits in brackets, so the literal is a third of the same data as gzipped JSON.
+Unicode data carried as one base64 literal of gzipped LEB128 varints, as `scripts/generate-unicode-data.py` writes it from a pinned PCRE2 checkout. Tables of code points are stored as gaps, which makes the literal a third of the size of the same data as gzipped JSON.
 
-A subclass answers its literal in `encoded` and reads its sections in `decode:`, in the order the script writes them. `data` unpacks them once per session.
+A subclass answers its literal in `encoded` and reads its sections in `decode:`, in the order the script writes them.
 
 Unicode data uses docs/Unicode-LICENSE.txt; the PCRE2 property catalog uses docs/PCRE2-LICENCE.md.
 "

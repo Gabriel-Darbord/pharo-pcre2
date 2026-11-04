@@ -1,5 +1,5 @@
 "
-Public PCRE2 Matcher using 16-bit code units. The selected backend supplies the implementation; input and offset conventions are shared across backends.
+`PCRE2Matcher` for 16-bit code units; the backend supplies the implementation.
 "
 Class {
 	#name : 'PCRE2UTF16Matcher',
@@ -22,7 +22,6 @@ PCRE2UTF16Matcher >> compilerClass [
 
 { #category : 'private' }
 PCRE2UTF16Matcher >> decodeSubstitutionOutput: buffer codeUnits: codeUnitCount [
-	"Decode a native-endian UTF-16 substitution output buffer."
 
 	| byteSize bytes |
 	codeUnitCount = 0 ifTrue: [ ^ String new ].

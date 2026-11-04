@@ -1,7 +1,5 @@
 "
-Class-side helper for byte-order operations shared by UTF-16 and UTF-32 prepared inputs.
-
-It only handles byte collections: validating code-unit alignment, stripping byte-order marks, checking host endianness, and normalizing explicit-endian bytes to the native-endian storage expected by the PCRE2 FFI calls. Width-specific input classes keep ownership of decoding, character offset translation, and public constructors.
+Byte-order helpers shared by the UTF-16 and UTF-32 inputs: code-unit alignment, byte-order marks, host endianness, and conversion of explicit-endian bytes to the native order the inputs store.
 "
 Class {
 	#name : 'PCRE2WideInputBytes',
@@ -12,7 +10,6 @@ Class {
 
 { #category : 'private' }
 PCRE2WideInputBytes class >> bigEndianBOMForWidth: width [
-	"Answer the Unicode BOM bytes for a big-endian code-unit width."
 
 	width = 2 ifTrue: [ ^ #[ 254 255 ] ].
 	width = 4 ifTrue: [ ^ #[ 0 0 254 255 ] ].
@@ -21,7 +18,6 @@ PCRE2WideInputBytes class >> bigEndianBOMForWidth: width [
 
 { #category : 'converting' }
 PCRE2WideInputBytes class >> bytesAfterBOM: aByteCollection byteCount: bomByteCount [
-	"Answer bytes after a BOM, allowing a byte collection that contains only the BOM."
 
 	| byteSize |
 	byteSize := aByteCollection size.
@@ -31,21 +27,18 @@ PCRE2WideInputBytes class >> bytesAfterBOM: aByteCollection byteCount: bomByteCo
 
 { #category : 'testing' }
 PCRE2WideInputBytes class >> hasBigEndianBOM: aByteCollection width: width [
-	"Answer whether a byte collection starts with the big-endian BOM for width."
 
 	^ self startsWith: aByteCollection bytes: (self bigEndianBOMForWidth: width)
 ]
 
 { #category : 'testing' }
 PCRE2WideInputBytes class >> hasLittleEndianBOM: aByteCollection width: width [
-	"Answer whether a byte collection starts with the little-endian BOM for width."
 
 	^ self startsWith: aByteCollection bytes: (self littleEndianBOMForWidth: width)
 ]
 
 { #category : 'private' }
 PCRE2WideInputBytes class >> littleEndianBOMForWidth: width [
-	"Answer the Unicode BOM bytes for a little-endian code-unit width."
 
 	width = 2 ifTrue: [ ^ #[ 255 254 ] ].
 	width = 4 ifTrue: [ ^ #[ 255 254 0 0 ] ].
@@ -54,14 +47,12 @@ PCRE2WideInputBytes class >> littleEndianBOMForWidth: width [
 
 { #category : 'testing' }
 PCRE2WideInputBytes class >> nativeEndianIsLittle [
-	"Answer whether the host stores multi-byte integer values in little-endian order."
 
 	^ EndianDetector isLittleEndian
 ]
 
 { #category : 'converting' }
 PCRE2WideInputBytes class >> normalizeBigEndianBytes: aByteCollection width: width [
-	"Answer bytes normalized from explicit big-endian order to host-native order."
 
 	^ self nativeEndianIsLittle
 		  ifTrue: [ self swapBytes: aByteCollection width: width ]
@@ -70,7 +61,6 @@ PCRE2WideInputBytes class >> normalizeBigEndianBytes: aByteCollection width: wid
 
 { #category : 'converting' }
 PCRE2WideInputBytes class >> normalizeLittleEndianBytes: aByteCollection width: width [
-	"Answer bytes normalized from explicit little-endian order to host-native order."
 
 	^ self nativeEndianIsLittle
 		  ifTrue: [ aByteCollection ]
@@ -79,7 +69,6 @@ PCRE2WideInputBytes class >> normalizeLittleEndianBytes: aByteCollection width: 
 
 { #category : 'private' }
 PCRE2WideInputBytes class >> startsWith: aByteCollection bytes: prefixBytes [
-	"Answer whether a byte collection starts with prefixBytes."
 
 	aByteCollection size < prefixBytes size ifTrue: [ ^ false ].
 	1 to: prefixBytes size do: [ :index | (aByteCollection at: index) = (prefixBytes at: index) ifFalse: [ ^ false ] ].
@@ -100,7 +89,6 @@ PCRE2WideInputBytes class >> swapBytes: aByteCollection width: width [
 
 { #category : 'validating' }
 PCRE2WideInputBytes class >> validateByteSize: aByteCollection multipleOf: width message: messageText [
-	"Signal when a byte collection cannot be split into whole code units of width bytes."
 
 	(aByteCollection size rem: width) = 0 ifFalse: [ PCRE2Error signal: messageText ]
 ]

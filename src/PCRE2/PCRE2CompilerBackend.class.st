@@ -25,7 +25,7 @@ PCRE2CompilerBackend class >> isAbstract [
 
 { #category : 'testing' }
 PCRE2CompilerBackend class >> supportsCodeUnitWidth: anInteger [
-	"Answer whether this backend can compile and match at the given code-unit width: 8, 16 or 32. A backend that implements the matching itself supports all three; one that binds an outside library supports what that library was built with."
+	"Answer whether this backend can compile and match at the code-unit width 8, 16 or 32. A backend binding an outside library supports what that library was built with."
 
 	^ #( 8 16 32 ) includes: anInteger
 ]

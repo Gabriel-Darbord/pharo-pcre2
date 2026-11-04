@@ -2,7 +2,7 @@ Extension { #name : 'PCRE2Matcher' }
 
 { #category : '*PCRE2-DFA' }
 PCRE2Matcher >> dfaMatch: subject [
-	"Run a DFA match and answer all same-start alternatives as standalone match data."
+	"Answer match data holding every match that starts at the first position where one does, or nil."
 
 	^ self dfaMatch: subject workspaceSize: 100
 ]
@@ -23,14 +23,12 @@ PCRE2Matcher >> dfaMatch: subject from: start to: end matchData: matchData works
 
 { #category : '*PCRE2-DFA' }
 PCRE2Matcher >> dfaMatch: subject workspaceSize: workspaceSize [
-	"Run a DFA match with caller-controlled workspace storage."
 
 	^ self dfaMatch: subject workspaceSize: workspaceSize ovectorSize: 20
 ]
 
 { #category : '*PCRE2-DFA' }
 PCRE2Matcher >> dfaMatch: subject workspaceSize: workspaceSize ovectorSize: ovectorSize [
-	"Run a DFA match with explicit workspace and ovector sizes."
 
 	| input match |
 	input := self preparedInputFor: subject.
@@ -46,7 +44,7 @@ PCRE2Matcher >> dfaMatch: subject workspaceSize: workspaceSize ovectorSize: ovec
 
 { #category : '*PCRE2-DFA' }
 PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: workspaceSize ovectorSize: ovectorSize [
-	"Run a DFA match over prepared subject byte storage using an inclusive 1-based PCRE2 code-unit range; answer standalone match data, or nil."
+	"start and end are an inclusive 1-based code-unit range of the prepared subject bytes. Answer the match data, or nil."
 
 	| match rc |
 	match := self newMatchDataWithOvectorSize: ovectorSize.
@@ -64,7 +62,7 @@ PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: worksp
 
 { #category : '*PCRE2-DFA' }
 PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: workspaceSize ovectorSize: ovectorSize into: aPCRE2Match [
-	"Run a DFA match over prepared subject byte storage using an inclusive 1-based PCRE2 code-unit range, and populate caller-provided match data."
+	"Fill aPCRE2Match; start and end are an inclusive 1-based code-unit range of the prepared subject bytes."
 
 	| rc workspace |
 	self validateDFAWorkspaceSize: workspaceSize ovectorSize: ovectorSize.
@@ -83,21 +81,19 @@ PCRE2Matcher >> dfaMatchBytes: subject from: start to: end workspaceSize: worksp
 
 { #category : '*PCRE2-DFA' }
 PCRE2Matcher >> dfaMatches: subject [
-	"Return all same-start DFA alternatives decoded back to Pharo strings."
+	"Answer the strings of every match that starts at the first position where one does, or an empty array."
 
 	^ self dfaMatches: subject workspaceSize: 100
 ]
 
 { #category : '*PCRE2-DFA' }
 PCRE2Matcher >> dfaMatches: subject workspaceSize: workspaceSize [
-	"Return all same-start DFA alternatives decoded back to Pharo strings."
 
 	^ self dfaMatches: subject workspaceSize: workspaceSize ovectorSize: 20
 ]
 
 { #category : '*PCRE2-DFA' }
 PCRE2Matcher >> dfaMatches: subject workspaceSize: workspaceSize ovectorSize: ovectorSize [
-	"Return all same-start DFA alternatives decoded back to Pharo strings."
 
 	^ (self dfaMatch: subject workspaceSize: workspaceSize ovectorSize: ovectorSize)
 		  ifNil: [ #(  ) ]

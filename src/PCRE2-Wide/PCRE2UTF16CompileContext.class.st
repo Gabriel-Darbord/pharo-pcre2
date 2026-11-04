@@ -1,5 +1,5 @@
 "
-Public PCRE2 CompileContext using 16-bit code units. The selected backend supplies the implementation; input and offset conventions are shared across backends.
+`PCRE2CompileContext` for 16-bit code units; the backend supplies the implementation.
 "
 Class {
 	#name : 'PCRE2UTF16CompileContext',

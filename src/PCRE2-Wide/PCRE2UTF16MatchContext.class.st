@@ -1,5 +1,5 @@
 "
-Public PCRE2 MatchContext using 16-bit code units. The selected backend supplies the implementation; input and offset conventions are shared across backends.
+`PCRE2MatchContext` for 16-bit code units; the backend supplies the implementation.
 "
 Class {
 	#name : 'PCRE2UTF16MatchContext',

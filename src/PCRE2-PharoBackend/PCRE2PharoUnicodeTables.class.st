@@ -1,9 +1,5 @@
 "
-The general categories, simple case folding and decimal digits of the image's own `Unicode` class, which `PCRE2UnicodeData` reads unless a package registers other tables.
-
-Pharo 15 carries these tables at Unicode 18.0 since pharo-project/pharo#20168. Pharo 14 and older carry them at Unicode 9.0, so the baseline loads `PCRE2PackedUnicodeTables` there instead.
-
-`Unicode` keeps its category numbers and its case folding in class variables with no accessor, so `categoryNames` and `caseFolding` read them by name.
+The general categories, simple case folding and decimal digits of the image's own `Unicode` class, which `PCRE2UnicodeData` reads unless a package registers other tables. Pharo 15 carries them at Unicode 18.0 and older images at 9.0, so the baseline loads `PCRE2PackedUnicodeTables` there instead. `categoryNames` and `caseFolding` read class variables of `Unicode` by name, since it has no accessor for them.
 "
 Class {
 	#name : 'PCRE2PharoUnicodeTables',

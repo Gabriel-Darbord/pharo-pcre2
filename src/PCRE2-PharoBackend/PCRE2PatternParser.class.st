@@ -76,7 +76,7 @@ PCRE2PatternParser >> alternation [
 
 { #category : 'parsing - optimization' }
 PCRE2PatternParser >> analyseStartOf: tree [
-	"PCRE2's two structural start optimizations, decided once the whole tree stands. A pattern every branch of which starts at a fixed place is anchored, whatever else is turned off; one every branch of which starts at a line start is only ever tried there, which is of no use to a pattern that is anchored already or that has a first character to look for."
+	"PCRE2's two structural start optimizations, decided once the whole tree stands. A pattern whose every branch starts at a fixed place is anchored even under noStartOptimize; one whose every branch starts a line is tried only at line starts, unless it has a first character to look for."
 
 	| analysis |
 	startLine := false.
@@ -109,7 +109,7 @@ PCRE2PatternParser >> asciiInlineOption [
 
 { #category : 'parsing' }
 PCRE2PatternParser >> assertion: kind [
-	"The node for one zero-width position assertion. Its predicate is chosen here, once, so matching never asks again which kind it is."
+	"Its predicate is chosen here, once, so matching never asks which kind it is."
 
 	(#( wordBoundary notWordBoundary ) includes: kind) ifTrue: [ requiresPreviousCharacter := true ].
 	^ PCRE2AssertionNode new
@@ -237,7 +237,7 @@ PCRE2PatternParser >> bsrMode [
 
 { #category : 'parsing' }
 PCRE2PatternParser >> byteConditionFor: callouts constant: constantFalse numbered: aNumber version: aVersion [
-	"What a written matcher can ask of a conditional's condition, or nil when it cannot ask it. A condition already settled while the pattern was read leaves one branch, and a group number is one offset to look at; a recursion, a name shared by several groups, and a lookaround condition are all answered from how the match is going."
+	"What a written matcher can ask of a conditional's condition: a condition settled while reading, or a group number to test. Nil for a recursion, a name shared by several groups or a lookaround."
 
 	callouts ifNotEmpty: [ ^ nil ].
 	constantFalse ifTrue: [ ^ #( #never ) ].
@@ -250,7 +250,7 @@ PCRE2PatternParser >> byteConditionFor: callouts constant: constantFalse numbere
 
 { #category : 'parsing' }
 PCRE2PatternParser >> byteTestFor: kind [
-	"How a written matcher can decide this assertion by reading bytes, or nil when it cannot. The options that change what an assertion means are read here, where they are known, rather than carried into the generator."
+	"How a written matcher can decide this assertion by reading bytes, or nil. The options that change its meaning are read here rather than carried into the generator."
 
 	| terminator multiline |
 	kind = #beginSubject ifTrue: [ ^ #( #atStart ) ].
@@ -429,7 +429,7 @@ PCRE2PatternParser >> classIntersection [
 
 { #category : 'parsing - classes' }
 PCRE2PatternParser >> classNodeFor: aPredicate [
-	"A node for a character class. It carries a table of the codes under 256 it accepts, since a class is asked once for every character of a subject."
+	"A class carries a table of the codes under 256 it accepts, since it is asked once for every character of a subject."
 
 	| node |
 	node := PCRE2CharacterNode new predicate: aPredicate.
@@ -1353,7 +1353,7 @@ PCRE2PatternParser >> next [
 
 { #category : 'parsing - optimization' }
 PCRE2PatternParser >> noteBackreference: reference [
-	"Record what a backreference points at. PCRE2 refuses to read a leading dot star as saying where a match begins when it sits in a group something refers back to, because the group can then be asked to have matched something else."
+	"Record what a backreference points at: PCRE2 does not read a leading dot star inside a referenced group as saying where a match begins."
 
 	backreferences add: reference.
 	^ reference
@@ -1361,7 +1361,7 @@ PCRE2PatternParser >> noteBackreference: reference [
 
 { #category : 'parsing - optimization' }
 PCRE2PatternParser >> noteVerb: kind [
-	"Record a verb that breaks the leading dot star optimization. PCRE2 gives it up for the whole pattern as soon as (*PRUNE) or (*SKIP) appears anywhere in it."
+	"PCRE2 gives up the leading dot star optimization for the whole pattern once (*PRUNE) or (*SKIP) appears anywhere in it."
 
 	(kind = #prune or: [ kind = #skip ]) ifTrue: [ hadPruneOrSkip := true ].
 	^ kind
@@ -1545,7 +1545,7 @@ PCRE2PatternParser >> parseCharacterClass [
 			self skipClassIgnored ].
 	self expect: $] errorCode: 106.
 	tests := predicates asArray.
-	"Both sides below are booleans, so identity settles the negation without a comparison send on a path walked for every character."
+	"Both sides below are booleans, so identity settles the negation without a send."
 	^ self classNodeFor: [ :candidate | (tests anySatisfy: [ :test | test value: candidate ]) ~~ negative ]
 ]
 

@@ -1,9 +1,7 @@
 "
-The Unicode properties Pharo has no table for, pinned at Unicode 17.0.0 with the property names of PCRE2 10.49: scripts and script extensions, bidi classes, binary properties such as Emoji, the grapheme cluster breaks of `\X`, and the script masks of script runs. General categories, case folding and digits come from `PCRE2UnicodeData` tables instead.
+The Unicode properties Pharo has no table for, at Unicode 17.0.0 with the property names of PCRE2 10.49: scripts and script extensions, bidi classes, binary properties, the grapheme cluster breaks of `\X`, and the script masks of script runs.
 
-Loading this package registers me with `PCRE2UnicodeData`. Without me, a pattern that names one of these properties, or uses `\X` or a script run, fails to compile with `PCRE2UnsupportedFeature`.
-
-`data` keeps the 451 property range lists in `PCRE2PackedProperties`, packed until a pattern names one. A pattern uses a handful, so an image that matches a few patterns carries tens of kilobytes of ranges instead of the half megabyte all of them would take.
+Loading this package registers me with `PCRE2UnicodeData`; without me, a pattern that uses one of them fails to compile with `PCRE2UnsupportedFeature`. `data` keeps the property ranges packed in a `PCRE2PackedProperties`.
 "
 Class {
 	#name : 'PCRE2UnicodeProperties',
@@ -149,7 +147,7 @@ PCRE2UnicodeProperties class >> matches: key code: code [
 
 { #category : 'properties' }
 PCRE2UnicodeProperties class >> predicateFor: property [
-	"Answer a predicate on characters for a property that is not a general category: a script, script extension, bidi class or binary property, named alone or after its family such as sc= or bc:."
+	"Answer a character predicate for a script, script extension, bidi class or binary property, named alone or after its family, as in sc= or bc:."
 
 	| normalized catalog delimiter prefix value key ranges |
 	normalized := PCRE2UnicodeData normalize: property.

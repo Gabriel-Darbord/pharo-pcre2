@@ -15,7 +15,7 @@ Class {
 
 { #category : 'generating' }
 PCRE2BackreferenceNode >> byteReference [
-	"The group number this compares against, or nil when a written matcher cannot decide the reference. One by name is resolved from which of several groups of that name took part, a caseless one needs the case folding the engine has, and an unset group matching nothing is a second way of matching this does not write."
+	"The group number this compares against, or nil when a written matcher cannot decide it: a reference by name, a caseless one, or one under match-unset-backreference."
 
 	^ (reference isInteger and: [ (options bitAnd: PCRE2 caseless | PCRE2 matchUnsetBackref) = 0 ]) ifTrue: [ reference ]
 ]

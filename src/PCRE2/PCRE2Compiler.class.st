@@ -1,7 +1,5 @@
 "
-Public compiler facade. New compilers capture the configured default backend; backend: explicitly selects an implementation before context creation. Width-specific subclasses preserve the UTF-8/16/32 input API.
-
-The default is the Pharo implementation, which needs no C library, and falls back to the FFI one in an image where only that is loaded. defaultBackend: pins a choice for the image, nil restores the automatic one, and withDefaultBackend:do: scopes a change to a block.
+Public compiler facade. New compilers capture the default backend, the Pharo one unless only the FFI one is loaded; backend: selects another before a context is created. Width-specific subclasses preserve the UTF-8/16/32 input API.
 "
 Class {
 	#name : 'PCRE2Compiler',
@@ -36,7 +34,7 @@ PCRE2Compiler class >> default [
 
 { #category : 'accessing' }
 PCRE2Compiler class >> defaultBackend [
-	"The backend new compilers use. The Pharo implementation is preferred because it needs no native library; the FFI backend takes over when the Pharo one is not loaded."
+	"The backend new compilers use: the Pharo one, which needs no native library, else the FFI one."
 
 	^ DefaultBackend ifNil: [
 			  Smalltalk globals
@@ -134,7 +132,7 @@ PCRE2Compiler class >> supportsJIT [
 
 { #category : 'accessing' }
 PCRE2Compiler class >> withDefaultBackend: aBackendClass do: aBlock [
-	"Evaluate aBlock with aBackendClass as the default backend, restoring what was pinned before, including nothing at all."
+	"Evaluate aBlock with aBackendClass as the default backend, then restore the previous one, even none."
 
 	| previous |
 	previous := DefaultBackend.
@@ -186,13 +184,7 @@ PCRE2Compiler >> compileContextClass [
 
 { #category : 'compiling' }
 PCRE2Compiler >> compileJIT: matcher [
-	"Request JIT compilation, which, if the just-in-time compiler is available,
-	further processes a compiled pattern into machine code that runs much faster
-	than the interpretive match() function.
-	Can be called multiple times for the same compiled pattern and
-	does nothing if it has previously compiled code for any of the option bits.
-	If no options are set (=0), JIT compilation does nothing and always succeeds.
-	Available options are jitComplete, jitPartialSoft and jitPartialHard."
+	"Request JIT compilation of matcher with optionsJIT: jitComplete, jitPartialSoft or jitPartialHard. Option bits already compiled, or none at all, make it do nothing."
 
 	^ self compileJIT: matcher onError: [ :rc | self errorCode: rc ]
 ]
@@ -230,7 +222,7 @@ PCRE2Compiler >> context: aCompileContext [
 
 { #category : 'copying' }
 PCRE2Compiler >> copyContextIfPresent [
-	"Answer a copy of the compile context when one was explicitly created, without forcing a new context. A stale wrapper whose native handle is already null is treated as absent."
+	"Answer a copy of the explicitly created compile context, or nil. A wrapper whose native handle is null counts as absent."
 
 	context ifNil: [ ^ nil ].
 	context isNull ifTrue: [
@@ -326,7 +318,7 @@ PCRE2Compiler >> postCopy [
 
 { #category : 'private' }
 PCRE2Compiler >> preparedPatternFor: aStringOrInput [
-	"Prepare a pattern object for this compiler's PCRE2 code-unit width. Concrete compilers accept Strings and may also accept width-specific prepared input objects or byte storage."
+	"Prepare a pattern for this compiler's code-unit width. Concrete compilers accept Strings and may accept prepared input or byte storage."
 
 	self subclassResponsibility
 ]

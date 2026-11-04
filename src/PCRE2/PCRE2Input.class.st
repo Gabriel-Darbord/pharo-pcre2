@@ -1,9 +1,7 @@
 "
-Abstract superclass for prepared PCRE2 input.
+Abstract superclass for prepared PCRE2 input. Subclasses hold the encoded storage for the 8-, 16- and 32-bit APIs, translate PCRE2 code-unit offsets to Pharo character ranges, and decode captured text.
 
-Concrete subclasses bind the storage and offset semantics for PCRE2's 8-bit, 16-bit, and 32-bit APIs. Matchers and match results use this shared protocol to access encoded storage, translate PCRE2 code-unit offsets to Pharo character ranges, decode captured text, and advance after empty matches.
-
-Unless a method says otherwise, offsets in this protocol are PCRE2 code-unit offsets. Those are bytes for PCRE2-8, 16-bit UTF-16 units for PCRE2-16, and 32-bit code units for PCRE2-32.
+Unless a method says otherwise, offsets are PCRE2 code-unit offsets: bytes for PCRE2-8, 16-bit units for PCRE2-16, and 32-bit units for PCRE2-32.
 "
 Class {
 	#name : 'PCRE2Input',
@@ -42,14 +40,14 @@ PCRE2Input >> characterCountUpToCodeUnitOffset: codeUnitOffset [
 
 { #category : 'decoding' }
 PCRE2Input >> characterCountUpToCodeUnitOffset: codeUnitOffset fromCodeUnitOffset: knownCodeUnitOffset characterCount: knownCharacterCount [
-	"Answer the Pharo character count at the requested code-unit offset. knownCodeUnitOffset/knownCharacterCount describe an earlier point in the same input; subclasses may use them to avoid recounting a prefix."
+	"Answer the Pharo character count at codeUnitOffset. knownCodeUnitOffset and knownCharacterCount describe an earlier point that subclasses may count from."
 
 	^ self characterCountUpToCodeUnitOffset: codeUnitOffset
 ]
 
 { #category : 'decoding' }
 PCRE2Input >> characterRangeFromStartOffset: zeroBasedStartOffset endOffset: exclusiveEndOffset [
-	"Translate PCRE2's zero-based code-unit interval to a 1-based Pharo character range. The end offset is exclusive, matching PCRE2 match offsets."
+	"Translate a zero-based code-unit interval, end exclusive, to a 1-based Pharo character range."
 
 	| exclusiveEndCharacterCount startCharacterCount |
 	startCharacterCount := self characterCountUpToCodeUnitOffset: zeroBasedStartOffset.
@@ -62,7 +60,7 @@ PCRE2Input >> characterRangeFromStartOffset: zeroBasedStartOffset endOffset: exc
 
 { #category : 'decoding' }
 PCRE2Input >> decodeBytes: aByteCollection [
-	"Decode encoded input storage into a Pharo string according to the receiver's PCRE2 code-unit width."
+	"Decode encoded storage into a Pharo string."
 
 	self subclassResponsibility
 ]

@@ -71,7 +71,7 @@ PCRE2RepeatNode >> greedy: aBoolean [
 
 { #category : 'optimization' }
 PCRE2RepeatNode >> isAnchoredIn: analysis [
-	"A branch opening with .* where the dot matches everything has already tried every position the pattern could start at, so there is no point starting it again further along. Any other repetition says where a match begins only when it has to run at least once."
+	"A branch opening with .* under dotall has already tried every later start. Any other repetition says where a match begins only when it must run at least once."
 
 	(self isLeadingDotStar and: [ child acceptsEveryCharacter ]) ifTrue: [ ^ analysis allowsLeadingDotStar ].
 	^ minimum > 0 and: [ child isAnchoredIn: analysis ]
@@ -79,7 +79,7 @@ PCRE2RepeatNode >> isAnchoredIn: analysis [
 
 { #category : 'testing' }
 PCRE2RepeatNode >> isCharacterRepeat [
-	"Whether this is a greedy repetition of one character, which the engine counts off in one step instead of taking a choice for every turn. A lazy one gains nothing: it has to offer every length to the rest of the pattern anyway."
+	"Whether this is a greedy repetition of one character, which the engine counts off in one step. A lazy one gains nothing, since it offers every length in turn anyway."
 
 	^ characterRepeat ifNil: [ characterRepeat := greedy and: [ child isSingleCharacter ] ]
 ]
@@ -100,7 +100,7 @@ PCRE2RepeatNode >> isSignificantForStart [
 
 { #category : 'optimization' }
 PCRE2RepeatNode >> isStartLineIn: analysis [
-	"A branch opening with .* where the dot stops at line ends can only begin at the start of the subject or just after a line terminator. Any other repetition says where a match begins only when it has to run at least once."
+	"A branch opening with .* without dotall can only begin at the start of the subject or after a line terminator. Any other repetition says where a match begins only when it must run at least once."
 
 	(self isLeadingDotStar and: [ child acceptsEveryCharacterButLineEnds ]) ifTrue: [ ^ analysis allowsLeadingDotStar ].
 	^ minimum > 0 and: [ child isStartLineIn: analysis ]

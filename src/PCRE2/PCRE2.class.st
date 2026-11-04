@@ -1,9 +1,7 @@
 "
 I contain the constants and option helpers used by the PCRE2 binding.
 
-The `documentation` protocol contains methods to get information about specific options. Options defined as bitwise flags have dedicated helpers to ease human interaction. For example, `PCRE2 readOptions: 40 for: #compile` shows that `PCRE2 class>>#caseless` and `PCRE2 class>>#dotAll` are set. Options for `LibPCRE2UTF8>>#config:` and `PCRE2Matcher>>#info:` do not rely on flags and are not supported by these helpers.
-
-Many error codes are defined by the PCRE2 library. Only those that can be expected without having to throw an error are referenced here.
+The `documentation` protocol reads option flags: `PCRE2 readOptions: 40 for: #compile` answers `caseless` and `dotAll`. Options for `config:` and `info:` are not flags and are not read. Only the error codes that can be expected without signaling are defined here.
 "
 Class {
 	#name : 'PCRE2',
@@ -42,7 +40,6 @@ PCRE2 class >> allOptions [
 
 { #category : 'options' }
 PCRE2 class >> allowEmptyClass [
-	"Allow empty classes"
 
 	^ 16r00000001
 ]
@@ -56,8 +53,7 @@ PCRE2 class >> altBSUX [
 
 { #category : 'options' }
 PCRE2 class >> altCircumflex [
-	"Alternative handling of ^ in multiline mode
-	Affects: jit_compile, match, dfa_match"
+	"Alternative handling of ^ in multiline mode"
 
 	^ 16r00200000
 ]
@@ -85,14 +81,12 @@ PCRE2 class >> anchored [
 
 { #category : 'options' }
 PCRE2 class >> autoCallout [
-	"Compile automatic callouts"
 
 	^ 16r00000004
 ]
 
 { #category : 'options' }
 PCRE2 class >> automaticCalloutNumber [
-	"PCRE2 reports generated automatic callout sites and events with callout number 255."
 
 	^ 255
 ]
@@ -127,7 +121,6 @@ PCRE2 class >> calloutStartMatch [
 
 { #category : 'options' }
 PCRE2 class >> caseless [
-	"Do caseless matching"
 
 	^ 16r00000008
 ]
@@ -141,22 +134,19 @@ PCRE2 class >> configBSR [
 
 { #category : 'options' }
 PCRE2 class >> configCompiledWidths [
-	"Returns which of 8/16/32 support was compiled, 1=8-bit, 2=16-bit, 4=32-bit.
-	For example a value of 7 (1+2+4) means all the widths are supported."
+	"Returns which code unit widths were compiled, as bits: 1 for 8-bit, 2 for 16-bit, 4 for 32-bit."
 
 	^ 14
 ]
 
 { #category : 'options' }
 PCRE2 class >> configDepthLimit [
-	"Returns the default backtracking depth limit"
 
 	^ 7
 ]
 
 { #category : 'options' }
 PCRE2 class >> configHeapLimit [
-	"Returns the default heap memory limit"
 
 	^ 12
 ]
@@ -206,14 +196,12 @@ PCRE2 class >> configNewline [
 
 { #category : 'options' }
 PCRE2 class >> configParensLimit [
-	"Returns the default parentheses nesting limit"
 
 	^ 6
 ]
 
 { #category : 'options' }
 PCRE2 class >> configTablesLength [
-	"Returns the length of the internal tables used"
 
 	^ 15
 ]
@@ -241,7 +229,6 @@ PCRE2 class >> configVersion [
 
 { #category : 'options' }
 PCRE2 class >> convertGlob [
-	"Convert a glob pattern."
 
 	^ 16r00000010
 ]
@@ -262,28 +249,24 @@ PCRE2 class >> convertGlobNoWildSeparator [
 
 { #category : 'options' }
 PCRE2 class >> convertNoUTFCheck [
-	"Do not check conversion input for UTF validity."
 
 	^ 16r00000002
 ]
 
 { #category : 'options' }
 PCRE2 class >> convertPOSIXBasic [
-	"Convert a POSIX basic regular expression."
 
 	^ 16r00000004
 ]
 
 { #category : 'options' }
 PCRE2 class >> convertPOSIXExtended [
-	"Convert a POSIX extended regular expression."
 
 	^ 16r00000008
 ]
 
 { #category : 'options' }
 PCRE2 class >> convertUTF [
-	"Treat conversion input as UTF."
 
 	^ 16r00000001
 ]
@@ -304,7 +287,6 @@ PCRE2 class >> dfaRestart [
 
 { #category : 'options' }
 PCRE2 class >> dfaShortest [
-	"Return only the shortest match"
 
 	^ 16r00000080
 ]
@@ -318,8 +300,7 @@ PCRE2 class >> disableRecurseloopCheck [
 
 { #category : 'options' }
 PCRE2 class >> dollarEndOnly [
-	"$ not to match newline at end
-	Affects: jit_compile, match, dfa_match"
+	"$ not to match newline at end"
 
 	^ 16r00000010
 ]
@@ -354,7 +335,7 @@ PCRE2 class >> errorCallout [
 
 { #category : 'errors' }
 PCRE2 class >> errorDFAInvalidUTF [
-	"DFA matching was asked to run a pattern compiled with PCRE2_MATCH_INVALID_UTF, which only the ordinary matching function supports."
+	"DFA matching does not support patterns compiled with PCRE2_MATCH_INVALID_UTF."
 
 	^ -66
 ]
@@ -368,10 +349,7 @@ PCRE2 class >> errorNoMatch [
 
 { #category : 'errors' }
 PCRE2 class >> errorNoMemory [
-	"Can be mainly returned from:
-	- jit_compile: unable to allocate executable memory for the compiler, even if it was because of a system security restriction
-	- match: the backtracking match limit was reached
-	- substitute: output buffer is too small"
+	"Answered by jit_compile when it cannot allocate executable memory, by match when the backtracking limit is reached, and by substitute when the output buffer is too small."
 
 	^ -48
 ]
@@ -413,116 +391,91 @@ PCRE2 class >> extendedMore [
 
 { #category : 'options' }
 PCRE2 class >> extraAllowLookaroundBsk [
-	"Since release 10.38, PCRE2 has forbidden the use of \K within lookaround assertions, following Perl's lead.
-	This option is provided to re-enable the previous behaviour (act in positive lookarounds, ignore in negative ones) in case anybody is relying on it."
+	"Allow \K in lookarounds: it acts in positive ones and is ignored in negative ones."
 
 	^ 16r00000040
 ]
 
 { #category : 'options' }
 PCRE2 class >> extraAllowSurrogateEscapes [
-	"This option applies when compiling a pattern in UTF-8 or UTF-32 mode.
-	If the extra option PCRE2_EXTRA_ALLOW_SURROGATE_ESCAPES is set, surrogate code point values in UTF-8 and
-	UTF-32 patterns no longer provoke errors and are incorporated in the compiled pattern.
-	However, they can only match subject characters if the matching function is called with PCRE2_NO_UTF_CHECK set."
+	"Accept surrogate code point escapes in UTF-8 and UTF-32 patterns. They match only when the subject is not checked for UTF validity."
 
 	^ 16r00000001
 ]
 
 { #category : 'options' }
 PCRE2 class >> extraAltBsux [
-	"Setting PCRE2_EXTRA_ALT_BSUX has the effect of PCRE2_ALT_BSUX, but in addition, it recognizes \u{hhh..}
-	as a hexadecimal character code, where hhh.. is any number of hexadecimal digits."
+	"Like PCRE2_ALT_BSUX, and also recognize \u{hhh..} as a hexadecimal character code."
 
 	^ 16r00000020
 ]
 
 { #category : 'options' }
 PCRE2 class >> extraAsciiBsd [
-	"This option forces \d to match only ASCII digits, even when PCRE2_UCP is set.
-	It can be changed within a pattern by means of the (?aD) option setting."
+	"Force \d to match only ASCII digits even when PCRE2_UCP is set, like (?aD) in a pattern."
 
 	^ 16r00000100
 ]
 
 { #category : 'options' }
 PCRE2 class >> extraAsciiBss [
-	"This option forces \s to match only ASCII space characters, even when PCRE2_UCP is set.
-	It can be changed within a pattern by means of the (?aS) option setting."
+	"Force \s to match only ASCII spaces even when PCRE2_UCP is set, like (?aS) in a pattern."
 
 	^ 16r00000200
 ]
 
 { #category : 'options' }
 PCRE2 class >> extraAsciiBsw [
-	"This option forces \w to match only ASCII word characters, even when PCRE2_UCP is set.
-	It can be changed within a pattern by means of the (?aW) option setting."
+	"Force \w to match only ASCII word characters even when PCRE2_UCP is set, like (?aW) in a pattern."
 
 	^ 16r00000400
 ]
 
 { #category : 'options' }
 PCRE2 class >> extraAsciiDigit [
-	"This option forces the POSIX character classes [:digit:] and [:xdigit:] to match only ASCII digits, even when PCRE2_UCP is set.
-	It can be changed within a pattern by means of the (?aT) option setting."
+	"Force [:digit:] and [:xdigit:] to match only ASCII digits even when PCRE2_UCP is set, like (?aT) in a pattern."
 
 	^ 16r00001000
 ]
 
 { #category : 'options' }
 PCRE2 class >> extraAsciiPosix [
-	"This option forces all the POSIX character classes, including [:digit:] and [:xdigit:], to match only ASCII characters, even when PCRE2_UCP is set.
-	It can be changed within a pattern by means of the (?aP) option setting, but note that this also sets PCRE2_EXTRA_ASCII_DIGIT in order to ensure that (?-aP) unsets all ASCII restrictions for POSIX classes."
+	"Force all POSIX classes to match only ASCII even when PCRE2_UCP is set. (?aP) in a pattern also sets PCRE2_EXTRA_ASCII_DIGIT, so that (?-aP) unsets both."
 
 	^ 16r00000800
 ]
 
 { #category : 'options' }
 PCRE2 class >> extraBadEscapeIsLiteral [
-	"If the PCRE2_EXTRA_BAD_ESCAPE_IS_LITERAL extra option is passed to pcre2_compile(), all unrecognized or malformed escape sequences are treated as single-character escapes.
-	For example, \j is a literal 'j' and \x{2z} is treated as the literal string 'x{2z}'.
-	Setting this option means that typos in patterns may go undetected and have unexpected results.
-	Use with great care."
+	"Treat unrecognized or malformed escapes as literals, so typos in patterns go undetected. Use with great care."
 
 	^ 16r00000002
 ]
 
 { #category : 'options' }
 PCRE2 class >> extraCaselessRestrict [
-	"This option disables recognition of case-equivalences that cross the ASCII/non-ASCII boundary.
-	In a caseless match, both characters must either be ASCII or non-ASCII.
-	The option can be changed with a pattern by the (?r) option setting."
+	"In caseless matching, do not match an ASCII character with a non-ASCII one, like (?r) in a pattern."
 
 	^ 16r00000080
 ]
 
 { #category : 'options' }
 PCRE2 class >> extraEscapedCrIsLf [
-	"There are some legacy applications where the escape sequence \r in a pattern is expected to match a newline.
-	If this option is set, \r in a pattern is converted to \n so that it matches a LF (linefeed) instead of a CR (carriage return) character.
-	The option does not affect a literal CR in the pattern, nor does it affect CR specified as an explicit code point such as \x{0D}."
+	"Make \r in a pattern match LF instead of CR. A literal CR or \x{0D} is not affected."
 
 	^ 16r00000010
 ]
 
 { #category : 'options' }
 PCRE2 class >> extraMatchLine [
-	"This option is provided for use by the -x option of pcre2grep.
-	It causes the pattern only to match complete lines.
-	This is achieved by automatically inserting the code for '^(?:' at the start of the compiled pattern and ')$' at the end.
-	Thus, when PCRE2_MULTILINE is set, the matched line may be in the middle of the subject string.
-	This option can be used with PCRE2_LITERAL."
+	"Match only complete lines, as if the pattern were wrapped in ^(?: and )$."
 
 	^ 16r00000008
 ]
 
 { #category : 'options' }
 PCRE2 class >> extraMatchWord [
-	"This option is provided for use by the -w option of pcre2grep.
-	It causes the pattern only to match strings that have a word boundary at the start and the end.
-	This is achieved by automatically inserting the code for '\b(?:' at the start of the compiled pattern and ')\b' at the end.
-	The option may be used with PCRE2_LITERAL.
-	However, it is ignored if PCRE2_EXTRA_MATCH_LINE is also set."
+	"Match only between word boundaries, as if the pattern were wrapped in \b(?: and )\b. Ignored with PCRE2_EXTRA_MATCH_LINE."
 
 	^ 16r00000004
 ]
@@ -557,8 +510,7 @@ PCRE2 class >> extraTurkishCasing [
 
 { #category : 'options' }
 PCRE2 class >> firstLine [
-	"Force matching to be before newline
-	Affects: jit_compile, match, dfa_match"
+	"Force matching to be before newline"
 
 	^ 16r00000100
 ]
@@ -579,7 +531,7 @@ PCRE2 class >> infoArgOptions [
 
 { #category : 'options' }
 PCRE2 class >> infoBSR [
-	"What \R matches: PCRE2_BSR_UNICODE for Unicode line endings, or PCRE2_BSR_ANYCRLF for CR, LF, or CRLF only"
+	"What \R matches: PCRE2_BSR_UNICODE or PCRE2_BSR_ANYCRLF"
 
 	^ 3
 ]
@@ -593,7 +545,6 @@ PCRE2 class >> infoBackrefMax [
 
 { #category : 'options' }
 PCRE2 class >> infoCaptureCount [
-	"Number of capturing subpatterns"
 
 	^ 4
 ]
@@ -635,7 +586,6 @@ PCRE2 class >> infoFirstCodeUnit [
 
 { #category : 'options' }
 PCRE2 class >> infoFrameSize [
-	"Size of backtracking frame"
 
 	^ 24
 ]
@@ -719,7 +669,6 @@ PCRE2 class >> infoMinLength [
 
 { #category : 'options' }
 PCRE2 class >> infoNameCount [
-	"Number of named subpatterns"
 
 	^ 17
 ]
@@ -740,7 +689,7 @@ PCRE2 class >> infoNameTable [
 
 { #category : 'options' }
 PCRE2 class >> infoNewline [
-	"Code for the newline sequence: PCRE2_NEWLINE_CR, PCRE2_NEWLINE_LF, PCRE2_NEWLINE_CRLF, PCRE2_NEWLINE_ANY, PCRE2_NEWLINE_ANYCRLF, PCRE2_NEWLINE_NUL"
+	"Code for the newline sequence, one of the newline constants"
 
 	^ 20
 ]
@@ -782,16 +731,13 @@ PCRE2 class >> literal [
 
 { #category : 'options' }
 PCRE2 class >> matchInvalidUTF [
-	"Enable support for matching invalid UTF
-	Affects: jit_compile, match, dfa_match"
+	"Enable support for matching invalid UTF"
 
 	^ 16r04000000
 ]
 
 { #category : 'options' }
 PCRE2 class >> matchUnsetBackref [
-	"Match unset backreferences
-	Affects: compile, jit_compile, match"
 
 	^ 16r00000200
 ]
@@ -895,15 +841,13 @@ PCRE2 class >> noDotstarAnchor [
 
 { #category : 'options' }
 PCRE2 class >> noJIT [
-	"Do not use JIT matching"
 
 	^ 16r00002000
 ]
 
 { #category : 'options' }
 PCRE2 class >> noStartOptimize [
-	"Disable match-time start optimizations
-	Affects: jit_compile, match, dfa_match"
+	"Disable match-time start optimizations"
 
 	^ 16r00010000
 ]
@@ -1027,7 +971,7 @@ PCRE2 class >> options: options includes: query [
 
 { #category : 'documentation' }
 PCRE2 class >> optionsFor: function [
-	"Answer the methods defining an option of a PCRE2 function: #compile, #jit_compile, #match, #jit_match, #dfa_match, #substitute or #convert."
+	"Answer the methods defining the options of a PCRE2 function, such as #compile or #match."
 
 	self optionSelectors pairsDo: [ :each :selectors |
 		each = function ifTrue: [ ^ selectors collect: [ :selector | self class >> selector ] ] ].
@@ -1050,7 +994,7 @@ PCRE2 class >> partialSoft [
 
 { #category : 'documentation' }
 PCRE2 class >> readOptions: anInteger [
-	"Convenience method for finding which options are declared by the integer"
+	"Answer the option methods set in anInteger, by PCRE2 function."
 
 	| result options bit |
 	result := Dictionary new.
@@ -1069,8 +1013,7 @@ PCRE2 class >> readOptions: anInteger [
 
 { #category : 'documentation' }
 PCRE2 class >> readOptions: anInteger for: function [
-	"Answer the option methods declared by anInteger for the given PCRE2 function.
-	Expected symbols are #compile, #jit_compile, #match, #jit_match, #dfa_match, #substitute, and #convert."
+	"Answer the option methods set in anInteger for a PCRE2 function, such as #compile or #match."
 
 	^ (self readOptions: anInteger) at: function ifAbsent: [ #(  ) ]
 ]
@@ -1386,8 +1329,7 @@ replacement $'' or $_ not supported with partial match' lines at: index ]
 
 { #category : 'options' }
 PCRE2 class >> ucp [
-	"Use Unicode properties for \d, \w, etc
-	Affects: compile, jit_compile, match, dfa_match"
+	"Use Unicode properties for \d, \w, etc"
 
 	^ 16r00020000
 ]
@@ -1415,17 +1357,14 @@ PCRE2 class >> useOffsetLimit [
 
 { #category : 'options' }
 PCRE2 class >> utf [
-	"Treat pattern and subjects as UTF strings
-	Affects: compile, jit_compile, match, dfa_match"
+	"Treat pattern and subjects as UTF strings"
 
 	^ 16r00080000
 ]
 
 { #category : 'constants' }
 PCRE2 class >> zeroTerminated [
-	"Some methods can use this value as a string upper bound argument to use a terminating null character instead of an index.
-	Supported by match() and substitute().
-	Not supported by jit_match()."
+	"A length argument meaning the string ends at its null character. Supported by match() and substitute(), not by jit_match()."
 
 	^ self maximumSizeT
 ]

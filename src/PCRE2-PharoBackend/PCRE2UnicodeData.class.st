@@ -1,10 +1,5 @@
 "
-The Unicode questions the Pharo backend asks while it compiles and matches: general categories and the classes built on them (`\w`, `\s`, `\d`, POSIX classes, `\p{L}`), caseless comparison, and the properties and grapheme clusters of `PCRE2-UnicodeProperties`.
-
-Two registered objects answer them:
-
-- `tables` answers general categories, case folding and decimal digits. It is `PCRE2PharoUnicodeTables`, reading the image's own `Unicode` class, unless `PCRE2-UnicodeCompat` registers `PCRE2PackedUnicodeTables` for an image whose tables are too old.
-- `properties` answers scripts, script extensions, bidi classes, binary properties, grapheme breaks and script runs. It is `PCRE2UnicodeProperties` once `PCRE2-UnicodeProperties` is loaded; without it, a pattern using them fails to compile with `PCRE2UnsupportedFeature`.
+The Unicode questions the Pharo backend asks while it compiles and matches, answered by two registered objects. `tables` answers general categories, case folding and decimal digits: `PCRE2PharoUnicodeTables` unless `PCRE2-UnicodeCompat` registers `PCRE2PackedUnicodeTables`. `properties` answers scripts, bidi classes, binary properties, grapheme breaks and script runs once `PCRE2-UnicodeProperties` is loaded; without it a pattern using them signals `PCRE2UnsupportedFeature`.
 "
 Class {
 	#name : 'PCRE2UnicodeData',
@@ -286,7 +281,7 @@ PCRE2UnicodeData class >> properties [
 
 { #category : 'registration' }
 PCRE2UnicodeData class >> properties: unicodeProperties [
-	"Answer the properties Pharo has no table for from unicodeProperties, or from nobody when it is nil."
+	"Register the properties Pharo has no table for; nil registers none."
 
 	Properties := unicodeProperties
 ]
@@ -335,7 +330,7 @@ PCRE2UnicodeData class >> tables [
 
 { #category : 'registration' }
 PCRE2UnicodeData class >> tables: unicodeTables [
-	"Answer general categories, case folding and digits from unicodeTables, or from the image's own when it is nil."
+	"Register the tables for general categories, case folding and digits; nil restores the image's own."
 
 	Tables := unicodeTables
 ]

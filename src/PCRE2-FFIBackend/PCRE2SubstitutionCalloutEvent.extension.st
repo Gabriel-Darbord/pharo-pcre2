@@ -65,14 +65,13 @@ PCRE2SubstitutionCalloutEvent class >> offsetsFrom: anExternalAddress count: cou
 
 { #category : '*PCRE2-FFIBackend' }
 PCRE2SubstitutionCalloutEvent class >> sizeTFrom: anExternalAddress atOffset: structOffsetInBytes [
-	"Read a PCRE2_SIZE field from a native substitution-callout struct. The ExternalAddress offset is measured in bytes."
 
 	^ PCRE2CalloutEvent sizeTFrom: anExternalAddress atOffset: structOffsetInBytes
 ]
 
 { #category : '*PCRE2-FFIBackend' }
 PCRE2SubstitutionCalloutEvent class >> stringFrom: anExternalAddress startOffset: startOffset endOffset: endOffset codeUnitWidth: codeUnitWidth [
-	"Decode a substring addressed by PCRE2_SIZE code-unit offsets."
+	"The offsets count code units. Answer nil for a null address or an unset offset."
 
 	| bytes byteStart byteSize length unitSize |
 	(anExternalAddress isNil or: [ anExternalAddress isNull ]) ifTrue: [ ^ nil ].

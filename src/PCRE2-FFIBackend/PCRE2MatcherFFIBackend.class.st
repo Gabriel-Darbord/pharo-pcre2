@@ -1,5 +1,5 @@
 "
-Owns a C compiled-pattern handle for a public PCRE2Matcher. Native matching and resource management stay in this backend.
+Owns a C compiled-pattern handle for a public PCRE2Matcher and matches through it. Width-specific subclasses contain the UFFI entry points.
 "
 Class {
 	#name : 'PCRE2MatcherFFIBackend',
@@ -21,14 +21,13 @@ PCRE2MatcherFFIBackend class >> isAbstract [
 
 { #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> calloutSiteFromEnumerationBlock: anExternalAddress [
-	"Answer a static callout site decoded for this matcher's code-unit width."
 
 	^ PCRE2CalloutSite fromEnumerationBlock: anExternalAddress codeUnitWidth: self codeUnitWidth
 ]
 
 { #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> calloutSitesDo: aBlock [
-	"Evaluate aBlock with each static callout site in this compiled pattern. This is passive metadata: it does not install a runtime callout or affect matching."
+	"Evaluate aBlock with each callout site of the compiled pattern, without matching."
 
 	| callback rc |
 	callback := self
@@ -42,7 +41,6 @@ PCRE2MatcherFFIBackend >> calloutSitesDo: aBlock [
 
 { #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> codeUnitByteSize [
-	"Answer the number of bytes in one PCRE2 code unit for this matcher."
 
 	^ self codeUnitWidth // 8
 ]
@@ -58,21 +56,18 @@ PCRE2MatcherFFIBackend >> copyWithCharacterTables [
 
 { #category : 'private' }
 PCRE2MatcherFFIBackend >> createMatchDataFromPattern [
-	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatcherFFIBackend >> createMatchDataWithOvectorSize: ovectorSize [
-	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatcherFFIBackend >> enumerateCalloutsWith: callback [
-	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
 
 	self subclassResponsibility
 ]
@@ -86,8 +81,7 @@ PCRE2MatcherFFIBackend >> errorCode: errorCode [
 
 { #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> info: option [
-	"Returns some information about the compiled pattern.
-	See class-side methods of PCRE2 starting with 'info' to find valid options."
+	"Answer information about the compiled pattern, or nil when it is unset. Valid options are the class-side PCRE2 constants starting with 'info'."
 
 	| buffer size rc |
 	size := (option == PCRE2 infoSize or: [
@@ -103,7 +97,7 @@ PCRE2MatcherFFIBackend >> info: option [
 	(option == PCRE2 infoSize or: [ option == PCRE2 infoJITSize ]) ifTrue: [ "info is a size_t"
 			^ size == 8
 				  ifTrue: [ buffer uint64AtOffset: 0 ]
-				  ifFalse: [ "assume size == 4, make an issue if it crashes!" buffer uint32AtOffset: 0 ] ].
+				  ifFalse: [ "size is 4 on 32-bit platforms" buffer uint32AtOffset: 0 ] ].
 	(option == PCRE2 infoFirstBitmap or: [ option == PCRE2 infoNameTable ]) ifTrue: [ "a pointer to external data"
 		^ (buffer allSatisfy: [ :byte | byte == 0 ]) ifFalse: [ buffer ] ].
 	"info is a uint32 in all other cases"
@@ -112,7 +106,6 @@ PCRE2MatcherFFIBackend >> info: option [
 
 { #category : 'private' }
 PCRE2MatcherFFIBackend >> info: what output: where [
-	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
 
 	self subclassResponsibility
 ]
@@ -135,7 +128,6 @@ PCRE2MatcherFFIBackend >> nameTableCaptureIndexAt: entryOffset in: nameTableAddr
 
 { #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> nameTableCodeUnitAt: codeUnitOffset in: nameTableAddress [
-	"Answer one native PCRE2 code unit from the name table. The offset is measured in code units, not bytes."
 
 	self codeUnitWidth = 8 ifTrue: [ ^ nameTableAddress uint8AtOffset: codeUnitOffset ].
 	self codeUnitWidth = 16 ifTrue: [ ^ nameTableAddress uint16AtOffset: codeUnitOffset * self codeUnitByteSize ].
@@ -204,14 +196,12 @@ PCRE2MatcherFFIBackend >> prepareForMatch [
 
 { #category : 'private' }
 PCRE2MatcherFFIBackend >> privateCopy [
-	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatcherFFIBackend >> privateCopyWithCharacterTables [
-	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
 
 	self subclassResponsibility
 ]
@@ -271,23 +261,20 @@ PCRE2MatcherFFIBackend >> restoreFrom: bytes [
 
 { #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> serialize [
-	"Serialize this matcher's compiled pattern, excluding JIT code.
-	This convenience method is less efficient than serializing same-width matchers in bulk, because PCRE2 repeats shared tables in each serialized blob."
+	"Answer the serialized compiled pattern, without JIT code. Serializing matchers of one width together with LibPCRE2 is more compact: each blob carries its own copy of the character tables."
 
 	^ self ffiLibraryName serialize: { self }
 ]
 
 { #category : 'private' }
 PCRE2MatcherFFIBackend >> substitute: subject from: start to: end options: substituteOptions matchData: aPCRE2Match replacement: replacement upTo: rLength output: buffer size: outSize [
-	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private - FFI' }
 PCRE2MatcherFFIBackend >> substituteBytes: subject replacement: replacement options: substituteOptions matchData: aPCRE2Match [
-	"Apply pcre2_substitute() to prepared subject bytes.
-	The SizeTHolder values are PCRE2 code-unit counts, while ByteArray storage is sized in bytes. Case callouts can make PCRE2 underestimate output size, so retry until the native call succeeds or fails for a reason other than output capacity."
+	"The holder counts code units while the buffer is sized in bytes. Case callouts can make PCRE2 underestimate the output size, hence the retry loop."
 
 	| buffer bufferCodeUnitSize bytesPerCodeUnit effectiveOptions holder rc replacementInput subjectCodeUnitSize |
 	bytesPerCodeUnit := self codeUnitByteSize.

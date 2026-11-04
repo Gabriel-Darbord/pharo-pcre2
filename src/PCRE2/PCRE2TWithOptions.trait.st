@@ -1,7 +1,5 @@
 "
-Trait for objects that store PCRE2 option bitsets.
-
-I provide common option mutation and query behavior for compilers and matchers while leaving each class responsible for which PCRE2 option domain it applies to.
+Trait for compilers and matchers that store a PCRE2 option bitset; each decides which PCRE2 options apply.
 "
 Trait {
 	#name : 'PCRE2TWithOptions',

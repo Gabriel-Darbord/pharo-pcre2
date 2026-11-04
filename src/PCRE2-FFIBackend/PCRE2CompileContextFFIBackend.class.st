@@ -1,5 +1,5 @@
 "
-Owns a C compile-context handle for a public PCRE2CompileContext. Every setting is written through to the library, so the handle is the only copy of it. Width-specific subclasses contain the UFFI entry points.
+Owns a C compile-context handle for a public PCRE2CompileContext. Each setting is written through to the library and kept in the image, to be reapplied after startup. Width-specific subclasses contain the UFFI entry points.
 "
 Class {
 	#name : 'PCRE2CompileContextFFIBackend',
@@ -54,7 +54,7 @@ PCRE2CompileContextFFIBackend >> characterTables [
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> characterTables: aPCRE2CharacterTables [
-	"Use low-character tables for subsequent compilations through this context. Keep the tables alive while compiled patterns may reference them."
+	"Keep the tables alive while compiled patterns may reference them. nil returns to the built-in tables."
 
 	aPCRE2CharacterTables ifNotNil: [
 			aPCRE2CharacterTables isNull ifTrue: [ PCRE2Error signal: 'Character tables must hold a native table pointer' ].
@@ -66,7 +66,7 @@ PCRE2CompileContextFFIBackend >> characterTables: aPCRE2CharacterTables [
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> checkSettingResult: resultCode [
-	"PCRE2 context setters answer zero or a negative error code. Keep native validation centralized so accessors can stay small."
+	"PCRE2 context setters answer zero or a negative error code."
 
 	resultCode < 0 ifTrue: [ self errorCode: resultCode ].
 	^ resultCode
@@ -74,7 +74,6 @@ PCRE2CompileContextFFIBackend >> checkSettingResult: resultCode [
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> clearCharacterTables [
-	"Return this context to PCRE2's built-in low-character tables."
 
 	^ self characterTables: nil
 ]
@@ -87,42 +86,36 @@ PCRE2CompileContextFFIBackend >> compilerClass [
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> disableAutoPossessification [
-	"Disable PCRE2's auto-possessification optimization."
 
 	^ self optimize: PCRE2 optimizeAutoPossessOff
 ]
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> disableDotstarAnchoring [
-	"Disable PCRE2's implicit dot-star anchoring optimization."
 
 	^ self optimize: PCRE2 optimizeDotstarAnchorOff
 ]
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> disableStartOptimization [
-	"Disable PCRE2's start-of-match optimizations."
 
 	^ self optimize: PCRE2 optimizeStartOff
 ]
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> enableAutoPossessification [
-	"Enable PCRE2's auto-possessification optimization."
 
 	^ self optimize: PCRE2 optimizeAutoPossess
 ]
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> enableDotstarAnchoring [
-	"Enable PCRE2's implicit dot-star anchoring optimization."
 
 	^ self optimize: PCRE2 optimizeDotstarAnchor
 ]
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> enableStartOptimization [
-	"Enable PCRE2's start-of-match optimizations."
 
 	^ self optimize: PCRE2 optimizeStart
 ]
@@ -136,7 +129,6 @@ PCRE2CompileContextFFIBackend >> maxPatternCompiledLength [
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> maxPatternCompiledLength: anInteger [
-	"Set the maximum compiled pattern size in bytes accepted by pcre2_compile()."
 
 	self
 		requireSupportedFeature: 'Maximum compiled pattern length'
@@ -155,7 +147,6 @@ PCRE2CompileContextFFIBackend >> maxPatternLength [
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> maxPatternLength: anInteger [
-	"Set the maximum pattern length in code units accepted by pcre2_compile()."
 
 	self checkSettingResult: (self setMaxPatternLength: anInteger).
 	maxPatternLength := anInteger
@@ -170,7 +161,6 @@ PCRE2CompileContextFFIBackend >> maxVarLookbehind [
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> maxVarLookbehind: anInteger [
-	"Set the maximum length for bounded variable-length lookbehind assertions."
 
 	self requireSupportedFeature: 'Variable lookbehind limit' since: '10.43' when: self ffiLibraryName supportsMaxVarLookbehind.
 	self checkSettingResult: (self setMaxVarLookbehind: anInteger).
@@ -186,7 +176,6 @@ PCRE2CompileContextFFIBackend >> newline [
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> newline: anInteger [
-	"Set which character sequence PCRE2 recognizes as a newline for compiled patterns."
 
 	self checkSettingResult: (self setNewline: anInteger).
 	newline := anInteger
@@ -201,7 +190,7 @@ PCRE2CompileContextFFIBackend >> optimizationDirectives [
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> optimize: directive [
-	"Apply one PCRE2 optimization directive. Directives are cumulative; later directives may override earlier ones."
+	"Directives accumulate; a later one may override an earlier one."
 
 	self requireSupportedFeature: 'Optimization directives' since: '10.45' when: self ffiLibraryName supportsOptimizationDirectives.
 	self checkSettingResult: (self setOptimize: directive).
@@ -217,7 +206,7 @@ PCRE2CompileContextFFIBackend >> options [
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> options: anInteger [
-	"Set PCRE2 extra compile options. See PCRE2 class-side methods beginning with 'extra' for known values."
+	"Known values are the class-side PCRE2 constants starting with 'extra'."
 
 	self checkSettingResult: (self setOptions: anInteger).
 	options := anInteger
@@ -232,7 +221,6 @@ PCRE2CompileContextFFIBackend >> parensNestLimit [
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> parensNestLimit: anInteger [
-	"Set the maximum parenthesis nesting depth accepted by pcre2_compile()."
 
 	self checkSettingResult: (self setParensNestLimit: anInteger).
 	parensNestLimit := anInteger
@@ -365,14 +353,12 @@ PCRE2CompileContextFFIBackend >> useBSRUnicode [
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> useCharacterTablesFromCurrentLocale [
-	"Build low-character tables from the current process locale and install them on this context."
 
 	^ self characterTables: self ffiLibraryName newCharacterTables
 ]
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> useFullOptimization [
-	"Enable all optional compiler optimizations."
 
 	^ self optimize: PCRE2 optimizationFull
 ]
@@ -393,35 +379,30 @@ PCRE2CompileContextFFIBackend >> useNewlineAnyCRLF [
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> useNewlineCR [
-	"Use carriage return as the newline sequence."
 
 	^ self newline: PCRE2 newlineCR
 ]
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> useNewlineCRLF [
-	"Use CRLF as the newline sequence."
 
 	^ self newline: PCRE2 newlineCRLF
 ]
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> useNewlineLF [
-	"Use line feed as the newline sequence."
 
 	^ self newline: PCRE2 newlineLF
 ]
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> useNewlineNul [
-	"Use NUL as the newline sequence."
 
 	^ self newline: PCRE2 newlineNul
 ]
 
 { #category : 'private - FFI' }
 PCRE2CompileContextFFIBackend >> useNoOptimization [
-	"Disable all optional compiler optimizations."
 
 	^ self optimize: PCRE2 optimizationNone
 ]

@@ -1,11 +1,5 @@
 "
-Writes a Pharo method that matches one pattern over raw bytes, for the patterns whose shape allows it, and answers nil for the rest.
-
-The method it writes keeps the whole match in locals and on the Smalltalk stack: what follows an item is written inside it, so a choice is a statement that falls through to the next one and giving a character back is a loop turning once, where the engine copies a match state and queues a choice. The Cog JIT compiles such a method whether or not it is installed in a class, so the compiled pattern can carry it without adding a selector to the image.
-
-It reads bytes, and hands the whole match back to the engine as soon as it reads one of 128 or over. Every test it writes either refuses such a byte or can only hold where a character begins, which is what keeps it from attempting a start position inside a character that the engine would never attempt.
-
-Writing is a walk over the tree: each node writes itself through writeInto:at:indent:then:, where the block writes everything that follows it. What it can write is single characters and classes, sequences, alternation, capture groups, greedy, lazy and possessive repetition of one character, bounded repetition of anything else written out in full, atomic groups, lookahead, and the position assertions the parser could describe as a test over bytes. Anything else, and anything that grows past sizeLimit, is left to the engine.
+Writes a Pharo method that matches one pattern over raw bytes, or answers nil for a shape it cannot write or one that grows past sizeLimit. Each node writes itself through writeInto:at:then:, the block writing what follows inside it, so the match lives in locals and on the Smalltalk stack rather than in copied match states. The method hands the match back to the engine at the first byte over 127 and no test it writes holds inside a character; its source is written without layout, and the compiled method keeps no source and is installed in no class.
 "
 Class {
 	#name : 'PCRE2MatchGenerator',

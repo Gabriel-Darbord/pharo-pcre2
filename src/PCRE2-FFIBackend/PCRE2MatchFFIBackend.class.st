@@ -16,7 +16,6 @@ PCRE2MatchFFIBackend class >> isAbstract [
 
 { #category : 'private' }
 PCRE2MatchFFIBackend >> getHeapframesSize [
-	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
 
 	self subclassResponsibility
 ]
@@ -29,14 +28,12 @@ PCRE2MatchFFIBackend >> getMark [
 
 { #category : 'private' }
 PCRE2MatchFFIBackend >> getMarkPointer [
-	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
 
 	self subclassResponsibility
 ]
 
 { #category : 'private' }
 PCRE2MatchFFIBackend >> getOffsets [
-	"Call the PCRE2 library of this backend's code-unit width. Each width subclass binds its own function."
 
 	self subclassResponsibility
 ]
