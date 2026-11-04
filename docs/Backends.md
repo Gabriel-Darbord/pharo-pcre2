@@ -2,36 +2,17 @@
 
 The public compiler, matcher, match, compile-context, and match-context objects contain backend instances. Backend selection and encoded input width are separate choices.
 
-## Loading
+## Packages
 
-Both implementation packages depend on the shared `PCRE2` package. The shared package depends on neither implementation.
+Both implementation packages depend on the shared `PCRE2` package, which depends on neither. A feature with an implementation of its own on the Pharo backend comes in two packages, its shared API and that implementation, so that the FFI backend can take the API without the Pharo engine: `PCRE2-Substitution` and `PCRE2-PharoBackend-Substitution`, `PCRE2-DFA` and `PCRE2-PharoBackend-DFA`. `PCRE2-Wide` and `PCRE2-Trace` are a package each. [GettingStarted.md](GettingStarted.md#install) lists the baseline groups that load them.
 
-| Baseline group | Contents |
-| --- | --- |
-| `Core` | Shared API and backend contracts, with neither implementation |
-| `FFI` | Shared API, the API of every feature below, and `PCRE2-FFIBackend` |
-| `Pharo` | `PharoMinimal` and every feature group below |
-| `PharoMinimal` | Shared API and `PCRE2-PharoBackend` alone |
-| `Substitution` | `PCRE2-Substitution` and its Pharo implementation `PCRE2-PharoBackend-Substitution` |
-| `DFA` | `PCRE2-DFA` and its Pharo implementation `PCRE2-PharoBackend-DFA` |
-| `Wide` | `PCRE2-Wide`: UTF-16 and UTF-32 compilers, matchers, contexts and inputs |
-| `Trace` | `PCRE2-Trace`: `traceMatch:` and the trace it answers |
-| `UnicodeProperties` | The Unicode properties Pharo has no table for |
-| `Backends` | Both implementations |
-| `Tools` | Shared inspection tools; tracing requires backend callout support |
-| `FFITests` | Existing binding and tool tests |
-| `PharoTests` | Pharo implementation tests without the FFI backend |
-| `BackendTests` | Coexistence and ownership tests requiring both implementations |
-| `default` | Shared API and the `Pharo` group, which is what a plain `load` gives |
-| `All` | Both implementations, tools, and all tests |
+## Unicode data
 
-For example, use `load: 'Pharo'` or `load: #( 'FFI' 'Pharo' )` in the Metacello load expression. Only the FFI backend requires a host PCRE2 library, so the default load needs nothing installed. Metacello looks for a group named `default` in lower case, so that is the name this baseline uses.
+`PCRE2-PharoBackend` carries no Unicode data of its own. It reads general categories, simple case folding and decimal digits from Pharo's `Unicode` class, which carries them at Unicode 18.0 in Pharo 15, since pharo-project/pharo#20168. Pharo 14 and older carry them at Unicode 9.0, so on those versions loading `PCRE2-PharoBackend` also loads `PCRE2-UnicodeCompat`, which brings them at Unicode 17.0.0.
 
-`PharoMinimal` is the smallest install that matches: the shared API and the Pharo backend, compiling and matching UTF-8 patterns and subjects with captures, named groups, callouts, partial matching and the Rx-style `String` protocol. Substitution, DFA matching, UTF-16 and UTF-32, and tracing each come with their group: the selectors of a feature whose package is not loaded are not understood. A feature with an implementation of its own on the Pharo backend comes in two packages, its shared API and that implementation, so that the FFI backend can take the API without the Pharo engine.
+Scripts, script extensions, bidi classes, binary properties and grapheme break properties, which Pharo has no table for, are in `PCRE2-UnicodeProperties`. Both packages are pinned to Unicode 17.0.0 using data from the PCRE2 10.49 release, and `PCRE2-UnicodeCompat` reads its tables with the decoder of `PCRE2-UnicodeProperties`, so it loads that package too.
 
-It has no Unicode data of its own either. It reads general categories, case folding and decimal digits from Pharo's `Unicode` class, so `\p{L}`, `\w`, `\d`, POSIX classes and caseless matching work, and a pattern that uses a script, a script extension, a bidi class, a binary property, `\X` or a script run fails to compile with `PCRE2UnsupportedFeature`. `PCRE2-UnicodeProperties` brings those back.
-
-Pharo carries its tables at Unicode 18.0 since pharo-project/pharo#20168, in Pharo 15. Pharo 14 and older carry them at Unicode 9.0, so on those versions loading `PCRE2-PharoBackend` also loads `PCRE2-UnicodeCompat`, which brings general categories, case folding and digits at Unicode 17.0.0. It reads them with the decoder of `PCRE2-UnicodeProperties`, so it loads that package too.
+The generator is `scripts/generate-unicode-data.py`, which writes the data as JSON and as two packed literals, `PCRE2UnicodeProperties class>>encoded` and `PCRE2PackedUnicodeTables class>>encoded`: the sections as LEB128 varints over code-point gaps, gzipped, in base64. They are about 35 kB and 10 kB. `PCRE2PackedProperties` leaves the 451 property range lists packed until a pattern names one, so an image pays for the properties it uses rather than for all of them. The literals are installed through Pharo MCP.
 
 ## Selection
 
@@ -63,15 +44,13 @@ UTF-8, UTF-16, and UTF-32 compilers share this selection protocol. Raw offsets c
 
 ## Pharo implementation status
 
-The Pharo backend implements the PCRE2 syntax. It supports ordinary matching, captures, named captures, character classes, greedy/lazy/possessive and bounded repetition, backreferences, subroutine calls with optional retained captures, conditional groups, branch-reset groups, lookahead, bounded lookbehind, atomic groups, backtracking control verbs, Perl and UTS#18 extended character classes, scan-substring assertions, inline options, soft/hard partial matching, splitting, enumeration, extended replacements and substitution callbacks. It also supports raw code units, including \C inside UTF-8 and UTF-16 characters, and raw 32-bit values outside Unicode. It supports encoded Unicode strings at all three widths, and subjects that are not valid UTF when the pattern is compiled with `PCRE2_MATCH_INVALID_UTF`.
+The Pharo backend implements the PCRE2 syntax. It supports ordinary matching, captures, named captures, character classes, greedy/lazy/possessive and bounded repetition, backreferences, subroutine calls with optional retained captures, conditional groups, branch-reset groups, lookahead, bounded lookbehind, atomic groups, backtracking control verbs, Perl and UTS#18 extended character classes, scan-substring assertions, inline options, soft/hard partial matching, splitting, enumeration, extended replacements and substitution callbacks. It also supports raw code units, including \C inside UTF-8 and UTF-16 characters, and raw 32-bit values outside Unicode. It supports encoded Unicode strings at all three widths, and subjects that are not valid UTF when the pattern is compiled with `PCRE2_MATCH_INVALID_UTF`. It also implements script runs, extended grapheme clusters, ASCII restrictions, scoped ASCII and caseless-restriction options, whole-word and whole-line compilation, control escapes, braced octal escapes, both alternative BSUX modes, Python octal disambiguation, callout restrictions, and Turkish casing.
 
 A rejected pattern reports the message and code-unit offset of the PCRE2 error code that names it, taken from the shared error-message catalog rather than from wording of its own, and a match-time error reports its own code's message from the same catalog. DFA matching with caller-managed restart workspaces, extended substitutions, substitution callbacks, and non-atomic assertions are implemented, as are explicit and automatic callouts and the trace tooling built on them. The backend accepts every option PCRE2 defines for matching, DFA matching, substitution and the extra compile set; an option bit outside those signals `PCRE2UnsupportedFeature`, separately from `PCRE2CompileError`.
 
 What the Pharo backend will not do, because it is what the C binding is for: produce C handles or bytecode, JIT-compile a pattern or take a JIT stack, serialize compiled patterns through the C serializer, read locale character tables, or answer the diagnostics that describe a C allocation or a pointer. Pattern conversion stays on the FFI side on purpose: `LibPCRE2 class>>convertGlob:`, `convertPOSIXBasic:` and `convertPOSIXExtended:` wrap an experimental PCRE2 facility, and there is no backend-neutral entry point to reimplement behind. A public context message the implementation cannot honour reports that it is unsupported rather than failing as a doesNotUnderstand.
 
-What is left is validation rather than features: the full upstream corpus has not been run end to end, compile-diagnostic offsets have not been compared across all of it, callout metadata and event streams need differential coverage beyond the existing API tests, and the resource counters describe Pharo execution rather than C interpreter or JIT work.
-
-Scripts, script extensions, binary properties, bidi classes and grapheme properties are pinned to Unicode 17.0.0 using data from the PCRE2 10.49 release. General categories, simple case folding and decimal digits come from the image's own `Unicode` class, at Unicode 18.0 in Pharo 15, and from the same pinned release on Pharo 14 and older. The generator is `scripts/generate-unicode-data.py`, which writes the data as JSON and as two packed literals, `PCRE2UnicodeProperties class>>encoded` and `PCRE2PackedUnicodeTables class>>encoded`: the sections as LEB128 varints over code-point gaps, gzipped, in base64. They are about 35 kB and 10 kB. `PCRE2PackedProperties` leaves the 451 property range lists packed until a pattern names one, so an image pays for the properties it uses rather than for all of them. The literals are installed through Pharo MCP. The data license is [Unicode License V3](Unicode-LICENSE.txt); the property-name and error-message catalogs use the [PCRE2 license](PCRE2-LICENCE.md). The engine supports script runs and extended grapheme clusters. Full Unicode compatibility still requires wider validation, across the full upstream corpus. ASCII restrictions, scoped ASCII and caseless-restriction options, whole-word and whole-line compilation, control escapes, braced octal escapes, and both alternative BSUX modes, Python octal disambiguation, callout restrictions, and Turkish casing are implemented.
+What is left is validation rather than features: the full upstream corpus has not been run end to end, so neither Unicode behaviour nor compile-diagnostic offsets have been compared across all of it, callout metadata and event streams need differential coverage beyond the existing API tests, and the resource counters describe Pharo execution rather than C interpreter or JIT work.
 
 The Pharo matcher uses an explicit alternative stack and capture snapshots. A greedy repetition of a single character is counted off in one step and then given back a character at a time, so a long run costs one choice rather than one per character. A character class, and the set of characters a match may start with, each carry a table of the codes under 256 they accept, built at compile time by asking the predicate itself so that the two cannot disagree; a character above 255 is referred back to the predicate. Match-work and pending-depth limits are enforced. Partial matching reports reaching the end of the subject where PCRE2 does, including from a word boundary and from an end-of-line assertion that held only because the subject ends where it does, and the anchored start optimization applies whether or not partial matching is on. Their counts describe Pharo execution and are not calibrated to C interpreter or JIT counters. Pattern-length, parentheses-depth, variable-lookbehind, and search-offset limits are supported. Heap limits bound explicit Pharo matching-state storage. Match-data and compiled-state diagnostics describe the Pharo representation; they do not reproduce C allocator sizes or pointer-valued diagnostics. Compiled-state size caps use the Pharo representation. DFA workspace capacity bounds queued Pharo states; its accounting differs from C state blocks. Restart requires the same workspace object, as specified by PCRE2, and retains continuation state without retaining prior subject chunks.
 
@@ -99,7 +78,7 @@ Of PCRE2's own test corpora, 1,567 of 2,678 distinct patterns are matched this w
 
 `PCRE2_MATCH_INVALID_UTF` implies `PCRE2_UTF` and reads the subject as fragments of valid UTF separated by invalid sequences. An invalid sequence matches no pattern item, not even a negated class or `\p{Any}`, and no match crosses one; a lookbehind that would reach back over one fails. Each fragment is matched as if it were the whole subject, except that an internal edge is neither the start nor the end of a line, so `^` and `$` do not match there while `\b` and `\B` treat it as a subject edge. `\A`, `\z` and `\Z` keep their meaning over the whole subject. A start offset inside an invalid sequence moves on to the next character. `PCRE2_NO_UTF_CHECK` is ignored, and DFA matching answers `PCRE2_ERROR_DFA_UINVALID_UTF`, as PCRE2 specifies.
 
-A fragment's first attempt is made where the caller asked to match, and every later one is subject to the start optimizations below, as in the C library. A pattern beginning with `.*` therefore answers an empty match at the end of the subject for a start offset that lands inside an invalid sequence, rather than the match the fragment alone would suggest.
+A fragment's first attempt is made where the caller asked to match, and every later one is subject to the start optimizations above, as in the C library. A pattern beginning with `.*` therefore answers an empty match at the end of the subject for a start offset that lands inside an invalid sequence, rather than the match the fragment alone would suggest.
 
 ## Development validation
 

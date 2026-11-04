@@ -1,6 +1,6 @@
 # API Overview
 
-Both implementations answer the same public objects, so everything below works whichever one is loaded. A plain install runs on the Pharo backend; `PCRE2Compiler new backend: PCRE2CompilerFFIBackend` picks the C library instead. Where the two differ, [Backends.md](Backends.md) is the reference: it lists what the Pharo backend does not do and which facilities below are FFI-only.
+Both implementations answer the same public objects, so everything below works whichever one is loaded. [Backends.md](Backends.md) says how one is chosen, what the Pharo backend does not do, and which facilities below are FFI-only. A feature outside the core needs its baseline group, which [GettingStarted.md](GettingStarted.md#install) lists.
 
 ## Creating Matchers
 
@@ -19,26 +19,6 @@ compiler context newline: PCRE2 newlineAnyCRLF.
 matcher := compiler compile: '^value'.
 ```
 
-Use `PCRE2UTF16Compiler` or `PCRE2UTF32Compiler` when you want to compile and match through PCRE2's wider code-unit APIs.
-
-```smalltalk
-matcher := PCRE2UTF16Compiler new compile: '\p{L}+'.
-matcher find: 'café'.
-
-matcher := PCRE2UTF32Compiler new compile: '\p{L}+'.
-matcher find: 'café'.
-```
-
-The wide compilers also accept prepared pattern input:
-
-```smalltalk
-pattern := patternBytes asPCRE2UTF16LittleEndianInput.
-matcher := PCRE2UTF16Compiler new compile: pattern.
-
-pattern := patternBytesWithBOM asPCRE2UTF16InputDetectingBOM.
-matcher := PCRE2UTF16Compiler new compile: pattern.
-```
-
 ## Matching
 
 - `matches:` checks that the whole subject matches.
@@ -49,6 +29,20 @@ matcher := PCRE2UTF16Compiler new compile: pattern.
 - `findAll:` answers all matched texts.
 - `matchesIn:do:` and `matchesIn:collect:` enumerate matched texts.
 - `matchingRangesIn:` answers 1-based Pharo character ranges.
+
+`PCRE2Match` keeps enough data to query captures after matching:
+
+```smalltalk
+match groupAt: 0.
+match groupNamed: 'name'.
+match groupsByName.
+match offsetsAt: 1.
+match mark.
+match isComplete.
+match isPartial.
+match matchDataSize.
+match heapframesSize.
+```
 
 ## Rx Compatibility
 
@@ -81,23 +75,11 @@ Rx answers one per repetition, and they answer an `Array` rather than an `Ordere
 group that did not take part answers `nil` and an empty collection, where Rx reports a neighbouring
 group's marker.
 
-`PCRE2Match` keeps enough data to query captures after matching:
+## UTF-16 and UTF-32
 
-```smalltalk
-match groupAt: 0.
-match groupNamed: 'name'.
-match groupsByName.
-match offsetsAt: 1.
-match mark.
-match isComplete.
-match isPartial.
-match matchDataSize.
-match heapframesSize.
-```
+`PCRE2UTF16Compiler` and `PCRE2UTF32Compiler` compile and match at PCRE2's wider code-unit widths. Their matchers support the same high-level surfaces as UTF-8: captures, ranges, splitting, substitution, DFA matching, runtime and static callouts, tracing, and compile/match contexts. Offsets are native PCRE2 code-unit offsets; prepared input translates them back to Pharo character ranges when needed.
 
-UTF-16 and UTF-32 matchers support the same high-level matching surfaces as UTF-8: captures, ranges, splitting, substitution, DFA matching, runtime and static callouts, tracing, and compile/match contexts. Offsets are native PCRE2 code-unit offsets; prepared input translates them back to Pharo character ranges when needed.
-
-Wide matchers also accept prepared byte input:
+Subjects and patterns can both be prepared from bytes:
 
 ```smalltalk
 bytes asPCRE2UTF16Input.              "native-endian UTF-16"
@@ -111,6 +93,13 @@ bytes asPCRE2UTF32LittleEndianInput.
 bytes asPCRE2UTF32BigEndianInput.
 bytes asPCRE2UTF32InputDetectingBOM.  "strip a BOM when present"
 bytes asPCRE2UTF32InputWithBOM.       "require a BOM"
+```
+
+A prepared pattern must have the code-unit width of its compiler:
+
+```smalltalk
+pattern := patternBytes asPCRE2UTF16LittleEndianInput.
+matcher := PCRE2UTF16Compiler new compile: pattern.
 ```
 
 ## Splitting and Substitution
@@ -264,7 +253,7 @@ Substitution callouts are available on substitution variants ending in `callouts
 
 ## Tracing and Debugging
 
-The core package can build a trace object:
+The `Trace` group records a match as a trace:
 
 ```smalltalk
 trace := matcher traceMatch: subject.
@@ -272,11 +261,4 @@ trace steps.
 trace match.
 ```
 
-Loading `PCRE2-Tools` adds a debugger presenter:
-
-```smalltalk
-'pattern' openPerlCompatibleRegexDebuggerOn: 'subject'.
-matcher openDebuggerOn: 'subject'.
-```
-
-The debugger can trace a whole match or step through a live run. It uses PCRE2 callouts, so it shows what PCRE2 reports rather than simulating a separate regex engine.
+The `Tools` group adds a debugger built on it, which [GettingStarted.md](GettingStarted.md#debug-a-pattern) shows how to open.

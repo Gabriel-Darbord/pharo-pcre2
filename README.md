@@ -36,4 +36,4 @@ Developed on Pharo 14 and targeting Pharo 15. Pharo 12, 13, 14 and 15 are verifi
 
 ## License
 
-MIT, with the bundled [Unicode](docs/Unicode-LICENSE.txt) and [PCRE2](docs/PCRE2-LICENCE.md) data under their own permissive licences.
+MIT. The Unicode data the Pharo backend matches against is under the [Unicode License V3](docs/Unicode-LICENSE.txt), and PCRE2's property-name and error-message catalogues under the [PCRE2 licence](docs/PCRE2-LICENCE.md).

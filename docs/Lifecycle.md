@@ -42,15 +42,3 @@ The manager can also be disabled for experiments or short-lived images:
 PCRE2SessionManager disable.
 PCRE2SessionManager enable.
 ```
-
-## Prepared Inputs
-
-PCRE2 operates on UTF-8 bytes. Normal Pharo strings are accepted by the public APIs and prepared automatically. For repeated matching against the same subject, pass a `PCRE2UTF8Input` to avoid preparing the subject each time.
-
-```smalltalk
-input := subject asPCRE2UTF8Input.
-matcher findAll: input.
-matcher substituteAll: input with: replacement.
-```
-
-Prepared input also centralizes translation from PCRE2 byte offsets back to Pharo character indexes.
