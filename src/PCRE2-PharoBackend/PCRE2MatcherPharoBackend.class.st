@@ -112,16 +112,6 @@ PCRE2MatcherPharoBackend >> compiledStorageSize [
 	  + (PCRE2CompiledPatternSize of: names seen: seen)
 ]
 
-{ #category : 'substitution' }
-PCRE2MatcherPharoBackend >> conditionalValue: reference match: match options: options [
-
-	| number known |
-	number := (reference isNotEmpty and: [ reference allSatisfy: #isDigit ]) ifTrue: [ reference asInteger ].
-	known := number ifNil: [ match namedGroups includes: reference ] ifNotNil: [ number < match ovectorCount ].
-	(known not and: [ (options bitAnd: PCRE2 substituteUnknownUnset) = 0 ]) ifTrue: [ PCRE2MatchError signal: 'unknown substring' ].
-	^ known ifTrue: [ number ifNil: [ match groupNamed: reference ] ifNotNil: [ match groupAt: number ] ]
-]
-
 { #category : 'matching' }
 PCRE2MatcherPharoBackend >> copyWithCharacterTables [
 
@@ -132,99 +122,6 @@ PCRE2MatcherPharoBackend >> copyWithCharacterTables [
 PCRE2MatcherPharoBackend >> depthLimit [
 
 	^ matcher context depthLimit min: (patternLimits at: #depth ifAbsent: [ matcher context depthLimit ])
-]
-
-{ #category : 'DFA matching' }
-PCRE2MatcherPharoBackend >> dfaMatch: bytes from: start to: length matchData: data workspace: workspace size: workspaceSize [
-
-	| decoded text mapping initial engine state matches lastIndex options allowed minimum candidate continuation |
-	options := matcher options.
-	(workspaceSize < 20 or: [ workspace size < (workspaceSize * 4) ]) ifTrue: [
-		PCRE2MatchError signal: (PCRE2 translateErrorCode: -43) ].
-	continuation := (options bitAnd: PCRE2 dfaRestart) ~= 0
-		                ifTrue: [ self restartDFAFrom: workspace ]
-		                ifFalse: [
-				                dfaStates ifNotNil: [ dfaStates removeKey: workspace ifAbsent: [ ] ].
-				                nil ].
-	allowed := PCRE2 anchored | PCRE2 endAnchored | PCRE2 notBOL | PCRE2 notEOL | PCRE2 notEmpty | PCRE2 notEmptyAtStart
-	           | PCRE2 dfaShortest | PCRE2 dfaRestart | PCRE2 noUTFCheck | PCRE2 partialSoft | PCRE2 partialHard
-	           | PCRE2 copyMatchedSubject.
-	(options bitAnd: allowed bitInvert) ~= 0 ifTrue: [
-		PCRE2UnsupportedFeature signal: 'Unknown DFA match option bits' ].
-	decoded := self textAndOffsetsFor: bytes length: length.
-	text := decoded first.
-	mapping := decoded second.
-	initial := start.
-	(start between: 0 and: text size) ifFalse: [ PCRE2MatchError signal: 'bad offset value' ].
-	"PCRE2 leaves invalid UTF subjects to the ordinary matching function."
-	self matchesInvalidUTF ifTrue: [ ^ PCRE2 errorDFAInvalidUTF ].
-	((options bitAnd: PCRE2 noUTFCheck) = 0 and: [ (text isBoundary: start) not ]) ifTrue: [
-		PCRE2MatchError signal: (PCRE2 translateErrorCode: -36) ].
-	engine := PCRE2DFAMatchEngine new
-		          subject: text
-		          root: root
-		          groups: groups
-		          names: names
-		          limit: self matchLimit;
-		          depthLimit: self depthLimit;
-		          initialPosition: initial;
-		          matchOptions: (options bitOr: ((compileOptions bitAnd: PCRE2 endAnchored) bitOr: patternMatchOptions));
-		          calloutBlock: matcher context backend calloutBlock mapping: mapping;
-		          shortest: (options bitAnd: PCRE2 dfaShortest) ~= 0;
-		          autoPossessEnabled: (compileOptions bitAnd: PCRE2 noAutoPossess) = 0;
-		          workspaceLimit: workspaceSize;
-		          allowEmptyPartial: self allowsEmptyPartial.
-	lastIndex := (continuation isNotNil or: [ ((options bitOr: compileOptions) bitAnd: PCRE2 anchored) ~= 0 ])
-		             ifTrue: [ initial ]
-		             ifFalse: [ text size ].
-	minimum := self shortestMatchLength.
-	(compileOptions bitAnd: PCRE2 firstLine) ~= 0 ifTrue: [ lastIndex := lastIndex min: (self firstLineEndIn: text from: initial) ].
-	candidate := initial.
-	[ candidate <= lastIndex ] whileTrue: [
-			(continuation isNotNil or: [
-					 (compileOptions bitAnd: PCRE2 noStartOptimize) ~= 0 or: [
-						 (options bitAnd: PCRE2 partialSoft | PCRE2 partialHard) ~= 0 or: [ text size - candidate >= minimum ] ] ]) ifTrue: [
-					state := PCRE2MatchState new
-						         position: candidate;
-						         captures: (Array new: captureCount + 1 * 2 withAll: PCRE2 unsetOffset).
-					state captures at: 1 put: candidate.
-					state push: root.
-					engine beginMatchAt: candidate.
-					matches := continuation ifNil: [ engine allMatches: state ] ifNotNil: [
-							           continuation do: [ :continued | continued captures at: 1 put: initial ].
-							           engine allMatchesFrom: continuation ].
-					engine abortedCode ifNotNil: [ :code | ^ code ].
-					(engine hardPartialFound and: [ engine partialState isNotNil ]) ifTrue: [
-							self rememberDFA: engine in: workspace.
-							^ self storePartial: engine partialState mapping: mapping into: data ].
-					matches ifNotEmpty: [
-							(options bitAnd: PCRE2 dfaShortest) ~= 0 ifTrue: [ matches := { matches last } ].
-							1 to: (matches size min: data getCount) do: [ :index |
-									data offsets
-										at: index * 2 - 1 put: (mapping at: candidate + 1);
-										at: index * 2 put: (mapping at: (matches at: index) position + 1) ].
-							data startIndex: (mapping at: candidate + 1).
-							^ matches size > data getCount
-								  ifTrue: [ 0 ]
-								  ifFalse: [ matches size ] ] ].
-			engine partialState ifNotNil: [ :partial |
-					self rememberDFA: engine in: workspace.
-					^ self storePartial: partial mapping: mapping into: data ].
-			candidate := text nextOffsetFrom: candidate ].
-	engine partialState ifNotNil: [ :partial |
-			self rememberDFA: engine in: workspace.
-			^ self storePartial: partial mapping: mapping into: data ].
-	^ PCRE2 errorNoMatch
-]
-
-{ #category : 'substitution' }
-PCRE2MatcherPharoBackend >> expand: expression match: match options: options [
-
-	^ PCRE2ReplacementExpander new
-		  expand: expression
-		  backend: self
-		  match: match
-		  options: options
 ]
 
 { #category : 'accessing' }
@@ -574,14 +471,7 @@ PCRE2MatcherPharoBackend >> newMatchBackendWithOvectorSize: size [
 { #category : 'instance creation' }
 PCRE2MatcherPharoBackend >> newMatchContext [
 
-	| contextClass |
-	contextClass := matcher codeUnitWidth = 8
-		                ifTrue: [ PCRE2UTF8MatchContext ]
-		                ifFalse: [
-				                matcher codeUnitWidth = 16
-					                ifTrue: [ PCRE2UTF16MatchContext ]
-					                ifFalse: [ PCRE2UTF32MatchContext ] ].
-	^ contextClass new backend: (PCRE2ContextPharoBackend new codeUnitWidth: matcher codeUnitWidth)
+	^ matcher matchContextClass new backend: (PCRE2ContextPharoBackend new codeUnitWidth: matcher codeUnitWidth)
 ]
 
 { #category : 'matching' }
@@ -605,55 +495,10 @@ PCRE2MatcherPharoBackend >> recompiledBy: compiler pattern: pattern [
 	^ compiler backend compilePreparedInput: (compiler preparedPatternFor: pattern)
 ]
 
-{ #category : 'DFA matching' }
-PCRE2MatcherPharoBackend >> rememberDFA: engine in: workspace [
-
-	dfaStates ifNil: [ dfaStates := WeakIdentityKeyDictionary new ].
-	dfaStates at: workspace put: engine restartStates.
-	workspace uint32AtOffset: 0 put: 16r50435232.
-	workspace uint32AtOffset: 4 put: engine restartStates size
-]
-
-{ #category : 'substitution' }
-PCRE2MatcherPharoBackend >> replacementValue: name match: match options: substituteOptions [
-
-	| value number known input |
-	name isEmpty ifTrue: [ PCRE2MatchError signal: 'empty replacement reference' ].
-	input := match input.
-	name = '&' ifTrue: [ ^ match groupAt: 0 ].
-	name = '_' ifTrue: [ ^ input readFrom: 1 to: input size ].
-	name = (Character value: 96) asString ifTrue: [ ^ input readFrom: 1 to: (match startOffsetAt: 1) ].
-	name = '''' ifTrue: [ ^ input readFrom: (match endOffsetAt: 1) + 1 to: input size ].
-	name = '+' ifTrue: [
-			value := match count > 1 ifTrue: [ match groupAt: match count - 1 ].
-			value ifNotNil: [ ^ value ] ].
-	name = '*MARK' ifTrue: [ ^ match mark ifNil: [ '' ] ].
-	(name includes: $:) ifTrue: [ PCRE2UnsupportedFeature signal: 'Conditional replacements require extended substitution support' ].
-	number := (name allSatisfy: #isDigit) ifTrue: [ name asInteger ].
-	known := number ifNil: [ match namedGroups includes: name ] ifNotNil: [ number < match ovectorCount ].
-	(known not and: [ (substituteOptions bitAnd: PCRE2 substituteUnknownUnset) = 0 ]) ifTrue: [
-		PCRE2MatchError signal: 'unknown substring' ].
-	value := known ifTrue: [ number ifNil: [ match groupNamed: name ] ifNotNil: [ match groupAt: number ] ].
-	value ifNotNil: [ ^ value ].
-	(substituteOptions bitAnd: PCRE2 substituteUnsetEmpty) ~= 0 ifTrue: [ ^ '' ].
-	PCRE2MatchError signal: 'requested value is not set'
-]
-
 { #category : 'matching' }
 PCRE2MatcherPharoBackend >> requiresSessionRestore [
 
 	^ false
-]
-
-{ #category : 'DFA matching' }
-PCRE2MatcherPharoBackend >> restartDFAFrom: workspace [
-
-	| states |
-	dfaStates ifNil: [ PCRE2MatchError signal: (PCRE2 translateErrorCode: -38) ].
-	states := dfaStates removeKey: workspace ifAbsent: [ PCRE2MatchError signal: (PCRE2 translateErrorCode: -38) ].
-	((workspace uint32AtOffset: 0) = 16r50435232 and: [ (workspace uint32AtOffset: 4) = states size ]) ifFalse: [
-		PCRE2MatchError signal: (PCRE2 translateErrorCode: -38) ].
-	^ states
 ]
 
 { #category : 'matching' }
@@ -716,13 +561,6 @@ PCRE2MatcherPharoBackend >> serialize [
 	PCRE2UnsupportedFeature signal: 'C bytecode serialization is specific to the FFI backend'
 ]
 
-{ #category : 'DFA matching' }
-PCRE2MatcherPharoBackend >> shortestMatchLength [
-	"The least a match can be, in characters. It is compared against a count of code units, which only makes the bound safer."
-
-	^ (root lengthBoundsUsing: groups names: names visited: IdentitySet new) first
-]
-
 { #category : 'matching' }
 PCRE2MatcherPharoBackend >> storePartial: state mapping: mapping into: data [
 
@@ -734,124 +572,6 @@ PCRE2MatcherPharoBackend >> storePartial: state mapping: mapping into: data [
 		startIndex: (mapping at: state captures first + 1);
 		mark: state mark.
 	^ PCRE2 errorPartial
-]
-
-{ #category : 'substitution' }
-PCRE2MatcherPharoBackend >> substituteBytes: subject replacement: replacement options: flags matchData: data [
-
-	| allowed matchFlags input text replacementInput expression matches replacementOnly lastEnd count stopped callback outputOffset |
-	matchFlags := PCRE2 anchored | PCRE2 endAnchored | PCRE2 notBOL | PCRE2 notEOL | PCRE2 notEmpty | PCRE2 notEmptyAtStart
-	              | PCRE2 noJIT | PCRE2 disableRecurseloopCheck | PCRE2 copyMatchedSubject.
-	allowed := matchFlags | PCRE2 substituteGlobal | PCRE2 substituteLiteral | PCRE2 substituteUnsetEmpty
-	           | PCRE2 substituteUnknownUnset | PCRE2 substituteReplacementOnly | PCRE2 substituteOverflowLength
-	           | PCRE2 substituteExtended | PCRE2 substituteMatched.
-	(flags bitAnd: allowed bitInvert) ~= 0 ifTrue: [
-		PCRE2UnsupportedFeature signal: 'Unknown substitution option bits' ].
-	input := matcher preparedInputFor: subject.
-	text := input readFrom: 1 to: input size.
-	text isString ifFalse: [ text := text asString ].
-	replacementInput := matcher preparedInputFor: replacement.
-	expression := replacementInput readFrom: 1 to: replacementInput size.
-	expression isString ifFalse: [ expression := expression asString ].
-	matches := self substitutionMatches: input options: flags matchData: data.
-	replacementOnly := (flags bitAnd: PCRE2 substituteReplacementOnly) ~= 0.
-	callback := matcher context backend substituteCalloutBlock.
-	lastEnd := 0.
-	count := 0.
-	stopped := false.
-	outputOffset := 0.
-	^ String streamContents: [ :stream |
-			  matches do: [ :match |
-					  stopped ifFalse: [
-							  | start end inserted response gap |
-							  start := input characterCountUpToCodeUnitOffset: (match startOffsetAt: 1).
-							  end := input characterCountUpToCodeUnitOffset: (match endOffsetAt: 1).
-							  start < lastEnd ifTrue: [ PCRE2MatchError signal: 'invalid substitution match offsets' ].
-							  replacementOnly ifFalse: [
-									  gap := text copyFrom: lastEnd + 1 to: start.
-									  stream nextPutAll: gap.
-									  outputOffset := outputOffset + (matcher preparedInputFor: gap) size ].
-							  inserted := (flags bitAnd: PCRE2 substituteLiteral) ~= 0
-								              ifTrue: [ expression ]
-								              ifFalse: [ self expand: expression match: match options: flags ].
-							  count := count + 1.
-							  response := 0.
-							  callback ifNotNil: [
-									  response := callback value: (PCRE2SubstitutionCalloutEvent new
-											               match: match
-											               replacement: inserted
-											               count: count
-											               outputStart: outputOffset
-											               length: (matcher preparedInputFor: inserted) size).
-									  response isInteger ifFalse: [ response := 0 ] ].
-							  response = 0
-								  ifTrue: [
-										  stream nextPutAll: inserted.
-										  outputOffset := outputOffset + (matcher preparedInputFor: inserted) size.
-										  lastEnd := end ]
-								  ifFalse: [
-										  response < 0
-											  ifTrue: [
-													  stopped := true.
-													  lastEnd := start ]
-											  ifFalse: [
-													  replacementOnly ifFalse: [
-															  inserted := text copyFrom: start + 1 to: end.
-															  stream nextPutAll: inserted.
-															  outputOffset := outputOffset + (matcher preparedInputFor: inserted) size ].
-													  lastEnd := end ] ] ] ].
-			  replacementOnly ifFalse: [ stream nextPutAll: (text copyFrom: lastEnd + 1 to: text size) ] ]
-]
-
-{ #category : 'substitution' }
-PCRE2MatcherPharoBackend >> substitutionMatches: input options: flags matchData: data [
-
-	| temporary matches first count start next rc extra |
-	temporary := matcher copy.
-	temporary options: (flags bitAnd:
-			 PCRE2 anchored | PCRE2 endAnchored | PCRE2 notBOL | PCRE2 notEOL | PCRE2 notEmpty | PCRE2 notEmptyAtStart | PCRE2 noJIT
-			 | PCRE2 disableRecurseloopCheck).
-	(flags bitAnd: PCRE2 substituteMatched) = 0 ifTrue: [
-			^ (flags bitAnd: PCRE2 substituteGlobal) ~= 0
-				  ifTrue: [ temporary findAllMatches: input ]
-				  ifFalse: [ (temporary findMatch: input) ifNil: [ #(  ) ] ifNotNil: [ :match | { match } ] ] ].
-	data ifNil: [ PCRE2MatchError signal: 'match data is required' ].
-	first := matcher matchClass new
-		         backend: data copy;
-		         input: input;
-		         namedGroups: matcher namedGroups.
-	count := 1.
-	1 to: data getCount - 1 do: [ :index | (data offsets at: index * 2 + 2) ~= PCRE2 unsetOffset ifTrue: [ count := index + 1 ] ].
-	first
-		resultCode: count;
-		count: count.
-	(flags bitAnd: PCRE2 substituteGlobal) = 0 ifTrue: [ ^ { first } ].
-	matches := OrderedCollection with: first.
-	start := first endOffsetAt: 1.
-	extra := (first startOffsetAt: 1) = start
-		         ifTrue: [ PCRE2 notEmptyAtStart ]
-		         ifFalse: [ 0 ].
-	[ start <= input size ] whileTrue: [
-			next := temporary newMatchData.
-			rc := temporary
-				      matchBytes: input bytes
-				      from: start + 1
-				      to: input size
-				      options: temporary options | extra
-				      into: next.
-			rc = PCRE2 errorNoMatch
-				ifTrue: [
-						extra = 0 ifTrue: [ ^ matches ].
-						start := input nextMatchStartOffsetAfter: start.
-						extra := 0 ]
-				ifFalse: [
-						next input: input.
-						matches add: next.
-						start := next endOffsetAt: 1.
-						extra := (next startOffsetAt: 1) = start
-							         ifTrue: [ PCRE2 notEmptyAtStart ]
-							         ifFalse: [ 0 ] ] ].
-	^ matches
 ]
 
 { #category : 'matching' }
@@ -870,29 +590,6 @@ PCRE2MatcherPharoBackend >> textAndOffsetsFor: bytes length: length [
 	^ {
 		  subject.
 		  (0 to: subject size) }
-]
-
-{ #category : 'substitution' }
-PCRE2MatcherPharoBackend >> transformCase: text mode: mode [
-
-	| block event answer unicode |
-	block := matcher context backend substituteCaseCalloutBlock.
-	block ifNotNil: [
-			event := PCRE2SubstitutionCaseCalloutEvent new
-				         inputText: text
-				         length: (matcher preparedInputFor: text) size
-				         capacity: (matcher preparedInputFor: text) size
-				         caseType: (mode = #upper
-						          ifTrue: [ PCRE2 substituteCaseUpper ]
-						          ifFalse: [ PCRE2 substituteCaseLower ])
-				         codeUnitWidth: self codeUnitWidth.
-			answer := block value: event.
-			answer ifNil: [ PCRE2MatchError signal: (PCRE2 translateErrorCode: PCRE2 errorReplaceCase) ].
-			^ answer isString
-				  ifTrue: [ answer ]
-				  ifFalse: [ event defaultTransformedText ] ].
-	unicode := (compileOptions bitAnd: PCRE2 utf | PCRE2 ucp) ~= 0.
-	^ text collect: [ :character | PCRE2UnicodeData case: character upper: mode = #upper unicode: unicode ]
 ]
 
 { #category : 'generated matching' }

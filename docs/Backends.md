@@ -9,21 +9,27 @@ Both implementation packages depend on the shared `PCRE2` package. The shared pa
 | Baseline group | Contents |
 | --- | --- |
 | `Core` | Shared API and backend contracts, with neither implementation |
-| `FFI` | Shared API and `PCRE2-FFIBackend` |
-| `Pharo` | Shared API, `PCRE2-PharoBackend` and `PCRE2-UnicodeProperties` |
-| `PharoMinimal` | Shared API and `PCRE2-PharoBackend`, without `PCRE2-UnicodeProperties` |
+| `FFI` | Shared API, the API of every feature below, and `PCRE2-FFIBackend` |
+| `Pharo` | `PharoMinimal` and every feature group below |
+| `PharoMinimal` | Shared API and `PCRE2-PharoBackend` alone |
+| `Substitution` | `PCRE2-Substitution` and its Pharo implementation `PCRE2-PharoBackend-Substitution` |
+| `DFA` | `PCRE2-DFA` and its Pharo implementation `PCRE2-PharoBackend-DFA` |
+| `Wide` | `PCRE2-Wide`: UTF-16 and UTF-32 compilers, matchers, contexts and inputs |
+| `Trace` | `PCRE2-Trace`: `traceMatch:` and the trace it answers |
 | `UnicodeProperties` | The Unicode properties Pharo has no table for |
 | `Backends` | Both implementations |
 | `Tools` | Shared inspection tools; tracing requires backend callout support |
 | `FFITests` | Existing binding and tool tests |
 | `PharoTests` | Pharo implementation tests without the FFI backend |
 | `BackendTests` | Coexistence and ownership tests requiring both implementations |
-| `default` | Shared API, `PCRE2-PharoBackend` and `PCRE2-UnicodeProperties`, which is what a plain `load` gives |
+| `default` | Shared API and the `Pharo` group, which is what a plain `load` gives |
 | `All` | Both implementations, tools, and all tests |
 
 For example, use `load: 'Pharo'` or `load: #( 'FFI' 'Pharo' )` in the Metacello load expression. Only the FFI backend requires a host PCRE2 library, so the default load needs nothing installed. Metacello looks for a group named `default` in lower case, so that is the name this baseline uses.
 
-`PharoMinimal` is the Pharo backend with no Unicode data of its own. It reads general categories, case folding and decimal digits from Pharo's `Unicode` class, so `\p{L}`, `\w`, `\d`, POSIX classes and caseless matching work, and a pattern that uses a script, a script extension, a bidi class, a binary property, `\X` or a script run fails to compile with `PCRE2UnsupportedFeature`. `PCRE2-UnicodeProperties` brings those back.
+`PharoMinimal` is the smallest install that matches: the shared API and the Pharo backend, compiling and matching UTF-8 patterns and subjects with captures, named groups, callouts, partial matching and the Rx-style `String` protocol. Substitution, DFA matching, UTF-16 and UTF-32, and tracing each come with their group: the selectors of a feature whose package is not loaded are not understood. A feature with an implementation of its own on the Pharo backend comes in two packages, its shared API and that implementation, so that the FFI backend can take the API without the Pharo engine.
+
+It has no Unicode data of its own either. It reads general categories, case folding and decimal digits from Pharo's `Unicode` class, so `\p{L}`, `\w`, `\d`, POSIX classes and caseless matching work, and a pattern that uses a script, a script extension, a bidi class, a binary property, `\X` or a script run fails to compile with `PCRE2UnsupportedFeature`. `PCRE2-UnicodeProperties` brings those back.
 
 Pharo carries its tables at Unicode 18.0 since pharo-project/pharo#20168, in Pharo 15. Pharo 14 and older carry them at Unicode 9.0, so on those versions loading `PCRE2-PharoBackend` also loads `PCRE2-UnicodeCompat`, which brings general categories, case folding and digits at Unicode 17.0.0. It reads them with the decoder of `PCRE2-UnicodeProperties`, so it loads that package too.
 

@@ -17,12 +17,6 @@ PCRE2ScanSubstringNode >> canBeCondition [
 	^ false
 ]
 
-{ #category : 'DFA matching' }
-PCRE2ScanSubstringNode >> dfaError [
-
-	^ -42
-]
-
 { #category : 'matching' }
 PCRE2ScanSubstringNode >> executeIn: engine state: state [
 

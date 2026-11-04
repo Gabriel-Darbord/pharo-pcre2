@@ -16,24 +16,39 @@ BaselineOfPCRE2 >> baseline: spec [
 	<baseline>
 	spec for: #common do: [
 			spec package: 'PCRE2'.
-			spec package: 'PCRE2-FFIBackend' with: [ spec requires: #( 'PCRE2' ) ].
+			spec package: 'PCRE2-Trace' with: [ spec requires: #( 'PCRE2' ) ].
+			spec package: 'PCRE2-Substitution' with: [ spec requires: #( 'PCRE2' ) ].
+			spec package: 'PCRE2-DFA' with: [ spec requires: #( 'PCRE2' ) ].
+			spec package: 'PCRE2-Wide' with: [ spec requires: #( 'PCRE2' ) ].
+			spec package: 'PCRE2-FFIBackend' with: [ spec requires: #( 'PCRE2' 'PCRE2-Substitution' 'PCRE2-Wide' ) ].
 			spec package: 'PCRE2-PharoBackend' with: [ spec requires: #( 'PCRE2' ) ].
+			spec package: 'PCRE2-PharoBackend-Substitution' with: [ spec requires: #( 'PCRE2-PharoBackend' 'PCRE2-Substitution' ) ].
+			spec package: 'PCRE2-PharoBackend-DFA' with: [ spec requires: #( 'PCRE2-PharoBackend' 'PCRE2-DFA' ) ].
 			spec package: 'PCRE2-UnicodeProperties' with: [ spec requires: #( 'PCRE2-PharoBackend' ) ].
-			spec package: 'PCRE2-Tools' with: [ spec requires: #( 'PCRE2' ) ].
-			spec package: 'PCRE2-Tests' with: [ spec requires: #( 'PCRE2-FFIBackend' ) ].
-			spec package: 'PCRE2-PharoBackend-Tests' with: [ spec requires: #( 'PCRE2-PharoBackend' 'PCRE2-UnicodeProperties' ) ].
+			spec package: 'PCRE2-Tools' with: [ spec requires: #( 'PCRE2-Trace' ) ].
+			spec package: 'PCRE2-Tests' with: [ spec requires: #( 'PCRE2-FFIBackend' 'PCRE2-Trace' 'PCRE2-DFA' 'PCRE2-Wide' ) ].
+			spec package: 'PCRE2-PharoBackend-Tests' with: [
+					spec requires: #( 'PCRE2-PharoBackend' 'PCRE2-UnicodeProperties' 'PCRE2-PharoBackend-Substitution'
+						   'PCRE2-PharoBackend-DFA' 'PCRE2-Wide' ) ].
 			"The tools run on either backend, so their tests only need the one a plain install gets."
-			spec package: 'PCRE2-Tools-Tests' with: [ spec requires: #( 'PCRE2-Tools' 'PCRE2-PharoBackend' ) ].
-			spec
-				package: 'PCRE2-BackendIntegration-Tests'
-				with: [ spec requires: #( 'PCRE2-FFIBackend' 'PCRE2-PharoBackend' 'PCRE2-Tools' ) ].
+			spec package: 'PCRE2-Tools-Tests' with: [ spec requires: #( 'PCRE2-Tools' 'PCRE2-PharoBackend' 'PCRE2-Wide' ) ].
+			spec package: 'PCRE2-BackendIntegration-Tests' with: [
+					spec requires:
+						#( 'PCRE2-FFIBackend' 'PCRE2-PharoBackend' 'PCRE2-PharoBackend-Substitution' 'PCRE2-PharoBackend-DFA'
+						   'PCRE2-Tools' 'PCRE2-Wide' ) ].
 			spec group: 'Core' with: #( 'PCRE2' ).
-			spec group: 'FFI' with: #( 'PCRE2-FFIBackend' ).
+			"Each feature group brings the shared API of the feature, and its Pharo implementation where one exists."
+			spec group: 'Trace' with: #( 'PCRE2-Trace' ).
+			spec group: 'Wide' with: #( 'PCRE2-Wide' ).
+			spec group: 'Substitution' with: #( 'PCRE2-PharoBackend-Substitution' ).
+			spec group: 'DFA' with: #( 'PCRE2-PharoBackend-DFA' ).
 			"Scripts, bidi classes, binary properties, \X and script runs, which Pharo has no Unicode table for."
 			spec group: 'UnicodeProperties' with: #( 'PCRE2-UnicodeProperties' ).
-			spec group: 'Pharo' with: #( 'PCRE2-PharoBackend' 'UnicodeProperties' ).
-			"The Pharo backend on the image's own Unicode tables, without UnicodeProperties."
+			"The C binding implements every feature, so it comes with the shared API of all of them."
+			spec group: 'FFI' with: #( 'PCRE2-FFIBackend' 'PCRE2-Trace' 'PCRE2-Substitution' 'PCRE2-DFA' 'PCRE2-Wide' ).
+			"The Pharo backend matching UTF-8 subjects on the image's own Unicode tables, with none of the feature groups."
 			spec group: 'PharoMinimal' with: #( 'PCRE2-PharoBackend' ).
+			spec group: 'Pharo' with: #( 'PharoMinimal' 'Trace' 'Wide' 'Substitution' 'DFA' 'UnicodeProperties' ).
 			spec group: 'Backends' with: #( 'FFI' 'Pharo' ).
 			spec group: 'Tools' with: #( 'PCRE2-Tools' ).
 			spec group: 'FFITests' with: #( 'PCRE2-Tests' ).

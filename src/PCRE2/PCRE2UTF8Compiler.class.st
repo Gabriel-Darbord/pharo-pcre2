@@ -14,6 +14,12 @@ PCRE2UTF8Compiler >> codeUnitWidth [
 	^ 8
 ]
 
+{ #category : 'accessing' }
+PCRE2UTF8Compiler >> compileContextClass [
+
+	^ PCRE2UTF8CompileContext
+]
+
 { #category : 'private' }
 PCRE2UTF8Compiler >> inputClass [
 

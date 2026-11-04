@@ -68,14 +68,6 @@ PCRE2ConditionalNode >> definition: boolean [
 	definition := boolean
 ]
 
-{ #category : 'DFA matching' }
-PCRE2ConditionalNode >> dfaError [
-
-	^ dfaUnsupported value = true
-		  ifTrue: [ -40 ]
-		  ifFalse: [ 0 ]
-]
-
 { #category : 'accessing' }
 PCRE2ConditionalNode >> dfaUnsupported: boolean [
 

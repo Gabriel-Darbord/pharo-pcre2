@@ -6,10 +6,12 @@
 
 - **The Pharo backend reads general categories, case folding and decimal digits from Pharo's own `Unicode` class.** Pharo 15 carries them at Unicode 18.0, so a character added since Unicode 17.0 now has its category there. Pharo 14 and older carry them at Unicode 9.0, so on those versions the baseline also loads `PCRE2-UnicodeCompat`, which brings them at Unicode 17.0.0 as before.
 - **Scripts, script extensions, bidi classes, binary properties, grapheme breaks and script runs moved to `PCRE2-UnicodeProperties`.** The `Pharo` and `default` groups load it, so they install what they did. `PCRE2UnicodeData` keeps the questions the backend asks and no longer carries the packed data: `PCRE2UnicodeProperties` and `PCRE2PackedUnicodeTables` do, and `data`, `rangesFor:`, `matches:code:` and `version` went with it.
+- **Substitution, DFA matching, UTF-16 and UTF-32, and tracing moved out of `PCRE2` and `PCRE2-PharoBackend`**, each to a package of its own: `PCRE2-Substitution`, `PCRE2-DFA`, `PCRE2-Wide` and `PCRE2-Trace` hold the shared API, and `PCRE2-PharoBackend-Substitution` and `PCRE2-PharoBackend-DFA` the Pharo implementation of the first two. The `Pharo`, `default` and `FFI` groups load them, so they install what they did; `Core` is `PCRE2` alone and lost the API of all four. `PCRE2-Tools` now requires `PCRE2-Trace`.
+- **The compile and match context classes of a code-unit width come from its compiler and matcher.** `PCRE2Compiler>>compileContextClass` is answered by `PCRE2UTF8Compiler` and its wide counterparts instead of being asked of the backend, and `PCRE2Matcher>>matchContextClass` is new.
 
 ### Added
 
-- **A `PharoMinimal` group**: the shared API and the Pharo backend with no Unicode data of its own. A pattern that needs one of the properties of `PCRE2-UnicodeProperties`, `\X` or a script run fails to compile with `PCRE2UnsupportedFeature`. A `UnicodeProperties` group adds them back.
+- **A `PharoMinimal` group**: the shared API and the Pharo backend with no Unicode data of its own, and without substitution, DFA matching, UTF-16 and UTF-32, or tracing. A pattern that needs one of the properties of `PCRE2-UnicodeProperties`, `\X` or a script run fails to compile with `PCRE2UnsupportedFeature`. A `UnicodeProperties` group adds them back, and `Substitution`, `DFA`, `Wide` and `Trace` groups add the other features.
 - `scripts/generate-unicode-data.py` writes the two literals with `--packed-properties` and `--packed-tables`, in place of `--packed`.
 
 ## 2.0.0 — 2026-11-01

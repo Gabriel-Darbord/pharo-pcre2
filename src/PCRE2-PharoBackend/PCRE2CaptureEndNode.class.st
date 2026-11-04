@@ -19,12 +19,6 @@ PCRE2CaptureEndNode >> acceptIn: engine state: state [
 	^ false
 ]
 
-{ #category : 'DFA matching' }
-PCRE2CaptureEndNode >> dfaKey [
-
-	^ #captureEnd
-]
-
 { #category : 'matching' }
 PCRE2CaptureEndNode >> executeIn: anEngine state: aState [
 

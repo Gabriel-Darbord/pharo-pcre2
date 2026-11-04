@@ -10,7 +10,14 @@ SmalltalkCISpec {
   #testing : {
     #packages : [ 'PCRE2-Tests' ],
     #coverage : {
-      #packages : [ 'PCRE2', 'PCRE2-FFIBackend' ],
+      #packages : [
+        'PCRE2',
+        'PCRE2-Trace',
+        'PCRE2-Substitution',
+        'PCRE2-DFA',
+        'PCRE2-Wide',
+        'PCRE2-FFIBackend'
+      ],
       #format : #lcov
     }
   }

@@ -21,14 +21,6 @@ PCRE2LookaroundEndNode >> acceptIn: engine state: state [
 	^ true
 ]
 
-{ #category : 'DFA matching' }
-PCRE2LookaroundEndNode >> dfaKey [
-
-	^ {
-		  self class.
-		  position }
-]
-
 { #category : 'matching' }
 PCRE2LookaroundEndNode >> executeIn: engine state: state [
 

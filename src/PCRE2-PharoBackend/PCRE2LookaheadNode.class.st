@@ -55,14 +55,6 @@ PCRE2LookaheadNode >> conditionalIn: engine state: state [
 	^ positive = result isNotNil
 ]
 
-{ #category : 'DFA matching' }
-PCRE2LookaheadNode >> dfaError [
-
-	^ atomic = false
-		  ifTrue: [ -42 ]
-		  ifFalse: [ 0 ]
-]
-
 { #category : 'matching' }
 PCRE2LookaheadNode >> executeIn: engine state: state [
 

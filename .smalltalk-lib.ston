@@ -15,7 +15,19 @@ SmalltalkCISpec {
       'PCRE2-BackendIntegration-Tests'
     ],
     #coverage : {
-      #packages : [ 'PCRE2', 'PCRE2-FFIBackend', 'PCRE2-PharoBackend', 'PCRE2-Tools' ],
+      #packages : [
+        'PCRE2',
+        'PCRE2-Trace',
+        'PCRE2-Substitution',
+        'PCRE2-DFA',
+        'PCRE2-Wide',
+        'PCRE2-FFIBackend',
+        'PCRE2-PharoBackend',
+        'PCRE2-PharoBackend-Substitution',
+        'PCRE2-PharoBackend-DFA',
+        'PCRE2-UnicodeProperties',
+        'PCRE2-Tools'
+      ],
       #format : #lcov
     }
   }

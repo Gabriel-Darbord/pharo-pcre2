@@ -11,12 +11,6 @@ Class {
 	#package : 'PCRE2-PharoBackend'
 }
 
-{ #category : 'DFA matching' }
-PCRE2AlternativeEndNode >> dfaKey [
-
-	^ #alternativeEnd
-]
-
 { #category : 'matching' }
 PCRE2AlternativeEndNode >> executeIn: engine state: state [
 

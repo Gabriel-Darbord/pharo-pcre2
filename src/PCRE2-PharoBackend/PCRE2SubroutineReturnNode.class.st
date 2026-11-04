@@ -35,14 +35,6 @@ PCRE2SubroutineReturnNode >> captures: anArray [
 	captures := anArray
 ]
 
-{ #category : 'DFA matching' }
-PCRE2SubroutineReturnNode >> dfaKey [
-
-	^ {
-		  self class.
-		  subroutines }
-]
-
 { #category : 'matching' }
 PCRE2SubroutineReturnNode >> executeIn: anEngine state: aState [
 

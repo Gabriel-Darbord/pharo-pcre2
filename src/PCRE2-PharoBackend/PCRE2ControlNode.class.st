@@ -31,14 +31,6 @@ PCRE2ControlNode >> canBeRepeated [
 	^ kind = #accept
 ]
 
-{ #category : 'DFA matching' }
-PCRE2ControlNode >> dfaError [
-
-	^ kind = #fail
-		  ifTrue: [ 0 ]
-		  ifFalse: [ -42 ]
-]
-
 { #category : 'matching' }
 PCRE2ControlNode >> executeIn: engine state: state [
 

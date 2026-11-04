@@ -26,15 +26,6 @@ PCRE2RepeatFrame >> count: anInteger [
 	count := anInteger
 ]
 
-{ #category : 'DFA matching' }
-PCRE2RepeatFrame >> dfaKey [
-
-	^ {
-		  repeat.
-		  (repeat maximum ifNil: [ count min: repeat minimum ] ifNotNil: [ count ]).
-		  previousPosition }
-]
-
 { #category : 'matching' }
 PCRE2RepeatFrame >> executeIn: anEngine state: aState [
 

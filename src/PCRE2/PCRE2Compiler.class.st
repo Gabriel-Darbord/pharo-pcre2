@@ -178,10 +178,10 @@ PCRE2Compiler >> compileBasic: pattern [
 	^ self compilePreparedInput: (self preparedPatternFor: pattern)
 ]
 
-{ #category : 'private' }
+{ #category : 'accessing' }
 PCRE2Compiler >> compileContextClass [
 
-	^ self backend compileContextClass
+	^ self subclassResponsibility
 ]
 
 { #category : 'compiling' }
