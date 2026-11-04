@@ -72,9 +72,26 @@ PCRE2MatchGenerator >> conditionFor: aTest at: position [
 						  nextPutAll: code.
 					  aTest third ifFalse: [ out nextPutAll: ' ]' ].
 					  out nextPutAll: ' ])' ] ].
-	kind = #beforeTerminator ifTrue: [ ^ '(' , position , ' == size or: [ (bytes byteAt: ' , position , ' + 1) == ' , code , ' ])' ].
+	kind = #beforeTerminator ifTrue: [
+			^ String streamContents: [ :out |
+					  out
+						  nextPut: $(;
+						  nextPutAll: position;
+						  nextPutAll: ' == size or: [ (bytes byteAt: ';
+						  nextPutAll: position;
+						  nextPutAll: ' + 1) == ';
+						  nextPutAll: code;
+						  nextPutAll: ' ])' ] ].
 	kind = #beforeFinalTerminator ifTrue: [
-		^ '(' , position , ' == size or: [ ' , position , ' + 1 == size and: [ (bytes byteAt: size) == ' , code , ' ] ])' ].
+			^ String streamContents: [ :out |
+					  out
+						  nextPut: $(;
+						  nextPutAll: position;
+						  nextPutAll: ' == size or: [ ';
+						  nextPutAll: position;
+						  nextPutAll: ' + 1 == size and: [ (bytes byteAt: size) == ';
+						  nextPutAll: code;
+						  nextPutAll: ' ] ])' ] ].
 	^ nil
 ]
 
@@ -89,9 +106,19 @@ PCRE2MatchGenerator >> exhausted [
 PCRE2MatchGenerator >> fallbackConditionWithMaximum: maximum counter: count position: run [
 	"Whether the run stopped at a byte over 127, which hands the match back to the engine."
 
-	| test |
-	test := run , ' < size and: [ (bytes byteAt: ' , run , ' + 1) > 127 ]'.
-	^ maximum ifNil: [ test ] ifNotNil: [ count , ' < ' , maximum printString , ' and: [ ' , test , ' ]' ]
+	^ String streamContents: [ :out |
+			  maximum ifNotNil: [
+					  out
+						  nextPutAll: count;
+						  nextPutAll: ' < ';
+						  print: maximum;
+						  nextPutAll: ' and: [ ' ].
+			  out
+				  nextPutAll: run;
+				  nextPutAll: ' < size and: [ (bytes byteAt: ';
+				  nextPutAll: run;
+				  nextPutAll: ' + 1) > 127 ]'.
+			  maximum ifNotNil: [ out nextPutAll: ' ]' ] ]
 ]
 
 { #category : 'generating' }
@@ -181,9 +208,21 @@ PCRE2MatchGenerator >> refuse [
 PCRE2MatchGenerator >> scanConditionOf: ranges maximum: maximum counter: count position: run [
 	"The condition of the loop counting off one item's characters."
 
-	| test |
-	test := run , ' < size and: [ (byte := bytes byteAt: ' , run , ' + 1) < 128 and: [ ' , (self testFor: ranges on: 'byte') , ' ] ]'.
-	^ maximum ifNil: [ test ] ifNotNil: [ count , ' < ' , maximum printString , ' and: [ ' , test , ' ]' ]
+	^ String streamContents: [ :out |
+			  maximum ifNotNil: [
+					  out
+						  nextPutAll: count;
+						  nextPutAll: ' < ';
+						  print: maximum;
+						  nextPutAll: ' and: [ ' ].
+			  out
+				  nextPutAll: run;
+				  nextPutAll: ' < size and: [ (byte := bytes byteAt: ';
+				  nextPutAll: run;
+				  nextPutAll: ' + 1) < 128 and: [ ';
+				  nextPutAll: (self testFor: ranges on: 'byte');
+				  nextPutAll: ' ] ]'.
+			  maximum ifNotNil: [ out nextPutAll: ' ]' ] ]
 ]
 
 { #category : 'generating' }
@@ -256,7 +295,14 @@ PCRE2MatchGenerator >> sourceFor: aNode [
 PCRE2MatchGenerator >> testFor: ranges on: variable [
 	"Whether the byte in the variable is accepted: one or two ranges are compared, more are looked up in a table. It compares small integers with ==, and is parenthesised, since it always receives another keyword message."
 
-	(ranges isEmpty or: [ ranges size > 2 ]) ifTrue: [ ^ '((' , (self lookupFor: ranges) , ' at: ' , variable , ' + 2) == 1)' ].
+	(ranges isEmpty or: [ ranges size > 2 ]) ifTrue: [
+			^ String streamContents: [ :out |
+					  out
+						  nextPutAll: '((';
+						  nextPutAll: (self lookupFor: ranges);
+						  nextPutAll: ' at: ';
+						  nextPutAll: variable;
+						  nextPutAll: ' + 2) == 1)' ] ].
 	^ String streamContents: [ :out |
 			  out nextPut: $(.
 			  ranges doWithIndex: [ :range :index |
