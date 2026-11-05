@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.1.0 — 2026-11-05
 
 ### Changed
 
@@ -17,6 +17,10 @@
 
 - **A `PharoMinimal` group**: the shared API and the Pharo backend with no Unicode data of its own, and without substitution, DFA matching, UTF-16 and UTF-32, or tracing. A pattern that needs one of the properties of `PCRE2-UnicodeProperties`, `\X` or a script run fails to compile with `PCRE2UnsupportedFeature`. A `UnicodeProperties` group adds them back, and `Substitution`, `DFA`, `Wide` and `Trace` groups add the other features.
 - `scripts/generate-unicode-data.py` writes the two literals with `--packed-properties` and `--packed-tables`, in place of `--packed`.
+
+### Fixed
+
+- **The FFI backend aborted the VM in a process that calls out through a `TFWorker`.** Its callbacks were bound to no library, so they ran on the wrong thread at the first callout, substitution callout or callout enumeration. They are now bound to the library that calls them.
 
 ## 2.0.0 — 2026-11-01
 
