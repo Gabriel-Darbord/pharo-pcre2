@@ -64,5 +64,8 @@ BaselineOfPCRE2 >> baseline: spec [
 				spec package: 'PCRE2-PharoBackend' with: [ spec includes: #( 'PCRE2-UnicodeCompat' ) ] ].
 	spec for: #( #'pharo10.x' #'pharo11.x' ) do: [ "What the tools use of Pharo 12 and later, for the versions before it."
 			spec package: 'PCRE2-Compatibility-Before12'.
-			spec package: 'PCRE2-Tools' with: [ spec requires: #( 'PCRE2-Compatibility-Before12' ) ] ]
+			spec package: 'PCRE2-Tools' with: [ spec requires: #( 'PCRE2-Compatibility-Before12' ) ] ].
+	spec for: #'pharo10.x' do: [ "What the tools use of Pharo 11 and later, for Pharo 10."
+			spec package: 'PCRE2-Compatibility-Before11'.
+			spec package: 'PCRE2-Tools' with: [ spec requires: #( 'PCRE2-Compatibility-Before11' ) ] ]
 ]
