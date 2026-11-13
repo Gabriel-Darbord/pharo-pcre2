@@ -25,14 +25,14 @@ PCRE2UnicodeWithoutPropertiesTest >> compile: pattern [
 PCRE2UnicodeWithoutPropertiesTest >> setUp [
 
 	super setUp.
-	properties := PCRE2UnicodeData properties.
-	PCRE2UnicodeData properties: nil
+	properties := PCRE2UnicodeData unicodeProperties.
+	PCRE2UnicodeData unicodeProperties: nil
 ]
 
 { #category : 'running' }
 PCRE2UnicodeWithoutPropertiesTest >> tearDown [
 
-	PCRE2UnicodeData properties: properties.
+	PCRE2UnicodeData unicodeProperties: properties.
 	super tearDown
 ]
 
