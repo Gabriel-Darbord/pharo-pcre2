@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- **Pharo 11 is supported**, and verified in CI with and without the C library. The baseline loads `PCRE2-UnicodeCompat` there too, since Pharo 11 carries the same Unicode 9.0 tables as 12 to 14, and `PCRE2-Compatibility-Before12`, which brings the tools `Semaphore>>waitTimeoutMilliseconds:`.
+
+### Changed
+
+- **`PCRE2UnicodeData class>>properties` and `properties:` are renamed `unicodeProperties` and `unicodeProperties:`.** Before Pharo 12, `Behavior>>properties` holds a class's own properties, and answering it with the registered tables made `PCRE2UnicodeData` fail to say whether it is obsolete, and so which package it belongs to.
+
 ## 2.1.0 — 2026-11-05
 
 ### Changed
