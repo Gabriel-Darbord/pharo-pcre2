@@ -5,11 +5,16 @@
 ### Added
 
 - **Pharo 11 is supported**, and verified in CI with and without the C library. The baseline loads `PCRE2-UnicodeCompat` there too, since Pharo 11 carries the same Unicode 9.0 tables as 12 to 14, and `PCRE2-Compatibility-Before12`, which brings the tools `Semaphore>>waitTimeoutMilliseconds:`.
-- **Pharo 10 loads**, with the same packages and `PCRE2-Compatibility-Before11`, which brings the tools `SpAbstractListPresenter>>whenSelectedItemChangedDo:`. Its backends pass their tests there; CI does not cover it yet.
+- **Pharo 10 is supported**, and verified in CI with and without the C library. The baseline loads the same packages there, and two more: `PCRE2-Compatibility-Before11`, which brings the tools `SpAbstractListPresenter>>whenSelectedItemChangedDo:`, and `PCRE2-FFIBackend-Compatibility-Before11`, which registers the callbacks of the C binding with the worker of its process-local runner, as Pharo 11 does. Pharo 10 registers them with the runner itself, which cannot run them.
 
 ### Changed
 
 - **`PCRE2UnicodeData class>>properties` and `properties:` are renamed `unicodeProperties` and `unicodeProperties:`.** Before Pharo 12, `Behavior>>properties` holds a class's own properties, and answering it with the registered tables made `PCRE2UnicodeData` fail to say whether it is obsolete, and so which package it belongs to.
+- **The C binding hands its objects to `Object>>finalizationRegistry`**, the finalization registry of the running Pharo, rather than to `FinalizationRegistry`, which Pharo 10 does not have.
+
+### Fixed
+
+- **`PCRE2-BackendIntegration-Tests` requires `PCRE2-Tools-Tests`.** Its `PCRE2DebugSessionFFIBackendTest` subclasses `PCRE2DebugSessionTest`, so it only loaded when the tools tests happened to load first.
 
 ## 2.1.0 — 2026-11-05
 
