@@ -31,8 +31,9 @@ PCRE2Object class >> new [
 
 { #category : 'external resource management' }
 PCRE2Object >> autoRelease [
+	"Object>>finalizationRegistry answers the registry of the running Pharo: WeakRegistry before Pharo 11, which finalizes a shallow copy of the receiver. The copy shares the handle, which free nulls in place, so neither side frees it twice."
 
-	FinalizationRegistry default add: self
+	self finalizationRegistry add: self
 ]
 
 { #category : 'accessing' }
