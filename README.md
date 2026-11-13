@@ -32,7 +32,7 @@ For the regular expression syntax itself, see the [official PCRE2 documentation]
 
 ## Pharo Versions
 
-Developed on Pharo 14 and targeting Pharo 15. Pharo 12, 13, 14 and 15 are verified in CI, with and without the C library.
+Developed on Pharo 14 and targeting Pharo 15. Pharo 11, 12, 13, 14 and 15 are verified in CI, with and without the C library.
 
 ## License
 
