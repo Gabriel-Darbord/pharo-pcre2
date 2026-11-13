@@ -30,10 +30,11 @@ BaselineOfPCRE2 >> baseline: spec [
 						   'PCRE2-PharoBackend-DFA' 'PCRE2-Wide' ) ].
 			"The tools run on either backend, so their tests only need the one a plain install gets."
 			spec package: 'PCRE2-Tools-Tests' with: [ spec requires: #( 'PCRE2-Tools' 'PCRE2-PharoBackend' 'PCRE2-Wide' ) ].
+			"PCRE2DebugSessionFFIBackendTest runs the cases of the tools tests on the C library, so it needs their package."
 			spec package: 'PCRE2-BackendIntegration-Tests' with: [
 					spec requires:
 						#( 'PCRE2-FFIBackend' 'PCRE2-PharoBackend' 'PCRE2-PharoBackend-Substitution' 'PCRE2-PharoBackend-DFA'
-						   'PCRE2-Tools' 'PCRE2-Wide' ) ].
+						   'PCRE2-Tools-Tests' 'PCRE2-Wide' ) ].
 			spec group: 'Core' with: #( 'PCRE2' ).
 			"Each feature group brings the shared API of the feature, and its Pharo implementation where one exists."
 			spec group: 'Trace' with: #( 'PCRE2-Trace' ).
@@ -58,8 +59,16 @@ BaselineOfPCRE2 >> baseline: spec [
 			spec group: 'default' with: #( 'Core' 'Pharo' ).
 			spec group: 'All' with: #( 'Backends' 'Tools' 'Tests' ) ].
 	spec
-		for: #( #'pharo12.x' #'pharo13.x' #'pharo14.x' )
+		for: #( #'pharo10.x' #'pharo11.x' #'pharo12.x' #'pharo13.x' #'pharo14.x' )
 		do: [ "These images carry Unicode 9.0 tables, so the Pharo backend brings its own general categories, case folding and digits."
 				spec package: 'PCRE2-UnicodeCompat' with: [ spec requires: #( 'PCRE2-UnicodeProperties' ) ].
-				spec package: 'PCRE2-PharoBackend' with: [ spec includes: #( 'PCRE2-UnicodeCompat' ) ] ]
+				spec package: 'PCRE2-PharoBackend' with: [ spec includes: #( 'PCRE2-UnicodeCompat' ) ] ].
+	spec for: #( #'pharo10.x' #'pharo11.x' ) do: [ "What the tools use of Pharo 12 and later, for the versions before it."
+			spec package: 'PCRE2-Compatibility-Before12'.
+			spec package: 'PCRE2-Tools' with: [ spec requires: #( 'PCRE2-Compatibility-Before12' ) ] ].
+	spec for: #'pharo10.x' do: [ "What the tools and the C binding use of Pharo 11 and later, for Pharo 10."
+			spec package: 'PCRE2-Compatibility-Before11'.
+			spec package: 'PCRE2-Tools' with: [ spec requires: #( 'PCRE2-Compatibility-Before11' ) ].
+			spec package: 'PCRE2-FFIBackend-Compatibility-Before11' with: [ spec requires: #( 'PCRE2-FFIBackend' ) ].
+			spec package: 'PCRE2-FFIBackend' with: [ spec includes: #( 'PCRE2-FFIBackend-Compatibility-Before11' ) ] ]
 ]

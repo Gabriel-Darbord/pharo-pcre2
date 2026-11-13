@@ -1,5 +1,5 @@
 "
-The Unicode questions the Pharo backend asks while it compiles and matches, answered by two registered objects. `tables` answers general categories, case folding and decimal digits: `PCRE2PharoUnicodeTables` unless `PCRE2-UnicodeCompat` registers `PCRE2PackedUnicodeTables`. `properties` answers scripts, bidi classes, binary properties, grapheme breaks and script runs once `PCRE2-UnicodeProperties` is loaded; without it a pattern using them signals `PCRE2UnsupportedFeature`.
+The Unicode questions the Pharo backend asks while it compiles and matches, answered by two registered objects. `tables` answers general categories, case folding and decimal digits: `PCRE2PharoUnicodeTables` unless `PCRE2-UnicodeCompat` registers `PCRE2PackedUnicodeTables`. `unicodeProperties` answers scripts, bidi classes, binary properties, grapheme breaks and script runs once `PCRE2-UnicodeProperties` is loaded; without it a pattern using them signals `PCRE2UnsupportedFeature`.
 "
 Class {
 	#name : 'PCRE2UnicodeData',
@@ -273,20 +273,6 @@ PCRE2UnicodeData class >> predicateFor: property caseless: caseless [
 ]
 
 { #category : 'registration' }
-PCRE2UnicodeData class >> properties [
-	"Answer the registered properties Pharo has no table for, or nil when none are."
-
-	^ Properties
-]
-
-{ #category : 'registration' }
-PCRE2UnicodeData class >> properties: unicodeProperties [
-	"Register the properties Pharo has no table for; nil registers none."
-
-	Properties := unicodeProperties
-]
-
-{ #category : 'registration' }
 PCRE2UnicodeData class >> requireProperties: feature [
 	"Answer the registered properties, or signal that feature needs them when none are."
 
@@ -374,4 +360,18 @@ PCRE2UnicodeData class >> unicodePosixPredicate: property caseless: caseless [
 			        ('digit' -> 'Nd').
 			        ('cntrl' -> 'Cc') }) at: property ifAbsent: [ PCRE2UnsupportedFeature signal: 'POSIX class ' , property ].
 	^ self predicateFor: key caseless: caseless
+]
+
+{ #category : 'registration' }
+PCRE2UnicodeData class >> unicodeProperties [
+	"Answer the registered properties Pharo has no table for, or nil when none are."
+
+	^ Properties
+]
+
+{ #category : 'registration' }
+PCRE2UnicodeData class >> unicodeProperties: unicodeProperties [
+	"Register the properties Pharo has no table for; nil registers none."
+
+	Properties := unicodeProperties
 ]

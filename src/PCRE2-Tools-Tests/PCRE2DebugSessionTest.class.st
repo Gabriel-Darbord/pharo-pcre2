@@ -748,7 +748,7 @@ PCRE2DebugSessionTest >> testTracePresenterRefreshPreservesSelectedStep [
 
 { #category : 'tests' }
 PCRE2DebugSessionTest >> testTracePresenterRowsFillTheWidthOfTheirPane [
-	"Every row of the trace pane reaches the same right edge. A child given a fixed width or height in a box is laid out at its natural size on the other axis too, which used to leave the right of the pane empty."
+	"Every row of the trace pane reaches the right edge of the status label. A child given a fixed width or height in a box is laid out at its natural size on the other axis too, which used to leave the right of the pane empty. Pharo 10 lays the label out 2 pixels wider than the rows, so an edge within 4 pixels of it counts: the gap this guards against spans most of the pane."
 
 	| presenter rightEdge statusRight |
 	presenter := PCRE2TracePresenter on: ('(cat|cater|caterpillar)' asPerlCompatibleRegex traceMatch: 'caterpillar').
@@ -756,10 +756,15 @@ PCRE2DebugSessionTest >> testTracePresenterRowsFillTheWidthOfTheirPane [
 	rightEdge := [ :aPresenter | aPresenter adapter widget bounds right ].
 	statusRight := rightEdge value: presenter statusLabel.
 
-	self assert: (rightEdge value: presenter subjectText) equals: statusRight.
-	self assert: (rightEdge value: presenter subjectContextText) equals: statusRight.
-	self assert: (rightEdge value: presenter capturesTable) equals: statusRight.
-	self assert: (rightEdge value: presenter detailsText) equals: statusRight
+	{
+		presenter subjectText.
+		presenter subjectContextText.
+		presenter capturesTable.
+		presenter detailsText } do: [ :each |
+			| right |
+			right := rightEdge value: each.
+			self assert: (right - statusRight) abs <= 4 description: (String streamContents: [ :stream |
+					 stream << each class name << ' ends at ' << right printString << ', the status label at ' << statusRight printString ]) ]
 ]
 
 { #category : 'tests' }

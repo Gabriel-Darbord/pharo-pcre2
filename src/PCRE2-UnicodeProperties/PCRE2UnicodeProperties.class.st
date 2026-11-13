@@ -92,7 +92,7 @@ PCRE2UnicodeProperties class >> includes: code in: ranges [
 { #category : 'class initialization' }
 PCRE2UnicodeProperties class >> initialize [
 
-	PCRE2UnicodeData properties: self
+	PCRE2UnicodeData unicodeProperties: self
 ]
 
 { #category : 'properties' }
@@ -247,5 +247,5 @@ PCRE2UnicodeProperties class >> unknownProperty: property [
 { #category : 'class initialization' }
 PCRE2UnicodeProperties class >> unload [
 
-	PCRE2UnicodeData properties: nil
+	PCRE2UnicodeData unicodeProperties: nil
 ]
