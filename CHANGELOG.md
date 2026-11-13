@@ -5,6 +5,7 @@
 ### Added
 
 - **Pharo 11 is supported**, and verified in CI with and without the C library. The baseline loads `PCRE2-UnicodeCompat` there too, since Pharo 11 carries the same Unicode 9.0 tables as 12 to 14, and `PCRE2-Compatibility-Before12`, which brings the tools `Semaphore>>waitTimeoutMilliseconds:`.
+- **Pharo 10 loads**, with the same packages and `PCRE2-Compatibility-Before11`, which brings the tools `SpAbstractListPresenter>>whenSelectedItemChangedDo:`. Its backends pass their tests there; CI does not cover it yet.
 
 ### Changed
 
