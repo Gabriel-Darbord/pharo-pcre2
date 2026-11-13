@@ -30,10 +30,11 @@ BaselineOfPCRE2 >> baseline: spec [
 						   'PCRE2-PharoBackend-DFA' 'PCRE2-Wide' ) ].
 			"The tools run on either backend, so their tests only need the one a plain install gets."
 			spec package: 'PCRE2-Tools-Tests' with: [ spec requires: #( 'PCRE2-Tools' 'PCRE2-PharoBackend' 'PCRE2-Wide' ) ].
+			"PCRE2DebugSessionFFIBackendTest runs the cases of the tools tests on the C library, so it needs their package."
 			spec package: 'PCRE2-BackendIntegration-Tests' with: [
 					spec requires:
 						#( 'PCRE2-FFIBackend' 'PCRE2-PharoBackend' 'PCRE2-PharoBackend-Substitution' 'PCRE2-PharoBackend-DFA'
-						   'PCRE2-Tools' 'PCRE2-Wide' ) ].
+						   'PCRE2-Tools-Tests' 'PCRE2-Wide' ) ].
 			spec group: 'Core' with: #( 'PCRE2' ).
 			"Each feature group brings the shared API of the feature, and its Pharo implementation where one exists."
 			spec group: 'Trace' with: #( 'PCRE2-Trace' ).
